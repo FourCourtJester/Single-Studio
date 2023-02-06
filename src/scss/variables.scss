@@ -1,0 +1,28 @@
+// Bootstrap base functions and variables
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+
+// ---
+// Custom Creations
+// ---
+
+// Background: #2b2e38
+// Button default: #3c404b
+// Color: #fefefe
+
+// ---
+// Brand new helpers
+// ---
+
+$text-shadow: 0 1px rgb(0 0 0 / 40%);
+
+$img-height: 32px;
+$img-width: 32px;
+
+// ---
+// Utilities and Mapping
+// ---
+
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";

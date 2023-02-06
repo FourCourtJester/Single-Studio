@@ -1,0 +1,78 @@
+@use "variables" as var;
+@use "bootstrap" as bs;
+
+@use "~@fortawesome/fontawesome-free/scss/fontawesome";
+@use "~@fortawesome/fontawesome-free/scss/solid";
+@use "~@fortawesome/fontawesome-free/scss/brands";
+@use "~@fortawesome/fontawesome-free/scss/regular";
+
+//
+// Base
+//
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+#app {
+  background: #2b2f38;
+  color: #fefefe;
+}
+
+#studio {
+  padding-top: 4rem;
+}
+
+var {
+  font-weight: normal;
+  font-style: normal;
+}
+
+//
+// Overrides
+//
+
+.border-radius-0 {
+  border-radius: 0;
+}
+
+.text-nospace {
+  font-size: 0;
+}
+
+.text-shadow {
+  text-shadow: var.$text-shadow;
+}
+
+.text-justified {
+  text-align: justify !important;
+}
+
+//
+// Custom Classes
+//
+
+.scrollbar {
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(bs.$gray-600, 0.6);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-track-piece {
+    background-color: transparent;
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 10px;
+  }
+}

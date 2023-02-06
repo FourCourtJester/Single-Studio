@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceFolder}",
+            "name": "Start React",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start",
+            ],
+            "runtimeExecutable": "npm",
+            "type": "node",
+        },
+        {
+            "name": "Debug React",
+            "request": "launch",
+            "runtimeArgs": ["--explicitly-allowed-ports=6666"],
+            "type": "pwa-chrome",
+            "url": "http://localhost:3000",
+            // "userDataDir": false,
+            "webRoot": "${workspaceFolder}/src",
+        }
+    ]
+}

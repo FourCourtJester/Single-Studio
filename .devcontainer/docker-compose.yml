@@ -1,0 +1,10 @@
+version: '3'
+services:
+  react:
+    build: ./
+    command: sleep infinity
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ..:/usr/src/app:cached
+      - ~/.ssh:/home/node/.ssh

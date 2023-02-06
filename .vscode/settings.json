@@ -1,0 +1,33 @@
+{
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint", // ESLint
+    "editor.detectIndentation": false,
+    "eslint.alwaysShowStatus": true,
+    "eslint.enable": true,
+    "eslint.format.enable": true,
+    "editor.formatOnSave": true,
+    "editor.insertSpaces": true,
+    "eslint.lintTask.enable": true,
+    "editor.tabSize": 2,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "git.enableSmartCommit": true,
+    "json.format.enable": true,
+    "[html]": {
+      "editor.defaultFormatter": "vscode.html-language-features"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[jsonc]": {
+      "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[scss]": {
+      "editor.defaultFormatter": "sibiraj-s.vscode-scss-formatter"
+    },
+  }
