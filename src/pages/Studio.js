@@ -1,10 +1,11 @@
 // Import core components
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import { Button, Container, Form, Navbar } from 'react-bootstrap'
 
 // Import our components
-// ...
+import { updateStudio } from 'db/slices/studio'
 
 // Import style
 // ...
@@ -17,17 +18,25 @@ import { Button, Container, Form, Navbar } from 'react-bootstrap'
 function Studio() {
   // Hooks
   const params = useParams()
+  const dispatch = useDispatch()
   // States
   const [SStudio, setStudio] = useState(false)
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault()
 
-    console.log([...new URLSearchParams(new FormData($form.current))])
-  }
+      const data = [...new URLSearchParams(new FormData($form.current))]
+      const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`variables.${key}`]: val }), {})
+
+      console.log(obj)
+      dispatch(updateStudio(obj))
+    },
+    [dispatch]
+  )
 
   const handleSubmitKey = useCallback(
     (e) => {
@@ -36,7 +45,7 @@ function Studio() {
         handleSubmit(new SubmitEvent('submit', { submitter: $btn.current }))
       }
     },
-    [$btn]
+    [$btn, handleSubmit]
   )
 
   useEffect(() => {
@@ -52,27 +61,31 @@ function Studio() {
         console.error(err)
       })
 
+    return () => setStudio(false)
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (SStudio === false) return null
 
   return (
-    <Form ref={$form} onSubmit={handleSubmit}>
+    <>
       <Navbar className="border-bottom border-light" fixed="top">
         <Container fluid>
           <Navbar.Brand className="text-light">{SStudio.Component.name}</Navbar.Brand>
           <div className="ms-auto">
-            <Button ref={$btn} type="submit">
+            <Button ref={$btn} variant="info" type="button" onClick={handleSubmit}>
               <i className="fa fa-floppy-disk" />
             </Button>
           </div>
         </Container>
       </Navbar>
-      <Container id="studio" className="h-100" fluid>
-        <SStudio.Component.Page />
-      </Container>
-    </Form>
+      <Form ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
+        <Container className="pt-2 h-100" fluid>
+          <SStudio.Component.Page />
+        </Container>
+      </Form>
+    </>
   )
 }
 

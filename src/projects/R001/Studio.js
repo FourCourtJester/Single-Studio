@@ -1,8 +1,8 @@
 // Import core components
-import { Col, FloatingLabel, Form, Row } from 'react-bootstrap'
+import { Col, Row } from 'react-bootstrap'
 
 // Import our components
-// ...
+import { Timer, Toggle, Variable } from 'components/studio'
 
 // Import style
 // ...
@@ -15,17 +15,21 @@ import { Col, FloatingLabel, Form, Row } from 'react-bootstrap'
 function Studio() {
   return (
     <>
-      <legend>Players</legend>
-      <Row>
+      <legend className="mb-0">Players</legend>
+      <Row className="g-3 mt-1">
         <Col>
-          <FloatingLabel label="Player One" controlId="players.one.displayName">
-            <Form.Control name="players.one.displayName" type="text" placeholder="Player One Name" />
-          </FloatingLabel>
+          <Variable label="Player One" name="players.one.displayName" placeholder="Player One Name" />
         </Col>
         <Col>
-          <FloatingLabel label="Player Two"  controlId="players.two.displayName">
-            <Form.Control name="players.two.displayName" type="text" placeholder="Player Two Name" />
-          </FloatingLabel>
+          <Variable label="Player Two" name="players.two.displayName" placeholder="Player Two Name" />
+        </Col>
+      </Row>
+      <Row className="g-3 mt-1">
+        <Col>
+          <Toggle label="Player One" name="players" />
+        </Col>
+        <Col>
+          <Timer label="Countdown" name="players" />
         </Col>
       </Row>
     </>

@@ -22,7 +22,40 @@ body,
 }
 
 #studio {
-  padding-top: 4rem;
+  padding-top: calc(3.75rem - 3px);
+}
+
+button,
+a {
+  cursor: pointer;
+  text-align: center;
+
+  .await {
+    display: none;
+  }
+
+  &:disabled,
+  &.disabled {
+    .await {
+      display: inline-block;
+
+      & + i {
+        display: none;
+      }
+    }
+  }
+
+  &.no-cursor {
+    cursor: auto;
+  }
+
+  &:focus {
+    box-shadow: none !important;
+  }
+}
+
+label {
+  color: #2b2f38;
 }
 
 var {

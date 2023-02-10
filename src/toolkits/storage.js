@@ -5,7 +5,7 @@
 // ...
 
 const storage = localStorage
-const namespace = 'studio'
+export const namespace = 'ss'
 
 function _namespace(str) {
   return [namespace, ...(Array.isArray(str) ? str : [str])].join('.')
