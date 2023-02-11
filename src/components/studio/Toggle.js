@@ -19,7 +19,7 @@ const verbs = ['Show', 'Hide']
  */
 export const Toggle = (properties) => {
   // Properties
-  const { label, name } = properties
+  const { icon, label, name } = properties
   const path = `${namespace}.${name}`
   // Hooks
   const dispatch = useDispatch()
@@ -37,7 +37,13 @@ export const Toggle = (properties) => {
 
   return (
     <Button className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={val ? 'info' : 'outline-info'} onClick={handleClick}>
-      {verbs[Number(val)]} {label}
+      {icon ? (
+        <i className={`fas fa-${icon}`} />
+      ) : (
+        <>
+          {verbs[Number(val) || 0]} {label}
+        </>
+      )}
     </Button>
   )
 }

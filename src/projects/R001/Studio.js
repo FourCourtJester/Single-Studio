@@ -2,7 +2,7 @@
 import { Col, Row } from 'react-bootstrap'
 
 // Import our components
-import { Timer, Toggle, Variable } from 'components/studio'
+import { Cycle, Timer, Toggle, Variable } from 'components/studio'
 
 // Import style
 // ...
@@ -15,21 +15,63 @@ import { Timer, Toggle, Variable } from 'components/studio'
 function Studio() {
   return (
     <>
-      <legend className="mb-0">Players</legend>
-      <Row className="g-3 mt-1">
+      <Row className="g-1">
         <Col>
-          <Variable label="Player One" name="players.one.displayName" placeholder="Player One Name" />
+          <legend>Player One</legend>
         </Col>
         <Col>
-          <Variable label="Player Two" name="players.two.displayName" placeholder="Player Two Name" />
+          <legend>Player Two</legend>
         </Col>
       </Row>
-      <Row className="g-3 mt-1">
+      <Row className="g-1 mt-1">
         <Col>
-          <Toggle label="Player One" name="players" />
+          <Row className="g-1">
+            <Col>
+              <Variable label="Player Name" name="players.one.displayName" />
+            </Col>
+
+            <Col xs={2}>
+              <Variable as="number" label="Score" name="players.one.score" />
+            </Col>
+          </Row>
+          <Row className="g-1 mt-1">
+            <Col>
+              <Variable label="Alliance" name="players.one.alliance" />
+            </Col>
+            <Col xs={2}>
+              <Cycle choices={['GDI', 'Nod']} name="players.one.faction" />
+            </Col>
+          </Row>
         </Col>
-        <Col>
-          <Timer label="Countdown" name="players" />
+        <Col />
+      </Row>
+      <hr />
+      <Row className="g-1">
+        <Col xs={3}>
+          <legend>Player 1</legend>
+        </Col>
+        <Col xs={1}>
+          <Toggle icon="rocket" name="missile.one.player.one" />
+        </Col>
+        <Col xs={1}>
+          <Toggle icon="rocket" name="missile.two.player.one" />
+        </Col>
+        <Col xs={1}>
+          <Toggle icon="rocket" name="missile.three.player.one" />
+        </Col>
+      </Row>
+      <Row className="g-1 mt-1">
+        <Col xs={3}>
+          <legend>Player 2</legend>
+        </Col>
+        <Col xs={1}>
+          <Toggle icon="rocket" name="missile.one.player.two" />
+        </Col>
+        <Col xs={1}>
+          <Toggle icon="rocket" name="missile.two.player.two" />
+        </Col>
+        <Col xs={1}>
+          <Toggle icon="rocket" name="missile.three.player.two" />
         </Col>
       </Row>
     </>

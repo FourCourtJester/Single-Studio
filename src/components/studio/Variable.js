@@ -16,14 +16,21 @@ const namespace = 'variables'
  */
 export const Variable = (properties) => {
   // Properties
-  const { label, name, placeholder } = properties
+  const { as: type = 'text', label, name, placeholder } = properties
   const path = `${namespace}.${name}`
   // Redux
   const val = useStudio(path) || ''
+  // Variables
+  const props = {
+    defaultValue: val,
+    name,
+    placeholder: placeholder || label,
+    [type === 'textarea' ? 'as' : 'type']: type,
+  }
 
   return (
     <FloatingLabel label={label} controlId={name}>
-      <Form.Control name={name} type="text" placeholder={placeholder || label} defaultValue={val} />
+      <Form.Control {...props} />
     </FloatingLabel>
   )
 }
