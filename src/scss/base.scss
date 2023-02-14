@@ -16,13 +16,22 @@ body,
   width: 100%;
 }
 
-#app {
+body {
   background: #2b2f38;
   color: #fefefe;
 }
 
 #studio {
   padding-top: calc(3.75rem - 3px);
+
+  .row + .row {
+    margin-top: map-get(bs.$spacers, 2);
+  }
+}
+
+#source {
+  height: 1080px;
+  width: 1920px;
 }
 
 button,

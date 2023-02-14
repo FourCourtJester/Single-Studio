@@ -34,6 +34,17 @@ export const studio = createSlice({
   name,
   initialState: getState(),
   reducers: {
+    swap: (state, { payload: fields }) => {
+      const mid = Math.ceil(fields.length / 2)
+      const to = Object.entries(fields.slice(0, mid).reduce((obj, path) => ({ ...obj, [path]: Utils.getObjValue(state, path) }), {}))
+      const from = Object.entries(fields.slice(mid).reduce((obj, path) => ({ ...obj, [path]: Utils.getObjValue(state, path) }), {}))
+
+      to.forEach(([path, val], i) => {
+        const [fPath, fVal] = from[i]
+        Utils.setObjValue(state, fPath, val)
+        Utils.setObjValue(state, path, fVal)
+      })
+    },
     update: (state, { payload: fields }) => {
       Utils.getObjPaths(fields, (path, val) => {
         Utils.setObjValue(state, path, val)
@@ -43,7 +54,7 @@ export const studio = createSlice({
 })
 
 // Reducer functions
-export const { update: updateStudio } = studio.actions
+export const { swap: swapStudio, update: updateStudio } = studio.actions
 
 // Selector functions
 export const selector = (state, path) =>

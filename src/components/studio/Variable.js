@@ -3,6 +3,7 @@ import { FloatingLabel, Form } from 'react-bootstrap'
 
 // Import our components
 import { useStudio } from 'hooks'
+import { useEffect, useState } from 'react'
 
 // Import style
 // ...
@@ -20,13 +21,17 @@ export const Variable = (properties) => {
   const path = `${namespace}.${name}`
   // Redux
   const val = useStudio(path) || ''
-  // Variables
-  const props = {
-    defaultValue: val,
-    name,
-    placeholder: placeholder || label,
-    [type === 'textarea' ? 'as' : 'type']: type,
-  }
+  // States
+  const [props, setProps] = useState({})
+
+  useEffect(() => {
+    setProps({
+      defaultValue: val,
+      name,
+      placeholder: placeholder || label,
+      [type === 'textarea' ? 'as' : 'type']: type,
+    })
+  }, [label, name, placeholder, type, val])
 
   return (
     <FloatingLabel label={label} controlId={name}>

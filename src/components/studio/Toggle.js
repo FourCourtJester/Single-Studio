@@ -19,7 +19,7 @@ const verbs = ['Show', 'Hide']
  */
 export const Toggle = (properties) => {
   // Properties
-  const { icon, label, name } = properties
+  const { icon, group, label, name } = properties
   const path = `${namespace}.${name}`
   // Hooks
   const dispatch = useDispatch()
@@ -29,10 +29,22 @@ export const Toggle = (properties) => {
   const handleClick = (e) => {
     e.preventDefault()
 
-    console.log(path, !val)
+    let obj = {}
+
+    // Optional: Toggle Group
+    // Toggle all group members off
+    if (group) {
+      obj = {
+        ...obj,
+        ...group.reduce((props, key) => ({ ...props, [`${namespace}.${key}`]: false }), {}),
+      }
+    }
+
+    // Toggle this
+    obj[path] = !val
 
     // console.log(obj)
-    dispatch(updateStudio({ [path]: !val }))
+    dispatch(updateStudio(obj))
   }
 
   return (

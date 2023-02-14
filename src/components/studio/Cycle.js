@@ -33,9 +33,7 @@ export const Cycle = (properties) => {
 
     const next = _choices.findIndex((choice) => choice === val) + 1
 
-    console.log(path, _choices[next])
-
-    // console.log(obj)
+    // console.log(path, _choices[next])
     dispatch(updateStudio({ [path]: _choices[next] }))
   }
 

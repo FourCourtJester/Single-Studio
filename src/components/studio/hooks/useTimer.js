@@ -17,6 +17,11 @@ function timeToString(t) {
   return t >= 3600000 ? d.slice(11, -5) : d.slice(14, -5)
 }
 
+/**
+ * Hook: useTimer
+ *
+ * @returns {object}
+ */
 export const useTimer = ({ path }) => {
   // Redux
   const val = useStudio(path)

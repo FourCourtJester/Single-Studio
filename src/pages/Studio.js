@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useParams } from 'react-router-dom'
-import { Button, Container, Form, Navbar } from 'react-bootstrap'
+import { Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
@@ -32,7 +32,7 @@ function Studio() {
       const data = [...new URLSearchParams(new FormData($form.current))]
       const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`variables.${key}`]: val }), {})
 
-      console.log(obj)
+      // console.log(obj)
       dispatch(updateStudio(obj))
     },
     [dispatch]
@@ -74,9 +74,11 @@ function Studio() {
         <Container fluid>
           <Navbar.Brand className="text-light">{SStudio.Component.name}</Navbar.Brand>
           <div className="ms-auto">
-            <Button ref={$btn} variant="info" type="button" onClick={handleSubmit}>
-              <i className="fa fa-floppy-disk" />
-            </Button>
+            <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
+              <Button ref={$btn} variant="info" type="button" onClick={handleSubmit}>
+                <i className="fa fa-floppy-disk" />
+              </Button>
+            </OverlayTrigger>
           </div>
         </Container>
       </Navbar>
