@@ -83,7 +83,7 @@ function Studio() {
         </Container>
       </Navbar>
       <Form ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
-        <Container className="pt-2 h-100" fluid>
+        <Container className="py-2" fluid>
           <SStudio.Component.Page />
         </Container>
       </Form>

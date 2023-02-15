@@ -3,32 +3,32 @@ import { useDispatch } from 'react-redux'
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 // Import our components
-import { swapStudio } from 'db/slices/studio'
+import { resetStudio } from 'db/slices/studio'
 
 // Import style
 // ...
 
 /**
- * Component: Swap Button
+ * Component: Reset Button
  *
  * @returns {React.FunctionComponentElement} React.FunctionComponentElement
  */
-export const Swap = (properties) => {
+export const Reset = (properties) => {
   // Properties
-  const { fields, label } = properties
+  const { label, paths } = properties
   // Hooks
   const dispatch = useDispatch()
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    dispatch(swapStudio(fields.map((field) => `variables.${field}`)))
+    dispatch(resetStudio(paths))
   }
 
   return (
-    <OverlayTrigger placement="top" overlay={<Tooltip>Swap {label}</Tooltip>}>
-      <Button variant="warning" onClick={handleClick}>
-        <i className="fas fa-rotate" />
+    <OverlayTrigger placement="top" overlay={<Tooltip>Reset {label}</Tooltip>}>
+      <Button variant="danger" onClick={handleClick}>
+        <i className="fas fa-rotate-right" />
       </Button>
     </OverlayTrigger>
   )

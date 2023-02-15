@@ -3,6 +3,7 @@ import { Col, Row } from 'react-bootstrap'
 
 // Import our components
 import { Cycle, SwapButton, Timer, Toggle, Variable } from 'components/studio'
+import { Decks } from './components/studio'
 
 // Import style
 // ...
@@ -27,12 +28,13 @@ function Studio() {
                   'players.1.displayName',
                   'players.1.score',
                   'players.1.alliance',
-                  'players.1.faction',
+                  'players.1.deck.faction',
                   'players.2.displayName',
                   'players.2.score',
                   'players.2.alliance',
-                  'players.2.faction',
+                  'players.2.deck.faction',
                 ]}
+                label="Players"
               />
             </Col>
           </Row>
@@ -62,7 +64,7 @@ function Studio() {
                   <Variable label="Alliance" name="players.1.alliance" />
                 </Col>
                 <Col xs={2}>
-                  <Cycle choices={['GDI', 'Nod']} name="players.1.faction" />
+                  <Cycle choices={['GDI', 'Nod']} name="players.1.deck.faction" />
                 </Col>
               </Row>
             </Col>
@@ -84,7 +86,7 @@ function Studio() {
                   <Variable label="Alliance" name="players.2.alliance" />
                 </Col>
                 <Col xs={2}>
-                  <Cycle choices={['GDI', 'Nod']} name="players.2.faction" />
+                  <Cycle choices={['GDI', 'Nod']} name="players.2.deck.faction" />
                 </Col>
               </Row>
             </Col>
@@ -124,6 +126,15 @@ function Studio() {
               <Toggle icon="rocket" name="missile.3.player.2" group={['missile.3.player.1', 'missile.3.player.2']} />
             </Col>
           </Row>
+        </Col>
+      </Row>
+      <hr />
+      <Row>
+        <Col>
+          <Decks player="1" />
+        </Col>
+        <Col>
+          <Decks player="2" />
         </Col>
       </Row>
     </>

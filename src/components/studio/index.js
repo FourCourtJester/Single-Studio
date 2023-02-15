@@ -1,4 +1,4 @@
-export { Swap as SwapButton } from './buttons'
+export { Reset as ResetButton, Swap as SwapButton } from './buttons'
 
 export { Cycle } from './Cycle'
 export { Timer } from './Timer'

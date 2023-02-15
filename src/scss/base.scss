@@ -21,6 +21,12 @@ body {
   color: #fefefe;
 }
 
+#app {
+  > nav {
+    background: #2b2f38;
+  }
+}
+
 #studio {
   padding-top: calc(3.75rem - 3px);
 

@@ -34,15 +34,18 @@ export const studio = createSlice({
   name,
   initialState: getState(),
   reducers: {
+    reset: (state, { payload: paths }) => {
+      paths.forEach((path) => {
+        Utils.setObjValue(state, path, undefined)
+      })
+    },
     swap: (state, { payload: fields }) => {
       const mid = Math.ceil(fields.length / 2)
-      const to = Object.entries(fields.slice(0, mid).reduce((obj, path) => ({ ...obj, [path]: Utils.getObjValue(state, path) }), {}))
-      const from = Object.entries(fields.slice(mid).reduce((obj, path) => ({ ...obj, [path]: Utils.getObjValue(state, path) }), {}))
+      const from = Object.entries(fields.slice(0, mid).reduce((obj, path) => ({ ...obj, [path]: Utils.getObjValue(state, path) }), {}))
 
-      to.forEach(([path, val], i) => {
-        const [fPath, fVal] = from[i]
-        Utils.setObjValue(state, fPath, val)
-        Utils.setObjValue(state, path, fVal)
+      fields.slice(mid).forEach((path, i) => {
+        Utils.setObjValue(state, from[i][0], Utils.getObjValue(state, path))
+        Utils.setObjValue(state, path, from[i][1])
       })
     },
     update: (state, { payload: fields }) => {
@@ -54,7 +57,7 @@ export const studio = createSlice({
 })
 
 // Reducer functions
-export const { swap: swapStudio, update: updateStudio } = studio.actions
+export const { reset: resetStudio, swap: swapStudio, update: updateStudio } = studio.actions
 
 // Selector functions
 export const selector = (state, path) =>
