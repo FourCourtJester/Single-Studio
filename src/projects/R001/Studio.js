@@ -2,8 +2,8 @@
 import { Col, Row } from 'react-bootstrap'
 
 // Import our components
-import { Cycle, SwapButton, Timer, Toggle, Variable } from 'components/studio'
-import { Decks } from './components/studio'
+import { Cycle, ResetButton, SwapButton, Timer, Toggle, Variable } from 'components/studio'
+import { Decks, Maps } from './components/studio'
 
 // Import style
 // ...
@@ -96,34 +96,39 @@ function Studio() {
       <hr />
       <Row>
         <Col>
-          <Row className="gx-2">
+          <legend>Map &amp; Missiles</legend>
+        </Col>
+        <Col xs="auto">
+          <ResetButton paths={['toggles.missile', 'variables.map']} label="Map & Missiles" />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          <Row className="d-flex flex-row align-items-center h-100 gx-2">
             <Col>
-              <legend>Missile</legend>
-            </Col>
-            <Col xs="auto">
               <Toggle icon="rocket" name="missile.1.player.1" group={['missile.1.player.1', 'missile.1.player.2']} />
             </Col>
-            <Col xs="auto">
+            <Col>
               <Toggle icon="rocket" name="missile.2.player.1" group={['missile.2.player.1', 'missile.2.player.2']} />
             </Col>
-            <Col xs="auto">
+            <Col>
               <Toggle icon="rocket" name="missile.3.player.1" group={['missile.3.player.1', 'missile.3.player.2']} />
             </Col>
           </Row>
         </Col>
         <Col>
-          <Row className="gx-2">
+          <Maps />
+        </Col>
+        <Col>
+          <Row className="d-flex flex-row align-items-center h-100 gx-2">
             <Col>
-              <legend>Missile</legend>
+              <Toggle icon="rocket" name="missile.1.player.2" variant="danger" group={['missile.1.player.1', 'missile.1.player.2']} />
             </Col>
-            <Col xs="auto">
-              <Toggle icon="rocket" name="missile.1.player.2" group={['missile.1.player.1', 'missile.1.player.2']} />
+            <Col>
+              <Toggle icon="rocket" name="missile.2.player.2" variant="danger" group={['missile.2.player.1', 'missile.2.player.2']} />
             </Col>
-            <Col xs="auto">
-              <Toggle icon="rocket" name="missile.2.player.2" group={['missile.2.player.1', 'missile.2.player.2']} />
-            </Col>
-            <Col xs="auto">
-              <Toggle icon="rocket" name="missile.3.player.2" group={['missile.3.player.1', 'missile.3.player.2']} />
+            <Col>
+              <Toggle icon="rocket" name="missile.3.player.2" variant="danger" group={['missile.3.player.1', 'missile.3.player.2']} />
             </Col>
           </Row>
         </Col>
