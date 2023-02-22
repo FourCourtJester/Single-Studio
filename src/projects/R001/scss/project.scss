@@ -1,0 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Mohave:wght@500&display=swap");
+
+$public: "/../public/R001";
+
+body {
+  font-family: "Mohave";
+  line-height: norma1l;
+}
+
+// Globals
+.z-n1 {
+  z-index: -1;
+}
+
+// Scenes
+
+#replay {
+  .players {
+    height: calc(1080px - 103px);
+
+    .player {
+      width: 820px;
+
+      .plate {
+        height: 120px;
+        font-size: 3.5rem;
+      }
+
+      .player-name {
+        transform: translateY(4.5rem);
+        text-shadow: 2px 2px 15px #000, -2px -2px 15px #000;
+      }
+    }
+  }
+
+  .bar {
+    background: url("#{$public}/overlay/game/bar.jpg");
+    height: 103px;
+    font-size: 3.5rem;
+    z-index: 10;
+
+    img {
+      max-height: 103px;
+    }
+  }
+}
