@@ -35,7 +35,7 @@ function Deck(properties) {
       <Row className="gx-2">
         {arsenals[faction].commanders.map((commander) => (
           <Col key={commander}>
-            <Toggle image={`commanders/${commander}.jpg`} name={`players.${player}.deck.commander`} value={commander} variant="info" />
+            <Toggle image={`commanders/${commander}.jpg`} name={`players.${player}.deck.commander`} value={commander} variant="link" />
           </Col>
         ))}
       </Row>

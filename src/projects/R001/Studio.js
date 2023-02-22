@@ -64,7 +64,7 @@ function Studio() {
                   <Variable label="Alliance" name="players.1.alliance" />
                 </Col>
                 <Col xs={2}>
-                  <Cycle choices={['GDI', 'Nod']} name="players.1.deck.faction" />
+                  <Cycle name="players.1.deck.faction" choices={['GDI', 'Nod']} image="logos/:choice:.png" variant="link" />
                 </Col>
               </Row>
             </Col>
@@ -86,7 +86,7 @@ function Studio() {
                   <Variable label="Alliance" name="players.2.alliance" />
                 </Col>
                 <Col xs={2}>
-                  <Cycle choices={['GDI', 'Nod']} name="players.2.deck.faction" />
+                  <Cycle choices={['GDI', 'Nod']} name="players.2.deck.faction" image="logos/:choice:.png" variant="link" />
                 </Col>
               </Row>
             </Col>

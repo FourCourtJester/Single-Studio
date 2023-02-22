@@ -1,5 +1,5 @@
 // Import core components
-import { Button, Col, Image, Row } from 'react-bootstrap'
+import { Image, OverlayTrigger, Popover, Row } from 'react-bootstrap'
 
 // Import our components
 import { useStudio } from 'hooks'
@@ -21,7 +21,7 @@ function Maps() {
 
   return (
     <Row className="d-flex flex-column justify-content-center align-items-center gx-2">
-      {currentMap && <Image className="mb-2" src={`/R001/maps/preview/${currentMap}.webp`} fluid />}
+      {/* {currentMap && <Image className="mb-2" src={`/R001/maps/preview/${currentMap}.webp`} fluid />} */}
       <Select label="Current Map" name="map">
         {maps.map((map) => (
           <option key={map} value={map}>
@@ -29,6 +29,18 @@ function Maps() {
           </option>
         ))}
       </Select>
+      <OverlayTrigger
+        placement="top"
+        overlay={
+          <Popover>
+            <Popover.Body>
+              <Image className="mb-2" src={`/R001/maps/preview/${currentMap}.webp`} fluid />
+            </Popover.Body>
+          </Popover>
+        }
+      >
+        <a className="text-success text-center m-0">Preview</a>
+      </OverlayTrigger>
     </Row>
   )
 
