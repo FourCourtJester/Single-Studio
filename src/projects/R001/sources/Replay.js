@@ -20,7 +20,9 @@ function Page() {
     right: +useStudio(`variables.players.2.score`) || 0,
   }
   // Variables
-  const series = Array(3).fill(0)
+  const series = [0, 0, 0]
+
+  console.log(scores)
 
   return (
     <Scene id="replay" className="w-100 h-100">
@@ -28,9 +30,9 @@ function Page() {
       <div className="players d-flex flex-row justify-content-between align-items-start">
         <div className="player left d-flex flex-column justify-content-end align-items-center">
           <div className="plate position-relative d-flex flex-column justify-content-end align-items-center w-100">
-            <p className="score m-0">
+            <p className="score d-flex flex-row mb-1">
               {series.map((n, i) => (
-                <Image key={i} src={`overlay/game/points/NOD-${scores.left < i ? 0 : 1}.png`} />
+                <Image key={i} src={`overlay/game/points/NOD-${scores.left <= i ? 0 : 1}.png`} />
               ))}
             </p>
             <Variable className="player-name position-absolute bottom-0 left-0 text-uppercase text-center w-100" name="players.1.displayName" />
@@ -39,9 +41,9 @@ function Page() {
         </div>
         <div className="player right d-flex flex-column justify-content-end align-items-center">
           <div className="plate position-relative d-flex flex-column justify-content-end align-items-center w-100">
-            <p className="score m-0">
+            <p className="score d-flex flex-row-reverse mb-1">
               {series.map((n, i) => (
-                <Image key={i} src={`overlay/game/points/GDI-${scores.left >= i ? 0 : 1}.png`} />
+                <Image key={i} src={`overlay/game/points/GDI-${scores.right <= i ? 0 : 1}.png`} />
               ))}
             </p>
             <Variable className="player-name position-absolute bottom-0 left-0 text-uppercase text-center w-100" name="players.2.displayName" />

@@ -8,6 +8,19 @@ body {
 }
 
 // Globals
+var,
+img {
+  transition: opacity ease 0.5s;
+  opacity: 0;
+
+  &.appear-active,
+  &.appear-done,
+  &.enter-active,
+  &.enter-done {
+    opacity: 1;
+  }
+}
+
 .z-n1 {
   z-index: -1;
 }
@@ -24,11 +37,11 @@ body {
       .plate {
         height: 120px;
         font-size: 3.5rem;
-      }
 
-      .player-name {
-        transform: translateY(4.5rem);
-        text-shadow: 2px 2px 15px #000, -2px -2px 15px #000;
+        .player-name {
+          transform: translateY(4.5rem);
+          text-shadow: 2px 2px 15px #000, -2px -2px 15px #000;
+        }
       }
     }
   }

@@ -64,4 +64,4 @@ export const selector = (state, path) =>
   // console.log(state, path, Utils.getObjValue(state.studio, path))
   Utils.getObjValue(state.studio, path)
 
-export default studio.reducer
+export const { reducer } = studio

@@ -33,10 +33,6 @@ export const _Image = (properties) => {
   const $ref = useRef(null)
 
   useEffect(() => {
-    console.log(path, val)
-  }, [path, val])
-
-  useEffect(() => {
     const { src = false } = properties
 
     setProps({
@@ -47,8 +43,8 @@ export const _Image = (properties) => {
 
   return (
     <SwitchTransition>
-      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref} {...props}>
-        <Image ref={$ref} />
+      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref}>
+        <Image ref={$ref} {...props} />
       </CSSTransition>
     </SwitchTransition>
   )

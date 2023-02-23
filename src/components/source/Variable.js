@@ -34,8 +34,10 @@ export const Variable = (properties) => {
 
   return (
     <SwitchTransition>
-      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref} {...props}>
-        <var ref={$ref}>{val}</var>
+      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref}>
+        <var ref={$ref} {...props}>
+          {val}
+        </var>
       </CSSTransition>
     </SwitchTransition>
   )
