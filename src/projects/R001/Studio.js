@@ -93,6 +93,36 @@ function Studio() {
           </Row>
         </Col>
       </Row>
+      <Row>
+        <Col>
+          <legend>Series</legend>
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          <Row className="gx-2">
+            <Col>
+              <Timer label="Countdown" name="countdown" />
+            </Col>
+            <Col>
+              <Variable label="Round" name="series.round" />
+            </Col>
+          </Row>
+        </Col>
+        <Col>
+          <Row className="gx-2">
+            <Col>
+              <Variable as="number" label="Game" name="series.game.current" />
+            </Col>
+            <Col className="d-flex align-items-center" xs="auto">
+              <span>of</span>
+            </Col>
+            <Col>
+              <Variable as="number" label="Limit" name="series.game.max" />
+            </Col>
+          </Row>
+        </Col>
+      </Row>
       <hr />
       <Row>
         <Col>

@@ -4,12 +4,13 @@ $public: "/../public/R001";
 
 body {
   font-family: "Mohave";
-  line-height: norma1l;
+  line-height: normal;
+  overflow: hidden;
 }
 
 // Globals
-var,
-img {
+.variable,
+.toggle {
   transition: opacity ease 0.5s;
   opacity: 0;
 
@@ -29,18 +30,51 @@ img {
 
 #replay {
   .players {
-    height: calc(1080px - 103px);
+    height: 977px;
 
     .player {
       width: 820px;
 
+      .commander {
+        top: 120px;
+      }
+
       .plate {
         height: 120px;
         font-size: 3.5rem;
+        z-index: 10;
 
         .player-name {
-          transform: translateY(4.5rem);
-          text-shadow: 2px 2px 15px #000, -2px -2px 15px #000;
+          var {
+            line-height: 1;
+            text-shadow: 2px 2px 15px #000, -2px -2px 15px #000;
+
+            &:last-child {
+              font-size: 2.25rem;
+
+              &:before {
+                content: "<";
+              }
+
+              &:after {
+                content: ">";
+              }
+            }
+          }
+        }
+      }
+
+      .arsenal {
+        .toggle {
+          display: none;
+          width: 100px;
+
+          &.appear-active,
+          &.appear-done,
+          &.enter-active,
+          &.enter-done {
+            display: flex;
+          }
         }
       }
     }
@@ -54,6 +88,32 @@ img {
 
     img {
       max-height: 103px;
+    }
+  }
+
+  .map {
+    bottom: 103px;
+    font-size: 2.25rem;
+    text-shadow: 2px 2px 15px #000, -2px -2px 15px #000;
+
+    img {
+      width: 362px;
+    }
+
+    .timer {
+      transition: transform ease 0.5s;
+      transform: translateY(100%);
+
+      &.appear-active,
+      &.appear-done,
+      &.enter-active,
+      &.enter-done {
+        transform: none;
+      }
+
+      &.exit-done {
+        opacity: 0;
+      }
     }
   }
 }

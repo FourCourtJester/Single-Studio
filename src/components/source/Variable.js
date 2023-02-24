@@ -1,6 +1,7 @@
 // Import core components
 import { useEffect, useRef, useState } from 'react'
 import { CSSTransition, SwitchTransition } from 'react-transition-group'
+import cN from 'classnames'
 
 // Import our components
 import { useStudio } from 'hooks'
@@ -27,8 +28,11 @@ export const Variable = (properties) => {
   const $ref = useRef(null)
 
   useEffect(() => {
+    const { className } = properties
+
     setProps({
       ...properties,
+      className: cN('variable', className),
     })
   }, [properties, val])
 

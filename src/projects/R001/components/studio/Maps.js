@@ -4,9 +4,10 @@ import { Image, OverlayTrigger, Popover, Row } from 'react-bootstrap'
 // Import our components
 import { useStudio } from 'hooks'
 import { Select } from 'components/studio'
+import allMaps from '../maps.json'
 
 // Import style
-import allMaps from '../maps.json'
+// ...
 
 /**
  * Studio: Command & Conquer - Maps

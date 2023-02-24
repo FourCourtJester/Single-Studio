@@ -4,9 +4,10 @@ import { Col, Row } from 'react-bootstrap'
 // Import our components
 import { useStudio } from 'hooks'
 import { ResetButton, Toggle } from 'components/studio'
+import arsenals from '../arsenals.json'
 
 // Import style
-import arsenals from '../arsenals.json'
+// ...
 
 /**
  * Studio: Command & Conquer - Deck

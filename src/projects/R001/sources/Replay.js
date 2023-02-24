@@ -2,8 +2,8 @@
 import { Col, Row } from 'react-bootstrap'
 
 // Import our components
-import { Image, Scene, Variable } from 'components/source'
-import { useStudio } from 'hooks'
+import { Image, Scene, Timer, Variable } from 'components/source'
+import { ReplayDeck as Deck, ReplayScoreboard as Scoreboard } from '../components/source'
 
 // Import style
 import '../scss/project.scss'
@@ -14,54 +14,55 @@ import '../scss/project.scss'
  * @returns {React.FunctionComponentElement} React.FunctionComponentElement
  */
 function Page() {
-  // Redux
-  const scores = {
-    left: +useStudio(`variables.players.1.score`) || 0,
-    right: +useStudio(`variables.players.2.score`) || 0,
-  }
-  // Variables
-  const series = [0, 0, 0]
-
-  console.log(scores)
-
   return (
     <Scene id="replay" className="w-100 h-100">
       <Image className="position-absolute w-100 h-100 z-n1" name="map" src="maps/:var:.jpg" />
-      <div className="players d-flex flex-row justify-content-between align-items-start">
-        <div className="player left d-flex flex-column justify-content-end align-items-center">
+      <div className="players position-relative d-flex flex-row justify-content-between align-items-start">
+        {/* Player Left */}
+        <div className="player left position-relative d-flex flex-column justify-content-between align-items-center h-100">
+          <Image className="commander position-absolute left-0 z-n1" name="players.1.deck.commander" src="commanders/transparent/:var:.png" />
           <div className="plate position-relative d-flex flex-column justify-content-end align-items-center w-100">
-            <p className="score d-flex flex-row mb-1">
-              {series.map((n, i) => (
-                <Image key={i} src={`overlay/game/points/NOD-${scores.left <= i ? 0 : 1}.png`} />
-              ))}
-            </p>
-            <Variable className="player-name position-absolute bottom-0 left-0 text-uppercase text-center w-100" name="players.1.displayName" />
+            <Scoreboard player="1" />
+            <div className="player-name position-absolute top-100 left-0 d-flex flex-column align-items-center text-uppercase w-100">
+              <Variable name="players.1.displayName" />
+              <Variable name="players.1.alliance" />
+            </div>
           </div>
-          <Image className="commander" name="players.1.deck.commander" src="commanders/transparent/:var:.png" />
+          <Deck player="1" />
         </div>
-        <div className="player right d-flex flex-column justify-content-end align-items-center">
+        {/* Player Right */}
+        <div className="player right position-relative d-flex flex-column justify-content-between align-items-center h-100">
+          <Image className="commander position-absolute left-0 z-n1" name="players.2.deck.commander" src="commanders/transparent/:var:.png" />
           <div className="plate position-relative d-flex flex-column justify-content-end align-items-center w-100">
-            <p className="score d-flex flex-row-reverse mb-1">
-              {series.map((n, i) => (
-                <Image key={i} src={`overlay/game/points/GDI-${scores.right <= i ? 0 : 1}.png`} />
-              ))}
-            </p>
-            <Variable className="player-name position-absolute bottom-0 left-0 text-uppercase text-center w-100" name="players.2.displayName" />
+            <Scoreboard player="2" reverse />
+            <div className="player-name position-absolute top-100 left-0 d-flex flex-column align-items-center text-uppercase w-100">
+              <Variable name="players.2.displayName" />
+              <Variable name="players.2.alliance" />
+            </div>
           </div>
-          <Image className="commander" name="players.2.deck.commander" src="commanders/transparent/:var:.png" />
+          <Deck player="2" />
         </div>
       </div>
+      {/* Bottom Bar */}
       <Row className="bar position-relative w-100">
         <Col className="d-flex justify-content-end align-items-center">
-          <var className="text-uppercase">Quarter Finals</var>
+          <Variable className="text-uppercase" name="series.round" />
         </Col>
         <Col className="d-flex justify-content-center align-items-center" xs="auto">
           <Image src="overlay/logo.png" />
         </Col>
-        <Col className="d-flex justify-content-start align-items-center">
-          <var className="text-uppercase">Game 1 of 5</var>
+        <Col className="d-flex justify-content-start align-items-center text-prewrap text-uppercase">
+          Game&nbsp;
+          <Variable name="series.game.current" />
+          &nbsp;of&nbsp;
+          <Variable name="series.game.max" />
         </Col>
       </Row>
+      {/* Map */}
+      <div className="map position-absolute d-flex flex-column align-items-center left-0 pb-5 w-100">
+        <Timer className="position-relative" name="countdown" />
+        <Image className="position-relative" name="map" src="maps/preview/:var:.webp" />
+      </div>
     </Scene>
   )
 }

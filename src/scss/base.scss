@@ -102,6 +102,10 @@ var {
 // Custom Classes
 //
 
+.text-prewrap {
+  white-space: pre-wrap;
+}
+
 .scrollbar {
   overflow-x: hidden;
   overflow-y: auto;

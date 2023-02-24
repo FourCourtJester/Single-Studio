@@ -40,7 +40,7 @@ function Studio() {
 
   const handleSubmitKey = useCallback(
     (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
         handleSubmit(new SubmitEvent('submit', { submitter: $btn.current }))
       }

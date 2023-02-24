@@ -1,13 +1,12 @@
 // Import core components
 import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
 import { Button, Image } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
-import { useStudio } from 'hooks'
+import { usePublic, useStudio } from 'hooks'
 
 // Import style
 // ...
@@ -28,14 +27,13 @@ export const Toggle = (properties) => {
   const path = `${namespace}.${name}`
   // Hooks
   const dispatch = useDispatch()
-  const params = useParams()
+  const publik = usePublic()
   // Redux
   const val = useStudio(path)
   // States
   const [active, setActive] = useState(false)
   // Variables
   const isSwitch = value !== undefined
-  const publik = `/${params.code}`
 
   const handleClick = (e) => {
     e.preventDefault()
