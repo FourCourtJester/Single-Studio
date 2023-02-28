@@ -48,7 +48,7 @@ export const Cycle = (properties) => {
     return (
       <Button
         className={cN('d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100')}
-        variant={variant || 'outline-info'}
+        variant={variant || 'outline-obs'}
         onClick={handleClick}
       >
         <Image src={`${publik}/${img}`} fluid />
@@ -57,7 +57,7 @@ export const Cycle = (properties) => {
   }
 
   return (
-    <Button className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant || 'outline-info'} onClick={handleClick}>
+    <Button className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant || 'outline-obs'} onClick={handleClick}>
       {_choices.find((choice) => choice === val)}
     </Button>
   )

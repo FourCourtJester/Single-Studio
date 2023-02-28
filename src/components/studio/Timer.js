@@ -87,7 +87,7 @@ export const Timer = (properties) => {
   }, [active])
 
   return active ? (
-    <Button className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant="outline-info" onClick={handleStop}>
+    <Button className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant="outline-obs" onClick={handleStop}>
       {label} - {text}
     </Button>
   ) : (
@@ -95,7 +95,7 @@ export const Timer = (properties) => {
       <FloatingLabel label={label} onKeyDown={handleKey}>
         <Form.Control ref={$ref} type="text" placeholder={placeholder || '5:00'} defaultValue={front || ''} disabled={disabled} />
       </FloatingLabel>
-      <Button variant="info" disabled={disabled} onClick={handleStart}>
+      <Button variant="obs" disabled={disabled} onClick={handleStart}>
         <i className="await fa fa-spin fa-spinner" />
         <i className="fas fa-play" />
       </Button>

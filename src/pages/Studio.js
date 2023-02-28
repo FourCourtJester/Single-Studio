@@ -75,7 +75,7 @@ function Studio() {
           <Navbar.Brand className="text-light">{SStudio.Component.name}</Navbar.Brand>
           <div className="ms-auto">
             <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
-              <Button ref={$btn} variant="info" type="button" onClick={handleSubmit}>
+              <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>
                 <i className="fa fa-floppy-disk" />
               </Button>
             </OverlayTrigger>

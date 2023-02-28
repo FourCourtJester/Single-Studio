@@ -1,27 +1,27 @@
-// Bootstrap base functions and variables
+// Functions
 @import "~bootstrap/scss/functions";
+
+// Variable changes
+$light: #fffeff;
+
+$body-bg: #2b2e38;
+$body-color: $light;
+
+$input-bg: #3c404b;
+$input-border-color: #3c404b;
+$input-border-width: 2px;
+$input-focus-box-shadow: none;
+$input-focus-border-color: #63666f;
+
 @import "~bootstrap/scss/variables";
 
-// ---
-// Custom Creations
-// ---
+// Map changes
 
-// Background: #2b2e38
-// Button default: #3c404b
-// Color: #fefefe
-
-// ---
 // Brand new helpers
-// ---
 
 $text-shadow: 0 1px rgb(0 0 0 / 40%);
 
-$img-height: 32px;
-$img-width: 32px;
-
-// ---
-// Utilities and Mapping
-// ---
+// Utilities
 
 @import "~bootstrap/scss/maps";
 @import "~bootstrap/scss/mixins";

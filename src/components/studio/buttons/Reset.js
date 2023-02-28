@@ -27,7 +27,7 @@ export const Reset = (properties) => {
 
   return (
     <OverlayTrigger placement="top" overlay={<Tooltip>Reset {label}</Tooltip>}>
-      <Button variant="danger" onClick={handleClick}>
+      <Button className="text-dark" variant="danger" onClick={handleClick}>
         <i className="fas fa-rotate-right" />
       </Button>
     </OverlayTrigger>

@@ -1,7 +1,7 @@
 // Import core components
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Container } from 'react-bootstrap'
 
 // Import our components
 // ...

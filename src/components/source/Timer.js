@@ -1,10 +1,9 @@
 // Import core components
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CSSTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
-import { useStudio } from 'hooks'
 import { useTimer } from '../studio/hooks'
 
 // Import style

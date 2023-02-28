@@ -27,7 +27,7 @@ export const Swap = (properties) => {
 
   return (
     <OverlayTrigger placement="top" overlay={<Tooltip>Swap {label}</Tooltip>}>
-      <Button variant="warning" onClick={handleClick}>
+      <Button className="text-dark" variant="warning" onClick={handleClick}>
         <i className="fas fa-rotate" />
       </Button>
     </OverlayTrigger>

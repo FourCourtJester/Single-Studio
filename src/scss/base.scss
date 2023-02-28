@@ -16,14 +16,9 @@ body,
   width: 100%;
 }
 
-body {
-  background: #2b2f38;
-  color: #fefefe;
-}
-
 #app {
   > nav {
-    background: #2b2f38;
+    background: bs.$body-bg;
   }
 }
 
@@ -69,13 +64,35 @@ a {
   }
 }
 
-label {
-  color: #2b2f38;
-}
-
 var {
   font-weight: normal;
   font-style: normal;
+}
+
+.btn-obs {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-bg: #{bs.$input-bg};
+  --bs-btn-border-color: #{bs.$input-border-color};
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: #4f535e;
+  --bs-btn-hover-border-color: #4f535e;
+  --bs-btn-focus-shadow-rgb: none;
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: #4f535e;
+  --bs-btn-active-border-color: #4f535e;
+}
+
+.btn-outline-obs {
+  --bs-btn-color: #4f535e;
+  --bs-btn-bg: var(--bs-body-bg);
+  --bs-btn-border-color: #4f535e;
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: #4f535e;
+  --bs-btn-hover-border-color: #4f535e;
+  --bs-btn-focus-shadow-rgb: none;
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: #4f535e;
+  --bs-btn-active-border-color: #4f535e;
 }
 
 //

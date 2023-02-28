@@ -76,7 +76,7 @@ export const Toggle = (properties) => {
   return (
     <Button
       className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100"
-      variant={val ? variant || 'info' : `outline-${variant || 'info'}`}
+      variant={val ? variant || 'obs' : `outline-${variant || 'obs'}`}
       onClick={handleClick}
     >
       {icon ? (
