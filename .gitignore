@@ -35,3 +35,10 @@ node_modules
 
 # Local remote commands log
 .gitlog
+
+# Projects folder
+**/projects/*
+!**/projects/.gitignore
+
+# Public folder
+public/*/*
