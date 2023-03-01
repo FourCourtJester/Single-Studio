@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7157],{7157:function(c,e,s){c.exports=s.p+"static/media/Scavengers.8c7bac8997c3ff389a7c.webp"}}]);

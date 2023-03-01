@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1881],{1881:function(e,c,t){e.exports=t.p+"static/media/Orbit.c4bf5ac2eff8f9deec52.webp"}}]);

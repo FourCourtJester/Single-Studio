@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8287],{8287:function(e,c,t){e.exports=t.p+"static/media/Flame Tank.de95142cfb884598b1b1.webp"}}]);

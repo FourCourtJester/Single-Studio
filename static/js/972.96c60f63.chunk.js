@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[972],{972:function(e,c,t){e.exports=t.p+"static/media/Rockworm.0d4f67a74befdf041aac.webp"}}]);

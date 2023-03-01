@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1248],{1248:function(e,t,c){e.exports=c.p+"static/media/Drone Swarm.568188f571bb3016bda4.webp"}}]);

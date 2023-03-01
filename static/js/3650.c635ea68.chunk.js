@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3650],{1421:function(e,c,t){e.exports=t.p+"static/media/Orca.b49f393e0ef368f34d7b.webp"}}]);

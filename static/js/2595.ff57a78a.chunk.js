@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2595],{2595:function(e,c,s){e.exports=s.p+"static/media/Banshee.36a7515d23280f75f0c0.webp"}}]);

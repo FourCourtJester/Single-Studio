@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3080],{3080:function(e,t,c){e.exports=c.p+"static/media/Down the Middle.3634f50a9380e43c162d.webp"}}]);

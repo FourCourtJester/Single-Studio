@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[754],{754:function(e,i,t){e.exports=t.p+"static/media/Tiberium Stripes.89f3532983a308e28c2e.webp"}}]);

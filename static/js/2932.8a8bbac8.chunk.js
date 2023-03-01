@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2932],{2932:function(e,c,t){e.exports=t.p+"static/media/Hold the Line.4357a36e9a3bb6fcc05e.webp"}}]);

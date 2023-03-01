@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3040],{3040:function(e,t,b){e.exports=b.p+"static/media/Stealth Tank.a30c2fbbc5bb2bb051a7.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8218],{8218:function(e,t,c){e.exports=c.p+"static/media/Stonewall.74e1364def8ea244d7cb.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7568],{7568:function(e,t,c){e.exports=c.p+"static/media/Juggernaut.870d54ea97e5f6d15486.webp"}}]);

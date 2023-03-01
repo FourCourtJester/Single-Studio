@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1434],{1434:function(c,e,n){c.exports=n.p+"static/media/Kane.08c37d6cf779d3a6c96c.png"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1142],{1142:function(e,c,t){e.exports=t.p+"static/media/Venom.66c395a8feced5bc11c2.webp"}}]);

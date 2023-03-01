@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5542],{5542:function(e,c,n){e.exports=n.p+"static/media/Inferno.1dabf2644a2495703c8b.webp"}}]);

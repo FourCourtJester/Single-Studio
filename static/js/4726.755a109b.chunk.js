@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4726],{4726:function(c,e,t){c.exports=t.p+"static/media/Strongarm.1b94dcb88743f41ccd6d.jpg"}}]);

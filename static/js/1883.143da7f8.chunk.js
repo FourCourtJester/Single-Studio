@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1883],{1883:function(e,t,b){e.exports=b.p+"static/media/Castaway.5fbb3b00bb9743dc7389.webp"}}]);

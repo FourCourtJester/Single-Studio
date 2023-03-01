@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5589],{5589:function(a,e,s){a.exports=s.p+"static/media/Slashed Fields.8baa49aac327a8ba5a18.webp"}}]);

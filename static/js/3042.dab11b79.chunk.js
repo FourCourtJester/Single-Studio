@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3042],{3042:function(e,c,s){e.exports=s.p+"static/media/Hidden Gems.440a0c9a8e0017d4d947.webp"}}]);

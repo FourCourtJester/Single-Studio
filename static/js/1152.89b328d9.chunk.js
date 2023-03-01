@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1152],{1152:function(a,e,n){a.exports=n.p+"static/media/Oxanna.d1a4a4bb769301adb44d.png"}}]);

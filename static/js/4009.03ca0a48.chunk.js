@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4009],{4009:function(e,c,t){e.exports=t.p+"static/media/Talon.741f50bae7b0cf575e97.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8514],{8514:function(e,c,a){e.exports=a.p+"static/media/Sandbar.252870a61989c37ac8e2.webp"}}]);

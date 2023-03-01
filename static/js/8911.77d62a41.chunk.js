@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8911],{8911:function(e,t,c){e.exports=c.p+"static/media/Caged In.7308d9961a821d422384.webp"}}]);

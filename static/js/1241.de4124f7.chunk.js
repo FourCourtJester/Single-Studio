@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1241],{1241:function(e,c,t){e.exports=t.p+"static/media/MSV.07605515295f47c09350.webp"}}]);

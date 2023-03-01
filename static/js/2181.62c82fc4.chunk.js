@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2181],{2181:function(a,e,c){a.exports=c.p+"static/media/Scarabs.607cf8a9917a7aaa186a.webp"}}]);

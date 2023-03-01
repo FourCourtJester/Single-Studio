@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[339],{339:function(e,t,c){e.exports=c.p+"static/media/Artillery.455e477bebca0aefb938.webp"}}]);

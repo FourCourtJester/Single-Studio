@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2806],{2806:function(e,c,t){e.exports=t.p+"static/media/Three Sentinels.f53066d9ac01936d6cb0.webp"}}]);

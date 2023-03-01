@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[929],{929:function(e,c,t){e.exports=t.p+"static/media/Frozen Road.282d490efc6ff41037a3.webp"}}]);
