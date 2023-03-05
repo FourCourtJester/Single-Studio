@@ -36,7 +36,7 @@ function Gate() {
         <fieldset className="d-flex flex-column align-items-center ">
           <h4 className="mb-2">Enter your studio code</h4>
           <InputGroup hasValidation className="w-50">
-            <Form.Control ref={$code} className="w-50" name="code" placeholder="R001" required />
+            <Form.Control ref={$code} className="w-50" name="code" placeholder="Demo" required />
             <Button type="submit">Go</Button>
             <Form.Control.Feedback type="invalid">Please enter a Code</Form.Control.Feedback>
           </InputGroup>

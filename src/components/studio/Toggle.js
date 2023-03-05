@@ -19,12 +19,12 @@ export const Toggle = (properties) => {
   // Properties
   const { icon, image, group, label, name, variant, value } = properties
   const namespace = value ? variableNamespace : toggleNamespace
+  // Hooks
+  const dispatch = useDispatch()
   const paths = {
     group: useNamespace({ type: namespace }),
     toggle: useNamespace({ type: namespace, name }),
   }
-  // Hooks
-  const dispatch = useDispatch()
   const publik = usePublic()
   // Redux
   const val = useStudio(paths.toggle) || false

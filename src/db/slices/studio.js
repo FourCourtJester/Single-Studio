@@ -32,9 +32,23 @@ export const studio = createSlice({
   reducers: {
     clear: () => initialState,
     reset: (state, { payload: paths }) => {
+      // Attempt to erase each path
       paths.forEach((path) => {
-        Utils.setObjValue(state, path, null)
-        Storage.remove([name, path])
+        const val = Utils.getObjValue(state, path)
+        const obj = typeof val === 'object' ? { ...val } : {}
+
+        if (Object.keys(obj).length) {
+          // If the path is an object with children
+          // Erase each child instead
+          Utils.getObjPaths(obj, (key) => {
+            Utils.setObjValue(state, `${path}.${key}`, null)
+          })
+          Storage.removeObj([name, path], obj)
+        } else {
+          // The path is a simple type, just erase it
+          Utils.setObjValue(state, path, null)
+          Storage.remove([name, path])
+        }
       })
     },
     swap: (state, { payload: fields }) => {

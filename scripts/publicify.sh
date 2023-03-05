@@ -12,11 +12,11 @@ dir="public"
 echo ""
 
 # Get all project directories
-for d in /src/projects/*/; do
+for d in ../src/projects/*/; do
   # Save names for folder manipulations
   _d=$(basename $d)
-  pathPublic=/$dir/$_d
-  pathProject=$d$dir
+  pathPublic=../$dir/$_d
+  pathProject=$d/$dir
 
   # Check for a public folder
   if [ ! -d $pathProject ]
@@ -26,11 +26,12 @@ for d in /src/projects/*/; do
   fi
 
   # Count number of files
-  numFiles=$(ls -1 $d$dir | wc -l)
+  numFiles=$(ls -1 $pathProject | wc -l)
 
   # If zero files, continue
   if [ $numFiles -eq 0 ]
   then
+    echo -e "${RED}$_d${NC} has an empty public folder, ${BLUE}skipping${NC}..."
     continue
   fi
 

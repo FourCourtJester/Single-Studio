@@ -36,12 +36,12 @@ function stringToTime(t) {
 export const Timer = (properties) => {
   // Properties
   const { label, name, placeholder } = properties
+  // Hooks
+  const dispatch = useDispatch()
   const paths = {
     timer: useNamespace({ type: namespace, name }),
     var: useNamespace({ type: varNamespace, name }),
   }
-  // Hooks
-  const dispatch = useDispatch()
   const { active, text } = useTimer({ path: paths.timer })
   // Redux
   const front = useStudio(paths.var)

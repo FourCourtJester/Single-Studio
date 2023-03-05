@@ -16,9 +16,9 @@ const defaultChoice = 'N/A'
 export const Cycle = (properties) => {
   // Properties
   const { choices, image, name, variant } = properties
-  const path = useNamespace({ type: namespace, name })
   // Hooks
   const dispatch = useDispatch()
+  const path = useNamespace({ type: namespace, name })
   const publik = usePublic()
   // Redux
   const val = useStudio(path) || defaultChoice

@@ -33,6 +33,12 @@ export function remove(name) {
   storage.removeItem(_namespace(name))
 }
 
+export function removeObj(name, obj) {
+  Utils.getObjPaths(obj, (path) => {
+    storage.removeItem(`${_namespace(name)}.${path}`)
+  })
+}
+
 export function set(name, obj) {
   storage.setItem(_namespace(name), JSON.stringify(obj))
 }

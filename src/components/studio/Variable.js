@@ -13,6 +13,7 @@ const namespace = 'variables'
 export const Variable = (properties) => {
   // Properties
   const { as: type = 'text', label, name, placeholder } = properties
+  // Hooks
   const path = useNamespace({ type: namespace, name })
   // Redux
   const val = useStudio(path) || ''
