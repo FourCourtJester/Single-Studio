@@ -5,21 +5,15 @@ import { Button, FloatingLabel, Form, InputGroup } from 'react-bootstrap'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
-import { useStudio } from 'hooks'
+import { useNamespace, useStudio } from 'hooks'
 import { useTimer } from './hooks'
 
 // Import style
 // ...
 
 const namespace = 'timers'
-const frontNamespace = '_timers'
+const varNamespace = '_timers'
 
-/**
- * Converts a string representing time to a number
- *
- * @param {string} t
- * @returns {number}
- */
 function stringToTime(t) {
   if (t === undefined) return 0
 
@@ -39,21 +33,18 @@ function stringToTime(t) {
   return Number.isInteger(s) ? s : 0
 }
 
-/**
- * Component: Timer
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Timer = (properties) => {
   // Properties
   const { label, name, placeholder } = properties
-  const path = `${namespace}.${name}`
-  const frontPath = `${frontNamespace}.${name}`
+  const paths = {
+    timer: useNamespace({ type: namespace, name }),
+    var: useNamespace({ type: varNamespace, name }),
+  }
   // Hooks
   const dispatch = useDispatch()
-  const { active, text } = useTimer({ path })
+  const { active, text } = useTimer({ path: paths.timer })
   // Redux
-  const front = useStudio(frontPath)
+  const front = useStudio(paths.var)
   // States
   const [disabled, setDisable] = useState(false)
   // Refs
@@ -65,15 +56,15 @@ export const Timer = (properties) => {
 
     dispatch(
       updateStudio({
-        [path]: now + target * 1000,
-        [frontPath]: $ref.current.value,
+        [paths.timer]: now + target * 1000,
+        [paths.var]: $ref.current.value,
       })
     )
 
     setDisable(true)
   }
 
-  const handleStop = () => dispatch(updateStudio({ [path]: 0 }))
+  const handleStop = () => dispatch(updateStudio({ [paths.timer]: 0 }))
 
   const handleKey = (e) => {
     if (e.which === 13) {

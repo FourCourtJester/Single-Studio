@@ -1,33 +1,34 @@
 // Import core components
+import { useEffect, useRef, useState } from 'react'
 import { FloatingLabel, Form } from 'react-bootstrap'
 
 // Import our components
-import { useStudio } from 'hooks'
-import { useEffect, useState } from 'react'
+import { useNamespace, useStudio } from 'hooks'
 
 // Import style
 // ...
 
 const namespace = 'variables'
 
-/**
- * Component: Variable
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Variable = (properties) => {
   // Properties
   const { as: type = 'text', label, name, placeholder } = properties
-  const path = `${namespace}.${name}`
+  const path = useNamespace({ type: namespace, name })
   // Redux
   const val = useStudio(path) || ''
   // States
   const [props, setProps] = useState({})
+  // Refs
+  const $ref = useRef(null)
+
+  useEffect(() => {
+    $ref.current.value = val
+  }, [val])
 
   useEffect(() => {
     setProps({
       defaultValue: val,
-      name,
+      name: `${namespace}.${name}`,
       placeholder: placeholder || label,
       [type === 'textarea' ? 'as' : 'type']: type,
     })
@@ -35,7 +36,7 @@ export const Variable = (properties) => {
 
   return (
     <FloatingLabel label={label} controlId={name}>
-      <Form.Control {...props} />
+      <Form.Control ref={$ref} {...props} />
     </FloatingLabel>
   )
 }

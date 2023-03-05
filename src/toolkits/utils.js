@@ -1,10 +1,3 @@
-/**
- * Creates an object of dot notational paths
- *
- * @param {object} obj The object to deconstruct
- * @param {Function} fn
- * @param {string} [path] The original prefix to start the dot notation
- */
 export function getObjPaths(obj, fn, path = '') {
   Object.entries(obj || {}).forEach(([key, val]) => {
     const _key = path.length ? [path, key].join('.') : key
@@ -25,15 +18,6 @@ export function getObjPaths(obj, fn, path = '') {
   })
 }
 
-/**
- * Get the value of the path in an Object
- *
- * @param {object} obj The object to traverse
- * @param {string} _path The path to the value
- * @param {object} [opts] Additional options
- * @param {object} [opts.split=true]
- * @returns {*}
- */
 export function getObjValue(obj = {}, _path = '', opts = { split: true }) {
   if (obj === undefined) return undefined
 
@@ -53,16 +37,6 @@ export function getObjValue(obj = {}, _path = '', opts = { split: true }) {
   }, obj)
 }
 
-/**
- * Set the value of the path in an Object
- *
- * @param {object} obj The object to traverse
- * @param {Array | string} [_path] The path to the value
- * @param {*} val The value to store
- * @param {object} [opts] Additional options
- * @param {object} [opts.split=true]
- * @returns {object}
- */
 export function setObjValue(obj = {}, _path = [], val = undefined, opts = { split: true }) {
   // Do not alter if already the proper type
   let path = !Array.isArray(_path) ? undefined : _path

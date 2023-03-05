@@ -4,12 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 // Import our components
 import { useStudio } from 'hooks'
 
-/**
- * Converts a number representing elapsed time to a string
- *
- * @param {number} t
- * @returns {string}
- */
 function timeToString(t) {
   if (!t || t <= 0) return '00:00'
 
@@ -17,11 +11,6 @@ function timeToString(t) {
   return t >= 3600000 ? d.slice(11, -5) : d.slice(14, -5)
 }
 
-/**
- * Hook: useTimer
- *
- * @returns {object}
- */
 export const useTimer = ({ path }) => {
   // Redux
   const val = useStudio(path)

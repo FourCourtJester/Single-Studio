@@ -4,25 +4,24 @@ import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 // Import our components
 import { swapStudio } from 'db/slices/studio'
+import { useNamespace } from 'hooks'
 
 // Import style
 // ...
 
-/**
- * Component: Swap Button
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
+const namespace = 'variables'
+
 export const Swap = (properties) => {
   // Properties
   const { fields, label } = properties
   // Hooks
   const dispatch = useDispatch()
+  const path = useNamespace({ type: namespace })
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    dispatch(swapStudio(fields.map((field) => `variables.${field}`)))
+    dispatch(swapStudio(fields.map((field) => `${[path]}.${field}`)))
   }
 
   return (

@@ -11,11 +11,6 @@ import { usePublic, useStudio } from 'hooks'
 
 const namespace = 'variables'
 
-/**
- * Component: Image
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const _Image = (properties) => {
   // Properties
   const { name } = properties

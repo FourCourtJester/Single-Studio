@@ -7,11 +7,6 @@ import cN from 'classnames'
 // Import style
 // ...
 
-/**
- * Component: Scene
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Scene = (properties) => {
   const { children, className, id } = properties
 

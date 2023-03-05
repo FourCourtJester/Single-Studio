@@ -3,12 +3,6 @@ import { useParams } from 'react-router-dom'
 
 // Import our components
 
-/**
- * Hook: Public
- *
- * @param {string} path
- * @returns {Array}
- */
 export const usePublic = () => {
   // Hooks
   const params = useParams()

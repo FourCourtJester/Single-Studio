@@ -5,7 +5,7 @@ import cN from 'classnames'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
-import { usePublic, useStudio } from 'hooks'
+import { useNamespace, usePublic, useStudio } from 'hooks'
 
 // Import style
 // ...
@@ -13,15 +13,10 @@ import { usePublic, useStudio } from 'hooks'
 const namespace = 'variables'
 const defaultChoice = 'N/A'
 
-/**
- * Component: Cycle
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Cycle = (properties) => {
   // Properties
   const { choices, image, name, variant } = properties
-  const path = `${namespace}.${name}`
+  const path = useNamespace({ type: namespace, name })
   // Hooks
   const dispatch = useDispatch()
   const publik = usePublic()

@@ -9,11 +9,6 @@ import { useNavigate } from 'react-router-dom'
 // Import style
 // ...
 
-/**
- * Page: Gate
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 function Gate() {
   // Hooks
   const navigate = useNavigate()

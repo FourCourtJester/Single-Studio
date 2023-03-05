@@ -11,11 +11,6 @@ import { useStudio } from 'hooks'
 
 const namespace = 'variables'
 
-/**
- * Component: Variable
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Variable = (properties) => {
   // Properties
   const { name } = properties

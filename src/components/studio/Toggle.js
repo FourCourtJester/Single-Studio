@@ -6,7 +6,7 @@ import cN from 'classnames'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
-import { usePublic, useStudio } from 'hooks'
+import { useNamespace, usePublic, useStudio } from 'hooks'
 
 // Import style
 // ...
@@ -15,21 +15,19 @@ const toggleNamespace = 'toggles'
 const variableNamespace = 'variables'
 const verbs = ['Show', 'Hide']
 
-/**
- * Component: Toggle
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Toggle = (properties) => {
   // Properties
   const { icon, image, group, label, name, variant, value } = properties
   const namespace = value ? variableNamespace : toggleNamespace
-  const path = `${namespace}.${name}`
+  const paths = {
+    group: useNamespace({ type: namespace }),
+    toggle: useNamespace({ type: namespace, name }),
+  }
   // Hooks
   const dispatch = useDispatch()
   const publik = usePublic()
   // Redux
-  const val = useStudio(path)
+  const val = useStudio(paths.toggle) || false
   // States
   const [active, setActive] = useState(false)
   // Variables
@@ -45,12 +43,12 @@ export const Toggle = (properties) => {
     if (group) {
       obj = {
         ...obj,
-        ...group.reduce((props, key) => ({ ...props, [`${namespace}.${key}`]: false }), {}),
+        ...group.reduce((props, key) => ({ ...props, [`${paths.group}.${key}`]: false }), {}),
       }
     }
 
     // Toggle this
-    obj[path] = value || !val
+    obj[paths.toggle] = value || !val
 
     // console.log(obj)
     dispatch(updateStudio(obj))

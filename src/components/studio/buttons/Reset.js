@@ -4,25 +4,22 @@ import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 // Import our components
 import { resetStudio } from 'db/slices/studio'
+import { useNamespace } from 'hooks'
 
 // Import style
 // ...
 
-/**
- * Component: Reset Button
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Reset = (properties) => {
   // Properties
-  const { label, paths } = properties
+  const { label, fields } = properties
   // Hooks
   const dispatch = useDispatch()
+  const path = useNamespace({})
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    dispatch(resetStudio(paths))
+    dispatch(resetStudio(fields.map((field) => `${[path]}.${field}`)))
   }
 
   return (

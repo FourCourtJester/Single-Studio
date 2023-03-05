@@ -1,5 +1,5 @@
 // Import core components
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Container } from 'react-bootstrap'
 
@@ -9,18 +9,11 @@ import { Container } from 'react-bootstrap'
 // Import style
 // ...
 
-/**
- * Page: Source
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 function Source() {
   // Hooks
   const params = useParams()
   // States
   const [SSource, setSource] = useState(false)
-  // Refs
-  const $form = useRef(null)
 
   useEffect(() => {
     Promise.resolve(true)

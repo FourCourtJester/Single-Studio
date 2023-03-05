@@ -1,24 +1,19 @@
 // Import core components
+import { useEffect, useRef, useState } from 'react'
 import { FloatingLabel, Form } from 'react-bootstrap'
 
 // Import our components
-import { useStudio } from 'hooks'
-import { useEffect, useRef, useState } from 'react'
+import { useNamespace, useStudio } from 'hooks'
 
 // Import style
 // ...
 
 const namespace = 'variables'
 
-/**
- * Component: Select
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 export const Select = (properties) => {
   // Properties
   const { children, label, name } = properties
-  const path = `${namespace}.${name}`
+  const path = useNamespace({ type: namespace, name })
   // Redux
   const val = useStudio(path) || ''
   // States
@@ -28,7 +23,7 @@ export const Select = (properties) => {
 
   useEffect(() => {
     setProps({
-      name,
+      name: `${namespace}.${name}`,
     })
   }, [label, name])
 

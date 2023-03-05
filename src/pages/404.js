@@ -7,11 +7,6 @@ import { Container } from 'react-bootstrap'
 // Import our Components
 // ...
 
-/**
- * Page: 404
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 function P404() {
   return (
     <Container className="d-flex flex-column justify-content-center text-center h-100" fluid>

@@ -10,11 +10,6 @@ import { updateStudio } from 'db/slices/studio'
 // Import style
 // ...
 
-/**
- * Page: Studio
- *
- * @returns {React.FunctionComponentElement} React.FunctionComponentElement
- */
 function Studio() {
   // Hooks
   const params = useParams()
@@ -30,7 +25,7 @@ function Studio() {
       e.preventDefault()
 
       const data = [...new URLSearchParams(new FormData($form.current))]
-      const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`variables.${key}`]: val }), {})
+      const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`${params.code}.${key}`]: val }), {})
 
       // console.log(obj)
       dispatch(updateStudio(obj))
