@@ -4,7 +4,6 @@ import { configureStore } from '@reduxjs/toolkit'
 // Import our components
 import { reducer as studioReducer, clearStudio, updateStudioFromStorage } from 'db/slices/studio'
 import * as Storage from 'toolkits/storage'
-import * as Utils from 'toolkits/utils'
 
 const initialState = {}
 const store = configureStore({
@@ -26,19 +25,20 @@ window.addEventListener('storage', (e) => {
   if (!e.key.startsWith(Storage.namespace)) return true
   if (e.oldValue === e.newValue) return true
 
-  try {
-    const [, key, ...path] = e.key.split('.')
+  const [, key, ...path] = e.key.split('.')
 
-    // Update the appropriate slice
-    switch (key) {
-      // Default: Studio
-      default: {
+  // Update the appropriate slice
+  switch (key) {
+    // Default: Studio
+    default: {
+      try {
         store.dispatch(updateStudioFromStorage({ [path.join('.')]: JSON.parse(e.newValue) }))
-        break
+      } catch (err) {
+        store.dispatch(updateStudioFromStorage({ [path.join('.')]: null }))
+        console.warn(err)
       }
+      break
     }
-  } catch (err) {
-    console.error(err)
   }
 
   return true

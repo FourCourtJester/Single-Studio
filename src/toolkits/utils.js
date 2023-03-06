@@ -1,3 +1,7 @@
+export function capitalize(str) {
+  return str.slice(0, 1).toUpperCase() + str.slice(1)
+}
+
 export function getObjPaths(obj, fn, path = '') {
   Object.entries(obj || {}).forEach(([key, val]) => {
     const _key = path.length ? [path, key].join('.') : key

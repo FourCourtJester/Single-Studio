@@ -30,7 +30,7 @@ function Studio() {
       // console.log(obj)
       dispatch(updateStudio(obj))
     },
-    [dispatch]
+    [dispatch, params]
   )
 
   const handleSubmitKey = useCallback(
@@ -50,7 +50,7 @@ function Studio() {
 
   useEffect(() => {
     Promise.resolve(true)
-      .then(() => import(`projects/${params.code}/Studio`))
+      .then(() => import(`studios/${params.code}/Studio`))
       .then((s) => setStudio({ Component: s.default }))
       .catch((err) => {
         console.error(err)

@@ -17,7 +17,7 @@ function Source() {
 
   useEffect(() => {
     Promise.resolve(true)
-      .then(() => import(`projects/${params.code}/sources/${params.source}`))
+      .then(() => import(`studios/${params.code}/sources/${params.source}`))
       .then((s) => setSource({ Page: s.default }))
       .catch((err) => {
         console.error(err)

@@ -12,7 +12,7 @@ dir="public"
 echo ""
 
 # Get all project directories
-for d in ./src/projects/*/; do
+for d in ./src/studios/*/; do
   # Save names for folder manipulations
   _d=$(basename $d)
   pathPublic=./$dir/$_d

@@ -2,7 +2,7 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 
 // Import our components
-import { Gate, P404, Source, Studio } from 'pages'
+import { DynamicSource, Gate, P404, Source, Studio } from 'pages'
 
 // Import style
 import 'scss/base.scss'
@@ -14,6 +14,7 @@ function App() {
         <Route path="/" element={<Gate />} />
         <Route path="/project/:code/studio" element={<Studio />} />
         <Route path="/project/:code/source/:source" element={<Source />} />
+        <Route path="/project/:code/:type" element={<DynamicSource />} />
         <Route path="*" element={<P404 />} />
       </Routes>
     </Router>
