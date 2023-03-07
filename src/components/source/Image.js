@@ -10,6 +10,7 @@ import { useNamespace, usePublic, useStudio } from 'hooks'
 // ...
 
 const namespace = 'variables'
+const defaultSrc = '1x1.png'
 
 export const _Image = (properties) => {
   // Properties
@@ -22,18 +23,32 @@ export const _Image = (properties) => {
   const val = useStudio(path) || ''
   // States
   const [props, setProps] = useState({})
+  const [src, setSrc] = useState(defaultSrc)
   // Refs
   const $ref = useRef(null)
 
+  const handleError = (e) => {
+    console.warn(e)
+    setSrc(defaultSrc)
+  }
+
   useEffect(() => {
-    const { className, src = false } = properties
+    const { src: _src } = properties
+
+    setSrc(`${publik}/${_src.replace(/:var:/, val)}`)
+  }, [properties, publik, val])
+
+  useEffect(() => {
+    const { className } = properties
 
     setProps({
       ...properties,
       className: cN('variable', className),
-      src: src ? `${publik}/${src.replace(/:var:/, val)}` : `1x1.png`,
+      onError: handleError,
+      src,
+      // src: src ? `${publik}/${src.replace(/:var:/, val)}` : `1x1.png`,
     })
-  }, [properties, publik, val])
+  }, [properties, publik, src, val])
 
   return (
     <SwitchTransition>
