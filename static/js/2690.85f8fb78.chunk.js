@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2690],{2690:function(e,t,c){e.exports=c.p+"static/media/Slot Canyon.4d6ceafb9a3e52e06b26.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[6990],{6990:function(e,c,t){e.exports=t.p+"static/media/Open Water.ceb8cd2cc46995ceb609.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3968],{7424:function(e,c,t){e.exports=t.p+"static/media/README.c65c5446e278b568842e.md"}}]);

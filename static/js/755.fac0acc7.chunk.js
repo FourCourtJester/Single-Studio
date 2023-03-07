@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[755],{755:function(e,c,t){e.exports=t.p+"static/media/Kodiak.193cb67cabf61e9f7cb0.webp"}}]);

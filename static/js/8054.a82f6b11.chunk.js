@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8054],{8054:function(e,c,s){e.exports=s.p+"static/media/Grenadiers.119e04c43913fa034936.webp"}}]);

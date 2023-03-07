@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8799],{8799:function(e,c,s){e.exports=s.p+"static/media/Tide Pools.c046346b0b0f0be2213f.webp"}}]);

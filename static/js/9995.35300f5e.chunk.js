@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9995],{9995:function(e,t,i){e.exports=i.p+"static/media/Fertile Basin.9363e620e3094d0437bf.webp"}}]);

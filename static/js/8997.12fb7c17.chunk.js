@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8997],{8997:function(e,t,c){e.exports=c.p+"static/media/Great Divide.af164cf148800e673bb1.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9350],{9350:function(e,s,c){e.exports=c.p+"static/media/Middle Oasis.790678e08a767c4892b2.webp"}}]);

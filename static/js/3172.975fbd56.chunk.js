@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3172],{3172:function(e,c,n){e.exports=n.p+"static/media/Scorpion Tank.7a8e17b5b1281f92648b.webp"}}]);

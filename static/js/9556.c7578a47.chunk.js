@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9556],{9556:function(e,c,t){e.exports=t.p+"static/media/Canal Row.d247146668c93bea3222.webp"}}]);

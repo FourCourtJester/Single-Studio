@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5053],{5053:function(e,t,s){e.exports=s.p+"static/media/Blindspot.30551bdd0073da645f7f.webp"}}]);

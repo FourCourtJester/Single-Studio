@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8355],{8355:function(e,t,i){e.exports=i.p+"static/media/Fighting Pit.b9ef72c92a945028779d.webp"}}]);

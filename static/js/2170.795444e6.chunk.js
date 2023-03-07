@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2170],{2170:function(e,t,c){e.exports=c.p+"static/media/Shatterer.663dce169384ed72d718.webp"}}]);

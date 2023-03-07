@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7424],{157:function(e,c,t){e.exports=t.p+"static/media/Pillbox.c5cf0b1d3f3e872e6d64.webp"}}]);

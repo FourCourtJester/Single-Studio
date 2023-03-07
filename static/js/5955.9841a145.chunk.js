@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5955],{5955:function(e,t,c){e.exports=c.p+"static/media/Avatar.d5d5694fe69173d48747.webp"}}]);

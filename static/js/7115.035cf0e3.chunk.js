@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7115],{7115:function(e,s,i){e.exports=i.p+"static/media/Basilisk.0ef4e5241448568e291b.webp"}}]);

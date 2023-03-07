@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3585],{3585:function(e,c,t){e.exports=t.p+"static/media/logo.7e3d3db3cbcb0382ffb3.png"}}]);

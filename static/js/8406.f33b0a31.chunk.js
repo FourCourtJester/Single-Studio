@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8406],{8406:function(e,s,t){e.exports=t.p+"static/media/War Dogs.5a73d0855d73e8ba20b7.webp"}}]);

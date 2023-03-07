@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5995],{5995:function(e,s,c){e.exports=c.p+"static/media/Confessor.f48fbb318128d1decf3d.webp"}}]);

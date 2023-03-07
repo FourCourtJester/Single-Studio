@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5918],{5918:function(e,c,s){e.exports=s.p+"static/media/Cyberwheels.b972c49e0b957784e8d5.webp"}}]);

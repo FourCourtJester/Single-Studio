@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[361],{361:function(e,t,c){e.exports=c.p+"static/media/The Cauldron.29047d0f6014f96af569.webp"}}]);

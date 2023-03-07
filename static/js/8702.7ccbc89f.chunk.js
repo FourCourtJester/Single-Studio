@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8702],{8702:function(e,c,t){e.exports=t.p+"static/media/Cracked Ice.607e8f9bb47b1ce2b582.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5208],{5208:function(e,t,c){e.exports=c.p+"static/media/Battle Quadrants.7bf6723631c950077426.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9711],{9711:function(e,c,t){e.exports=t.p+"static/media/Lone Spire.56f51464fa4dcd5b0068.webp"}}]);

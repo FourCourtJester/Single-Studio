@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9282],{9282:function(c,e,t){c.exports=t.p+"static/media/Mutant Marauders.b89cfc1b81cb6b1c2cd3.webp"}}]);

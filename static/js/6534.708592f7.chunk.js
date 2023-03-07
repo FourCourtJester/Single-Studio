@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[6534],{6534:function(e,c,t){e.exports=t.p+"static/media/Rhino.ac88453e66550e3a39a3.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4636],{4636:function(e,t,a){e.exports=a.p+"static/media/Predator Tank.a5b55972db7c4a0203df.webp"}}]);

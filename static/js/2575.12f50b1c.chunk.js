@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2575],{2575:function(e,c,t){e.exports=t.p+"static/media/The Needle.4c4a40b6d44bad58e4da.webp"}}]);

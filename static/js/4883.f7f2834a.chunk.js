@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4883],{4883:function(e,c,t){e.exports=t.p+"static/media/Riflemen.0fd39390ecb6c8d7e3ae.webp"}}]);

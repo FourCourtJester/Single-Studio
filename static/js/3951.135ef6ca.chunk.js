@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3951],{3951:function(e,c,i){e.exports=i.p+"static/media/Twin Pillars.1aad8e046bb59565bc56.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4868],{4868:function(e,a,c){e.exports=c.p+"static/media/Rorschach.dadd2af7ed15bfb79aaa.webp"}}]);

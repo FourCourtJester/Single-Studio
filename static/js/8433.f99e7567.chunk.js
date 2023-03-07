@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8433],{8433:function(e,c,t){e.exports=t.p+"static/media/Centurion.e2a7ba65c7b26347c497.webp"}}]);

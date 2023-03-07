@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1321],{1321:function(e,t,a){e.exports=a.p+"static/media/Battle Quadrants.63d15a620d376ba9691e.jpg"}}]);

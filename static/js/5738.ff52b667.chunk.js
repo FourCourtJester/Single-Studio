@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5738],{5738:function(e,c,t){e.exports=t.p+"static/media/Tug of War.f6894ca7fd3e2370a898.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9707],{9707:function(e,t,a){e.exports=a.p+"static/media/Catalyst Gunship.3a2ae3cebd4f60ea3770.webp"}}]);

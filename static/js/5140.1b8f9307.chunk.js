@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5140],{5140:function(e,s,t){e.exports=t.p+"static/media/Laser Squad.a1769805045900db78e6.webp"}}]);

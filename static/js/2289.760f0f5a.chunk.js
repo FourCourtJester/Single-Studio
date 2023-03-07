@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2289],{2289:function(e,c,t){e.exports=t.p+"static/media/Solomon.9688b5dce6e6da1e9130.jpg"}}]);

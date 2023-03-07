@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[6157],{2686:function(e,c,n){e.exports=n.p+"static/media/Oxanna.b6fe0b72e4907b12fec6.jpg"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7344],{7344:function(e,c,i){e.exports=i.p+"static/media/Open Prairie.07cf323da08c204f487d.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[6845],{6845:function(e,c,s){e.exports=s.p+"static/media/Mohawk Gunship.8c03dbf00dd06cb40fe3.webp"}}]);

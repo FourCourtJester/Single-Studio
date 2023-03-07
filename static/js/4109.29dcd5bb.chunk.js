@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4109],{4109:function(e,c,t){e.exports=t.p+"static/media/Eruption.d0ce8a105adb7d54a8fc.webp"}}]);

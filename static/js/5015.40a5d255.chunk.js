@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5015],{5015:function(e,t,c){e.exports=c.p+"static/media/Pitbull.cd41dd76f1801f66bbbf.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8891],{8891:function(e,t,c){e.exports=c.p+"static/media/Battlefield.44390ad52f97c53da936.webp"}}]);

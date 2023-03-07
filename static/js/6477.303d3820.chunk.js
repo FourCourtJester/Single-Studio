@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[6477],{6477:function(e,s,i){e.exports=i.p+"static/media/Missile Squad.ded9651338df4bf289af.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2223],{2223:function(e,c,s){e.exports=s.p+"static/media/The Bullseye.639d633e3d32754accc9.webp"}}]);

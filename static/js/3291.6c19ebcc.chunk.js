@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[3291],{3291:function(e,t,c){e.exports=c.p+"static/media/Hot Zone.3993d260214838a8d38c.webp"}}]);

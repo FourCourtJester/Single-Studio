@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[8706],{8706:function(e,a,t){e.exports=t.p+"static/media/Half and Half.b43b8debde8210042ae3.webp"}}]);

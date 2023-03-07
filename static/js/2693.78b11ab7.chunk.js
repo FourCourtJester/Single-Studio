@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2693],{2693:function(e,t,c){e.exports=c.p+"static/media/Down the River.b406f1f7341aa7c9f12e.webp"}}]);

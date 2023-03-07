@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9537],{9537:function(e,c,t){e.exports=t.p+"static/media/Chemical Buggy.b6cb8a2f53da08bb47ee.webp"}}]);

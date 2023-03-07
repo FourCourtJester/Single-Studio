@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[135],{135:function(e,c,i){e.exports=i.p+"static/media/Scorpion Tail.c437f6a1e123385e051b.webp"}}]);

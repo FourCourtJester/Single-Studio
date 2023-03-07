@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2553],{2553:function(e,c,i){e.exports=i.p+"static/media/Side by Side.67fc81a0a227d778501a.webp"}}]);

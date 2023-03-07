@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1078],{1078:function(e,c,i){e.exports=i.p+"static/media/Chemical Warriors.ff155b78df588c3a354d.webp"}}]);

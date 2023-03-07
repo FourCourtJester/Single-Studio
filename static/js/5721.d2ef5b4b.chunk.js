@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[5721],{5721:function(e,a,t){e.exports=t.p+"static/media/Fanatics.7d2ed174a624a7a41256.webp"}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[143],{143:function(e,s,t){e.exports=t.p+"static/media/Zone Troopers.d45fa220594efd7228d9.webp"}}]);

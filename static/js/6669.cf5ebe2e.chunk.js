@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[6669],{6669:function(e,c,t){e.exports=t.p+"static/media/Shade.3fe0dbfd94b5840129c3.webp"}}]);

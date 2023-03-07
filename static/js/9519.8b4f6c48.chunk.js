@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9519],{9519:function(a,e,t){a.exports=t.p+"static/media/Mammoth Tank.af3780aa75cb04a7b048.webp"}}]);

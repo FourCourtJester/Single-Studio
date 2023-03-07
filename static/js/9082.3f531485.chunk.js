@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[9082],{9082:function(c,e,t){c.exports=t.p+"static/media/Sniper Team.ccb29fdc76707cc17b0a.webp"}}]);

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[4540],{4540:function(e,c,t){e.exports=t.p+"static/media/Wolverine.dfec80b1e001a941a95c.webp"}}]);

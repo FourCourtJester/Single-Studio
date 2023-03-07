@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[2257],{2257:function(e,s,t){e.exports=t.p+"static/media/Fortress.35b4950ef86740eaebc6.webp"}}]);

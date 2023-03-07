@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7710],{7710:function(e,c,t){e.exports=t.p+"static/media/Orca Bomber.bdb05020daef55cf2f32.webp"}}]);

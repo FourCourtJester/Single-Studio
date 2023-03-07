@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[1067],{1067:function(e,a,n){n.r(a);var t=n(2677),c=n(8530),l=n(588),r=n(184);a.default=function(e){var a=e.player,n=(0,c.s3)({type:"variables",name:"players.".concat(a,".deck.faction")}),s=(0,c.CO)(n);return(0,r.jsxs)(t.Z,{children:["GDI"===s&&(0,r.jsx)(l.default,{faction:"GDI",player:a}),"Nod"===s&&(0,r.jsx)(l.default,{faction:"Nod",player:a})]})}}}]);
+//# sourceMappingURL=1067.de8ddbb1.chunk.js.map

@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkclient=self.webpackChunkclient||[]).push([[7650],{7650:function(e,c,t){e.exports=t.p+"static/media/McNeil.578075326b6c2d6e9ce0.png"}}]);
