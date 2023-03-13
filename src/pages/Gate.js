@@ -23,11 +23,11 @@ function Gate() {
     if (form.checkValidity() === false) {
       e.preventDefault()
       e.stopPropagation()
+    } else {
+      navigate(`/studio/${$code.current.value}`)
     }
 
     setValidated(true)
-
-    navigate(`/project/${$code.current.value}/studio`)
   }
 
   return (

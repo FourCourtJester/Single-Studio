@@ -1,21 +1,32 @@
+// -- React Router DOM v6 Route
 // Import core components
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
+import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
 import { Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
+import { P404 } from 'pages'
 
 // Import style
 // ...
 
-function Studio() {
+export function loader({ params }) {
+  return import(`studios/${params.code}/Studio`)
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError()
+
+  return <P404 error={error} />
+}
+
+export function Component() {
   // Hooks
   const params = useParams()
   const dispatch = useDispatch()
-  // States
-  const [SStudio, setStudio] = useState(false)
+  const { default: Studio } = useLoaderData()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
@@ -48,26 +59,11 @@ function Studio() {
     return () => document.removeEventListener('keydown', handleSubmitKey)
   }, [handleSubmitKey])
 
-  useEffect(() => {
-    Promise.resolve(true)
-      .then(() => import(`studios/${params.code}/Studio`))
-      .then((s) => setStudio({ Component: s.default }))
-      .catch((err) => {
-        console.error(err)
-      })
-
-    return () => setStudio(false)
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  if (SStudio === false) return null
-
   return (
     <>
       <Navbar className="border-bottom border-light" fixed="top">
         <Container fluid>
-          <Navbar.Brand className="text-light">{SStudio.Component.name}</Navbar.Brand>
+          <Navbar.Brand className="text-light">{Studio.name}</Navbar.Brand>
           <div className="ms-auto">
             <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
               <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>
@@ -78,12 +74,19 @@ function Studio() {
         </Container>
       </Navbar>
       <Form ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
-        <Container className="py-2" fluid>
-          <SStudio.Component.Page />
+        <Container className="py-2 mh-100 overflow-x-hidden overflow-y-auto" fluid>
+          <Studio.Page />
         </Container>
       </Form>
     </>
   )
 }
 
-export default Studio
+export default {
+  loader,
+  ErrorBoundary,
+  Component,
+}
+
+Component.displayName = 'Studio'
+ErrorBoundary.displayName = 'StudioErrorBoundary'

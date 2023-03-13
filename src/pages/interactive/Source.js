@@ -4,12 +4,13 @@ import { Container } from 'react-bootstrap'
 
 // Import our components
 import { P404 } from 'pages'
+import * as Utils from 'toolkits/utils'
 
 // Import style
 // ...
 
 export function loader({ params }) {
-  return import(`studios/${params.code}/sources/${params.source}`)
+  return import(`components/interactive/source/${Utils.capitalize(params.type)}`)
 }
 
 export function ErrorBoundary() {
@@ -23,7 +24,7 @@ export function Component() {
   const { default: Source } = useLoaderData()
 
   return (
-    <Container id="source" className="p-0" fluid>
+    <Container id="source" className="interactive p-0 w-100 h-100" fluid>
       <Source />
     </Container>
   )
@@ -35,5 +36,5 @@ export default {
   Component,
 }
 
-Component.displayName = 'Source'
-ErrorBoundary.displayName = 'SourceErrorBoundary'
+Component.displayName = 'InteractiveSource'
+ErrorBoundary.displayName = 'InteractiveSourceErrorBoundary'

@@ -1,24 +1,33 @@
 // Import core components
-import { HashRouter as Router, Routes, Route } from 'react-router-dom'
+import { createHashRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 
 // Import our components
-import { DynamicSource, Gate, P404, Source, Studio } from 'pages'
+import { InteractiveSource, Gate, P404, Studio, Source } from 'pages'
 
 // Import style
 import 'scss/base.scss'
 
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Gate />} />
-        <Route path="/project/:code/studio" element={<Studio />} />
-        <Route path="/project/:code/source/:source" element={<Source />} />
-        <Route path="/project/:code/:type" element={<DynamicSource />} />
-        <Route path="*" element={<P404 />} />
-      </Routes>
-    </Router>
+function routes() {
+  return createHashRouter(
+    createRoutesFromElements(
+      <>
+        {/* Landing */}
+        <Route index Component={Gate} />
+        {/* Studio/Source */}
+        <Route path="studio">
+          <Route path=":code" lazy={() => Studio} />
+          <Route path=":code?/source/:source" lazy={() => Source} />
+          <Route path=":code?/i/:type" lazy={() => InteractiveSource} />
+        </Route>
+        {/* 404 */}
+        <Route path="*" Component={P404} />
+      </>
+    )
   )
+}
+
+function App() {
+  return <RouterProvider router={routes()} />
 }
 
 export default App
