@@ -20,14 +20,13 @@ function Gate() {
   const handleSubmit = (e) => {
     const form = e.currentTarget
 
-    if (form.checkValidity() === false) {
-      e.preventDefault()
-      e.stopPropagation()
-    } else {
-      navigate(`/studio/${$code.current.value}`)
-    }
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (form.checkValidity()) navigate(`/studio/${$code.current.value}`)
 
     setValidated(true)
+    return false
   }
 
   return (
