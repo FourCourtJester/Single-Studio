@@ -25,6 +25,24 @@ body,
 #studio {
   padding-top: calc(3.75rem - 3px);
 
+  #mortise {
+    .col,
+    .row {
+      &.hover,
+      &.dragging {
+        border: 2px solid bs.$light;
+        border-style: dashed;
+        background-color: var.$dnd-mortise-hover;
+      }
+    }
+
+    &.hover {
+      border: 2px solid bs.$light;
+      border-style: dashed;
+      background-color: var.$dnd-mortise-hover;
+    }
+  }
+
   .row + .row {
     margin-top: map-get(bs.$spacers, 2);
   }

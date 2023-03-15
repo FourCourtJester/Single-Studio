@@ -1,7 +1,7 @@
 // Import core components
 import { useRef, useState } from 'react'
 import { Button, Container, Form, InputGroup } from 'react-bootstrap'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 // Import our components
 // ...
@@ -39,6 +39,9 @@ function Gate() {
             <Button type="submit">Go</Button>
             <Form.Control.Feedback type="invalid">Please enter a Code</Form.Control.Feedback>
           </InputGroup>
+          <p className="mt-2 mb-0">
+            or go <Link to="/studio/i">interactive</Link>
+          </p>
         </fieldset>
       </Form>
     </Container>
