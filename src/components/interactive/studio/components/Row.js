@@ -1,7 +1,7 @@
 // Import core components
 import { useRef, useState } from 'react'
 import { useDrag, useDrop } from 'react-dnd'
-import { Col } from 'react-bootstrap'
+import { Row } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
@@ -11,9 +11,9 @@ import * as Utils from 'toolkits/utils'
 // Import style
 // ...
 
-function ColType(properties) {
+function RowType(properties) {
   // Properties
-  const { className, dependents, id, index } = properties
+  const { dependents, index } = properties
   // States
   const [content, setContent] = useState(dependents || [])
   // Refs
@@ -24,13 +24,13 @@ function ColType(properties) {
     collect: (monitor) => ({
       isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: () => ({ ...properties, dependents: content, type: types.drag.COLUMN }),
-    type: types.drag.COLUMN,
+    item: () => ({ ...properties, dependents: content, type: types.drag.ROW }),
+    type: types.drag.ROW,
   })
 
   // Drop
   const [{ isOver, isOverThis }, drop] = useDrop(() => ({
-    accept: [types.drag.BUTTON.ROW],
+    accept: [types.drag.BUTTON.COLUMN],
     collect: (monitor) => ({
       isOver: monitor.canDrop() && monitor.isOver(),
       isOverThis: monitor.canDrop() && monitor.isOver({ shallow: true }),
@@ -60,11 +60,11 @@ function ColType(properties) {
   }
 
   return (
-    <Col ref={$ref} className={cN(isOverThis && 'hover', isDragging && 'dragging')}>
+    <Row ref={$ref} className={cN(isOverThis && 'hover', isDragging && 'dragging')}>
       {content.map((element, i) => render(element, i))}
-    </Col>
+    </Row>
   )
 }
 
 // Exported Component for use
-export default ColType
+export default RowType

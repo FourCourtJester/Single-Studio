@@ -1,12 +1,12 @@
 // Import core components
 import { useState } from 'react'
-import { Row } from 'react-bootstrap'
+import { Container } from 'react-bootstrap'
 import { useDrop } from 'react-dnd'
 import cN from 'classnames'
 
 // Import our components
-import { elementTypes } from 'components/interactive/studio'
-import { Col } from 'components/interactive/studio/components'
+import { types } from 'components/interactive/studio'
+import * as Utils from 'toolkits/utils'
 
 // Import style
 // ...
@@ -15,34 +15,32 @@ function MortiseType() {
   // States
   const [content, setContent] = useState([])
   // Drop
-  const [{ isOver }, $ref] = useDrop(() => ({
-    accept: [elementTypes.BUTTON.COLUMN, elementTypes.BUTTON.ROW],
+  const [{ isOver, isOverThis }, $ref] = useDrop(() => ({
+    accept: [types.drag.BUTTON.ROW],
     collect: (monitor) => ({
-      isOver: monitor.isOver({ shallow: true }),
+      isOver: monitor.canDrop() && monitor.isOver(),
+      isOverThis: monitor.canDrop() && monitor.isOver({ shallow: true }),
     }),
-    drop: (item) => setContent((_content) => _content.concat([item.type])),
+    drop: (item, monitor) => {
+      // Prevent drop propogation
+      if (monitor.didDrop()) return
+
+      // Add the item to the content of this element
+      setContent((_content) => _content.concat([item]))
+    },
   }))
 
   const render = (element, i) => {
-    switch (element) {
-      case elementTypes.COLUMN: {
-        return <Col key={i} index={i} />
-      }
+    const { type, ...props } = { ...element }
+    const E = types.tag[Utils.capitalize(type)]
 
-      case elementTypes.ROW: {
-        return <Row key={i} />
-      }
-
-      default: {
-        break
-      }
-    }
+    return <E key={i} {...props} />
   }
 
   return (
-    <div ref={$ref} id="mortise" className={cN(isOver && 'hover', 'd-flex w-100 h-100')}>
+    <Container ref={$ref} id="mortise" className={cN(isOverThis && 'hover', 'position-relative p-2 h-100 overflow-x-hidden overflow-y-auto')} fluid>
       {content.map((element, i) => render(element, i))}
-    </div>
+    </Container>
   )
 }
 

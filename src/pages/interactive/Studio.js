@@ -77,12 +77,10 @@ export function Component() {
         </Container>
       </Navbar>
       <Form ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
-        <Container className="position-relative p-2 h-100 overflow-x-hidden overflow-y-auto" fluid>
-          <DndProvider backend={HTML5Backend}>
-            <Mortise />
-            <InteractiveEditorPanel />
-          </DndProvider>
-        </Container>
+        <DndProvider backend={HTML5Backend}>
+          <Mortise />
+          <InteractiveEditorPanel />
+        </DndProvider>
       </Form>
     </>
   )

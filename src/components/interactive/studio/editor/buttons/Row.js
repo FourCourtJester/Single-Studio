@@ -3,7 +3,7 @@ import { Button } from 'react-bootstrap'
 import { useDrag } from 'react-dnd'
 
 // Import our components
-import { elementTypes } from 'components/interactive/studio'
+import { types } from 'components/interactive/studio'
 
 // Import style
 // ...
@@ -12,11 +12,11 @@ function RowButton(properties) {
   // Hooks
   const [{ isDragging }, $ref] = useDrag(() => ({
     collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+      isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: { type: elementTypes.ROW },
+    item: { type: types.drag.ROW },
     options: { dropEffect: 'copy' },
-    type: elementTypes.BUTTON.ROW,
+    type: types.drag.BUTTON.ROW,
   }))
 
   return (

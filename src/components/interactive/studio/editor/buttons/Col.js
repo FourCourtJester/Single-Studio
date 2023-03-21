@@ -3,7 +3,7 @@ import { Button } from 'react-bootstrap'
 import { useDrag } from 'react-dnd'
 
 // Import our components
-import { elementTypes } from 'components/interactive/studio'
+import { types } from 'components/interactive/studio'
 
 // Import style
 // ...
@@ -14,9 +14,9 @@ function ColButton(properties) {
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    item: { type: elementTypes.COLUMN },
+    item: { type: types.drag.COLUMN },
     options: { dropEffect: 'copy' },
-    type: elementTypes.BUTTON.COLUMN,
+    type: types.drag.BUTTON.COLUMN,
   }))
 
   return (

@@ -28,11 +28,16 @@ body,
   #mortise {
     .col,
     .row {
-      &.hover,
-      &.dragging {
+      &.hover {
         border: 2px solid bs.$light;
         border-style: dashed;
         background-color: var.$dnd-mortise-hover;
+      }
+    }
+
+    .row {
+      &:only-child {
+        min-height: 3rem;
       }
     }
 

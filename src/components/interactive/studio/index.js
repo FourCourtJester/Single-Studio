@@ -1,5 +1,6 @@
-export { elementTypes } from './types'
+export { types } from './types'
 
-export { default as InteractiveEditorPanel } from './editor/panel'
+export { Col, Row } from './components'
 
+export { default as InteractiveEditorPanel } from './editor/Panel'
 export { default as Mortise } from './Mortise'
