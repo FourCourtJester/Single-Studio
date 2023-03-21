@@ -15,7 +15,8 @@ $input-border-width: 2px;
 $input-focus-box-shadow: none;
 $input-focus-border-color: #63666f;
 
-$dnd-mortise-hover: lighten($body-bg, 10%);
+$dnd-row-hover: lighten($body-bg, 10%);
+$dnd-col-hover: lighten($body-bg, 20%);
 
 @import "~bootstrap/scss/variables";
 

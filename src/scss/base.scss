@@ -26,12 +26,20 @@ body,
   padding-top: calc(3.75rem - 3px);
 
   #mortise {
-    .col,
     .row {
       &.hover {
         border: 2px solid bs.$light;
         border-style: dashed;
-        background-color: var.$dnd-mortise-hover;
+        background-color: var.$dnd-row-hover;
+      }
+    }
+
+    .col {
+      &.dragging,
+      &.hover {
+        border: 2px solid bs.$light;
+        border-style: dashed;
+        background-color: var.$dnd-col-hover;
       }
     }
 
@@ -44,7 +52,7 @@ body,
     &.hover {
       border: 2px solid bs.$light;
       border-style: dashed;
-      background-color: var.$dnd-mortise-hover;
+      background-color: var.$dnd-row-hover;
     }
   }
 

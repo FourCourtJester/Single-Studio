@@ -16,6 +16,7 @@ function RowType(properties) {
   const { dependents, index } = properties
   // States
   const [content, setContent] = useState(dependents || [])
+  const [isChildDragging, setIsChildDragging] = useState(false)
   // Refs
   const $ref = useRef(null)
 
@@ -52,15 +53,25 @@ function RowType(properties) {
 
   drag(drop($ref))
 
+  const reorder = (item, hover) =>
+    setContent((_content) => {
+      const z = _content.slice()
+
+      z.splice(item, 1)
+      z.splice(hover, 0, _content[item])
+
+      return z
+    })
+
   const render = (element, i) => {
     const { type, ...props } = { ...element }
     const E = types.tag[Utils.capitalize(type)]
 
-    return <E key={i} {...props} />
+    return <E key={i} index={i} parent={{ alert: setIsChildDragging, reorder }} {...props} />
   }
 
   return (
-    <Row ref={$ref} className={cN(isOverThis && 'hover', isDragging && 'dragging')}>
+    <Row ref={$ref} className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging')}>
       {content.map((element, i) => render(element, i))}
     </Row>
   )

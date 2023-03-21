@@ -34,7 +34,7 @@ function MortiseType() {
     const { type, ...props } = { ...element }
     const E = types.tag[Utils.capitalize(type)]
 
-    return <E key={i} {...props} />
+    return <E key={i} index={i} {...props} />
   }
 
   return (

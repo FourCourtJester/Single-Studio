@@ -23,7 +23,8 @@
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"dbaeumer.vscode-eslint",			// ESLint
-		"sibiraj-s.vscode-scss-formatter"	// SCSS Formatter
+		"sibiraj-s.vscode-scss-formatter", // SCSS Formatter
+    "eamodio.gitlens" // GitLens
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
