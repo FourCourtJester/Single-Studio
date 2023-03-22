@@ -8,10 +8,10 @@ import * as Storage from 'toolkits/storage'
 const name = 'studio'
 const initialState = {}
 
-function _update(state, fields, propogate = true) {
+function _update(state, fields, propagate = true) {
   Utils.getObjPaths(fields, (path, val) => {
     Utils.setObjValue(state, path, val)
-    if (propogate) Storage.set([name, path], val)
+    if (propagate) Storage.set([name, path], val)
   })
 }
 
@@ -74,8 +74,6 @@ export const studio = createSlice({
 export const { clear: clearStudio, reset: resetStudio, swap: swapStudio, update: updateStudio, updateFromStorage: updateStudioFromStorage } = studio.actions
 
 // Selector functions
-export const selector = (state, path) =>
-  // console.log(state, path, Utils.getObjValue(state.studio, path))
-  Utils.getObjValue(state.studio, path)
+export const selector = (state, path) => Utils.getObjValue(state.studio, path)
 
 export const { reducer } = studio

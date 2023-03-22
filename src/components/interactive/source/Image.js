@@ -7,7 +7,7 @@ import { Image } from 'components/source'
 // Import style
 // ...
 
-function ImageType() {
+export const IImage = () => {
   // Hooks
   const [query] = useSearchParams()
 
@@ -16,6 +16,3 @@ function ImageType() {
 
   return <Image className="mw-100 mh-100" name={query.get('name')} />
 }
-
-// Exported Component for use
-export default ImageType

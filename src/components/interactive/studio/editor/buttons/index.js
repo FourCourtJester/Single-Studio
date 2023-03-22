@@ -1,2 +1,3 @@
-export { default as ColButton } from './Col'
-export { default as RowButton } from './Row'
+export { ColButton } from './Col'
+export { RowButton } from './Row'
+export { VariableButton } from './Variable'

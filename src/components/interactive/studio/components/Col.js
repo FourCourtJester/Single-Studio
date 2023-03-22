@@ -11,7 +11,7 @@ import * as Utils from 'toolkits/utils'
 // Import style
 // ...
 
-function ColType(properties) {
+export const _Col = (properties) => {
   // Properties
   const { dependents, parent, index } = properties
   // States
@@ -40,7 +40,7 @@ function ColType(properties) {
 
   // Drop
   const [{ isOver, isOverThis }, drop] = useDrop(() => ({
-    accept: [types.drag.BUTTON.COLUMN, types.drag.BUTTON.ROW, types.drag.COLUMN],
+    accept: [types.drag.BUTTON.COLUMN, types.drag.BUTTON.ROW, types.drag.BUTTON.VARIABLE, types.drag.COLUMN],
     canDrop: (item, monitor) => item.type !== types.drag.COLUMN,
     collect: (monitor) => ({
       isOver: monitor.canDrop() && monitor.isOver(),
@@ -109,6 +109,3 @@ function ColType(properties) {
     </Col>
   )
 }
-
-// Exported Component for use
-export default ColType

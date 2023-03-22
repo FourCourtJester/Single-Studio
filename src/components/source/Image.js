@@ -12,7 +12,7 @@ import { useNamespace, usePublic, useStudio } from 'hooks'
 const namespace = 'variables'
 const defaultSrc = '1x1.png'
 
-export const _Image = (properties) => {
+export const Image = (properties) => {
   // Properties
   const { name } = properties
   // Hooks

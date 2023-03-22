@@ -11,7 +11,7 @@ import * as Utils from 'toolkits/utils'
 // Import style
 // ...
 
-function MortiseType() {
+export const Mortise = () => {
   // States
   const [content, setContent] = useState([])
   // Drop
@@ -43,6 +43,3 @@ function MortiseType() {
     </Container>
   )
 }
-
-// Exported Component for use
-export default MortiseType

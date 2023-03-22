@@ -11,7 +11,7 @@ import * as Utils from 'toolkits/utils'
 // Import style
 // ...
 
-function RowType(properties) {
+export const _Row = (properties) => {
   // Properties
   const { dependents, index } = properties
   // States
@@ -71,11 +71,8 @@ function RowType(properties) {
   }
 
   return (
-    <Row ref={$ref} className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging')}>
+    <Row ref={$ref} className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging', 'g-2')}>
       {content.map((element, i) => render(element, i))}
     </Row>
   )
 }
-
-// Exported Component for use
-export default RowType

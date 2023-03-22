@@ -4,11 +4,12 @@ import { useDrag } from 'react-dnd'
 
 // Import our components
 import { types } from 'components/interactive/studio'
+import { ToolTip } from 'components/global'
 
 // Import style
 // ...
 
-function RowButton(properties) {
+export const RowButton = (properties) => {
   // Hooks
   const [{ isDragging }, $ref] = useDrag(() => ({
     collect: (monitor) => ({
@@ -20,11 +21,10 @@ function RowButton(properties) {
   }))
 
   return (
-    <Button ref={$ref} variant="light" {...properties}>
-      <i className="fa fas fa-arrows-left-right" />
-    </Button>
+    <ToolTip placement="top" tooltip={<>Row</>}>
+      <Button ref={$ref} variant="light" {...properties}>
+        <i className="fa fas fa-arrows-left-right" />
+      </Button>
+    </ToolTip>
   )
 }
-
-// Exported Component for use
-export default RowButton

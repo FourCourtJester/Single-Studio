@@ -7,7 +7,7 @@ import { Timer } from 'components/source'
 // Import style
 // ...
 
-function TimerType() {
+export const ITimer = () => {
   // Hooks
   const [query] = useSearchParams()
 
@@ -16,6 +16,3 @@ function TimerType() {
 
   return <Timer name={query.get('name')} />
 }
-
-// Exported Component for use
-export default TimerType

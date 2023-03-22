@@ -5,9 +5,9 @@ import { useSearchParams } from 'react-router-dom'
 import { Variable } from 'components/source'
 
 // Import style
-// import '../scss/sources.scss'
+// ...
 
-function VariableType() {
+export const IVariable = () => {
   // Hooks
   const [query] = useSearchParams()
 
@@ -16,6 +16,3 @@ function VariableType() {
 
   return <Variable name={query.get('name')} />
 }
-
-// Exported Component for use
-export default VariableType

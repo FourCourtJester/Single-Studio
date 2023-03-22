@@ -1,4 +1,4 @@
-export { _Image as Image } from './Image'
+export { Image } from './Image'
 export { Scene } from './Scene'
 export { Timer } from './Timer'
 export { Toggle } from './Toggle'

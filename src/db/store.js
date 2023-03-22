@@ -3,12 +3,14 @@ import { configureStore } from '@reduxjs/toolkit'
 
 // Import our components
 import { reducer as studioReducer, clearStudio, updateStudioFromStorage } from 'db/slices/studio'
+import interactiveReducer from 'db/slices/interactive'
 import * as Storage from 'toolkits/storage'
 
 const initialState = {}
 const store = configureStore({
   preloadedState: initialState,
   reducer: {
+    interactive: interactiveReducer,
     studio: studioReducer,
   },
 })
@@ -29,13 +31,17 @@ window.addEventListener('storage', (e) => {
 
   // Update the appropriate slice
   switch (key) {
+    case 'interactive': {
+      break
+    }
+
     // Default: Studio
     default: {
       try {
         store.dispatch(updateStudioFromStorage({ [path.join('.')]: JSON.parse(e.newValue) }))
       } catch (err) {
-        store.dispatch(updateStudioFromStorage({ [path.join('.')]: null }))
         console.warn(err)
+        store.dispatch(updateStudioFromStorage({ [path.join('.')]: null }))
       }
       break
     }

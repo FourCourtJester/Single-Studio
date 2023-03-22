@@ -9,21 +9,21 @@ import { ToolTip } from 'components/global'
 // Import style
 // ...
 
-export const ColButton = (properties) => {
+export const VariableButton = (properties) => {
   // Hooks
   const [{ isDragging }, $ref] = useDrag(() => ({
     collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+      isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: { type: types.drag.COLUMN },
+    item: { type: types.drag.VARIABLE },
     options: { dropEffect: 'copy' },
-    type: types.drag.BUTTON.COLUMN,
+    type: types.drag.BUTTON.VARIABLE,
   }))
 
   return (
-    <ToolTip placement="top" tooltip={<>Column</>}>
+    <ToolTip placement="top" tooltip={<>Variable</>}>
       <Button ref={$ref} variant="light" {...properties}>
-        <i className="fa fas fa-arrows-up-down" />
+        <i className="fa fas fa-code" />
       </Button>
     </ToolTip>
   )
