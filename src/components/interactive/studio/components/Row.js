@@ -13,7 +13,7 @@ import * as Utils from 'toolkits/utils'
 
 export const _Row = (properties) => {
   // Properties
-  const { dependents, index } = properties
+  const { dependents, id, index } = properties
   // States
   const [content, setContent] = useState(dependents || [])
   const [isChildDragging, setIsChildDragging] = useState(false)
@@ -71,7 +71,7 @@ export const _Row = (properties) => {
   }
 
   return (
-    <Row ref={$ref} className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging', 'g-2')}>
+    <Row id={id} ref={$ref} className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging', 'g-2')}>
       {content.map((element, i) => render(element, i))}
     </Row>
   )

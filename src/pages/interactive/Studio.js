@@ -29,7 +29,6 @@ export function Component() {
   // Hooks
   const params = useParams()
   const dispatch = useDispatch()
-  // const { default: Studio } = useLoaderData()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
@@ -66,7 +65,7 @@ export function Component() {
     <>
       <Navbar className="border-bottom border-light" fixed="top">
         <Container fluid>
-          <Navbar.Brand className="text-light">Interactive Studio</Navbar.Brand>
+          <Navbar.Brand className="text-light">{params.code}: Interactive</Navbar.Brand>
           <div className="ms-auto">
             <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
               <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>

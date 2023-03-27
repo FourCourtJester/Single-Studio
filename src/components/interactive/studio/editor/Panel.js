@@ -12,7 +12,7 @@ import * as Utils from 'toolkits/utils'
 // ...
 
 export const InteractiveEditorPanel = () => {
-  const field = useSelector((state) => selectInteractive(state))
+  const field = useSelector((state) => selectInteractive(state)) || {}
 
   const render = () => {
     const { type } = field

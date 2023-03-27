@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux'
 import { Form, Stack, Toast } from 'react-bootstrap'
 
 // Import our components
-import { updateInteractive } from 'db/slices/interactive'
+import { updateInteractiveSelected } from 'db/slices/interactive'
 
 // Import style
 // ...
@@ -18,14 +18,16 @@ export const VariablePanel = (properties) => {
   const [show, setShow] = useState(true)
 
   const handleClose = (e) => {
-    dispatch(updateInteractive({ id: undefined }))
+    dispatch(updateInteractiveSelected({ id: undefined }))
     setShow(false)
   }
 
   return (
     <Toast show={show} onClose={handleClose}>
       <Toast.Header>
-        <span className="me-auto">{type}</span>
+        <span className="me-auto">
+          {type} ({id})
+        </span>
       </Toast.Header>
       <Toast.Body>
         <Stack gap={2}>

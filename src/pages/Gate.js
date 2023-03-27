@@ -15,33 +15,41 @@ function Gate() {
   // States
   const [validated, setValidated] = useState(false)
   // Refs
+  const $form = useRef(null)
   const $code = useRef(null)
 
-  const handleSubmit = (e) => {
-    const form = e.currentTarget
+  const handleSubmit = (e, interactive = false) => {
+    const form = $form.current
 
     e.preventDefault()
     e.stopPropagation()
 
-    if (form.checkValidity()) navigate(`/studio/${$code.current.value}`)
+    if (!form.checkValidity()) {
+      setValidated(true)
+      return false
+    }
 
-    setValidated(true)
+    navigate(interactive ? `/studio/${$code.current.value}/i` : `/studio/${$code.current.value}`)
+    setValidated(false)
+
     return false
   }
 
   return (
     <Container className="d-flex flex-column justify-content-center text-center h-100" fluid>
-      <Form noValidate validated={validated} onSubmit={handleSubmit}>
+      <Form ref={$form} noValidate validated={validated}>
         <fieldset className="d-flex flex-column align-items-center ">
           <h4 className="mb-2">Enter your studio code</h4>
           <InputGroup hasValidation className="w-50">
             <Form.Control ref={$code} className="w-50" name="code" placeholder="Demo" required />
-            <Button type="submit">Go</Button>
+            <Button type="submit" name="studio" onClick={handleSubmit}>
+              Go
+            </Button>
+            <Button type="submit" name="interactive" variant="success" onClick={(e) => handleSubmit(e, true)}>
+              Interactive
+            </Button>
             <Form.Control.Feedback type="invalid">Please enter a Code</Form.Control.Feedback>
           </InputGroup>
-          <p className="mt-2 mb-0">
-            or go <Link to="/studio/i">interactive</Link>
-          </p>
         </fieldset>
       </Form>
     </Container>
