@@ -13,9 +13,9 @@ export const ColButton = (properties) => {
   // Hooks
   const [{ isDragging }, $ref] = useDrag(() => ({
     collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+      isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: { type: types.drag.COLUMN },
+    item: { dependents: [], type: types.drag.COLUMN },
     options: { dropEffect: 'copy' },
     type: types.drag.BUTTON.COLUMN,
   }))

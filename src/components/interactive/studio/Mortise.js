@@ -1,7 +1,7 @@
 // Import core components
 import { useDispatch, useSelector } from 'react-redux'
 import { useDrop } from 'react-dnd'
-import { Container } from 'react-bootstrap'
+import { Container, Stack } from 'react-bootstrap'
 import { nanoid } from 'nanoid'
 import cN from 'classnames'
 
@@ -17,7 +17,7 @@ export const Mortise = () => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  const content = useSelector((state) => selectComponent(state, 'mortise')) || {}
+  const { dependents: content } = useSelector((state) => selectComponent(state)) || []
   // Drop
   const [{ isOver, isOverThis }, $ref] = useDrop(() => ({
     accept: [types.drag.BUTTON.ROW],
@@ -29,10 +29,8 @@ export const Mortise = () => {
       // Prevent drop propogation
       if (monitor.didDrop()) return
 
-      const id = nanoid(3)
-
       // Add the item to the content of this element
-      dispatch(updateInteractiveComponent({ [id]: { ...item, id }, parent: 'mortise' }))
+      dispatch(updateInteractiveComponent({ id: nanoid(3), ...item }))
     },
   }))
 
@@ -45,7 +43,7 @@ export const Mortise = () => {
 
   return (
     <Container ref={$ref} id="mortise" className={cN(isOverThis && 'hover', 'position-relative p-2 h-100 overflow-x-hidden overflow-y-auto')} fluid>
-      {Object.values(content).map((element, i) => render(element, i))}
+      <Stack gap={2}>{content.map((element, i) => render(element, i))}</Stack>
     </Container>
   )
 }

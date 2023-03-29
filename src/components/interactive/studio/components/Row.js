@@ -1,11 +1,14 @@
 // Import core components
 import { useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useDrag, useDrop } from 'react-dnd'
-import { Row } from 'react-bootstrap'
+import { Stack } from 'react-bootstrap'
+import { nanoid } from 'nanoid'
 import cN from 'classnames'
 
 // Import our components
 import { types } from 'components/interactive/studio'
+import { selectComponent, updateInteractiveComponent } from 'db/slices/interactive'
 import * as Utils from 'toolkits/utils'
 
 // Import style
@@ -13,9 +16,12 @@ import * as Utils from 'toolkits/utils'
 
 export const _Row = (properties) => {
   // Properties
-  const { dependents, id, index } = properties
+  const { id, index } = properties
+  // Hooks
+  const dispatch = useDispatch()
+  // Redux
+  const { dependents: content } = useSelector((state) => selectComponent(state, id)) || []
   // States
-  const [content, setContent] = useState(dependents || [])
   const [isChildDragging, setIsChildDragging] = useState(false)
   // Refs
   const $ref = useRef(null)
@@ -25,7 +31,7 @@ export const _Row = (properties) => {
     collect: (monitor) => ({
       isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: () => ({ ...properties, dependents: content, type: types.drag.ROW }),
+    item: () => ({ ...properties, type: types.drag.ROW }),
     type: types.drag.ROW,
   })
 
@@ -41,38 +47,39 @@ export const _Row = (properties) => {
       if (monitor.didDrop()) return
 
       // Add the item to the content of this element
-      setContent((_content) => _content.concat([item]))
+      dispatch(updateInteractiveComponent({ id: item.id || nanoid(3), ...item, parent: id }))
     },
-    // hover: (item, monitor) => {
-    //   if (!$ref.current) return
-    //   // if (item.index === index) return
-
-    //   console.log(monitor.canDrop(), monitor.isOver({ shallow: true }))
-    // },
   }))
 
   drag(drop($ref))
 
-  const reorder = (item, hover) =>
-    setContent((_content) => {
-      const z = _content.slice()
+  // const reorder = (item, hover) =>
+  //   setContent((_content) => {
+  //     const z = _content.slice()
 
-      z.splice(item, 1)
-      z.splice(hover, 0, _content[item])
+  //     z.splice(item, 1)
+  //     z.splice(hover, 0, _content[item])
 
-      return z
-    })
+  //     return z
+  //   })
 
   const render = (element, i) => {
     const { type, ...props } = { ...element }
     const E = types.tag[Utils.capitalize(type)]
 
-    return <E key={i} index={i} parent={{ alert: setIsChildDragging, reorder }} {...props} />
+    return <E key={i} index={i} {...props} />
   }
 
   return (
-    <Row id={id} ref={$ref} className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging', 'g-2')}>
+    <Stack
+      ref={$ref}
+      id={id}
+      className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging')}
+      gap={2}
+      direction="horizontal"
+      data-index={index}
+    >
       {content.map((element, i) => render(element, i))}
-    </Row>
+    </Stack>
   )
 }

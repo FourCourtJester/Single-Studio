@@ -15,7 +15,7 @@ export const RowButton = (properties) => {
     collect: (monitor) => ({
       isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: { type: types.drag.ROW },
+    item: { dependents: [], type: types.drag.ROW },
     options: { dropEffect: 'copy' },
     type: types.drag.BUTTON.ROW,
   }))

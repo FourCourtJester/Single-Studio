@@ -27,6 +27,8 @@ body,
 
   #mortise {
     .row {
+      min-height: bs.$form-floating-height;
+
       &.hover {
         border: 2px solid bs.$light;
         border-style: dashed;
@@ -40,12 +42,6 @@ body,
         border: 2px solid bs.$light;
         border-style: dashed;
         background-color: var.$dnd-col-hover;
-      }
-    }
-
-    .row {
-      &:only-child {
-        min-height: bs.$form-floating-height;
       }
     }
 

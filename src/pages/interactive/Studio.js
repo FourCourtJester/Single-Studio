@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useParams, useRouteError } from 'react-router-dom'
-import { Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Badge, Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
@@ -65,7 +65,9 @@ export function Component() {
     <>
       <Navbar className="border-bottom border-light" fixed="top">
         <Container fluid>
-          <Navbar.Brand className="text-light">{params.code}: Interactive</Navbar.Brand>
+          <Navbar.Brand className="text-light">
+            {params.code} <Badge bg="secondary">Interactive</Badge>
+          </Navbar.Brand>
           <div className="ms-auto">
             <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
               <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>
