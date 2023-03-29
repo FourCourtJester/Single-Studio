@@ -17,7 +17,8 @@ export const Mortise = () => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  const { dependents: content } = useSelector((state) => selectComponent(state)) || []
+  const { dependents } = useSelector((state) => selectComponent(state))
+
   // Drop
   const [{ isOver, isOverThis }, $ref] = useDrop(() => ({
     accept: [types.drag.BUTTON.ROW],
@@ -43,7 +44,7 @@ export const Mortise = () => {
 
   return (
     <Container ref={$ref} id="mortise" className={cN(isOverThis && 'hover', 'position-relative p-2 h-100 overflow-x-hidden overflow-y-auto')} fluid>
-      <Stack gap={2}>{content.map((element, i) => render(element, i))}</Stack>
+      <Stack gap={2}>{dependents.map((element, i) => render(element, i))}</Stack>
     </Container>
   )
 }

@@ -20,7 +20,7 @@ export const _Col = (properties) => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  const { dependents: content } = useSelector((state) => selectComponent(state, id)) || []
+  const { dependents } = useSelector((state) => selectComponent(state, id)) || []
   // Refs
   const $ref = useRef(null)
 
@@ -109,7 +109,7 @@ export const _Col = (properties) => {
 
   return (
     <Col ref={$ref} id={id} className={cN(isOverThis && 'hover', isDragging && 'dragging', 'text-center')} data-index={index}>
-      {content.map((element, i) => render(element, i))}
+      {dependents.map((element, i) => render(element, i))}
     </Col>
   )
 }

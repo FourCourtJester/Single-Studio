@@ -11,6 +11,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend'
 import { updateStudio } from 'db/slices/studio'
 import { P404 } from 'pages'
 import { InteractiveEditorPanel, Mortise } from 'components/interactive/studio'
+import * as Storage from 'toolkits/storage'
 
 // Import style
 // ...
@@ -60,6 +61,10 @@ export function Component() {
     document.addEventListener('keydown', handleSubmitKey)
     return () => document.removeEventListener('keydown', handleSubmitKey)
   }, [handleSubmitKey])
+
+  useEffect(() => {
+    Storage.set(['interactive', 'code'], params.code)
+  }, [params.code])
 
   return (
     <>

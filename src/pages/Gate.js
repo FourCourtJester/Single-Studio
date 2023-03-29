@@ -39,7 +39,7 @@ function Gate() {
     <Container className="d-flex flex-column justify-content-center text-center h-100" fluid>
       <Form ref={$form} noValidate validated={validated}>
         <fieldset className="d-flex flex-column align-items-center ">
-          <h4 className="mb-2">Enter your studio code</h4>
+          <h4 className="mb-3">Enter your studio code</h4>
           <InputGroup hasValidation className="w-50">
             <Form.Control ref={$code} className="w-50" name="code" placeholder="Demo" required />
             <Button type="submit" name="studio" onClick={handleSubmit}>

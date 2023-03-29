@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useDrag, useDrop } from 'react-dnd'
-import { Stack } from 'react-bootstrap'
+import { Row, Stack } from 'react-bootstrap'
 import { nanoid } from 'nanoid'
 import cN from 'classnames'
 
@@ -20,7 +20,7 @@ export const _Row = (properties) => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  const { dependents: content } = useSelector((state) => selectComponent(state, id)) || []
+  const { dependents } = useSelector((state) => selectComponent(state, id)) || []
   // States
   const [isChildDragging, setIsChildDragging] = useState(false)
   // Refs
@@ -75,11 +75,11 @@ export const _Row = (properties) => {
       ref={$ref}
       id={id}
       className={cN((isOver || isChildDragging) && 'hover', isDragging && 'dragging')}
-      gap={2}
       direction="horizontal"
+      gap={2}
       data-index={index}
     >
-      {content.map((element, i) => render(element, i))}
+      {dependents.map((element, i) => render(element, i))}
     </Stack>
   )
 }

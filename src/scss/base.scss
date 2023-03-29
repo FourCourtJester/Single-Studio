@@ -26,8 +26,9 @@ body,
   padding-top: calc(3.75rem - 3px);
 
   #mortise {
-    .row {
+    .hstack {
       min-height: bs.$form-floating-height;
+      align-items: unset;
 
       &.hover {
         border: 2px solid bs.$light;

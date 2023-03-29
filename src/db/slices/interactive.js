@@ -7,20 +7,35 @@ import * as Storage from 'toolkits/storage'
 
 const name = 'interactive'
 const initialState = {
-  components: [],
   selected: null,
 }
 
-function _find(components, id) {
-  if (!id) return { dependents: components }
+function _find(root, id, { immutable = false, recursed = false } = {}) {
+  const code = Storage.get([name, 'code'])
+  const dependents = recursed ? root : Utils.getObjValue(root, `${code}.dependents`) || []
 
-  for (let i = 0; i < components.length; i += 1) {
-    if (components[i].id === id) return components[i]
-    if (components[i].dependents && components[i].dependents.length) {
-      const component = _find(components[i].dependents, id)
-      if (component) return component
+  // Attach to base level
+  if (!id) {
+    if (immutable) return { dependents }
+
+    if (!Utils.getObjValue(root, `${code}.dependents`)) Utils.setObjValue(root, `${code}.dependents`, [])
+    return root[code]
+  }
+
+  // Find the parent branch
+  for (let i = 0; i < dependents.length; i += 1) {
+    const component = dependents[i]
+    if (component.id === id) return component
+
+    // Recuse down the tree
+    if (component.dependents && component.dependents.length) {
+      const child = _find(component.dependents, id, { immutable, recursed: true })
+      if (child) return child
     }
   }
+
+  // Recurse failed to find the component
+  return false
 }
 
 function _remove(state, components) {
@@ -29,18 +44,18 @@ function _remove(state, components) {
   })
 }
 
-function _update(state, components, propagate = true) {
-  return false
-  // Utils.getObjPaths(components, (path, val) => {
-  //   Utils.setObjValue(state, path, val)
-  //   if (propagate) Storage.set([name, path], val)
-  // })
+function _update(state, component, propagate = true) {
+  const code = Storage.get([name, 'code'])
+  const entry = _find(state, component.parent, { immutable: false })
+
+  entry.dependents.push(component)
+  if (propagate) Storage.set([name, code, 'dependents'], Utils.getObjValue(state, `${code}.dependents`))
 }
 
 function getState() {
   try {
     const persistentState = Storage.getAll(name) || {}
-    return Utils.getObjValue(persistentState, name) || initialState
+    return { ...initialState, ...(Utils.getObjValue(persistentState, name) || {}) }
   } catch (err) {
     console.error(err)
     return initialState
@@ -54,10 +69,7 @@ export const interactive = createSlice({
   reducers: {
     clear: () => initialState,
     updateComponent: (state, { payload: component }) => {
-      const _component = _find(state.components, component.parent)
-
-      _component.dependents.push(component)
-      Storage.set([name, 'components'], state.components)
+      _update(state, component)
     },
     updateFromStorage: (state, action) => console.log('updateFromStorage'), // _update(state, action, false),
     updateSelected: (state, { payload: component }) => {
@@ -82,6 +94,6 @@ export const {
 
 // Selector functions
 export const selectInteractive = (state) => state.interactive.selected
-export const selectComponent = (state, id) => _find(state.interactive.components, id)
+export const selectComponent = (state, id) => _find(state.interactive, id, { immutable: true })
 
 export const { reducer } = interactive

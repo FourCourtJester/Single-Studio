@@ -11,9 +11,9 @@ function _namespace(str) {
   return [namespace, ...(Array.isArray(str) ? str : [str])].join('.')
 }
 
-export function get(name) {
+export function get(name, { addNamespace = true } = {}) {
   try {
-    return JSON.parse(storage.getItem(name))
+    return JSON.parse(storage.getItem(addNamespace ? _namespace(name) : name))
   } catch (err) {
     console.error(err)
   }
@@ -24,7 +24,7 @@ export function getAll(key) {
 
   return all.reduce((obj, path) => {
     const _path = path.split('.').slice(1).join('.')
-    if (path.startsWith(_namespace(key))) Utils.setObjValue(obj, _path, get(path))
+    if (path.startsWith(_namespace(key))) Utils.setObjValue(obj, _path, get(path, { addNamespace: false }))
     return obj
   }, {})
 }
