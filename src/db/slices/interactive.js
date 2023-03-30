@@ -7,7 +7,7 @@ import * as Storage from 'toolkits/storage'
 
 const name = 'interactive'
 const initialState = {
-  selected: null,
+  selected: {},
 }
 
 function _find(root, id, { immutable = false, recursed = false } = {}) {
@@ -71,13 +71,15 @@ export const interactive = createSlice({
     updateComponent: (state, { payload: component }) => {
       _update(state, component)
     },
-    updateFromStorage: (state, action) => console.log('updateFromStorage'), // _update(state, action, false),
+    updateFromStorage: (state, { payload: obj }) => {
+      Utils.getObjPaths(obj, (key, val) => Utils.setObjValue(state, key, val))
+    },
     updateSelected: (state, { payload: component }) => {
       if (component.id) {
         state.selected = component
         Storage.set([name, 'selected'], state.selected)
       } else {
-        state.selected = null
+        state.selected = {}
         Storage.remove([name, 'selected'])
       }
     },

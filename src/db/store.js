@@ -32,6 +32,7 @@ window.addEventListener('storage', (e) => {
 
   // Update the appropriate slice
   switch (key) {
+    // Interactive Studio
     case 'interactive': {
       try {
         store.dispatch(updateInteractiveFromStorage({ [path.join('.')]: JSON.parse(e.newValue) }))
