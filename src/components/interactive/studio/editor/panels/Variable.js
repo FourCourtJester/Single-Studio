@@ -55,7 +55,7 @@ export const VariablePanel = (properties) => {
             <Col>
               <Form.Label className="d-flex align-items-center text-dark ps-2 mb-0">
                 <small className="me-auto">Name</small>
-                <Button className="text-dark" size="sm" variant="link" type="button" href={`#/studio/i/${params.code}/source/${id}`} target={id}>
+                <Button className="text-dark" size="sm" variant="link" type="button" href={`#/studio/${params.code}/i/variable/${id}`} target={id}>
                   <i className="fas fa-up-right-from-square" />
                 </Button>
               </Form.Label>

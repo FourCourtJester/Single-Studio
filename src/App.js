@@ -21,8 +21,11 @@ function routes() {
           </Route> */}
           <Route path=":code">
             <Route index lazy={() => Studio} />
-            <Route path="i" lazy={() => InteractiveStudio} />
             <Route path="source/:source" lazy={() => Source} />
+            <Route path="i">
+              <Route index lazy={() => InteractiveStudio} />
+              <Route path=":type/:source" lazy={() => InteractiveSource} />
+            </Route>
           </Route>
         </Route>
         {/* 404 */}
