@@ -15,7 +15,7 @@ export const VariableButton = (properties) => {
     collect: (monitor) => ({
       isDragging: monitor.canDrag() && monitor.isDragging(),
     }),
-    item: { type: types.drag.VARIABLE },
+    item: { type: types.drag.VARIABLE, style: {} },
     options: { dropEffect: 'copy' },
     type: types.drag.BUTTON.VARIABLE,
   }))

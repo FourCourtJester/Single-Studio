@@ -1,7 +1,7 @@
 // Import core components
 import { useRef, useState } from 'react'
 import { Button, Container, Form, InputGroup } from 'react-bootstrap'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 // Import our components
 // ...

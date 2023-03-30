@@ -7,7 +7,7 @@ import cN from 'classnames'
 
 // Import our components
 import { types } from 'components/interactive/studio'
-import { selectComponent, updateInteractiveComponent } from 'db/slices/interactive'
+import { selectComponent, addInteractiveComponent } from 'db/slices/interactive'
 import * as Utils from 'toolkits/utils'
 
 // Import style
@@ -31,7 +31,7 @@ export const Mortise = () => {
       if (monitor.didDrop()) return
 
       // Add the item to the content of this element
-      dispatch(updateInteractiveComponent({ id: nanoid(3), ...item }))
+      dispatch(addInteractiveComponent({ id: nanoid(3), ...item }))
     },
   }))
 

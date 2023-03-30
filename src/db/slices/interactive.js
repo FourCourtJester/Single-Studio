@@ -38,20 +38,6 @@ function _find(root, id, { immutable = false, recursed = false } = {}) {
   return false
 }
 
-function _remove(state, components) {
-  Utils.getObjPaths(components, (path, _) => {
-    Storage.remove([name, path])
-  })
-}
-
-function _update(state, component, propagate = true) {
-  const code = Storage.get([name, 'code'])
-  const entry = _find(state, component.parent, { immutable: false })
-
-  entry.dependents.push(component)
-  if (propagate) Storage.set([name, code, 'dependents'], Utils.getObjValue(state, `${code}.dependents`))
-}
-
 function getState() {
   try {
     const persistentState = Storage.getAll(name) || {}
@@ -68,8 +54,19 @@ export const interactive = createSlice({
   initialState: getState(),
   reducers: {
     clear: () => initialState,
+    addComponent: (state, { payload: component }) => {
+      const code = Storage.get([name, 'code'])
+      const entry = _find(state, component.parent)
+
+      entry.dependents.push(component)
+      Storage.set([name, code, 'dependents'], Utils.getObjValue(state, `${code}.dependents`))
+    },
     updateComponent: (state, { payload: component }) => {
-      _update(state, component)
+      const code = Storage.get([name, 'code'])
+      const entry = _find(state, component.id)
+
+      Utils.getObjPaths(component, (path, val) => Utils.setObjValue(entry, path, val))
+      Storage.set([name, code, 'dependents'], Utils.getObjValue(state, `${code}.dependents`))
     },
     updateFromStorage: (state, { payload: obj }) => {
       Utils.getObjPaths(obj, (key, val) => Utils.setObjValue(state, key, val))
@@ -89,6 +86,7 @@ export const interactive = createSlice({
 // Reducer functions
 export const {
   clear: clearInteractive,
+  addComponent: addInteractiveComponent,
   updateComponent: updateInteractiveComponent,
   updateFromStorage: updateInteractiveFromStorage,
   updateSelected: updateInteractiveSelected,

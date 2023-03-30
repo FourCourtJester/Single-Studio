@@ -1,9 +1,9 @@
 // Import core components
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // Import our components
-import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
+import { selectComponent, updateInteractiveSelected } from 'db/slices/interactive'
 import { Variable } from 'components/studio'
 
 // Import style
@@ -15,7 +15,7 @@ export const _Variable = (properties) => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  // const attributes = useSelector((state) => selectComponent(state, id)) || []
+  const component = useSelector((state) => selectComponent(state, id))
   // States
   const [interactiveProps, setInteractiveProps] = useState({})
 
@@ -26,11 +26,11 @@ export const _Variable = (properties) => {
   useEffect(() => {
     setInteractiveProps({
       id,
-      type: 'Variable',
+      type: 'variable',
     })
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  return <Variable id={id} label="Label" name="default" onFocus={handleFocus} />
+  return <Variable id={id} label={component.label || `Variable ${id}`} name={id} onFocus={handleFocus} />
 }
