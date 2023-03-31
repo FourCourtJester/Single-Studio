@@ -1,5 +1,5 @@
 // Import core components
-import { useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 
 // Import our components
 import { Variable } from 'components/source'
@@ -7,12 +7,9 @@ import { Variable } from 'components/source'
 // Import style
 // ...
 
-export const IVariable = () => {
+export const Source = () => {
   // Hooks
-  const [query] = useSearchParams()
+  const params = useParams()
 
-  // Avoid undefined names
-  if (!query.get('name')) return null
-
-  return <Variable name={query.get('name')} />
+  return <Variable name={params.source} />
 }

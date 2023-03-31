@@ -15,10 +15,6 @@ function routes() {
         <Route index Component={Gate} />
         {/* Studio/Source */}
         <Route path="studio">
-          {/* <Route path="i">
-            <Route index lazy={() => InteractiveStudio} />
-            <Route path=":type" lazy={() => InteractiveSource} />
-          </Route> */}
           <Route path=":code">
             <Route index lazy={() => Studio} />
             <Route path="source/:source" lazy={() => Source} />

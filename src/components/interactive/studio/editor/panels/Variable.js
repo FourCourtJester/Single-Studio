@@ -21,6 +21,7 @@ export const VariablePanel = (properties) => {
   const component = useSelector((state) => selectComponent(state, id))
   // States
   const [show, setShow] = useState(true)
+  const url = `?layer-name=${component.label} (SS Variable)&layer-width=960&layer-height=64#/studio/${params.code}/i/variable/${id}`
 
   const handleClose = (e) => {
     e.preventDefault()
@@ -40,10 +41,6 @@ export const VariablePanel = (properties) => {
     )
   }
 
-  const handleLink = (e) => {
-    e.preventDefault()
-  }
-
   return (
     <Toast show={show} onClose={handleClose}>
       <Toast.Header className="py-2 px-3">
@@ -55,7 +52,7 @@ export const VariablePanel = (properties) => {
             <Col>
               <Form.Label className="d-flex align-items-center text-dark ps-2 mb-0">
                 <small className="me-auto">Name</small>
-                <Button className="text-dark" size="sm" variant="link" type="button" href={`#/studio/${params.code}/i/variable/${id}`} target={id}>
+                <Button className="text-dark" size="sm" variant="link" type="button" href={url} target={id}>
                   <i className="fas fa-up-right-from-square" />
                 </Button>
               </Form.Label>

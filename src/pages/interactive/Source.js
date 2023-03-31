@@ -21,7 +21,7 @@ export function ErrorBoundary() {
 
 export function Component() {
   // Hooks
-  const { default: Source } = useLoaderData()
+  const { Source } = useLoaderData()
 
   return (
     <Container id="source" className="interactive p-0 w-100 h-100" fluid>

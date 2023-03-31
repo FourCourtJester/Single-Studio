@@ -30,7 +30,7 @@ export const Variable = (properties) => {
       ...properties,
       className: cN('variable', className),
     })
-  }, [properties, val])
+  }, [properties])
 
   return (
     <SwitchTransition>
