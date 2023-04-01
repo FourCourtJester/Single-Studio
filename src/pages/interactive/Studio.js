@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useParams, useRouteError } from 'react-router-dom'
-import { Badge, Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Badge, Button, Container, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
 // Import our components
+import { Studio } from 'components/global/styled'
 import { updateStudio } from 'db/slices/studio'
 import { P404 } from 'pages'
+
 import { InteractiveEditorPanel, Mortise } from 'components/interactive/studio'
 import * as Storage from 'toolkits/storage'
 
@@ -68,7 +70,7 @@ export function Component() {
 
   return (
     <>
-      <Navbar className="border-bottom border-light" fixed="top">
+      <Navbar className="bg-body border-bottom border-light" fixed="top">
         <Container fluid>
           <Navbar.Brand className="text-light">
             {params.code} <Badge bg="secondary">Interactive</Badge>
@@ -82,12 +84,12 @@ export function Component() {
           </div>
         </Container>
       </Navbar>
-      <Form ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
+      <Studio ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
         <DndProvider backend={HTML5Backend}>
           <Mortise />
           <InteractiveEditorPanel />
         </DndProvider>
-      </Form>
+      </Studio>
     </>
   )
 }

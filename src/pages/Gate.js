@@ -1,10 +1,10 @@
 // Import core components
 import { useRef, useState } from 'react'
-import { Button, Container, Form, InputGroup } from 'react-bootstrap'
+import { Container, Form, InputGroup } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 
 // Import our components
-// ...
+import { Button } from 'components/global/styled'
 
 // Import style
 // ...

@@ -6,6 +6,7 @@ import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
 import { Button, Container, Form, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 // Import our components
+import { Studio } from 'components/global/styled'
 import { updateStudio } from 'db/slices/studio'
 import { P404 } from 'pages'
 
@@ -26,7 +27,7 @@ export function Component() {
   // Hooks
   const params = useParams()
   const dispatch = useDispatch()
-  const { default: Studio } = useLoaderData()
+  const { default: SStudio } = useLoaderData()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
@@ -61,9 +62,9 @@ export function Component() {
 
   return (
     <>
-      <Navbar className="border-bottom border-light" fixed="top">
+      <Navbar className="bg-body border-bottom border-light" fixed="top">
         <Container fluid>
-          <Navbar.Brand className="text-light">{Studio.name}</Navbar.Brand>
+          <Navbar.Brand className="text-light">{SStudio.name}</Navbar.Brand>
           <div className="ms-auto">
             <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
               <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>
@@ -73,11 +74,11 @@ export function Component() {
           </div>
         </Container>
       </Navbar>
-      <Form ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
+      <Studio ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
         <Container className="py-2 mh-100 overflow-x-hidden overflow-y-auto" fluid>
-          <Studio.Page />
+          <SStudio.Page />
         </Container>
-      </Form>
+      </Studio>
     </>
   )
 }
