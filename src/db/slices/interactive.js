@@ -74,10 +74,10 @@ export const interactive = createSlice({
     updateSelected: (state, { payload: component }) => {
       if (component.id) {
         state.selected = component
-        Storage.set([name, 'selected'], state.selected)
+        // Storage.set([name, 'selected'], state.selected)
       } else {
         state.selected = {}
-        Storage.remove([name, 'selected'])
+        // Storage.remove([name, 'selected'])
       }
     },
   },

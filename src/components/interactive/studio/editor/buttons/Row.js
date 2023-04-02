@@ -22,7 +22,7 @@ export const RowButton = (properties) => {
 
   return (
     <ToolTip placement="top" tooltip={<>Row</>}>
-      <Button ref={$ref} variant="light" {...properties}>
+      <Button ref={$ref} size="sm" variant="light" {...properties}>
         <i className="fa fas fa-arrows-left-right" />
       </Button>
     </ToolTip>

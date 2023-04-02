@@ -22,7 +22,7 @@ export const ColButton = (properties) => {
 
   return (
     <ToolTip placement="top" tooltip={<>Column</>}>
-      <Button ref={$ref} variant="light" {...properties}>
+      <Button ref={$ref} size="sm" variant="light" {...properties}>
         <i className="fa fas fa-arrows-up-down" />
       </Button>
     </ToolTip>

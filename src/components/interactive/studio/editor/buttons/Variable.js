@@ -22,7 +22,7 @@ export const VariableButton = (properties) => {
 
   return (
     <ToolTip placement="top" tooltip={<>Variable</>}>
-      <Button ref={$ref} variant="light" {...properties}>
+      <Button ref={$ref} size="sm" variant="light" {...properties}>
         <i className="fa fas fa-code" />
       </Button>
     </ToolTip>
