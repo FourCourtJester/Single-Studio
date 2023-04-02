@@ -7,7 +7,6 @@ import { Button, Col, Dropdown as BSDropdown, Form, Stack, Toast } from 'react-b
 // Import our components
 import { Dropdown } from 'components/global/styled'
 import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
-import * as Utils from 'toolkits/utils'
 import { ToolTip } from 'components/global'
 
 // Import style
@@ -15,7 +14,7 @@ import { ToolTip } from 'components/global'
 
 export const VariablePanel = (properties) => {
   // Properties
-  const { id, type } = properties
+  const { id } = properties
   // Hooks
   const params = useParams()
   const dispatch = useDispatch()
@@ -43,12 +42,9 @@ export const VariablePanel = (properties) => {
     )
   }
 
-  console.log(component)
-
   return (
     <Toast show={show} onClose={handleClose}>
       <Toast.Header className="py-2 px-3">
-        {/* <span className="me-auto">{Utils.capitalize(type)}</span> */}
         <Form.Control
           className="bg-transparent border-0 text-dark rounded-0 py-0"
           size="sm"
@@ -128,18 +124,6 @@ export const VariablePanel = (properties) => {
               </Dropdown>
             </Col>
           </Stack>
-          {/* <Stack direction="horizontal" gap={2}>
-            <Col>
-              <Form.Label className="d-flex align-items-center text-dark ps-2 mb-0">Name</Form.Label>
-              <Form.Control
-                className="bg-transparent border-0 border-bottom border-dark text-dark rounded-0 py-0"
-                defaultValue={component.label}
-                size="sm"
-                placeholder="Name"
-                onChange={(e) => handleChange(e, 'label')}
-              />
-            </Col>
-          </Stack> */}
         </Stack>
       </Toast.Body>
     </Toast>

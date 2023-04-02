@@ -1,8 +1,10 @@
 // Import core components
 import { useParams } from 'react-router-dom'
+import useFitText from 'use-fit-text'
 
 // Import our components
-import { Variable } from 'components/source'
+import { SourceVariable } from 'components/global/styled'
+import { useMemo } from 'react'
 
 // Import style
 // ...
@@ -10,6 +12,18 @@ import { Variable } from 'components/source'
 export const Source = () => {
   // Hooks
   const params = useParams()
+  const { fontSize, ref: $ref } = useFitText({
+    minFontSize: 0,
+  })
+  // Variables
+  const actualFontSize = useMemo(() => {
+    const fs = Number(fontSize.slice(0, -1)) / 100
+    return `calc(2rem * ${fs})`
+  }, [fontSize])
 
-  return <Variable name={params.source} />
+  return (
+    <div ref={$ref} className="d-flex w-100 h-100" style={{ fontSize: actualFontSize }}>
+      <SourceVariable name={params.source} />
+    </div>
+  )
 }
