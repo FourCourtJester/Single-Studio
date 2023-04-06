@@ -46,7 +46,7 @@ export const InteractiveEditorPanel = () => {
   if (panel) {
     return (
       <ToastContainer className="position-fixed px-2 pb-2" position="bottom-center">
-        {panel}
+        <Stack gap={1}>{panel}</Stack>
       </ToastContainer>
     )
   }

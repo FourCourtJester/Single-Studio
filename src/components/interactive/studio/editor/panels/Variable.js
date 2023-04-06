@@ -8,6 +8,7 @@ import { Button, Col, Dropdown as BSDropdown, Form, Stack, Toast } from 'react-b
 import { Dropdown } from 'components/global/styled'
 import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
 import { ToolTip } from 'components/global'
+import { HexAlphaColorPicker } from 'react-colorful'
 
 // Import style
 // ...
@@ -43,76 +44,86 @@ export const VariablePanel = (properties) => {
   }
 
   return (
-    <Toast show={show} onClose={handleClose}>
-      <Toast.Header className="py-2 px-3">
-        <Form.Control
-          className="bg-transparent border-0 text-dark rounded-0 py-0"
-          size="sm"
-          placeholder={`Variable ${id}`}
-          value={component.label || ''}
-          onChange={(e) => handleChange(e, 'label')}
-        />
-        <ToolTip placement="top" tooltip={<>Export to OBS</>}>
-          <Button size="sm" variant="link" type="button" href={url} target={id}>
-            <i className="fas fa-up-right-from-square" />
-          </Button>
-        </ToolTip>
-      </Toast.Header>
-      <Toast.Body className="p-3">
-        <Stack gap={2}>
-          <Stack className="justify-content-center" direction="horizontal" gap={2}>
-            <ToolTip position="top" tooltip={<>Font Family</>}>
-              <Button size="sm" variant="light" type="button">
-                <i className="fas fa-font" />
-              </Button>
-            </ToolTip>
-            <ToolTip position="top" tooltip={<>Font Size</>}>
-              <Button size="sm" variant="light" type="button">
-                <i className="fas fa-text-height" />
-              </Button>
-            </ToolTip>
-            <ToolTip position="top" tooltip={<>Font Color</>}>
-              <Button size="sm" variant="light" type="button">
-                <i className="fas fa-square" />
-              </Button>
-            </ToolTip>
-            <span className="text-dark">|</span>
-            <ToolTip position="top" tooltip={<>Bold</>}>
-              <Button size="sm" variant="light" type="button">
-                <i className="fas fa-bold" />
-              </Button>
-            </ToolTip>
-            <ToolTip position="top" tooltip={<>Italics</>}>
-              <Button size="sm" variant="light" type="button">
-                <i className="fas fa-italic" />
-              </Button>
-            </ToolTip>
+    <>
+      {/* <Toast show={show} onClose={handleClose}>
+        <Toast.Header className="text-dark py-2 px-3">
+          <span className="me-auto">Font Color</span>
+        </Toast.Header>
+        <Toast.Body className="d-flex justify-content-center align-items-center p-3">
+          <HexAlphaColorPicker className="w-100" />
+        </Toast.Body>
+      </Toast> */}
+      <Toast show={show} onClose={handleClose}>
+        <Toast.Header className="py-2 px-3">
+          <Form.Control
+            className="bg-transparent border-0 text-dark rounded-0 ps-0 py-0"
+            size="sm"
+            placeholder={`Variable ${id}`}
+            value={component.label || ''}
+            onChange={(e) => handleChange(e, 'label')}
+          />
+          <ToolTip placement="top" tooltip={<>Export to OBS</>}>
+            <Button size="sm" variant="link" type="button" href={url} target={id}>
+              <i className="fas fa-up-right-from-square" />
+            </Button>
+          </ToolTip>
+        </Toast.Header>
+        <Toast.Body className="p-3">
+          <Stack gap={2}>
+            <Stack className="justify-content-center" direction="horizontal" gap={2}>
+              <ToolTip position="top" tooltip={<>Font Family</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-font" />
+                </Button>
+              </ToolTip>
+              <ToolTip position="top" tooltip={<>Font Size</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-text-height" />
+                </Button>
+              </ToolTip>
+              <ToolTip position="top" tooltip={<>Font Color</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-square" />
+                </Button>
+              </ToolTip>
+              <span className="text-dark">|</span>
+              <ToolTip position="top" tooltip={<>Bold</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-bold" />
+                </Button>
+              </ToolTip>
+              <ToolTip position="top" tooltip={<>Italics</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-italic" />
+                </Button>
+              </ToolTip>
 
-            <ToolTip position="top" tooltip={<>Underline</>}>
-              <Button size="sm" variant="light" type="button">
-                <i className="fas fa-underline" />
-              </Button>
-            </ToolTip>
-            <Dropdown size="sm" variant="light" title={<i className="fas fa-align-left" />}>
-              <ToolTip placement="left" tooltip={<>Align Left</>}>
-                <BSDropdown.Item>
-                  <i className="fas fa-align-left" />
-                </BSDropdown.Item>
+              <ToolTip position="top" tooltip={<>Underline</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-underline" />
+                </Button>
               </ToolTip>
-              <ToolTip placement="left" tooltip={<>Align Center</>}>
-                <BSDropdown.Item>
-                  <i className="fas fa-align-center" />
-                </BSDropdown.Item>
-              </ToolTip>
-              <ToolTip placement="left" tooltip={<>Align Right</>}>
-                <BSDropdown.Item>
-                  <i className="fas fa-align-right" />
-                </BSDropdown.Item>
-              </ToolTip>
-            </Dropdown>
+              <Dropdown size="sm" variant="light" title={<i className="fas fa-align-left" />}>
+                <ToolTip placement="left" tooltip={<>Align Left</>}>
+                  <BSDropdown.Item>
+                    <i className="fas fa-align-left" />
+                  </BSDropdown.Item>
+                </ToolTip>
+                <ToolTip placement="left" tooltip={<>Align Center</>}>
+                  <BSDropdown.Item>
+                    <i className="fas fa-align-center" />
+                  </BSDropdown.Item>
+                </ToolTip>
+                <ToolTip placement="left" tooltip={<>Align Right</>}>
+                  <BSDropdown.Item>
+                    <i className="fas fa-align-right" />
+                  </BSDropdown.Item>
+                </ToolTip>
+              </Dropdown>
+            </Stack>
           </Stack>
-        </Stack>
-      </Toast.Body>
-    </Toast>
+        </Toast.Body>
+      </Toast>
+    </>
   )
 }
