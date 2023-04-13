@@ -2,13 +2,13 @@
 import { useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useDrag, useDrop } from 'react-dnd'
-import { Row, Stack } from 'react-bootstrap'
+import { Stack } from 'react-bootstrap'
 import { nanoid } from 'nanoid'
 import cN from 'classnames'
 
 // Import our components
 import { types } from 'components/interactive/studio'
-import { selectComponent, addInteractiveComponent } from 'db/slices/interactive'
+import { selectDependents, addInteractiveComponent } from 'db/slices/interactive'
 import * as Utils from 'toolkits/utils'
 
 // Import style
@@ -20,7 +20,7 @@ export const _Row = (properties) => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  const { dependents } = useSelector((state) => selectComponent(state, id)) || []
+  const { dependents } = useSelector((state) => selectDependents(state, id)) || []
   // States
   const [isChildDragging, setIsChildDragging] = useState(false)
   // Refs

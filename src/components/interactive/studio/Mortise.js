@@ -7,7 +7,7 @@ import cN from 'classnames'
 
 // Import our components
 import { types } from 'components/interactive/studio'
-import { selectComponent, addInteractiveComponent } from 'db/slices/interactive'
+import { selectDependents, addInteractiveComponent } from 'db/slices/interactive'
 import * as Utils from 'toolkits/utils'
 
 // Import style
@@ -17,7 +17,7 @@ export const Mortise = () => {
   // Hooks
   const dispatch = useDispatch()
   // Redux
-  const { dependents } = useSelector((state) => selectComponent(state))
+  const { dependents } = useSelector((state) => selectDependents(state))
 
   // Drop
   const [{ isOver, isOverThis }, $ref] = useDrop(() => ({

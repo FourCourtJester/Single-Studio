@@ -55,18 +55,36 @@ export const interactive = createSlice({
   reducers: {
     clear: () => initialState,
     addComponent: (state, { payload: component }) => {
+      // Studio code and array entry
       const code = Storage.get([name, 'code'])
       const entry = _find(state, component.parent)
+      // Component properties for the array
+      const { dependents, id, type } = component
 
-      entry.dependents.push(component)
+      // Save the array information
+      entry.dependents.push({ dependents, id, type })
+
+      // Save the component seperately for easier access
+      Utils.setObjValue(state, `${code}.${id}`, component)
+
+      // Update Storage with new dependents
       Storage.set([name, code, 'dependents'], Utils.getObjValue(state, `${code}.dependents`))
+
+      delete component.dependents
+
+      // Update the component properties
+      Storage.set([name, code, id], component)
     },
     updateComponent: (state, { payload: component }) => {
+      // Studio code and component entry
       const code = Storage.get([name, 'code'])
-      const entry = _find(state, component.id)
+      const entry = Utils.getObjValue(state, `${code}.${component.id}`)
 
+      // Save the paths
       Utils.getObjPaths(component, (path, val) => Utils.setObjValue(entry, path, val))
-      Storage.set([name, code, 'dependents'], Utils.getObjValue(state, `${code}.dependents`))
+
+      // Update Storage with the new component properties
+      Storage.set([name, code, entry.id], entry)
     },
     updateFromStorage: (state, { payload: obj }) => {
       Utils.getObjPaths(obj, (key, val) => Utils.setObjValue(state, key, val))
@@ -88,7 +106,8 @@ export const {
 } = interactive.actions
 
 // Selector functions
+export const selectComponent = (state, id) => Utils.getObjValue(state.interactive, `${Storage.get([name, 'code'])}.${id}`)
+export const selectDependents = (state, id) => _find(state.interactive, id, { immutable: true })
 export const selectInteractive = (state) => state.interactive.selected
-export const selectComponent = (state, id) => _find(state.interactive, id, { immutable: true })
 
 export const { reducer } = interactive

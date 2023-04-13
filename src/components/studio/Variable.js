@@ -12,7 +12,7 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { as: type = 'text', id, label, name, placeholder, ...otherProps } = properties
+  const { as: type = 'text', label, name, placeholder, ...otherProps } = properties
   // Hooks
   const path = useNamespace({ type: namespace, name })
   // Redux
@@ -36,7 +36,7 @@ export const Variable = (properties) => {
   }, [label, name, placeholder, type, val])
 
   return (
-    <FloatingLabel label={label} controlId={id} {...otherProps}>
+    <FloatingLabel label={label} controlId={name} {...otherProps}>
       <Form.Control ref={$ref} {...props} />
     </FloatingLabel>
   )

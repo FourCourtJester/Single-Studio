@@ -32,5 +32,5 @@ export const _Variable = (properties) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  return <Variable id={id} label={component.label || `Variable ${id}`} name={id} onFocus={handleFocus} />
+  return <Variable label={component.label || `Variable ${id}`} name={id} onFocus={handleFocus} />
 }
