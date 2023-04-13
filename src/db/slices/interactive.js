@@ -72,13 +72,8 @@ export const interactive = createSlice({
       Utils.getObjPaths(obj, (key, val) => Utils.setObjValue(state, key, val))
     },
     updateSelected: (state, { payload: component }) => {
-      if (component.id) {
-        state.selected = component
-        // Storage.set([name, 'selected'], state.selected)
-      } else {
-        state.selected = {}
-        // Storage.remove([name, 'selected'])
-      }
+      if (component.id) state.selected = component
+      else state.selected = {}
     },
   },
 })

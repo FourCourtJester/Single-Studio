@@ -1,14 +1,16 @@
 // Import core components
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
-import { Button, Col, Dropdown as BSDropdown, Form, Stack, Toast } from 'react-bootstrap'
+import { Button, Dropdown as BSDropdown, Form, Stack, Toast } from 'react-bootstrap'
 
 // Import our components
 import { Dropdown } from 'components/global/styled'
-import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
 import { ToolTip } from 'components/global'
-import { HexAlphaColorPicker } from 'react-colorful'
+import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
+
+import { Context } from './Context'
+import { FontColorPanel } from './variable'
 
 // Import style
 // ...
@@ -23,6 +25,8 @@ export const VariablePanel = (properties) => {
   const component = useSelector((state) => selectComponent(state, id))
   // States
   const [show, setShow] = useState(true)
+  const [settings, setSettings] = useState({})
+  // Variables
   const url = `?layer-name=${component.label} | SS Var | ${id}&layer-width=960&layer-height=64#/studio/${params.code}/i/variable/${id}`
 
   const handleClose = (e) => {
@@ -32,27 +36,29 @@ export const VariablePanel = (properties) => {
     setShow(false)
   }
 
-  const handleChange = (e, attr) => {
+  const handleChange = useCallback(
+    (e, obj) => {
+      e?.preventDefault()
+
+      dispatch(updateInteractiveComponent({ id, ...obj }))
+    },
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id]
+  )
+
+  const handleSetting = useCallback((e, setting) => {
     e.preventDefault()
 
-    dispatch(
-      updateInteractiveComponent({
-        id,
-        [attr]: e.target.value,
-      })
-    )
-  }
+    setSettings((_settings) => ({ ..._settings, [setting]: !_settings[setting] }))
+  }, [])
+
+  // Memo for context
+  const contextValue = useMemo(() => ({ fn: { change: handleChange, toggle: handleSetting }, ...settings }), [handleChange, handleSetting, settings])
 
   return (
-    <>
-      {/* <Toast show={show} onClose={handleClose}>
-        <Toast.Header className="text-dark py-2 px-3">
-          <span className="me-auto">Font Color</span>
-        </Toast.Header>
-        <Toast.Body className="d-flex justify-content-center align-items-center p-3">
-          <HexAlphaColorPicker className="w-100" />
-        </Toast.Body>
-      </Toast> */}
+    <Context.Provider value={contextValue}>
+      <FontColorPanel color={component.style.fontColor} />
       <Toast show={show} onClose={handleClose}>
         <Toast.Header className="py-2 px-3">
           <Form.Control
@@ -60,7 +66,7 @@ export const VariablePanel = (properties) => {
             size="sm"
             placeholder={`Variable ${id}`}
             value={component.label || ''}
-            onChange={(e) => handleChange(e, 'label')}
+            onChange={(e) => handleChange(e, { label: e.target.value })}
           />
           <ToolTip placement="top" tooltip={<>Export to OBS</>}>
             <Button size="sm" variant="link" type="button" href={url} target={id}>
@@ -82,7 +88,14 @@ export const VariablePanel = (properties) => {
                 </Button>
               </ToolTip>
               <ToolTip position="top" tooltip={<>Font Color</>}>
-                <Button size="sm" variant="light" type="button">
+                <Button
+                  style={{ color: component.style.fontColor || 'var(--bs-btn-color)' }}
+                  size="sm"
+                  variant="light"
+                  type="button"
+                  active={settings.fontColor}
+                  onClick={(e) => handleSetting(e, 'fontColor')}
+                >
                   <i className="fas fa-square" />
                 </Button>
               </ToolTip>
@@ -97,7 +110,6 @@ export const VariablePanel = (properties) => {
                   <i className="fas fa-italic" />
                 </Button>
               </ToolTip>
-
               <ToolTip position="top" tooltip={<>Underline</>}>
                 <Button size="sm" variant="light" type="button">
                   <i className="fas fa-underline" />
@@ -120,10 +132,16 @@ export const VariablePanel = (properties) => {
                   </BSDropdown.Item>
                 </ToolTip>
               </Dropdown>
+              <span className="text-dark">|</span>
+              <ToolTip position="top" tooltip={<>Background Color</>}>
+                <Button size="sm" variant="light" type="button">
+                  <i className="fas fa-image" />
+                </Button>
+              </ToolTip>
             </Stack>
           </Stack>
         </Toast.Body>
       </Toast>
-    </>
+    </Context.Provider>
   )
 }
