@@ -60,32 +60,6 @@ var {
   min-width: 100%;
 }
 
-.btn-obs {
-  --bs-btn-color: var(--bs-body-color);
-  --bs-btn-bg: #{bs.$input-bg};
-  --bs-btn-border-color: #{bs.$input-border-color};
-  --bs-btn-hover-color: var(--bs-body-color);
-  --bs-btn-hover-bg: #4f535e;
-  --bs-btn-hover-border-color: #4f535e;
-  --bs-btn-focus-shadow-rgb: none;
-  --bs-btn-active-color: var(--bs-body-color);
-  --bs-btn-active-bg: #4f535e;
-  --bs-btn-active-border-color: #4f535e;
-}
-
-.btn-outline-obs {
-  --bs-btn-color: #4f535e;
-  --bs-btn-bg: var(--bs-body-bg);
-  --bs-btn-border-color: #4f535e;
-  --bs-btn-hover-color: var(--bs-body-color);
-  --bs-btn-hover-bg: #4f535e;
-  --bs-btn-hover-border-color: #4f535e;
-  --bs-btn-focus-shadow-rgb: none;
-  --bs-btn-active-color: var(--bs-body-color);
-  --bs-btn-active-bg: #4f535e;
-  --bs-btn-active-border-color: #4f535e;
-}
-
 //
 // Overrides
 //
@@ -113,6 +87,50 @@ var {
 //
 // Custom Classes
 //
+
+.btn-obs {
+  @include bs.button-variant(
+    // Background
+    bs.$input-bg,
+    // Border color
+    bs.$input-border-color,
+    // Text color
+    bs.$body-color,
+    // Hover: Background
+    bs.$obs-bg,
+    // Hover: Border color
+    bs.$obs-bg,
+    // Hover: Text color
+    bs.$body-color,
+    // Active: Background
+    bs.$obs-bg,
+    // Active: Border color
+    bs.$obs-bg,
+    // Active: Text color
+    bs.$body-color,
+    // Disabled: Background
+    bs.$obs-bg,
+    // Disabled: Border color
+    bs.$obs-bg,
+    // Disabled: Text color
+    bs.$body-color
+  );
+}
+
+.btn-outline-obs {
+  @include bs.button-outline-variant(
+    // Text color
+    bs.$obs-bg,
+    // Hover: Text color
+    bs.$body-color,
+    // Active: Background color
+    bs.$obs-bg,
+    // Active: Border color
+    bs.$obs-bg,
+    // Active: Text Color
+    bs.$body-color
+  );
+}
 
 .text-prewrap {
   white-space: pre-wrap;

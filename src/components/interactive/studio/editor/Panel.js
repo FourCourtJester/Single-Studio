@@ -22,7 +22,7 @@ export const InteractiveEditorPanel = () => {
   // Variables
   const headerProps = useMemo(
     () => ({
-      className: cN(show ? false : 'rounded-2', 'py-2 px-3'),
+      className: cN(show ? false : 'rounded-2', 'py-2 ps-3 pe-0'),
       closeButton: false,
     }),
     [show]
@@ -57,7 +57,7 @@ export const InteractiveEditorPanel = () => {
         <Toast id="editor">
           <Toast.Header {...headerProps}>
             <span className="me-auto">Editor</span>
-            <button className="btn btn-link" type="button" onClick={handleCollapse}>
+            <button className="btn btn-link py-1" type="button" onClick={handleCollapse}>
               <i className={cN('fas', show ? 'fa-chevron-down' : 'fa-chevron-up', 'text-dark')} />
             </button>
           </Toast.Header>

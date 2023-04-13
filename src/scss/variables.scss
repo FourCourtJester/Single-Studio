@@ -2,7 +2,7 @@
 @import "~bootstrap/scss/functions";
 
 // Variable changes
-$light: #fffeff;
+$light: #ffeeff;
 
 $body-bg: #2b2e38;
 $body-color: $light;
@@ -18,11 +18,19 @@ $input-focus-border-color: #63666f;
 $dnd-row-hover: lighten($body-bg, 10%);
 $dnd-col-hover: lighten($body-bg, 20%);
 
+$obs-bg: #4f535e;
+
 $zindex-toast: 1060;
 
 @import "~bootstrap/scss/variables";
 
 // Map changes
+// $theme-colors: map-merge(
+//   $theme-colors,
+//   (
+//     "obs": #2b2e38,
+//   )
+// );
 
 // Brand new helpers
 

@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useParams, useRouteError } from 'react-router-dom'
-import { Badge, Button, Container, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Badge, Container, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
 // Import our components
-import { Studio } from 'components/global/styled'
+import { OBSButton, Studio } from 'components/global/styled'
 import { updateStudio } from 'db/slices/studio'
 import { P404 } from 'pages'
 
@@ -77,9 +77,9 @@ export function Component() {
           </Navbar.Brand>
           <div className="ms-auto">
             <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
-              <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>
+              <OBSButton ref={$btn} type="button" onClick={handleSubmit}>
                 <i className="fa fa-floppy-disk" />
-              </Button>
+              </OBSButton>
             </OverlayTrigger>
           </div>
         </Container>
