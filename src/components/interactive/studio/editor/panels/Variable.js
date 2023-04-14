@@ -10,7 +10,8 @@ import { ToolTip } from 'components/global'
 import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
 
 import { Context } from './Context'
-import { FontColorPanel } from './variable'
+import { PanelButton, PropButton } from './buttons'
+import { BackgroundColorPanel, FontColorPanel } from './variable'
 
 // Import style
 // ...
@@ -59,6 +60,7 @@ export const VariablePanel = (properties) => {
   return (
     <Context.Provider value={contextValue}>
       <FontColorPanel color={component.style.fontColor} />
+      <BackgroundColorPanel color={component.style.backgroundColor} />
       <Toast show={show} onClose={handleClose}>
         <Toast.Header className="py-2 px-3">
           <Form.Control
@@ -77,44 +79,45 @@ export const VariablePanel = (properties) => {
         <Toast.Body className="p-3">
           <Stack gap={2}>
             <Stack className="justify-content-center" direction="horizontal" gap={2}>
-              <ToolTip position="top" tooltip={<>Font Family</>}>
-                <Button size="sm" variant="light" type="button">
-                  <i className="fas fa-font" />
-                </Button>
-              </ToolTip>
-              <ToolTip position="top" tooltip={<>Font Size</>}>
-                <Button size="sm" variant="light" type="button">
-                  <i className="fas fa-text-height" />
-                </Button>
-              </ToolTip>
-              <ToolTip position="top" tooltip={<>Font Color</>}>
-                <Button
-                  style={{ color: component.style.fontColor || 'var(--bs-btn-color)' }}
-                  size="sm"
-                  variant="light"
-                  type="button"
-                  active={settings.fontColor}
-                  onClick={(e) => handleSetting(e, 'fontColor')}
-                >
-                  <i className="fas fa-square" />
-                </Button>
-              </ToolTip>
+              <PanelButton
+                active={settings.fontFamily}
+                icon="font"
+                onClick={(e) => handleSetting(e, 'fontFamily')}
+                setting="fontFamily"
+                style={{ color: component.style.fontFamily }}
+                tooltip={<>Font Family</>}
+              />
+              <PanelButton
+                active={settings.fontSize}
+                icon="text-height"
+                onClick={(e) => handleSetting(e, 'fontSize')}
+                setting="fontSize"
+                style={{ color: component.style.fontSize }}
+                tooltip={<>Font Size</>}
+              />
+              <PanelButton
+                active={settings.fontColor}
+                icon="square"
+                onClick={(e) => handleSetting(e, 'fontColor')}
+                setting="fontColor"
+                style={{ color: component.style.fontColor || 'var(--bs-btn-color)' }}
+                tooltip={<>Font Color</>}
+              />
               <span className="text-dark">|</span>
-              <ToolTip position="top" tooltip={<>Bold</>}>
-                <Button size="sm" variant="light" type="button">
-                  <i className="fas fa-bold" />
-                </Button>
-              </ToolTip>
-              <ToolTip position="top" tooltip={<>Italics</>}>
-                <Button size="sm" variant="light" type="button">
-                  <i className="fas fa-italic" />
-                </Button>
-              </ToolTip>
-              <ToolTip position="top" tooltip={<>Underline</>}>
-                <Button size="sm" variant="light" type="button">
-                  <i className="fas fa-underline" />
-                </Button>
-              </ToolTip>
+              <PropButton active={component.style.fontWeight} icon="bold" setting="fontWeight" tooltip={<>Bold</>} value="bold" />
+              <PropButton active={component.style.fontStyle} icon="italic" setting="fontStyle" tooltip={<>Italics</>} value="italic" />
+              <PropButton active={component.style.textDecoration} icon="underline" setting="textDecoration" tooltip={<>Underline</>} value="underline" />
+              <span className="text-dark">|</span>
+              <PanelButton
+                active={settings.backgroundColor}
+                icon="square"
+                onClick={(e) => handleSetting(e, 'backgroundColor')}
+                setting="backgroundColor"
+                style={{ color: component.style.backgroundColor || 'var(--bs-btn-color)' }}
+                tooltip={<>Background Color</>}
+              />
+
+              {/*
               <Dropdown size="sm" variant="light" title={<i className="fas fa-align-left" />}>
                 <ToolTip placement="left" tooltip={<>Align Left</>}>
                   <BSDropdown.Item>
@@ -132,12 +135,7 @@ export const VariablePanel = (properties) => {
                   </BSDropdown.Item>
                 </ToolTip>
               </Dropdown>
-              <span className="text-dark">|</span>
-              <ToolTip position="top" tooltip={<>Background Color</>}>
-                <Button size="sm" variant="light" type="button">
-                  <i className="fas fa-image" />
-                </Button>
-              </ToolTip>
+              */}
             </Stack>
           </Stack>
         </Toast.Body>

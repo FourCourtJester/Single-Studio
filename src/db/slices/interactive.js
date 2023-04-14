@@ -80,8 +80,13 @@ export const interactive = createSlice({
       const code = Storage.get([name, 'code'])
       const entry = Utils.getObjValue(state, `${code}.${component.id}`)
 
+      console.log(entry, component)
+
       // Save the paths
-      Utils.getObjPaths(component, (path, val) => Utils.setObjValue(entry, path, val))
+      Utils.getObjPaths(component, (path, val) => {
+        console.log(entry, path, val)
+        Utils.setObjValue(entry, path, val)
+      })
 
       // Update Storage with the new component properties
       Storage.set([name, code, entry.id], entry)

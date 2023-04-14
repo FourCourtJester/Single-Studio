@@ -20,14 +20,29 @@ export const Source = () => {
   // Redux
   const component = useSelector((state) => selectComponent(state, params.source))
   // Variables
-  const actualFontSize = useMemo(() => {
+  const parentStyle = useMemo(() => {
     const fs = Number(fontSize.slice(0, -1)) / 100
-    return `calc(2rem * ${fs})`
-  }, [fontSize])
+
+    return {
+      backgroundColor: component.style.backgroundColor || 'var(--bs-body-bg)',
+      fontSize: `calc(2rem * ${fs})`,
+    }
+  }, [component, fontSize])
+  const variableStyle = useMemo(
+    () => ({
+      color: component.style.fontColor || 'var(--bs-body-color)',
+      fontWeight: component.style.fontWeight,
+      fontStyle: component.style.fontStyle,
+      textDecoration: component.style.textDecoration,
+    }),
+    [component]
+  )
+
+  console.log(variableStyle)
 
   return (
-    <div ref={$ref} className="d-flex w-100 h-100" style={{ fontSize: actualFontSize }}>
-      <SourceVariable name={params.source} style={{ color: component.style.fontColor || 'var(--bs-body-color)' }} />
+    <div ref={$ref} className="d-flex w-100 h-100" style={parentStyle}>
+      <SourceVariable name={params.source} style={variableStyle} />
     </div>
   )
 }
