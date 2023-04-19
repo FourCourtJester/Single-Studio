@@ -24,7 +24,7 @@ export const VariableFontColorPanel = (properties) => {
   const handleSubmit = (colour) => fn.change(null, { style: { fontColor: colour } })
 
   return (
-    <Toast show={show} onClose={handleClose}>
+    <Toast show={show} onClose={handleClose} animation={false}>
       <Toast.Header className="text-dark py-2 px-3">
         <span className="me-auto">Font Color</span>
       </Toast.Header>

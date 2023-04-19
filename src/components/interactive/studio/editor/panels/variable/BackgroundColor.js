@@ -24,7 +24,7 @@ export const VariableBackgroundColorPanel = (properties) => {
   const handleSubmit = (colour) => fn.change(null, { style: { backgroundColor: colour } })
 
   return (
-    <Toast show={show} onClose={handleClose}>
+    <Toast show={show} onClose={handleClose} animation={false}>
       <Toast.Header className="text-dark py-2 px-3">
         <span className="me-auto">Background Color</span>
       </Toast.Header>

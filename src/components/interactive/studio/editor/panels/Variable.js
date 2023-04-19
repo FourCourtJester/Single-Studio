@@ -5,13 +5,12 @@ import { useParams } from 'react-router-dom'
 import { Button, Dropdown as BSDropdown, Form, Stack, Toast } from 'react-bootstrap'
 
 // Import our components
-import { Dropdown } from 'components/global/styled'
 import { ToolTip } from 'components/global'
 import { selectComponent, updateInteractiveComponent, updateInteractiveSelected } from 'db/slices/interactive'
 
 import { Context } from './Context'
 import { PanelButton, PropButton } from './buttons'
-import { BackgroundColorPanel, FontColorPanel } from './variable'
+import { BackgroundColorPanel, FontColorPanel, FontSizePanel } from './variable'
 
 // Import style
 // ...
@@ -51,7 +50,13 @@ export const VariablePanel = (properties) => {
   const handleSetting = useCallback((e, setting) => {
     e.preventDefault()
 
-    setSettings((_settings) => ({ ..._settings, [setting]: !_settings[setting] }))
+    setSettings((_settings) => {
+      const s = Object.entries(_settings).reduce((obj, [key, val]) => ({ ...obj, [key]: key === setting ? !val : false }), {})
+
+      if (!Object.keys(s).includes(setting)) s[setting] = !s[setting]
+
+      return s
+    })
   }, [])
 
   // Memo for context
@@ -60,6 +65,7 @@ export const VariablePanel = (properties) => {
   return (
     <Context.Provider value={contextValue}>
       <FontColorPanel color={component.style.fontColor} />
+      <FontSizePanel size={component.style.fontSize} />
       <BackgroundColorPanel color={component.style.backgroundColor} />
       <Toast show={show} onClose={handleClose}>
         <Toast.Header className="py-2 px-3">

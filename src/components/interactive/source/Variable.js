@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
+import cN from 'classnames'
 import useFitText from 'use-fit-text'
 
 // Import our components
@@ -25,15 +26,12 @@ export const Source = () => {
 
     return {
       backgroundColor: component.style.backgroundColor || 'var(--bs-body-bg)',
-      fontSize: `calc(2rem * ${fs})`,
+      fontSize: `calc(${component.style.fontSize || 32}px * ${fs})`,
     }
   }, [component, fontSize])
   const variableStyle = useMemo(
     () => ({
       color: component.style.fontColor || 'var(--bs-body-color)',
-      fontWeight: component.style.fontWeight,
-      fontStyle: component.style.fontStyle,
-      textDecoration: component.style.textDecoration,
     }),
     [component]
   )
@@ -41,7 +39,17 @@ export const Source = () => {
   console.log(variableStyle)
 
   return (
-    <div ref={$ref} className="d-flex w-100 h-100" style={parentStyle}>
+    <div
+      ref={$ref}
+      className={cN(
+        'd-flex justify-content-center align-items-center',
+        `fw-${component.style.fontWeight || 'normal'}`,
+        `fst-${component.style.fontStyle || 'normal'}`,
+        component.style.textDecoration ? `text-decoration-${component.style.textDecoration}` : false,
+        'w-100 h-100'
+      )}
+      style={parentStyle}
+    >
       <SourceVariable name={params.source} style={variableStyle} />
     </div>
   )
