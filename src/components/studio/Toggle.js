@@ -1,5 +1,5 @@
 // Import core components
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 import cN from 'classnames'
@@ -27,11 +27,21 @@ export const Toggle = (properties) => {
   }
   const publik = usePublic()
   // Redux
-  const val = useStudio(paths.toggle) || false
+  const cache = useStudio(paths.toggle) || false
   // States
   const [active, setActive] = useState(false)
   // Variables
-  const isSwitch = value !== undefined
+  const state = useMemo(() => {
+    if (image) return <Image src={`${image.startsWith('/') ? publik : ''}${image}`} fluid />
+
+    return icon ? (
+      <i className={`fas fa-${icon}`} />
+    ) : (
+      <>
+        {verbs[Number(cache) || 0]} {label}
+      </>
+    )
+  }, [icon, image, label, publik, cache])
 
   const handleClick = (e) => {
     e.preventDefault()
@@ -48,42 +58,27 @@ export const Toggle = (properties) => {
     }
 
     // Toggle this
-    obj[paths.toggle] = value || !val
+    obj[paths.toggle] = value || !cache
 
     // console.log(obj)
     dispatch(updateStudio(obj))
   }
 
   useEffect(() => {
-    setActive(val === value)
-  }, [val, value])
-
-  if (image) {
-    const _active = isSwitch ? active : val
-    return (
-      <Button
-        className={cN('d-flex flex-grow-1 justify-content-center align-items-center p-0 w-100 h-100 overflow-hidden', _active ? false : 'opacity-50')}
-        variant={variant || 'link'}
-        onClick={handleClick}
-      >
-        <Image src={`${publik}/${image}`} fluid />
-      </Button>
-    )
-  }
+    setActive(image && value !== undefined ? cache === value : cache)
+  }, [cache, image, value])
 
   return (
     <Button
-      className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100"
-      variant={val ? variant || 'obs' : `outline-${variant || 'obs'}`}
+      className={cN(
+        'toggle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100',
+        image ? 'p-0 overflow-hidden' : false,
+        image && !active ? 'opacity-50' : false
+      )}
+      variant={active ? variant || 'obs' : `outline-${variant || 'obs'}`}
       onClick={handleClick}
     >
-      {icon ? (
-        <i className={`fas fa-${icon}`} />
-      ) : (
-        <>
-          {verbs[Number(val) || 0]} {label}
-        </>
-      )}
+      {state}
     </Button>
   )
 }

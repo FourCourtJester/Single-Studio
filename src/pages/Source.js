@@ -14,7 +14,6 @@ export function loader({ params }) {
 
 export function ErrorBoundary() {
   const error = useRouteError()
-
   return <P404 error={error} />
 }
 

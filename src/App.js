@@ -2,7 +2,7 @@
 import { createHashRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 
 // Import our components
-import { InteractiveSource, InteractiveStudio, Gate, P404, Studio, Source } from 'pages'
+import { Gate, P404, Studio, Source } from 'pages'
 
 // Import style
 import 'scss/base.scss'
@@ -18,10 +18,6 @@ function routes() {
           <Route path=":code">
             <Route index lazy={() => Studio} />
             <Route path="source/:source" lazy={() => Source} />
-            <Route path="i">
-              <Route index lazy={() => InteractiveStudio} />
-              <Route path=":type/:source" lazy={() => InteractiveSource} />
-            </Route>
           </Route>
         </Route>
         {/* 404 */}

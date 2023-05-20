@@ -1,0 +1,43 @@
+// Functions
+@import "~bootstrap/scss/functions";
+
+// Variable changes
+$light: #ffeeff;
+
+$body-bg: #2b2e38;
+$body-color: $light;
+
+// $link-color: $light;
+
+$input-bg: #3c404b;
+$input-border-color: #3c404b;
+$input-border-width: 2px;
+$input-focus-box-shadow: none;
+$input-focus-border-color: #63666f;
+
+$dnd-row-hover: lighten($body-bg, 10%);
+$dnd-col-hover: lighten($body-bg, 20%);
+
+$obs-bg: #4f535e;
+
+$zindex-toast: 1060;
+
+@import "~bootstrap/scss/variables";
+
+// Map changes
+// $theme-colors: map-merge(
+//   $theme-colors,
+//   (
+//     "obs": #2b2e38,
+//   )
+// );
+
+// Brand new helpers
+
+$text-shadow: 0 1px rgb(0 0 0 / 40%);
+
+// Utilities
+
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";

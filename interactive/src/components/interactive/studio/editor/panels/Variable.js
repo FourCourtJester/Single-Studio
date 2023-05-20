@@ -113,6 +113,9 @@ export const VariablePanel = (properties) => {
               <PropButton active={component.style.fontWeight} icon="bold" setting="fontWeight" tooltip={<>Bold</>} value="bold" />
               <PropButton active={component.style.fontStyle} icon="italic" setting="fontStyle" tooltip={<>Italics</>} value="italic" />
               <PropButton active={component.style.textDecoration} icon="underline" setting="textDecoration" tooltip={<>Underline</>} value="underline" />
+              {/* TODO: Add Alignments */}
+              {/* TODO: Add Stroke */}
+              {/* TODO: Add Padding */}
               <span className="text-dark">|</span>
               <PanelButton
                 active={settings.backgroundColor}

@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
-import { Button, Container, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Button, Container, Modal, NavbarBrand } from 'react-bootstrap'
 
 // Import our components
-import { Studio } from 'components/global/styled'
+import { ToolTip } from 'components/global'
+import { Studio as SStudio, Navbar } from 'components/global/styled'
 import { updateStudio } from 'db/slices/studio'
 import { P404 } from 'pages'
 
@@ -19,7 +20,6 @@ export function loader({ params }) {
 
 export function ErrorBoundary() {
   const error = useRouteError()
-
   return <P404 error={error} />
 }
 
@@ -27,7 +27,7 @@ export function Component() {
   // Hooks
   const params = useParams()
   const dispatch = useDispatch()
-  const { default: SStudio } = useLoaderData()
+  const { name, Studio } = useLoaderData()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
@@ -62,23 +62,29 @@ export function Component() {
 
   return (
     <>
-      <Navbar className="bg-body border-bottom border-light" fixed="top">
+      <Navbar className="bg-body border-bottom border-light text-nowrap overflow-hidden" fixed="top">
         <Container fluid>
-          <Navbar.Brand className="text-light">{SStudio.name}</Navbar.Brand>
+          <NavbarBrand className="text-light">{name}</NavbarBrand>
           <div className="ms-auto">
-            <OverlayTrigger placement="left" overlay={<Tooltip>Save</Tooltip>}>
+            <ToolTip placement="left" tooltip={<>Save</>}>
               <Button ref={$btn} variant="obs" type="button" onClick={handleSubmit}>
                 <i className="fa fa-floppy-disk" />
               </Button>
-            </OverlayTrigger>
+            </ToolTip>
           </div>
         </Container>
       </Navbar>
-      <Studio ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
+      <SStudio ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
         <Container className="py-2 mh-100 overflow-x-hidden overflow-y-auto" fluid>
-          <SStudio.Page />
+          <Studio />
         </Container>
-      </Studio>
+      </SStudio>
+      {/* <Modal size="xl" show scrollable>
+        <Modal.Header closeButton>
+          <Modal.Title className="text-dark">Configuration</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-dark text-center">Configuration Options here</Modal.Body>
+      </Modal> */}
     </>
   )
 }

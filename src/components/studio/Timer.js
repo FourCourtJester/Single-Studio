@@ -1,11 +1,12 @@
 // Import core components
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Button, FloatingLabel, Form, InputGroup } from 'react-bootstrap'
+import { FloatingLabel, Form, InputGroup } from 'react-bootstrap'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'
 import { useNamespace, useStudio } from 'hooks'
+import { Button } from 'components/global/styled'
 import { useTimer } from './hooks'
 
 // Import style
@@ -64,7 +65,7 @@ export const Timer = (properties) => {
     setDisable(true)
   }
 
-  const handleStop = () => dispatch(updateStudio({ [paths.timer]: 0 }))
+  const handleStop = () => dispatch(updateStudio({ [paths.timer]: null }))
 
   const handleKey = (e) => {
     if (e.which === 13) {

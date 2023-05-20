@@ -1,5 +1,7 @@
+import { slugify as sslugify } from 'slugify'
+
 export function capitalize(str) {
-  return str.slice(0, 1).toUpperCase() + str.slice(1)
+  return str.split(' ').map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
 }
 
 export function getObjPaths(obj, fn, path = '') {
@@ -84,4 +86,13 @@ export function setObjValue(obj = {}, _path = [], val = undefined, opts = { spli
   }
 
   return obj
+}
+
+export function slugify(str) {
+  return sslugify(str, {
+    replacement: '-',
+    remove: /[*+~.()'"!:@]/g,
+    lower: true,
+    trim: true,
+  })
 }

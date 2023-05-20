@@ -43,10 +43,12 @@ export const studio = createSlice({
           Utils.getObjPaths(obj, (key) => {
             Utils.setObjValue(state, `${path}.${key}`, null)
           })
+
           Storage.removeObj([name, path], obj)
         } else {
           // The path is a simple type, just erase it
           Utils.setObjValue(state, path, null)
+
           Storage.remove([name, path])
         }
       })

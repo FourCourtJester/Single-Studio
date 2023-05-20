@@ -17,32 +17,12 @@ body,
 }
 
 #studio {
-  #mortise {
-    .hstack {
-      min-height: bs.$form-floating-height;
-      align-items: unset;
+  input[type="number"] {
+    text-align: center;
+  }
 
-      &.hover {
-        border: 2px solid bs.$light;
-        border-style: dashed;
-        background-color: var.$dnd-row-hover;
-      }
-    }
-
-    .col {
-      &.dragging,
-      &.hover {
-        border: 2px solid bs.$light;
-        border-style: dashed;
-        background-color: var.$dnd-col-hover;
-      }
-    }
-
-    &.hover {
-      border: 2px solid bs.$light;
-      border-style: dashed;
-      background-color: var.$dnd-row-hover;
-    }
+  .cycle {
+    max-height: bs.$form-floating-height;
   }
 
   .row + .row {
@@ -63,8 +43,42 @@ body,
   border-radius: 0;
 }
 
+.overflow {
+  &-x {
+    &-auto {
+      overflow-x: auto;
+    }
+
+    &-hidden {
+      overflow-x: hidden;
+    }
+
+    &-scroll {
+      overflow-x: scroll;
+    }
+  }
+
+  &-y {
+    &-auto {
+      overflow-y: auto;
+    }
+
+    &-hidden {
+      overflow-y: hidden;
+    }
+
+    &-scroll {
+      overflow-y: scroll;
+    }
+  }
+}
+
 .text-nospace {
   font-size: 0;
+}
+
+.text-prewrap {
+  white-space: pre-wrap;
 }
 
 .text-shadow {
@@ -125,10 +139,7 @@ body,
     // Active: Text Color
     bs.$body-color
   );
-}
-
-.text-prewrap {
-  white-space: pre-wrap;
+  color: bs.$body-color;
 }
 
 .scrollbar {
@@ -153,3 +164,9 @@ body,
     border-radius: 10px;
   }
 }
+
+// @include bs.media-breakpoint-down(lg) {
+//   body {
+//     font-size: 0.875rem;
+//   }
+// }

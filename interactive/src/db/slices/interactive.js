@@ -80,11 +80,10 @@ export const interactive = createSlice({
       const code = Storage.get([name, 'code'])
       const entry = Utils.getObjValue(state, `${code}.${component.id}`)
 
-      console.log(entry, component)
+      // console.log(entry, component)
 
       // Save the paths
       Utils.getObjPaths(component, (path, val) => {
-        console.log(entry, path, val)
         Utils.setObjValue(entry, path, val)
       })
 

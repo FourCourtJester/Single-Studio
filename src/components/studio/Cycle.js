@@ -1,4 +1,5 @@
 // Import core components
+import { useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 import cN from 'classnames'
@@ -11,7 +12,7 @@ import { useNamespace, usePublic, useStudio } from 'hooks'
 // ...
 
 const namespace = 'variables'
-const defaultChoice = 'N/A'
+const defaultChoice = 'None'
 
 export const Cycle = (properties) => {
   // Properties
@@ -23,37 +24,35 @@ export const Cycle = (properties) => {
   // Redux
   const val = useStudio(path) || defaultChoice
   // Variables
-  const _choices = [defaultChoice].concat(choices).concat([defaultChoice])
+  const choice = useMemo(() => {
+    const _choices = [defaultChoice].concat(choices).concat([defaultChoice])
+
+    if (image) {
+      const img = image.replace(
+        /:choice:/,
+        _choices.find((c) => c === val)
+      )
+
+      return <Image className="mw-100 mh-100" src={`${image.startsWith('/') ? publik : ''}${img}`} alt={val} />
+    }
+
+    return _choices.find((c) => c === val)
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [choices, image, path, publik, val, variant])
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    const next = _choices.findIndex((choice) => choice === val) + 1
+    const _choices = [defaultChoice].concat(choices).concat([defaultChoice])
+    const next = _choices.findIndex((c) => c === val) + 1
 
-    // console.log(path, _choices[next])
     dispatch(updateStudio({ [path]: _choices[next] }))
   }
 
-  if (image && val !== defaultChoice) {
-    const img = image.replace(
-      /:choice:/,
-      _choices.find((choice) => choice === val)
-    )
-
-    return (
-      <Button
-        className={cN('d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100')}
-        variant={variant || 'outline-obs'}
-        onClick={handleClick}
-      >
-        <Image src={`${publik}/${img}`} fluid />
-      </Button>
-    )
-  }
-
   return (
-    <Button className="d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant || 'outline-obs'} onClick={handleClick}>
-      {_choices.find((choice) => choice === val)}
+    <Button className="cycle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant || 'outline-obs'} onClick={handleClick}>
+      {choice}
     </Button>
   )
 }

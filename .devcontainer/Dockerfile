@@ -1,5 +1,5 @@
 # Node image
-FROM node:18.14.0
+FROM node:18.16.0
 
 # Add default packages
 

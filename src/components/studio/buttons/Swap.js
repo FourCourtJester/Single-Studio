@@ -1,8 +1,9 @@
 // Import core components
 import { useDispatch } from 'react-redux'
-import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { Button } from 'react-bootstrap'
 
 // Import our components
+import { ToolTip } from 'components/global'
 import { swapStudio } from 'db/slices/studio'
 import { useNamespace } from 'hooks'
 
@@ -13,7 +14,7 @@ const namespace = 'variables'
 
 export const Swap = (properties) => {
   // Properties
-  const { fields, label } = properties
+  const { fields, label, placement = 'top' } = properties
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace({ type: namespace })
@@ -25,10 +26,10 @@ export const Swap = (properties) => {
   }
 
   return (
-    <OverlayTrigger placement="top" overlay={<Tooltip>Swap {label}</Tooltip>}>
+    <ToolTip placement={placement} tooltip={<>Swap {label}</>}>
       <Button className="text-dark" variant="warning" onClick={handleClick}>
         <i className="fas fa-rotate" />
       </Button>
-    </OverlayTrigger>
+    </ToolTip>
   )
 }

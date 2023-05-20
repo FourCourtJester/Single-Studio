@@ -8,7 +8,7 @@ import styled from 'styled-components'
 
 // Styled Studio
 const StyledStudio = styled(Form)`
-  padding-top: calc(3.75rem - 3px);
+  padding-top: 3.75rem;
 `
 
 export const _Studio = forwardRef((properties, ref) => <StyledStudio ref={ref} {...properties} />)
