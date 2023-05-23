@@ -2,7 +2,6 @@
 import { useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
-import cN from 'classnames'
 
 // Import our components
 import { updateStudio } from 'db/slices/studio'

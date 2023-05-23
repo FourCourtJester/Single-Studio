@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
-import { Button, Container, Modal, NavbarBrand } from 'react-bootstrap'
+import { Button, Container, NavbarBrand } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'
