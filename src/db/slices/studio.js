@@ -76,6 +76,6 @@ export const studio = createSlice({
 export const { clear: clearStudio, reset: resetStudio, swap: swapStudio, update: updateStudio, updateFromStorage: updateStudioFromStorage } = studio.actions
 
 // Selector functions
-export const selector = (state, path) => Utils.getObjValue(state.studio, path)
+export const selector = (state, path) => Utils.getObjValue(state[name], path)
 
 export const { reducer } = studio

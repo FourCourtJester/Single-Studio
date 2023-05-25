@@ -46,7 +46,6 @@ export const Image = (properties) => {
       className: cN('variable', className),
       onError: handleError,
       src,
-      // src: src ? `${publik}/${src.replace(/:var:/, val)}` : `1x1.png`,
     })
   }, [properties, publik, src, val])
 

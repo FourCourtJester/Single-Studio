@@ -15,6 +15,11 @@ $input-border-width: 2px;
 $input-focus-box-shadow: none;
 $input-focus-border-color: #63666f;
 
+$accordion-border-color: $input-border-color;
+$accordion-button-active-color: $light;
+$accordion-button-active-bg: $input-bg;
+$accordion-button-focus-box-shadow: none;
+
 $dnd-row-hover: lighten($body-bg, 10%);
 $dnd-col-hover: lighten($body-bg, 20%);
 

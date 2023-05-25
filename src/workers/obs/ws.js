@@ -3,26 +3,41 @@
 // OBS Websocket API: https://github.com/obs-websocket-community-projects/obs-websocket-js
 // OBS API: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
 
-import OBSWebSocket from 'obs-websocket-js'
+// Import core components
+import OBSWebSocket from 'obs-websocket-js/json'
 
 const obs = new OBSWebSocket()
-obs.connect()
+const settings = {
+  connected: false,
+}
 
-obs.on('Identified', () => {
-  console.log('OBS is connected')
+obs.on('ConnectionOpened', () => {
+  console.log('OBS is ready')
+  settings.connected = true
 })
 
 obs.on('ConnectionClosed', (err) => {
   console.error(err)
+  settings.connected = false
+  setTimeout(() => {
+    if (!settings.connected) connect()
+  }, 5 * 1000)
 })
 
+function connect() {
+  obs.connect().catch((err) => console.error(err))
+}
+
+// Port constructor
 self.onconnect = (conections) => {
   const port = conections.ports[0]
 
-  port.addEventListener('message', ({ data }) => {
-    const { event, opts = {} } = data
-    obs.call(event, opts).then((response) => port.postMessage(response))
-  })
+  if (!settings.connected) connect()
+
+  // port.addEventListener('message', ({ data }) => {
+  //   const { event, opts = {} } = data
+  //   obs.call(event, opts).then((response) => port.postMessage(response))
+  // })
 
   port.start()
 }

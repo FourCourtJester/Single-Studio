@@ -3,12 +3,14 @@ import { configureStore } from '@reduxjs/toolkit'
 
 // Import our components
 import { reducer as studioReducer, clearStudio, updateStudioFromStorage } from 'db/slices/studio'
+import { reducer as settingsReducer, clearSettings, updateSettingsFromStorage } from 'db/slices/settings'
 import * as Storage from 'toolkits/storage'
 
 const initialState = {}
 const store = configureStore({
   preloadedState: initialState,
   reducer: {
+    settings: settingsReducer,
     studio: studioReducer,
   },
 })
@@ -18,6 +20,7 @@ window.addEventListener('storage', (e) => {
   // Reset all slices
   if (!e.key) {
     store.dispatch(clearStudio())
+    store.dispatch(clearSettings())
     return true
   }
 
@@ -29,6 +32,17 @@ window.addEventListener('storage', (e) => {
 
   // Update the appropriate slice
   switch (key) {
+    // Settings
+    case 'settings': {
+      try {
+        store.dispatch(updateSettingsFromStorage({ [path.join('.')]: JSON.parse(e.newValue) }))
+      } catch (err) {
+        store.dispatch(updateSettingsFromStorage({ [path.join('.')]: null }))
+        console.warn(err)
+      }
+      break
+    }
+
     // Default: Studio
     default: {
       try {

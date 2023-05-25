@@ -2,7 +2,7 @@
 // Import core components
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
+import { useLoaderData, useNavigate, useParams, useRouteError } from 'react-router-dom'
 import { Button, Container, NavbarBrand } from 'react-bootstrap'
 
 // Import our components
@@ -27,6 +27,7 @@ export function Component() {
   // Hooks
   const params = useParams()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { name, Studio } = useLoaderData()
   // Refs
   const $btn = useRef(null)
@@ -55,6 +56,10 @@ export function Component() {
     [$btn, handleSubmit]
   )
 
+  const handleReturn = () => {
+    navigate(`/`)
+  }
+
   useEffect(() => {
     document.addEventListener('keydown', handleSubmitKey)
     return () => document.removeEventListener('keydown', handleSubmitKey)
@@ -64,6 +69,11 @@ export function Component() {
     <>
       <Navbar className="bg-body border-bottom border-light text-nowrap overflow-hidden" fixed="top">
         <Container fluid>
+          <NavbarBrand className="me-2">
+            <Button variant="obs" type="button" onClick={handleReturn}>
+              <i className="fa fa-chevron-left" />
+            </Button>
+          </NavbarBrand>
           <NavbarBrand className="text-light">{name}</NavbarBrand>
           <div className="ms-auto">
             <ToolTip placement="left" tooltip={<>Save</>}>
