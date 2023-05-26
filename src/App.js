@@ -2,6 +2,7 @@
 import { createHashRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 
 // Import our components
+import { OBSWorker } from 'workers'
 import { Gate, P404, Studio, Source } from 'pages'
 
 // Import style
@@ -28,7 +29,12 @@ function routes() {
 }
 
 function App() {
-  return <RouterProvider router={routes()} />
+  return (
+    <>
+      <RouterProvider router={routes()} />
+      <OBSWorker />
+    </>
+  )
 }
 
 export default App

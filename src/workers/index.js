@@ -1,1 +1,1 @@
-export { default as OBSWorker } from './obs'
+export { OBSWorker } from './obs'

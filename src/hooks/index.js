@@ -1,3 +1,4 @@
+export { useEffectOnce } from './useEffectOnce'
 export { useNamespace } from './useNamespace'
 export { usePublic } from './usePublic'
 export { useSettings } from './useSettings'
