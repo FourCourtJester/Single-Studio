@@ -47,5 +47,16 @@ export function timeToString(t) {
   if (!t || t <= 0) return '00:00'
 
   const d = new Date(t).toISOString()
-  return t >= 3600000 ? d.slice(11, -5) : d.slice(14, -5)
+
+  // More than a day
+  if (t >= 24 * 60 * 60 * 1000) {
+    const days = Number(d.slice(8, 10)) - 1
+    return `${days}:${d.slice(11, -5)}`
+  }
+
+  // More than an hour
+  if (t >= 60 * 60 * 1000) return d.slice(11, -5)
+
+  // Less than an hour
+  return d.slice(14, -5)
 }

@@ -35,6 +35,9 @@ export const Timer = (properties) => {
   const $ref = useRef(null)
 
   const handleStart = () => {
+    // Ignore zero length inputs
+    if (!$ref.current.value.length) return true
+
     const now = Date.now()
     const target = stringToTime($ref.current.value)
 

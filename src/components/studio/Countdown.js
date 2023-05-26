@@ -48,10 +48,10 @@ export const Countdown = (properties) => {
   }
 
   const handleStart = () => {
-    const now = new Date()
-
     // Ignore zero length inputs
     if (!$ref.current.value.length) return true
+
+    const now = new Date()
 
     switch (as) {
       case 'datetime-local': {
