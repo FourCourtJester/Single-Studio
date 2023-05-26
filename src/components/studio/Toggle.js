@@ -5,8 +5,8 @@ import { Button, Image } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
-import { updateStudio } from 'db/slices/studio'
 import { useNamespace, usePublic, useStudio } from 'hooks'
+import { updateStudio } from 'db/slices/studio'
 
 // Import style
 // ...

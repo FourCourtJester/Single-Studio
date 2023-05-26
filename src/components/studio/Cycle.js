@@ -4,8 +4,8 @@ import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 
 // Import our components
-import { updateStudio } from 'db/slices/studio'
 import { useNamespace, usePublic, useStudio } from 'hooks'
+import { updateStudio } from 'db/slices/studio'
 
 // Import style
 // ...

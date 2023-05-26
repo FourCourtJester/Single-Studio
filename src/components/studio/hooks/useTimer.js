@@ -3,30 +3,30 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 // Import our components
 import { useStudio } from 'hooks'
-
-function timeToString(t) {
-  if (!t || t <= 0) return '00:00'
-
-  const d = new Date(t).toISOString()
-  return t >= 3600000 ? d.slice(11, -5) : d.slice(14, -5)
-}
+import { timeToString } from 'toolkits/time'
 
 export const useTimer = ({ path }) => {
   // Redux
-  const val = useStudio(path)
+  const timer = useStudio(path)
   // States
   const [time, setTime] = useState(0)
+  // Variables
+  const val = timer?._ts
+  const input = timer?._input
   // Refs
   const t = useRef(null)
 
   useEffect(() => {
-    setTime(val > 0 ? Math.ceil(val - Date.now()) : -1)
+    const diff = Math.ceil(val - Date.now())
+
+    setTime(diff > 0 ? diff : -1)
     if (!val) clearTimeout(t.current)
   }, [val])
 
   return useMemo(() => {
     const obj = {
       active: time >= 0,
+      input,
       text: timeToString(time),
     }
 
@@ -37,5 +37,5 @@ export const useTimer = ({ path }) => {
     }
 
     return obj
-  }, [time])
+  }, [input, time])
 }

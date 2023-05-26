@@ -7,19 +7,28 @@ import { FloatingLabel, Form, InputGroup } from 'react-bootstrap'
 import { Button } from 'components/global/styled'
 import { useNamespace } from 'hooks'
 import { updateStudio } from 'db/slices/studio'
-import { stringToTime } from 'toolkits/time'
+import { clockDifference, dateDifference } from 'toolkits/time'
 import { useTimer } from './hooks'
 
 // Import style
 // ...
 
+function min() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth()).length === 2 ? now.getMonth() + 1 : `0${now.getMonth() + 1}`
+  const day = String(now.getDate()).length === 2 ? now.getDate() : `0${now.getDate()}`
+
+  return `${[year, month, day].join('-')}T00:00`
+}
+
 const namespace = 'timers'
 const ts = '_ts'
 const nput = '_input'
 
-export const Timer = (properties) => {
+export const Countdown = (properties) => {
   // Properties
-  const { label, name, placeholder } = properties
+  const { as = 'datetime-local', label, name, placeholder } = properties
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace({ type: namespace, name })
@@ -34,16 +43,45 @@ export const Timer = (properties) => {
   // Refs
   const $ref = useRef(null)
 
-  const handleStart = () => {
-    const now = Date.now()
-    const target = stringToTime($ref.current.value)
+  const handleFocus = () => {
+    $ref.current?.showPicker()
+  }
 
-    dispatch(
-      updateStudio({
-        [paths.ts]: now + target * 1000,
-        [paths.input]: $ref.current.value,
-      })
-    )
+  const handleStart = () => {
+    const now = new Date()
+
+    // Ignore zero length inputs
+    if (!$ref.current.value.length) return true
+
+    switch (as) {
+      case 'datetime-local': {
+        const later = new Date($ref.current.value)
+
+        // Ignore the past
+        if (later < now) return true
+
+        dispatch(
+          updateStudio({
+            [paths.ts]: dateDifference(now, later),
+            [paths.input]: $ref.current.value,
+          })
+        )
+        break
+      }
+
+      case 'time': {
+        dispatch(
+          updateStudio({
+            [paths.ts]: clockDifference(now, $ref.current.value),
+            [paths.input]: $ref.current.value,
+          })
+        )
+        break
+      }
+
+      default:
+        break
+    }
 
     setDisable(true)
   }
@@ -68,7 +106,7 @@ export const Timer = (properties) => {
   ) : (
     <InputGroup>
       <FloatingLabel label={label} onKeyDown={handleKey}>
-        <Form.Control ref={$ref} type="text" placeholder={placeholder || '5:00'} defaultValue={input || ''} disabled={disabled} />
+        <Form.Control ref={$ref} type={as} min={min()} placeholder={placeholder} defaultValue={input || ''} onClick={handleFocus} disabled={disabled} />
       </FloatingLabel>
       <Button variant="obs" disabled={disabled} onClick={handleStart}>
         <i className="await fa fa-spin fa-spinner" />

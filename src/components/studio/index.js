@@ -1,5 +1,6 @@
 export { Reset as ResetButton, Swap as SwapButton } from './buttons'
 
+export { Countdown } from './Countdown'
 export { Cycle } from './Cycle'
 export { Select } from './Select'
 export { Timer } from './Timer'
