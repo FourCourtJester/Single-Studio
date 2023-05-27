@@ -40,7 +40,6 @@ export function Component() {
       const data = [...new URLSearchParams(new FormData($form.current))]
       const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`${params.code}.${key}`]: val }), {})
 
-      // console.log(obj)
       dispatch(updateStudio(obj))
     },
     [dispatch, params]
@@ -56,9 +55,7 @@ export function Component() {
     [$btn, handleSubmit]
   )
 
-  const handleReturn = () => {
-    navigate(`/`)
-  }
+  const handleReturn = () => navigate(`/`)
 
   useEffect(() => {
     document.addEventListener('keydown', handleSubmitKey)

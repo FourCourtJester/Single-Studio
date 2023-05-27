@@ -30,18 +30,6 @@ export const Toggle = (properties) => {
   const cache = useStudio(paths.toggle) || false
   // States
   const [active, setActive] = useState(false)
-  // Variables
-  const state = useMemo(() => {
-    if (image) return <Image src={`${image.startsWith('/') ? publik : ''}${image}`} fluid />
-
-    return icon ? (
-      <i className={`fas fa-${icon}`} />
-    ) : (
-      <>
-        {verbs[Number(cache) || 0]} {label}
-      </>
-    )
-  }, [icon, image, label, publik, cache])
 
   const handleClick = (e) => {
     e.preventDefault()
@@ -58,9 +46,8 @@ export const Toggle = (properties) => {
     }
 
     // Toggle this
-    obj[paths.toggle] = value || !cache
+    obj[paths.toggle] = value === cache ? false : value || !cache
 
-    // console.log(obj)
     dispatch(updateStudio(obj))
   }
 
@@ -78,7 +65,13 @@ export const Toggle = (properties) => {
       variant={active ? variant || 'obs' : `outline-${variant || 'obs'}`}
       onClick={handleClick}
     >
-      {state}
+      {image && <Image src={`${publik}/${image}`} fluid />}
+      {icon && <i className={`fas fa-${icon}`} />}
+      {!image && !icon && (
+        <>
+          {verbs[Number(cache) || 0]} {label}
+        </>
+      )}
     </Button>
   )
 }

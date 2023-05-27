@@ -1,8 +1,13 @@
 export function clockDifference(now, later) {
-  const [h, m] = later.split(':')
+  const [h, m] = later.split(':').map((p) => Number(p))
+  let delta
+
+  // The delta determining if the later time is in the next day
+  if (h === now.getHours() && m >= now.getMinutes()) delta = 0
+  else if (h <= now.getHours()) delta = 24
 
   // Future time on a new day
-  return now.getTime() + clockToTime(`${24 + Number(h) - now.getHours()}:${Number(m) - now.getMinutes()}`) - now.getSeconds() * 1000
+  return now.getTime() + clockToTime(`${delta + h - now.getHours()}:${m - now.getMinutes()}`) - now.getSeconds() * 1000
 }
 
 export function clockToTime(t) {

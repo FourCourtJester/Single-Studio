@@ -1,5 +1,5 @@
 // Import core components
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 
@@ -15,43 +15,39 @@ const defaultChoice = 'None'
 
 export const Cycle = (properties) => {
   // Properties
-  const { choices, image, name, variant } = properties
+  const { choices: _choices, image, name, variant } = properties
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace({ type: namespace, name })
   const publik = usePublic()
   // Redux
   const val = useStudio(path) || defaultChoice
+  // States
+  const [isImage, setIsImage] = useState(image !== undefined)
   // Variables
-  const choice = useMemo(() => {
-    const _choices = [defaultChoice].concat(choices).concat([defaultChoice])
-
-    if (image) {
-      const img = image.replace(
-        /:choice:/,
-        _choices.find((c) => c === val)
-      )
-
-      return <Image className="mw-100 mh-100" src={`${image.startsWith('/') ? publik : ''}${img}`} alt={val} />
-    }
-
-    return _choices.find((c) => c === val)
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [choices, image, path, publik, val, variant])
+  const choices = useMemo(() => [defaultChoice].concat(_choices).concat([defaultChoice]), [_choices])
+  const choice = useMemo(() => choices.find((c) => c === val), [choices, val])
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    const _choices = [defaultChoice].concat(choices).concat([defaultChoice])
-    const next = _choices.findIndex((c) => c === val) + 1
+    const next = choices.findIndex((c) => c === val) + 1
 
-    dispatch(updateStudio({ [path]: _choices[next] }))
+    dispatch(updateStudio({ [path]: choices[next] }))
   }
+
+  const handleError = (e) => {
+    console.warn(e)
+    setIsImage(false)
+  }
+
+  useEffect(() => {
+    setIsImage(image !== undefined)
+  }, [choice, image])
 
   return (
     <Button className="cycle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant || 'outline-obs'} onClick={handleClick}>
-      {choice}
+      {isImage ? <Image className="mw-100 mh-100" onError={handleError} src={`${publik}/${image.replace(/:choice:/, choice)}`} /> : choice}
     </Button>
   )
 }
