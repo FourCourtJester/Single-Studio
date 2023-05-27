@@ -1,3 +1,4 @@
+export { Clock } from './Clock'
 export { Image } from './Image'
 export { Scene } from './Scene'
 export { Timer } from './Timer'

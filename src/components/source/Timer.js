@@ -34,9 +34,9 @@ export const Timer = (properties) => {
 
   return (
     <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next)} appear in={active} nodeRef={$ref}>
-      <span ref={$ref} {...props}>
+      <time ref={$ref} {...props}>
         {text}
-      </span>
+      </time>
     </CSSTransition>
   )
 }
