@@ -14,7 +14,7 @@ const namespace = 'timers'
 
 export const Timer = (properties) => {
   // Properties
-  const { name } = properties
+  const { name, onEnter, onExit } = properties
   // Hooks
   const path = useNamespace({ type: namespace, name })
   const { active, text } = useTimer({ path })
@@ -24,13 +24,21 @@ export const Timer = (properties) => {
   const $ref = useRef(null)
 
   useEffect(() => {
-    const { className } = properties
+    const { className, ..._properties } = properties
+
+    delete _properties.onEnter
+    delete _properties.onExit
 
     setProps({
-      ...properties,
+      ..._properties,
       className: cN('timer', className),
     })
   }, [properties])
+
+  useEffect(() => {
+    if (active && onEnter) onEnter()
+    else if (onExit) onExit()
+  }, [active, onEnter, onExit])
 
   return (
     <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next)} appear in={active} nodeRef={$ref}>

@@ -1,6 +1,6 @@
 export function clockDifference(now, later) {
   const [h, m] = later.split(':').map((p) => Number(p))
-  let delta
+  let delta = 0
 
   // The delta determining if the later time is in the next day
   if (h === now.getHours() && m >= now.getMinutes()) delta = 0
