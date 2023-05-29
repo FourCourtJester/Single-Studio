@@ -23,10 +23,16 @@ export const Select = (properties) => {
   const $ref = useRef(null)
 
   useEffect(() => {
+    const _props = { ...properties }
+
+    delete _props.children
+    delete _props.label
+
     setProps({
-      name: `${namespace}.${name}`,
+      ..._props,
+      name: `${namespace}.${_props.name}`,
     })
-  }, [label, name])
+  }, [properties])
 
   useEffect(() => {
     $ref.current.value = val

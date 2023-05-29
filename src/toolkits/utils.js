@@ -26,6 +26,7 @@ export function getObjPaths(obj, fn, path = '') {
 
 export function getObjValue(obj = {}, _path = '', opts = { split: true }) {
   if (obj === undefined) return undefined
+  if (_path === null) return undefined
 
   // Do not alter if already the proper type
   let path = !Array.isArray(_path) ? undefined : _path

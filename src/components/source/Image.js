@@ -5,6 +5,7 @@ import cN from 'classnames'
 
 // Import our components
 import { useNamespace, usePublic, useStudio } from 'hooks'
+import * as Utils from 'toolkits/utils'
 
 // Import style
 // ...
@@ -33,9 +34,9 @@ export const Image = (properties) => {
   }
 
   useEffect(() => {
-    const { src: _src } = properties
+    const { slug = false, src: _src } = properties
 
-    setSrc(`${publik}/${_src.replace(/:var:/, val)}`)
+    setSrc(`${publik}/${_src.replace(/:var:/, slug ? Utils.slugify(val) : val)}`)
   }, [properties, publik, val])
 
   useEffect(() => {
@@ -46,6 +47,8 @@ export const Image = (properties) => {
       className: cN('variable', className),
       onError: handleError,
       src,
+      slug: undefined,
+      'data-error': src === defaultSrc ? true : undefined,
     })
   }, [properties, publik, src, val])
 
