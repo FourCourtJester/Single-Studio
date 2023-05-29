@@ -1,4 +1,4 @@
-import { slugify as sslugify } from 'slugify'
+import sslugify from 'slugify'
 
 export function capitalize(str) {
   return str.split(' ').map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
@@ -91,7 +91,7 @@ export function setObjValue(obj = {}, _path = [], val = undefined, opts = { spli
 export function slugify(str) {
   return sslugify(str, {
     replacement: '-',
-    remove: /[*+~.()'"!:@]/g,
+    remove: /[,*+~.()'"!:@]/g,
     lower: true,
     trim: true,
   })
