@@ -1,6 +1,7 @@
 // Import core components
 import { useEffect, useRef, useState } from 'react'
 import { FloatingLabel, Form } from 'react-bootstrap'
+import cN from 'classnames'
 
 // Import our components
 import { useNamespace, useStudio } from 'hooks'
@@ -12,7 +13,7 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { as: type = 'text', label, name, placeholder, ...otherProps } = properties
+  const { align, as: type = 'text', label, name, placeholder, ...otherProps } = properties
   // Hooks
   const path = useNamespace({ type: namespace, name })
   // Redux
@@ -37,7 +38,7 @@ export const Variable = (properties) => {
 
   return (
     <FloatingLabel label={label} controlId={name} {...otherProps}>
-      <Form.Control ref={$ref} {...props} />
+      <Form.Control ref={$ref} className={cN(align ? `text-${align}` : false)} {...props} />
     </FloatingLabel>
   )
 }
