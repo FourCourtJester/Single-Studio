@@ -22,8 +22,8 @@ export const Toggle = (properties) => {
   // Hooks
   const dispatch = useDispatch()
   const paths = {
-    group: useNamespace({ type: namespace }),
-    toggle: useNamespace({ type: namespace, name }),
+    group: useNamespace(namespace),
+    toggle: useNamespace(namespace, name),
   }
   const publik = usePublic()
   // Redux
