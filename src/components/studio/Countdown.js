@@ -31,7 +31,7 @@ export const Countdown = (properties) => {
   const { as = 'datetime-local', label, name, placeholder } = properties
   // Hooks
   const dispatch = useDispatch()
-  const path = useNamespace({ type: namespace, name })
+  const path = useNamespace(namespace, name)
   const { active, input, text } = useTimer({ path })
   // States
   const [disabled, setDisable] = useState(false)

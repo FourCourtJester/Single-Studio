@@ -13,11 +13,11 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { name } = properties
+  const { fallback, name } = properties
   // Hooks
-  const path = useNamespace({ type: namespace, name })
+  const path = useNamespace(...(name ? [namespace, name] : [false]))
   // Redux
-  const val = useStudio(path) || ''
+  const val = useStudio(path) || fallback || ''
   // States
   const [props, setProps] = useState({})
   // Refs
@@ -29,6 +29,7 @@ export const Variable = (properties) => {
     setProps({
       ...properties,
       className: cN('variable', className),
+      fallback: undefined,
     })
   }, [properties])
 

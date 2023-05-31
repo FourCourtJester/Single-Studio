@@ -17,7 +17,7 @@ export const Swap = (properties) => {
   const { fields, label, placement = 'top' } = properties
   // Hooks
   const dispatch = useDispatch()
-  const path = useNamespace({ type: namespace })
+  const path = useNamespace(namespace)
 
   const handleClick = (e) => {
     e.preventDefault()

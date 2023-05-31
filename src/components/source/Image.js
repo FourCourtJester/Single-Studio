@@ -15,9 +15,9 @@ const defaultSrc = '1x1.png'
 
 export const Image = (properties) => {
   // Properties
-  const { name } = properties
+  const { name, timeout } = properties
   // Hooks
-  const path = useNamespace({ type: namespace, name })
+  const path = useNamespace(...(name ? [namespace, name] : [false]))
   // Hooks
   const publik = usePublic()
   // Redux
@@ -35,7 +35,6 @@ export const Image = (properties) => {
 
   useEffect(() => {
     const { slug = false, src: _src } = properties
-
     setSrc(`${publik}/${_src.replace(/:var:/, slug ? Utils.slugify(val) : val)}`)
   }, [properties, publik, val])
 
@@ -54,7 +53,7 @@ export const Image = (properties) => {
 
   return (
     <SwitchTransition>
-      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref}>
+      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={src} nodeRef={$ref} timeout={timeout}>
         <img ref={$ref} {...props} />
       </CSSTransition>
     </SwitchTransition>

@@ -7,6 +7,7 @@ import * as Storage from 'toolkits/storage'
 
 const name = 'studio'
 const initialState = {}
+const undef = undefined
 
 function _update(state, fields, propagate = true) {
   Utils.getObjPaths(fields, (path, val) => {
@@ -76,6 +77,6 @@ export const studio = createSlice({
 export const { clear: clearStudio, reset: resetStudio, swap: swapStudio, update: updateStudio, updateFromStorage: updateStudioFromStorage } = studio.actions
 
 // Selector functions
-export const selector = (state, path) => Utils.getObjValue(state[name], path)
+export const selector = (state, path) => Utils.getObjValue(state[name], path) || undef
 
 export const { reducer } = studio

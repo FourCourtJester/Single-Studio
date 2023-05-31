@@ -18,7 +18,7 @@ export const Cycle = (properties) => {
   const { choices: _choices, image, name, variant } = properties
   // Hooks
   const dispatch = useDispatch()
-  const path = useNamespace({ type: namespace, name })
+  const path = useNamespace(namespace, name)
   const publik = usePublic()
   // Redux
   const val = useStudio(path) || defaultChoice

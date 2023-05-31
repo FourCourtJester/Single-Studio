@@ -15,7 +15,7 @@ export const Toggle = (properties) => {
   // Properties
   const { children, name } = properties
   // Hooks
-  const path = useNamespace({ type: namespace, name })
+  const path = useNamespace(namespace, name)
   // Redux
   const val = useStudio(path) || false
   // States

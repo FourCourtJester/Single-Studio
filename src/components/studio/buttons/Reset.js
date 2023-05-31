@@ -15,7 +15,7 @@ export const Reset = (properties) => {
   const { label, fields, placement = 'top' } = properties
   // Hooks
   const dispatch = useDispatch()
-  const path = useNamespace({})
+  const path = useNamespace('code')
 
   const handleClick = (e) => {
     e.preventDefault()

@@ -16,7 +16,7 @@ export const Timer = (properties) => {
   // Properties
   const { fallback, name, value } = properties
   // Hooks
-  const path = useNamespace({ type: namespace, name })
+  const path = useNamespace(namespace, name)
   const { active, text } = useTimer({ path, value })
   // States
   const [props, setProps] = useState({})

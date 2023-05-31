@@ -4,17 +4,15 @@ import { useParams } from 'react-router-dom'
 
 // Import our components
 
-export const useNamespace = ({ type, name }) => {
+export const useNamespace = (...parts) => {
   // Hooks
   const params = useParams()
   const { code } = params
 
   return useMemo(() => {
-    const path = [code]
+    if (!Array.isArray(parts) || !parts.length || parts.at(0) === false) return undefined
+    if (parts.at(0) === 'code') return code
 
-    if (type) path.push(type)
-    if (name) path.push(name)
-
-    return path.join('.')
-  }, [code, type, name])
+    return [code, ...parts].join('.')
+  }, [code, parts])
 }
