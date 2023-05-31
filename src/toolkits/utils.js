@@ -4,6 +4,24 @@ export function capitalize(str) {
   return str.split(' ').map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
 }
 
+export function debounce(func, wait, immediate) {
+  let t
+
+  return function (...args) {
+    const context = this
+    const now = immediate && !t
+
+    if (t) clearTimeout(t)
+
+    t = setTimeout(() => {
+      t = null
+      if (!immediate) func.apply(context, args)
+    }, wait)
+
+    if (now) func.apply(context, args)
+  }
+}
+
 export function getObjPaths(obj, fn, path = '') {
   Object.entries(obj || {}).forEach(([key, val]) => {
     const _key = path.length ? [path, key].join('.') : key

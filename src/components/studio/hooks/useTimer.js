@@ -5,26 +5,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStudio } from 'hooks'
 import { timeToString } from 'toolkits/time'
 
-export const useTimer = ({ path }) => {
+export const useTimer = ({ path, value }) => {
   // Redux
   const timer = useStudio(path)
   // States
   const [time, setTime] = useState(0)
   // Variables
-  const val = timer?._ts
+  const cache = timer?._ts || value
   const input = timer?._input
   // Refs
   const t = useRef(null)
 
   const calc = useCallback(() => {
-    const diff = Math.ceil(val - Date.now())
+    const diff = Math.ceil(cache - Date.now())
     setTime(diff > 0 ? diff : -1)
-  }, [val])
+  }, [cache])
 
   useEffect(() => {
     calc()
-    if (!val) clearTimeout(t.current)
-  }, [calc, val])
+    if (!cache) clearTimeout(t.current)
+  }, [calc, cache])
 
   return useMemo(() => {
     const obj = {
