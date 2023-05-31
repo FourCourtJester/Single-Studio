@@ -1,5 +1,5 @@
 // Import core components
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Import our components
 import { useStudio } from 'hooks'
@@ -16,12 +16,15 @@ export const useTimer = ({ path }) => {
   // Refs
   const t = useRef(null)
 
-  useEffect(() => {
+  const calc = useCallback(() => {
     const diff = Math.ceil(val - Date.now())
-
     setTime(diff > 0 ? diff : -1)
-    if (!val) clearTimeout(t.current)
   }, [val])
+
+  useEffect(() => {
+    calc()
+    if (!val) clearTimeout(t.current)
+  }, [calc, val])
 
   return useMemo(() => {
     const obj = {
@@ -33,9 +36,9 @@ export const useTimer = ({ path }) => {
     clearTimeout(t.current)
 
     if (time >= 0) {
-      t.current = setTimeout(() => setTime(time - 1000), 1000)
+      t.current = setTimeout(() => calc(), 1000)
     }
 
     return obj
-  }, [input, time])
+  }, [calc, input, time])
 }
