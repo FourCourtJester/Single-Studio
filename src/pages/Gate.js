@@ -2,7 +2,7 @@
 import { Container } from 'react-bootstrap'
 
 // Import our components
-import { Navigate } from 'components/gate'
+import { Navigate, Settings } from 'components/gate'
 
 // Import style
 // ...
@@ -11,7 +11,7 @@ function Gate() {
   return (
     <Container className="d-flex flex-column justify-content-center text-center h-100">
       <Navigate />
-      {/* <Settings className="mt-5" /> */}
+      <Settings className="mt-5" />
     </Container>
   )
 }

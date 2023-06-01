@@ -1,5 +1,6 @@
 export { useEffectOnce } from './useEffectOnce'
 export { useNamespace } from './useNamespace'
+export { useOBS } from './useOBS'
 export { usePublic } from './usePublic'
 export { useSettings } from './useSettings'
 export { useStudio } from './useStudio'

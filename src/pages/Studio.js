@@ -10,6 +10,7 @@ import { ToolTip } from 'components/global'
 import { Studio as SStudio, Navbar } from 'components/global/styled'
 import { updateStudio } from 'db/slices/studio'
 import { P404 } from 'pages'
+import { useOBS } from 'hooks'
 
 // Import style
 // ...
@@ -29,6 +30,7 @@ export function Component() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { name, Studio } = useLoaderData()
+  // const OBS = useOBS()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
@@ -61,6 +63,10 @@ export function Component() {
     document.addEventListener('keydown', handleSubmitKey)
     return () => document.removeEventListener('keydown', handleSubmitKey)
   }, [handleSubmitKey])
+
+  // useEffect(() => {
+  //   OBS.action('call', { request: 'GetVersion' })
+  // }, [OBS])
 
   return (
     <>
