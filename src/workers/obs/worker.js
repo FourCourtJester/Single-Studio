@@ -10,7 +10,7 @@ const obs = new OBSWebSocket()
 const status = {
   parameters: {},
   connected: false,
-  connection: false,
+  // connection: false,
   reconnect: null,
 }
 
@@ -22,19 +22,22 @@ obs.on('ConnectionOpened', () => {
 obs.on('ConnectionClosed', () => {
   console.log('Connection Closed')
   status.connected = false
-  status.connection = false
+  // status.connection = false
 
   clearTimeout(status.reconnect)
   status.reconnect = setTimeout(() => {
-    if (!status.connection) connect()
+    // if (!status.connection) connect()
+    connect()
   }, 5 * 1000)
 })
 
 function connect() {
-  const connected = !!status.connection
-  status.connection = true
+  // const connected = !!status.connection
+  // status.connection = true
 
-  return !connected ? obs.connect(...Object.values(status.parameters)) : Promise.resolve(false)
+  // return !connected ? obs.connect(...Object.values(status.parameters)) : Promise.resolve(false)
+  const { host, password } = status.parameters
+  return obs.connect(host, password)
 }
 
 // Port constructor
@@ -44,13 +47,14 @@ self.onconnect = (conections) => {
   console.log('port started')
 
   port.addEventListener('message', ({ data: request }) => {
-    const { id, data, event } = request
+    const { id, data, name, event } = request
 
     console.log(request)
 
     switch (event) {
       case 'connect': {
         status.parameters = data
+
         connect().then((response) => {
           status.connected = true
           port.postMessage({ id, event: 'connected', data: response })
@@ -58,8 +62,13 @@ self.onconnect = (conections) => {
         break
       }
 
+      case 'on': {
+        obs.on(name, (response) => port.postMessage({ id, name, data: response }))
+        break
+      }
+
       default: {
-        if (status.connected) obs?.[event](...Object.values(data)).then((response) => port.postMessage({ id, event, data: response }))
+        if (status.connected) obs?.[event](...Object.values(data)).then((response) => port.postMessage({ id, event: data.request, data: response }))
         else port.postMessage({ id, event, error: { code: 0, error: 'OBS Studio is not connected' } })
         break
       }

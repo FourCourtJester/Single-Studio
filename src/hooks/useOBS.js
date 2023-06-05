@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 // Import our components
 import { OBSInterface } from 'workers'
 import { useSettings } from './useSettings'
+import { useEffectOnce } from './useEffectOnce'
 
 const defaults = {
   connect: {
@@ -18,7 +19,7 @@ const obs = new OBSInterface()
 export const useOBS = () => {
   const settings = useSettings('obs')
 
-  useEffect(() => {
+  useEffectOnce(() => {
     // const obs = OBS.current
     if (!obs) return () => {}
 
