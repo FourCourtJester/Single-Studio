@@ -1,48 +1,46 @@
+// Import core components
 import { nanoid } from 'nanoid'
 
 class OBSInterface {
   constructor() {
     this.worker = new SharedWorker(new URL('./worker.js', import.meta.url), { name: 'obs.js' } /* webpackChunkName: 'obs-shared-worker.js' */)
-    this.queue = []
-    this.connected = false
+    this.listeners = {}
 
     // Start the port
     this.worker.port.start()
 
     // Add the message handler
-    this.worker.port.addEventListener('message', this._onMessage.bind(this))
+    // this.worker.port.addEventListener('message', (response) => console.log(response))
   }
 
-  _onMessage({ data: { id, event, data } }) {
-    console.log(`${event} (${id}) |`, data)
-
-    switch (event) {
-      case 'connected': {
-        this.connected = true
-
-        if (data && this.queue) {
-          this.queue.forEach((request) => this.worker.port.postMessage(request))
-        }
-        break
-      }
-
-      case 'disconnected': {
-        this.connected = false
-        break
-      }
-
-      default: {
-        break
-      }
-    }
+  call(event, data = {}) {
+    const request = { event: 'call', data: { ...data, request: event } }
+    return this.onRequest(request).catch((err) => console.error(err))
   }
 
-  action(event, data = {}) {
+  connect(data) {
+    const request = { event: 'connect', data }
+    return this.onRequest(request).catch((err) => console.error(err))
+  }
+
+  onRequest(request) {
     const id = nanoid(4)
 
-    if (event === 'connect') this.worker.port.postMessage({ id, event, data })
-    else if (!this.connected) this.queue.push({ id, event, data })
-    else this.worker.port.postMessage({ id, event, data })
+    return new Promise((resolve, reject) => {
+      this.listeners[id] = this.onResponse.bind(this, id, resolve)
+
+      this.worker.port.addEventListener('message', this.listeners[id])
+      this.worker.port.postMessage({ id, ...request })
+    })
+  }
+
+  onResponse(id, resolve, response) {
+    if (id !== response?.data?.id) return false
+
+    this.worker.port.removeEventListener('message', this.listeners[id])
+    delete this.listeners[id]
+
+    resolve(response.data)
   }
 }
 

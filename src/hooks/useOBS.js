@@ -13,23 +13,29 @@ const defaults = {
   },
 }
 
+const obs = new OBSInterface()
+
 export const useOBS = () => {
-  const OBS = useRef(new OBSInterface())
   const settings = useSettings('obs')
 
   useEffect(() => {
-    const obs = OBS.current
+    // const obs = OBS.current
     if (!obs) return () => {}
 
-    if (!obs.connected) {
-      const host = ['ws://', settings?.host || defaults.connect.host, ':', settings?.port || defaults.connect.port].join('')
+    const host = ['ws://', settings?.host || defaults.connect.host, ':', settings?.port || defaults.connect.port].join('')
 
-      obs.action('connect', {
+    obs
+      .connect({
         host,
         password: settings?.password || defaults.connect.host.password,
       })
-    }
-  }, [settings, OBS])
+      .then((response) => {
+        if (response?.error) throw response
+        return response
+      })
+      .then((response) => console.log(response))
+      .catch((err) => console.error(err))
+  }, [settings])
 
-  return useMemo(() => OBS.current, [OBS])
+  return useMemo(() => obs, [])
 }

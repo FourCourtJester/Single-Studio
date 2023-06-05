@@ -9,6 +9,7 @@ import OBSWebSocket from 'obs-websocket-js/json'
 const obs = new OBSWebSocket()
 const status = {
   parameters: {},
+  connected: false,
   connection: false,
   reconnect: null,
 }
@@ -20,6 +21,7 @@ obs.on('ConnectionOpened', () => {
 
 obs.on('ConnectionClosed', () => {
   console.log('Connection Closed')
+  status.connected = false
   status.connection = false
 
   clearTimeout(status.reconnect)
@@ -41,17 +43,24 @@ self.onconnect = (conections) => {
 
   console.log('port started')
 
-  port.addEventListener('message', ({ data: { id, event, data } }) => {
-    console.log(id, event, data)
+  port.addEventListener('message', ({ data: request }) => {
+    const { id, data, event } = request
+
+    console.log(request)
+
     switch (event) {
       case 'connect': {
         status.parameters = data
-        connect()
+        connect().then((response) => {
+          status.connected = true
+          port.postMessage({ id, event: 'connected', data: response })
+        })
         break
       }
 
       default: {
-        obs?.[event](...Object.values(data)).then((response) => port.postMessage({ id, event, data: response }))
+        if (status.connected) obs?.[event](...Object.values(data)).then((response) => port.postMessage({ id, event, data: response }))
+        else port.postMessage({ id, event, error: { code: 0, error: 'OBS Studio is not connected' } })
         break
       }
     }
@@ -59,9 +68,10 @@ self.onconnect = (conections) => {
 
   port.start()
 
-  obs.on('Hello', () => {
-    port.postMessage({ event: 'connected', data: true })
-  })
+  // obs.on('Hello', () => {
+  //   status.connected = true
+  //   port.postMessage({ event: 'connected', data: status.connected })
+  // })
 
   obs.on('ConnectionClosed', (err) => {
     port.postMessage({ event: 'disconnected', data: err })

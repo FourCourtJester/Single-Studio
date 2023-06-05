@@ -30,10 +30,14 @@ export function Component() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { name, Studio } = useLoaderData()
-  // const OBS = useOBS()
+  const OBS = useOBS()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
+
+  const handleOBS = () => {
+    OBS.call('GetSceneList').then((response) => console.log(response))
+  }
 
   const handleSubmit = useCallback(
     (e) => {
@@ -64,10 +68,6 @@ export function Component() {
     return () => document.removeEventListener('keydown', handleSubmitKey)
   }, [handleSubmitKey])
 
-  // useEffect(() => {
-  //   OBS.action('call', { request: 'GetVersion' })
-  // }, [OBS])
-
   return (
     <>
       <Navbar className="bg-body border-bottom border-light text-nowrap overflow-hidden" fixed="top">
@@ -84,6 +84,9 @@ export function Component() {
                 <i className="fa fa-floppy-disk" />
               </Button>
             </ToolTip>
+            <Button variant="primary" type="button" onClick={handleOBS}>
+              <i className="fa fa-close" />
+            </Button>
           </div>
         </Container>
       </Navbar>
