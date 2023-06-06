@@ -36,7 +36,7 @@ export function Component() {
   const $form = useRef(null)
 
   // const handleOBS = () => {
-  //   OBS.call('GetSceneList').then((response) => console.log(response))
+  //   OBS.call('GetInputSettings', { inputName: 'Overlay' }).then((response) => console.log(response))
   // }
 
   const handleSubmit = useCallback(
@@ -69,8 +69,10 @@ export function Component() {
   }, [handleSubmitKey])
 
   // useEffect(() => {
-  //   OBS.on('CurrentProgramSceneChanged', (data) => console.log(data))
-  // }, [])
+  //   const eventID = OBS.on('CurrentProgramSceneChanged', (data) => console.log(data))
+
+  //   return () => OBS.off(eventID)
+  // }, [OBS])
 
   return (
     <>
@@ -88,9 +90,9 @@ export function Component() {
                 <i className="fa fa-floppy-disk" />
               </Button>
             </ToolTip>
-            {/* <Button variant="primary" type="button" onClick={handleOBS}>
+            <Button variant="primary" type="button" onClick={handleOBS}>
               <i className="fa fa-close" />
-            </Button> */}
+            </Button>
           </div>
         </Container>
       </Navbar>

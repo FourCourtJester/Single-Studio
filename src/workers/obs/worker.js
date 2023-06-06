@@ -6,83 +6,99 @@
 // Import core components
 import OBSWebSocket from 'obs-websocket-js/json'
 
-const obs = new OBSWebSocket()
-const status = {
-  parameters: {},
-  connected: false,
-  // connection: false,
-  reconnect: null,
+const EVENTCODES = {
+  disconnected: -1,
+  connected: 0,
 }
 
-obs.on('ConnectionOpened', () => {
-  console.log('Connection Opened')
-  clearTimeout(status.reconnect)
-})
-
-obs.on('ConnectionClosed', () => {
-  console.log('Connection Closed')
-  status.connected = false
-  // status.connection = false
-
-  clearTimeout(status.reconnect)
-  status.reconnect = setTimeout(() => {
-    // if (!status.connection) connect()
-    connect()
-  }, 5 * 1000)
-})
-
-function connect() {
-  // const connected = !!status.connection
-  // status.connection = true
-
-  // return !connected ? obs.connect(...Object.values(status.parameters)) : Promise.resolve(false)
-  const { host, password } = status.parameters
-  return obs.connect(host, password)
+const obs = new OBSWebSocket()
+const status = {
+  connected: false,
+  listeners: {},
+  parameters: {},
+  reconnect: null,
 }
 
 // Port constructor
 self.onconnect = (conections) => {
   const port = conections.ports[0]
 
-  console.log('port started')
+  // Port Emit
+  const emit = (id, event, response) => {
+    port.postMessage({ id: id === null ? EVENTCODES[event] : id, event, data: response })
+  }
 
-  port.addEventListener('message', ({ data: request }) => {
-    const { id, data, name, event } = request
+  // OBS Connect
+  const connect = () => {
+    const { host, password } = status.parameters
 
-    console.log(request)
+    return obs.connect(host, password).then((response) => {
+      console.log('Connection Successful')
 
-    switch (event) {
-      case 'connect': {
-        status.parameters = data
+      status.connected = true
 
-        connect().then((response) => {
-          status.connected = true
-          port.postMessage({ id, event: 'connected', data: response })
-        })
-        break
-      }
+      emit(null, 'connected', response)
+    })
+  }
 
-      case 'on': {
-        obs.on(name, (response) => port.postMessage({ id, name, data: response }))
-        break
-      }
-
-      default: {
-        if (status.connected) obs?.[event](...Object.values(data)).then((response) => port.postMessage({ id, event: data.request, data: response }))
-        else port.postMessage({ id, event, error: { code: 0, error: 'OBS Studio is not connected' } })
-        break
-      }
-    }
+  // OBS Connectin Opened
+  obs.on('ConnectionOpened', () => {
+    console.log('Connection Opened')
+    clearTimeout(status.reconnect)
   })
 
-  port.start()
+  // OBS Disconnect
+  obs.on('ConnectionClosed', (err) => {
+    console.log('Connection Closed')
+
+    status.connected = false
+
+    emit(null, 'disconnected', err)
+
+    clearTimeout(status.reconnect)
+    status.reconnect = setTimeout(() => {
+      connect()
+    }, 5 * 1000)
+  })
 
   // obs.on('Hello', () => {
   //   status.connected = true
   //   port.postMessage({ event: 'connected', data: status.connected })
   // })
 
-  obs.on('ConnectionClosed', (err) => {
-    port.postMessage({ event: 'disconnected', data: err })
+  port.addEventListener('message', ({ data: request }) => {
+    const { id, data, name, event } = request
+
+    console.log(request, obs)
+
+    switch (event) {
+      case 'connect': {
+        status.parameters = data
+
+        connect()
+        break
+      }
+
+      case 'on': {
+        status.listeners[id] = emit.bind(this, id, name)
+        obs.on(name, status.listeners[id])
+        break
+      }
+
+      case 'off': {
+        obs.off(name, status.listeners[id])
+        delete status.listeners[id]
+        break
+      }
+
+      default: {
+        if (status.connected) obs?.[event](...Object.values(data)).then((response) => emit(id, data.request, response))
+        else emit(id, event, { code: 0, error: 'OBS Studio is not connected' })
+        break
+      }
+    }
   })
+
+  console.log('port started')
+  port.start()
 }

@@ -25,17 +25,20 @@ export const useOBS = () => {
 
     const host = ['ws://', settings?.host || defaults.connect.host, ':', settings?.port || defaults.connect.port].join('')
 
-    obs
-      .connect({
-        host,
-        password: settings?.password || defaults.connect.host.password,
-      })
-      .then((response) => {
-        if (response?.error) throw response
-        return response
-      })
-      .then((response) => console.log(response))
-      .catch((err) => console.error(err))
+    obs.on('connected', (data) => console.log(data))
+    obs.on('disconnected', (data) => console.error(data))
+
+    obs.connect({
+      host,
+      password: settings?.password || defaults.connect.host.password,
+    })
+
+    // .then((response) => {
+    //   if (response?.data?.error) throw response?.data
+    //   return response
+    // })
+    // .then((response) => console.log(response))
+    // .catch((err) => console.error(err))
   }, [settings])
 
   return useMemo(() => obs, [])

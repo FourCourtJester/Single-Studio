@@ -4,14 +4,20 @@ import { nanoid } from 'nanoid'
 class OBSInterface {
   constructor() {
     this.worker = new SharedWorker(new URL('./worker.js', import.meta.url), { name: 'obs.js' } /* webpackChunkName: 'obs-shared-worker.js' */)
+    this.listeners = {}
     this.requests = {}
-    this.events = {}
 
     // Start the port
     this.worker.port.start()
 
     // Add the message handler
     // this.worker.port.addEventListener('message', (response) => console.log(response))
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  _onEvent(id, f, response) {
+    if (id !== response?.data?.id) return false
+    f(response.data)
   }
 
   _onRequest(request) {
@@ -47,11 +53,18 @@ class OBSInterface {
   on(event, f) {
     const id = nanoid(4)
 
-    this.worker.port.addEventListener('message', (response) => {
-      console.log(response)
-    })
+    this.listeners[id] = { event, f: this._onEvent.bind(this, id, f) }
 
+    this.worker.port.addEventListener('message', this.listeners[id].f)
     this.worker.port.postMessage({ id, event: 'on', name: event })
+
+    return id
+  }
+
+  off(id) {
+    this.worker.port.removeEventListener('message', this.listeners[id].f)
+    this.worker.port.postMessage({ id, event: 'off', name: this.listeners[id].event })
+    delete this.listeners[id]
   }
 }
 
