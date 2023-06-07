@@ -6,11 +6,6 @@
 // Import core components
 import OBSWebSocket from 'obs-websocket-js/json'
 
-const EVENTCODES = {
-  disconnected: -1,
-  connected: 0,
-}
-
 const obs = new OBSWebSocket()
 const status = {
   connected: false,
@@ -24,9 +19,7 @@ self.onconnect = (conections) => {
   const port = conections.ports[0]
 
   // Port Emit
-  const emit = (id, event, response) => {
-    port.postMessage({ id: id === null ? EVENTCODES[event] : id, event, data: response })
-  }
+  const emit = (id, event, response) => port.postMessage({ id, event, response })
 
   // OBS Connect
   const connect = () => {
@@ -69,7 +62,7 @@ self.onconnect = (conections) => {
   port.addEventListener('message', ({ data: request }) => {
     const { id, data, name, event } = request
 
-    console.log(request, obs)
+    console.log(request)
 
     switch (event) {
       case 'connect': {

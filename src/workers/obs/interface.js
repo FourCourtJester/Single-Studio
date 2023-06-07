@@ -31,17 +31,17 @@ class OBSInterface {
     })
   }
 
-  _onResponse(id, resolve, response) {
-    if (id !== response?.data?.id) return false
+  _onResponse(id, resolve, { data: { id: responseID, response } }) {
+    if (id !== responseID) return false
 
     this.worker.port.removeEventListener('message', this.requests[id])
     delete this.requests[id]
 
-    resolve(response.data)
+    resolve(response)
   }
 
   call(event, data = {}) {
-    const request = { event: 'call', data: { ...data, request: event } }
+    const request = { event: 'call', data: { request: event, data } }
     return this._onRequest(request).catch((err) => console.error(err))
   }
 
