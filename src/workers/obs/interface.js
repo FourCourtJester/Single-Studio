@@ -15,9 +15,9 @@ class OBSInterface {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  _onEvent(id, f, response) {
-    if (id !== response?.data?.id) return false
-    f(response.data)
+  _onEvent(id, f, { data: { id: responseID, response } }) {
+    if (id !== responseID) return false
+    f(response)
   }
 
   _onRequest(request) {

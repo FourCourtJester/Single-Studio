@@ -1,5 +1,5 @@
 // Import core components
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 
 // Import our components
 import { OBSInterface } from 'workers'
@@ -16,7 +16,8 @@ const defaults = {
 
 const obs = new OBSInterface()
 
-export const useOBS = () => {
+export const useOBS = (props = {}) => {
+  const { toasts = false } = props
   const settings = useSettings('obs')
 
   useEffectOnce(() => {
@@ -25,20 +26,15 @@ export const useOBS = () => {
 
     const host = ['ws://', settings?.host || defaults.connect.host, ':', settings?.port || defaults.connect.port].join('')
 
-    obs.on('connected', (data) => console.log(data))
-    obs.on('disconnected', (data) => console.error(data))
+    if (toasts) {
+      obs.on('Hello', (data) => console.log(data))
+      obs.on('ConnectionClosed', (data) => console.error(data))
+    }
 
     obs.connect({
       host,
       password: settings?.password || defaults.connect.host.password,
     })
-
-    // .then((response) => {
-    //   if (response?.data?.error) throw response?.data
-    //   return response
-    // })
-    // .then((response) => console.log(response))
-    // .catch((err) => console.error(err))
   }, [settings])
 
   return useMemo(() => obs, [])

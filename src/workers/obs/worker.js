@@ -9,6 +9,7 @@ import OBSWebSocket from 'obs-websocket-js/json'
 const obs = new OBSWebSocket()
 const status = {
   connected: false,
+  connecting: false,
   listeners: {},
   parameters: {},
   reconnect: null,
@@ -24,13 +25,15 @@ self.onconnect = (conections) => {
   // OBS Connect
   const connect = () => {
     const { host, password } = status.parameters
+    status.connecting = true
 
     return obs.connect(host, password).then((response) => {
       console.log('Connection Successful')
 
       status.connected = true
+      status.connecting = false
 
-      emit(null, 'connected', response)
+      // emit(null, 'connected', response)
     })
   }
 
@@ -46,7 +49,7 @@ self.onconnect = (conections) => {
 
     status.connected = false
 
-    emit(null, 'disconnected', err)
+    // emit(null, 'disconnected', err)
 
     clearTimeout(status.reconnect)
     status.reconnect = setTimeout(() => {
@@ -68,7 +71,7 @@ self.onconnect = (conections) => {
       case 'connect': {
         status.parameters = data
 
-        connect()
+        if (!status.connecting && !status.connected) connect()
         break
       }
 

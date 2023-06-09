@@ -9,8 +9,8 @@ import { Button, Container, NavbarBrand } from 'react-bootstrap'
 import { ToolTip } from 'components/global'
 import { Studio as SStudio, Navbar } from 'components/global/styled'
 import { updateStudio } from 'db/slices/studio'
+import { useOBS } from 'hooks'
 import { P404 } from 'pages'
-// import { useOBS } from 'hooks'
 
 // Import style
 // ...
@@ -30,16 +30,16 @@ export function Component() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { name, Studio } = useLoaderData()
-  // const OBS = useOBS()
+  const OBS = useOBS({ toasts: true })
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
 
-  // const handleOBS = () => {
-  //   OBS.call('GetCurrentProgramScene')
-  //     .then((response) => OBS.call('GetSceneItemList', { sceneName: response.currentProgramSceneName }))
-  //     .then((response) => console.log(response))
-  // }
+  const handleOBS = () => {
+    OBS.call('GetCurrentProgramScene')
+      .then((response) => OBS.call('GetSceneItemList', { sceneName: response.currentProgramSceneName }))
+      .then((response) => console.log(response))
+  }
 
   const handleSubmit = useCallback(
     (e) => {
@@ -70,10 +70,10 @@ export function Component() {
     return () => document.removeEventListener('keydown', handleSubmitKey)
   }, [handleSubmitKey])
 
-  // useEffect(() => {
-  //   const eventID = OBS.on('CurrentProgramSceneChanged', (data) => console.log(data))
-  //   return () => OBS.off(eventID)
-  // }, [OBS])
+  useEffect(() => {
+    const eventID = OBS.on('CurrentProgramSceneChanged', (data) => console.log(data))
+    return () => OBS.off(eventID)
+  }, [OBS])
 
   return (
     <>
@@ -91,9 +91,9 @@ export function Component() {
                 <i className="fa fa-floppy-disk" />
               </Button>
             </ToolTip>
-            {/* <Button variant="primary" type="button" onClick={handleOBS}>
+            <Button className="ms-2" variant="primary" type="button" onClick={handleOBS}>
               <i className="fa fa-close" />
-            </Button> */}
+            </Button>
           </div>
         </Container>
       </Navbar>

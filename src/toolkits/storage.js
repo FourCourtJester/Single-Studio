@@ -23,7 +23,7 @@ export function getAll(key, storage = localStorage) {
 
   return all.reduce((obj, path) => {
     const _path = path.split('.').slice(1).join('.')
-    if (path.startsWith(_namespace(key))) Utils.setObjValue(obj, _path, get(path, { addNamespace: false }))
+    if (path.startsWith(_namespace(key))) return Utils.setObjValue(obj, _path, get(path, { addNamespace: false }))
     return obj
   }, {})
 }
