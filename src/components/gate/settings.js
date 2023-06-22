@@ -1,7 +1,7 @@
 // Import core components
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Accordion, Badge, Col, FloatingLabel, Form, Row, Stack } from 'react-bootstrap'
+import { Accordion, Col, FloatingLabel, Form, Row, Stack } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'

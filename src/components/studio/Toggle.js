@@ -1,5 +1,5 @@
 // Import core components
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 import cN from 'classnames'

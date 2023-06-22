@@ -68,6 +68,12 @@ self.onconnect = (conections) => {
     console.log(request)
 
     switch (event) {
+      case 'callBatch': {
+        if (status.connected) obs?.[event](data).then((response) => emit(id, 'batch', response))
+        else emit(id, event, { code: 0, error: 'OBS Studio is not connected' })
+        break
+      }
+
       case 'connect': {
         status.parameters = data
 

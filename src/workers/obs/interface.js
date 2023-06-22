@@ -23,7 +23,7 @@ class OBSInterface {
   _onRequest(request) {
     const id = nanoid(4)
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _) => {
       this.requests[id] = this._onResponse.bind(this, id, resolve)
 
       this.worker.port.addEventListener('message', this.requests[id])
@@ -42,6 +42,11 @@ class OBSInterface {
 
   call(event, data = {}) {
     const request = { event: 'call', data: { request: event, data } }
+    return this._onRequest(request).catch((err) => console.error(err))
+  }
+
+  callBatch(data) {
+    const request = { event: 'callBatch', data }
     return this._onRequest(request).catch((err) => console.error(err))
   }
 
