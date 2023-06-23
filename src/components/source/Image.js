@@ -44,12 +44,13 @@ export const Image = (properties) => {
     setProps({
       ...properties,
       className: cN('variable', className),
-      onError: handleError,
-      src,
-      slug: undefined,
       'data-error': src === defaultSrc ? true : undefined,
+      onError: handleError,
+      slug: undefined,
+      src,
+      timeout: undefined,
     })
-  }, [properties, publik, src, val])
+  }, [properties, src])
 
   return (
     <SwitchTransition>
