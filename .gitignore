@@ -1,5 +1,5 @@
 # Environmental variables
-.gitignore
+.env
 
 # Broadcast databases
 db/*.db
