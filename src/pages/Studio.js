@@ -98,7 +98,7 @@ export function Component() {
         </Container>
       </Navbar>
       <SStudio ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
-        <Container className="py-2 mh-100 overflow-x-hidden overflow-y-auto" fluid>
+        <Container className="py-2 h-100 overflow-x-hidden overflow-y-auto" fluid>
           <Studio />
         </Container>
       </SStudio>
