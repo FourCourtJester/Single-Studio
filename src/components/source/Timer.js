@@ -14,7 +14,7 @@ const namespace = 'timers'
 
 export const Timer = (properties) => {
   // Properties
-  const { fallback, name, value } = properties
+  const { fallback, name, onComplete, onEnter, onExit, value } = properties
   // Hooks
   const path = useNamespace(namespace, name)
   const { active, text } = useTimer({ path, value })
@@ -24,7 +24,7 @@ export const Timer = (properties) => {
   const $ref = useRef(null)
 
   useEffect(() => {
-    const { className, onComplete, onEnter, onExit, ..._properties } = properties
+    const { className, onComplete: _, onEnter: __, onExit: ___, ..._properties } = properties
 
     setProps({
       ..._properties,
@@ -35,12 +35,12 @@ export const Timer = (properties) => {
   }, [properties])
 
   useEffect(() => {
-    const { onEnter, onComplete, onExit } = properties
-
     if (active && onEnter) onEnter()
     else if (!active && onExit) onExit()
     else if (!active && onComplete) onComplete()
-  }, [active, properties])
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
 
   return (
     <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next)} appear in={active} nodeRef={$ref}>

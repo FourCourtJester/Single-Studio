@@ -11,20 +11,24 @@ export const useTimer = ({ path, value }) => {
   // States
   const [time, setTime] = useState(0)
   // Variables
-  const cache = timer?._ts || value
+  const cache = timer?._ts
   const input = timer?._input
   // Refs
   const t = useRef(null)
 
   const calc = useCallback(() => {
-    const diff = Math.ceil(cache - Date.now())
+    const _cache = cache || value
+    const diff = Math.ceil(_cache - Date.now())
+
     setTime(diff > 0 ? diff : -1)
-  }, [cache])
+  }, [cache, value])
 
   useEffect(() => {
     calc()
-    if (!cache) clearTimeout(t.current)
-  }, [calc, cache])
+
+    const _cache = cache || value
+    if (!_cache) clearTimeout(t.current)
+  }, [calc, cache, value])
 
   return useMemo(() => {
     const obj = {
@@ -35,7 +39,7 @@ export const useTimer = ({ path, value }) => {
 
     clearTimeout(t.current)
 
-    if (time >= 0) {
+    if (time > 0) {
       t.current = setTimeout(() => calc(), 1000)
     }
 
