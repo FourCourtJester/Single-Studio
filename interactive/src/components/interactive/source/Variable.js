@@ -36,8 +36,6 @@ export const Source = () => {
     [component]
   )
 
-  console.log(variableStyle)
-
   return (
     <div
       ref={$ref}
