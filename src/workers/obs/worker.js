@@ -37,7 +37,7 @@ self.onconnect = (conections) => {
     })
   }
 
-  // OBS Connectin Opened
+  // OBS Connection Opened
   obs.on('ConnectionOpened', () => {
     console.log('Connection Opened')
     clearTimeout(status.reconnect)
@@ -52,6 +52,7 @@ self.onconnect = (conections) => {
     // emit(null, 'disconnected', err)
 
     clearTimeout(status.reconnect)
+
     status.reconnect = setTimeout(() => {
       connect()
     }, 5 * 1000)

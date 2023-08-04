@@ -25,7 +25,7 @@ export function debounce(func, wait, immediate) {
 export function getObjPaths(obj, fn, path = '') {
   Object.entries(obj || {}).forEach(([key, val]) => {
     const _key = path.length ? [path, key].join('.') : key
-    const arrayCheck = Array.isArray(val)
+    // const arrayCheck = Array.isArray(val)
     const mongooseCheck = getObjValue(val, '_bsontype') || false
     const nullCheck = val === null
     const objectCheck = (typeof val).toLowerCase() !== 'object'
@@ -33,7 +33,7 @@ export function getObjPaths(obj, fn, path = '') {
     // Do not recurse upon primitive objects
     // Do not recurse upon Arrays
     // Do not recurse upon Mongoose ObjectIDs
-    if (objectCheck || arrayCheck || mongooseCheck || nullCheck || (!nullCheck && !Object.keys(val).length)) {
+    if (objectCheck || mongooseCheck || nullCheck || (!nullCheck && !Object.keys(val).length)) {
       return fn(_key, val)
     }
 

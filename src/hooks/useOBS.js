@@ -3,8 +3,7 @@ import { useMemo } from 'react'
 
 // Import our components
 import { OBSInterface } from 'workers'
-import { useSettings } from './useSettings'
-import { useEffectOnce } from './useEffectOnce'
+import { useSettings, useEffectOnce } from 'hooks'
 
 const defaults = {
   connect: {
