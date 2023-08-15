@@ -1,4 +1,4 @@
-import sslugify from 'slugify'
+import _slugify from 'slugify'
 
 export function capitalize(str) {
   return str.split(' ').map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
@@ -25,7 +25,7 @@ export function debounce(func, wait, immediate) {
 export function getObjPaths(obj, fn, path = '') {
   Object.entries(obj || {}).forEach(([key, val]) => {
     const _key = path.length ? [path, key].join('.') : key
-    // const arrayCheck = Array.isArray(val)
+    const arrayCheck = Array.isArray(val)
     const mongooseCheck = getObjValue(val, '_bsontype') || false
     const nullCheck = val === null
     const objectCheck = (typeof val).toLowerCase() !== 'object'
@@ -33,7 +33,7 @@ export function getObjPaths(obj, fn, path = '') {
     // Do not recurse upon primitive objects
     // Do not recurse upon Arrays
     // Do not recurse upon Mongoose ObjectIDs
-    if (objectCheck || mongooseCheck || nullCheck || (!nullCheck && !Object.keys(val).length)) {
+    if (objectCheck || arrayCheck || mongooseCheck || nullCheck || (!nullCheck && !Object.keys(val).length)) {
       return fn(_key, val)
     }
 
@@ -108,7 +108,7 @@ export function setObjValue(obj = {}, _path = [], val = undefined, opts = { spli
 }
 
 export function slugify(str) {
-  return sslugify(str, {
+  return _slugify(str, {
     replacement: '-',
     remove: /[,*+~.()'"!:@]/g,
     lower: true,
