@@ -42,4 +42,5 @@ export const { clear: clearSettings, update: updateSettings, updateFromStorage: 
 // Selector functions
 export const selector = (state, path) => Utils.getObjValue(state[name], path)
 
-export const { reducer } = settings
+// export const { reducer } = settings
+export default settings.reducer

@@ -6,6 +6,7 @@ import App from 'App'
 
 // Import our components
 import store from 'db/store'
+import storage from 'db/storage'
 
 const root = createRoot(document.getElementById('app'))
 
