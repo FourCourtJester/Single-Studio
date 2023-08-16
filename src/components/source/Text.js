@@ -5,13 +5,14 @@ import cN from 'classnames'
 
 // Import our components
 import { useNamespace, useStudio } from 'hooks'
+import { setObjValue } from 'toolkits/utils'
 
 // Import style
 // ...
 
 const namespace = 'variables'
 
-export const Variable = (properties) => {
+export const Text = (properties) => {
   // Properties
   const { name } = properties
   // Hooks
@@ -29,7 +30,7 @@ export const Variable = (properties) => {
 
     setProps({
       ...properties,
-      className: cN('variable', className),
+      className: cN('text', className),
       fallback: undefined,
     })
 
@@ -38,12 +39,8 @@ export const Variable = (properties) => {
   }, [properties, cache])
 
   return (
-    <SwitchTransition>
-      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref}>
-        <span ref={$ref} {...props}>
-          {val}
-        </span>
-      </CSSTransition>
-    </SwitchTransition>
+    <span ref={$ref} {...props}>
+      {val}
+    </span>
   )
 }
