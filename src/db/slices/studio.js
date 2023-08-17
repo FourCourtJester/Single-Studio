@@ -79,9 +79,7 @@ export const { clear: clearStudio, reset: resetStudio, swap: swapStudio, update:
 // Selector functions
 export const selector = (state, path) => {
   const val = Utils.getObjValue(state[name], path)
-
-  if (val === 0) return val
-  return val || undef
+  return typeof val === 'number' ? val : val || undef
 }
 
 // export const { reducer } = studio

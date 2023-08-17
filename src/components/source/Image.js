@@ -18,7 +18,6 @@ export const Image = (properties) => {
   const { name, timeout } = properties
   // Hooks
   const path = useNamespace(...(name ? [namespace, name] : [false]))
-  // Hooks
   const publik = usePublic()
   // Redux
   const val = useStudio(path) || ''
@@ -34,6 +33,7 @@ export const Image = (properties) => {
   }
 
   useEffect(() => {
+    // TODO: External image sources
     const { slug = false, src: _src } = properties
     setSrc(`${publik}/${_src.replace(/:var:/, slug ? Utils.slugify(val) : val)}`)
   }, [properties, publik, val])

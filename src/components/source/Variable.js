@@ -13,35 +13,40 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { name } = properties
+  const { fallback, name, cut = false } = properties
   // Hooks
   const path = useNamespace(...(name ? [namespace, name] : [false]))
   // Redux
-  const cache = useStudio(path)
+  const val = useStudio(path)
   // States
   const [props, setProps] = useState({})
-  const [val, setVal] = useState('')
   // Refs
   const $ref = useRef(null)
 
   useEffect(() => {
-    const { className, fallback } = properties
+    const { className, cut: _cut } = properties
 
     setProps({
       ...properties,
-      className: cN('variable', className),
+      className: cN(_cut ? 'text' : 'variable', className),
+      cut: undefined,
       fallback: undefined,
     })
+  }, [properties])
 
-    if (cache === undefined) setVal(fallback || '')
-    else setVal(cache.toString() || fallback || '')
-  }, [properties, cache])
+  if (cut) {
+    return (
+      <span ref={$ref} {...props}>
+        {val}
+      </span>
+    )
+  }
 
   return (
     <SwitchTransition>
       <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref}>
         <span ref={$ref} {...props}>
-          {val}
+          {typeof val === 'number' ? val : val || fallback || ''}
         </span>
       </CSSTransition>
     </SwitchTransition>
