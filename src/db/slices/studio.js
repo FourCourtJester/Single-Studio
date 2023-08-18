@@ -33,25 +33,43 @@ export const studio = createSlice({
   reducers: {
     clear: () => initialState,
     reset: (state, { payload: paths }) => {
-      // Attempt to erase each path
+      // Attempt to reset each path
       paths.forEach((path) => {
         const val = Utils.getObjValue(state, path)
         const obj = typeof val === 'object' ? { ...val } : {}
 
         if (Object.keys(obj).length) {
           // If the path is an object with children
-          // Erase each child instead
+          // Reset each child instead
           Utils.getObjPaths(obj, (key) => {
             Utils.setObjValue(state, `${path}.${key}`, null)
           })
 
           Storage.removeObj([name, path], obj)
         } else {
-          // The path is a simple type, just erase it
+          // The path is a simple type, just reset it
           Utils.setObjValue(state, path, null)
 
           Storage.remove([name, path])
         }
+      })
+    },
+    remove: (state, { payload: paths }) => {
+      // Attempt to remove each path
+      paths.forEach((path) => {
+        const parts = path.split('.')
+        const key = parts.pop()
+        const obj = Utils.getObjValue(state, parts.join('.'))
+
+        // If Object, remove all children keys from Storage
+        if (typeof obj[key] === 'object') {
+          Utils.getObjPaths(obj[key], (childKey) => {
+            Storage.remove([name, path, childKey])
+          })
+        }
+
+        delete obj[key]
+        Storage.remove([name, path])
       })
     },
     swap: (state, { payload: fields }) => {
@@ -74,7 +92,14 @@ export const studio = createSlice({
 })
 
 // Reducer functions
-export const { clear: clearStudio, reset: resetStudio, swap: swapStudio, update: updateStudio, updateFromStorage: updateStudioFromStorage } = studio.actions
+export const {
+  clear: clearStudio,
+  remove: removeStudio,
+  reset: resetStudio,
+  swap: swapStudio,
+  update: updateStudio,
+  updateFromStorage: updateStudioFromStorage,
+} = studio.actions
 
 // Selector functions
 export const selector = (state, path) => {

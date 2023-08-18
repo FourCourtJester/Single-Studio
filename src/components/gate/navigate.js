@@ -30,7 +30,7 @@ function GateFormNavigate() {
       return false
     }
 
-    navigate(`/studio/${$code.current.value}`)
+    navigate(`/studio/${$code.current.value.replace(/\s/, '-')}`)
     setValidated(false)
 
     return false

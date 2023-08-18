@@ -6,8 +6,8 @@ import * as Utils from 'toolkits/utils'
 
 export const namespace = 'ss'
 
-function _namespace(str) {
-  return [namespace, ...(Array.isArray(str) ? str : [str])].join('.')
+function _namespace(parts) {
+  return [namespace, ...(Array.isArray(parts) ? parts : [parts])].join('.')
 }
 
 export function get(name, { addNamespace = true } = {}, storage = localStorage) {

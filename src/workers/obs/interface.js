@@ -65,10 +65,12 @@ class OBSInterface {
     return id
   }
 
-  off(id) {
-    this.worker.port.removeEventListener('message', this.listeners[id].f)
-    this.worker.port.postMessage({ id, event: 'off', name: this.listeners[id].event })
-    delete this.listeners[id]
+  off(...ids) {
+    ids.forEach((id) => {
+      this.worker.port.removeEventListener('message', this.listeners[id].f)
+      this.worker.port.postMessage({ id, event: 'off', name: this.listeners[id].event })
+      delete this.listeners[id]
+    })
   }
 }
 
