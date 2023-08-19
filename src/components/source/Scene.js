@@ -11,7 +11,7 @@ export const Scene = (properties) => {
   const { children, className, id } = properties
 
   return (
-    <div id={id} className={cN(className, 'overflow-hidden')}>
+    <div id={id} className={cN(className, 'w-100 h-100 overflow-hidden')}>
       {children}
     </div>
   )
