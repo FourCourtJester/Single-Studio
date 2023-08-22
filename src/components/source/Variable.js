@@ -37,7 +37,7 @@ export const Variable = (properties) => {
   if (cut) {
     return (
       <span ref={$ref} {...props}>
-        {val}
+        {val || fallback || ''}
       </span>
     )
   }

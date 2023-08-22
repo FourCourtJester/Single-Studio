@@ -29,13 +29,14 @@ export const Image = (properties) => {
 
   const handleError = (e) => {
     console.warn(e)
-    setSrc(defaultSrc)
+    setSrc(`${publik}/${defaultSrc}`)
   }
 
   useEffect(() => {
-    // TODO: External image sources
-    const { slug = false, src: _src } = properties
-    setSrc(`${publik}/${_src.replace(/:var:/, slug ? Utils.slugify(val) : val)}`)
+    const { local = true, slug = false, src: _src } = properties
+    const img = `${_src.replace(/:var:/, slug ? Utils.slugify(val) : val)}`
+
+    setSrc(local ? `${publik}/${img}` : img)
   }, [properties, publik, val])
 
   useEffect(() => {
@@ -45,11 +46,14 @@ export const Image = (properties) => {
       ...properties,
       className: cN('variable', className),
       'data-error': src === defaultSrc ? true : undefined,
+      local: undefined,
       onError: handleError,
       slug: undefined,
       src,
       timeout: undefined,
     })
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties, src])
 
   return (
