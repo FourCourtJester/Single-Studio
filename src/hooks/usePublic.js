@@ -7,7 +7,7 @@ export const usePublic = () => {
   // Hooks
   const params = useParams()
   // Variables
-  const publik = `./${params.code}`
+  const publik = `/${params.code}`
 
   return publik
 }

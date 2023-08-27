@@ -16,8 +16,8 @@ const status = {
 }
 
 // Port constructor
-self.onconnect = (conections) => {
-  const port = conections.ports[0]
+self.onconnect = (connections) => {
+  const port = connections.ports[0]
 
   // Port Emit
   const emit = (id, event, response) => port.postMessage({ id, event, response })

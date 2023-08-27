@@ -20,7 +20,6 @@ export const useOBS = (props = {}) => {
   const settings = useSettings('obs')
 
   useEffectOnce(() => {
-    // const obs = OBS.current
     if (!obs) return () => {}
 
     const host = ['ws://', settings?.host || defaults.connect.host, ':', settings?.port || defaults.connect.port].join('')
