@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react'
 import Papa from 'papaparse'
 
 // Import our components
-// const API_KEY = window.atob(process.env.REACT_APP_GOOGLE_API_KEY)
-const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY
 const GOOGLE_API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/:id/values/:range?key=:key'
 
 function _fetch(url) {
@@ -47,7 +45,7 @@ export const useGoogle = ({ id, range, t: ts = 5000 }) => {
   const handleFetch = (url) => _fetch(url).then((obj) => setResults(obj))
 
   useEffect(() => {
-    const url = GOOGLE_API_URL.replace(':id', id).replace(':range', encodeURIComponent(range)).replace(':key', API_KEY)
+    const url = GOOGLE_API_URL.replace(':id', id).replace(':range', encodeURIComponent(range)).replace(':key', process.env.REACT_APP_GOOGLE_API_KEY)
 
     handleFetch(url)
 

@@ -1,8 +1,11 @@
 // Import core components
-import { useLoaderData, useRouteError } from 'react-router-dom'
+import { useState } from 'react'
+import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
 import { Container } from 'react-bootstrap'
+import cN from 'classnames'
 
 // Import our components
+import { useEffectOnce } from 'hooks'
 import { P404 } from 'pages'
 
 // Import style
@@ -20,9 +23,18 @@ export function ErrorBoundary() {
 export function Component() {
   // Hooks
   const { default: Source } = useLoaderData()
+  const params = useParams()
+  // States
+  const [theme, setTheme] = useState(false)
+  // Variables
+  const { key, mod } = params
+
+  useEffectOnce(() => {
+    if (mod === 'theme') setTheme(key)
+  })
 
   return (
-    <Container id="source" className="p-0" fluid>
+    <Container id="source" className={cN(theme ? `theme-${theme}` : false, 'p-0')} fluid>
       <Source />
     </Container>
   )

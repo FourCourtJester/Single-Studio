@@ -2,7 +2,7 @@
 import { createHashRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 
 // Import our components
-import { Gate, P404, Studio, Source, Single } from 'pages'
+import { Gate, P404, Studio, Source } from 'pages'
 
 // Import style
 import 'scss/base.scss'
@@ -17,8 +17,8 @@ function routes() {
         <Route path="studio">
           <Route path=":code">
             <Route index lazy={() => Studio} />
-            <Route path="source/single/:source" lazy={() => Single} />
             <Route path="source/:source" lazy={() => Source} />
+            <Route path="source/:source/:mod/:key" lazy={() => Source} />
           </Route>
         </Route>
         {/* 404 */}

@@ -11,7 +11,7 @@ import * as Utils from 'toolkits/utils'
 // ...
 
 const namespace = 'variables'
-const defaultSrc = '1x1.png'
+const defaultSrc = `${process.env.PUBLIC_URL}/1x1.png`
 
 export const Image = (properties) => {
   // Properties
@@ -29,7 +29,7 @@ export const Image = (properties) => {
 
   const handleError = (e) => {
     console.warn(e)
-    setSrc(`${publik}/${defaultSrc}`)
+    setSrc(defaultSrc)
   }
 
   useEffect(() => {
