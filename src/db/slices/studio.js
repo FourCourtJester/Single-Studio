@@ -104,7 +104,7 @@ export const {
 // Selector functions
 export const selector = (state, path) => {
   const val = Utils.getObjValue(state[name], path)
-  return typeof val === 'number' ? val : val || undef
+  return val === null || val === undefined ? undef : val
 }
 
 // export const { reducer } = studio

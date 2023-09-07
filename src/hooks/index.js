@@ -1,4 +1,5 @@
 export { useEffectOnce } from './useEffectOnce'
+export { useGoogle } from './useGoogle'
 export { useNamespace } from './useNamespace'
 export { useOBS } from './useOBS'
 export { usePageTitle } from './usePageTitle'
