@@ -59,7 +59,7 @@ export const studio = createSlice({
       paths.forEach((path) => {
         const parts = path.split('.')
         const key = parts.pop()
-        const obj = Utils.getObjValue(state, parts.join('.'))
+        const obj = parts.length ? Utils.getObjValue(state, parts.join('.')) : state
 
         // If Object, remove all children keys from Storage
         if (typeof obj[key] === 'object') {
