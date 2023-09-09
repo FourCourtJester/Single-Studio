@@ -7,6 +7,7 @@ import App from 'App'
 // Import our components
 import store from 'db/store'
 import storage from 'db/storage'
+import * as serviceWorkerRegistration from './serviceWorkerRegistration'
 
 const root = createRoot(document.getElementById('app'))
 
@@ -18,3 +19,8 @@ root.render(
     </Provider>
   </StrictMode>
 )
+
+// If you want your app to work offline and load faster, you can change
+// unregister() to register() below. Note this comes with some pitfalls.
+// Learn more about service workers: https://cra.link/PWA
+serviceWorkerRegistration.register()

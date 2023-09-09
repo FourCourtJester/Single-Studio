@@ -35,7 +35,7 @@ for subfolder in "$source_folder"/*; do
       continue
     fi
 
-    dest_folder="$destination_folder/$subfolder_name."
+    dest_folder="$destination_folder/$subfolder_name"
 
     # Create the destination directory with the same name if it doesn't exist
     if [ ! -d "$dest_folder" ]; then
@@ -72,6 +72,10 @@ done
 
 # Compile React
 npm run build
+
+if [ ! $? -eq 0 ]; then
+  exit 1
+fi
 
 # Run the GH Pages deploy
 gh-pages -d build
