@@ -52,10 +52,8 @@
   },
   "scripts": {
     "build": "react-scripts build",
-    "deploy": "gh-pages -d build",
+    "deploy": "bash ./scripts/publish.sh",
     "eject": "react-scripts eject",
-    "predeploy": "npm run public && npm run build",
-    "public": "bash ./scripts/publicify.sh",
     "start": "BROWSER=none react-scripts start",
     "test": "react-scripts test"
   },
