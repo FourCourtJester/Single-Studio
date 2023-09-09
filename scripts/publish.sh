@@ -40,7 +40,7 @@ for subfolder in "$source_folder"/*; do
     # Create the destination directory with the same name if it doesn't exist
     if [ ! -d "$dest_folder" ]; then
       if ! mkdir -p "$dest_folder"; then
-        echo -e "${RED}Error creating $dest_folder$NC."
+        echo -e "${RED}Error creating $dest_folder.$NC"
         exit 1
       fi
     fi
@@ -51,21 +51,21 @@ for subfolder in "$source_folder"/*; do
     if [ $? -eq 0 ]; then
       echo -e "Copied $YELLOW$subfolder/$public_folder_name$NC to $YELLOW$dest_folder$NC."
     else
-      echo -e "${RED}Error copying $subfolder/$public_folder_name to $dest_folder$NC."
+      echo -e "${RED}Error copying $subfolder/$public_folder_name to $dest_folder.$NC"
     fi
 
     # Copy the studio folder to the temp destination
     cp -r "$subfolder/$public_folder_name" "$temp_source_folder/$subfolder_name"
 
     if [ ! $? -eq 0 ]; then
-      echo -e "${RED}Error copying $subfolder/$public_folder_name to $temp_source_folder/$subfolder_name$NC."
+      echo -e "${RED}Error copying $subfolder/$public_folder_name to $temp_source_folder/$subfolder_name.$NC"
     fi
 
     # Remove the studio public folder
     rm -rf "$subfolder/$public_folder_name"
 
     if [ ! $? -eq 0 ]; then
-      echo -e "${RED}Error removing $subfolder/$public_folder_name."
+      echo -e "${RED}Error removing $subfolder/$public_folder_name.$NC"
     fi
   fi
 done
@@ -93,7 +93,7 @@ for subfolder in "$temp_source_folder"/*; do
     # Create the destination directory with the same name if it doesn't exist
     if [ ! -d "$dest_folder" ]; then
       if ! mkdir -p "$dest_folder"; then
-        echo -e "${RED}Error creating $dest_folder$NC."
+        echo -e "${RED}Error creating $dest_folder.$NC"
         exit 1
       fi
     fi
@@ -104,7 +104,7 @@ for subfolder in "$temp_source_folder"/*; do
     if [ $? -eq 0 ]; then
       echo -e "Copied $GREEN$subfolder/$public_folder_name$NC back to $GREEN$dest_folder$NC."
     else
-      echo -e "${RED}Error copying $subfolder/$subfolder_name to $dest_folder$NC."
+      echo -e "${RED}Error copying $subfolder/$subfolder_name to $dest_folder.$NC"
     fi
   fi
 done
@@ -115,7 +115,9 @@ echo -e "Removing ${YELLOW}temporary$NC folders."
 rm -rf "$temp_source_folder"
 
 if [ ! $? -eq 0 ]; then
-  echo -e "${RED}Error removing temporary folders$NC."
+  echo -e "${RED}Error removing temporary folders.$NC"
 fi
 
 echo ""
+
+echo -e "${GREEN}Deploy complete.$NC"
