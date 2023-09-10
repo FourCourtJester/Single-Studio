@@ -29,8 +29,8 @@ window.addEventListener('storage', (e) => {
       try {
         store.dispatch(updateSettingsFromStorage({ [path.join('.')]: JSON.parse(e.newValue) }))
       } catch (err) {
-        store.dispatch(updateSettingsFromStorage({ [path.join('.')]: null }))
         console.warn(err)
+        store.dispatch(updateSettingsFromStorage({ [path.join('.')]: null }))
       }
       break
     }
@@ -40,8 +40,8 @@ window.addEventListener('storage', (e) => {
       try {
         store.dispatch(updateStudioFromStorage({ [path.join('.')]: JSON.parse(e.newValue) }))
       } catch (err) {
-        store.dispatch(updateStudioFromStorage({ [path.join('.')]: null }))
         console.warn(err)
+        store.dispatch(updateStudioFromStorage({ [path.join('.')]: null }))
       }
       break
     }

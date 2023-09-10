@@ -63,9 +63,7 @@ export const studio = createSlice({
 
         // If Object, remove all children keys from Storage
         if (typeof obj[key] === 'object') {
-          Utils.getObjPaths(obj[key], (childKey) => {
-            Storage.remove([name, path, childKey])
-          })
+          Storage.removeObj([name, path], obj[key])
         }
 
         delete obj[key]
