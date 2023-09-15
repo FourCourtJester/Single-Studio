@@ -4,7 +4,6 @@ import { CSSTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
-import { useNamespace } from 'hooks'
 import { useTimer } from '../studio/hooks'
 
 // Import style
@@ -16,7 +15,7 @@ export const Timer = (properties) => {
   // Properties
   const { fallback, name, onComplete, onEnter, onExit, value } = properties
   // Hooks
-  const path = useNamespace(namespace, name)
+  const path = `${namespace}.${name}`
   const { active, text } = useTimer({ path, value })
   // States
   const [props, setProps] = useState({})

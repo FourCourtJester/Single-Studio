@@ -4,7 +4,7 @@ import { CSSTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
-import { useNamespace, useStudio } from 'hooks'
+import { useStudio } from 'hooks'
 
 // Import style
 // ...
@@ -14,10 +14,8 @@ const namespace = 'toggles'
 export const Toggle = (properties) => {
   // Properties
   const { children, name } = properties
-  // Hooks
-  const path = useNamespace(namespace, name)
   // Redux
-  const val = useStudio(path) || false
+  const val = useStudio(`${namespace}.${name}`) || false
   // States
   const [props, setProps] = useState({})
   // Refs

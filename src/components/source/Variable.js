@@ -4,7 +4,7 @@ import { CSSTransition, SwitchTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
-import { useNamespace, useStudio } from 'hooks'
+import { useStudio } from 'hooks'
 
 // Import style
 // ...
@@ -14,10 +14,8 @@ const namespace = 'variables'
 export const Variable = (properties) => {
   // Properties
   const { fallback, name, cut = false } = properties
-  // Hooks
-  const path = useNamespace(...(name ? [namespace, name] : [false]))
   // Redux
-  const val = useStudio(path)
+  const val = useStudio(`${namespace}.${name}`)
   // States
   const [props, setProps] = useState({})
   // Refs

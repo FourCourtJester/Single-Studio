@@ -4,7 +4,7 @@ import { CSSTransition, SwitchTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
-import { useNamespace, usePublic, useStudio } from 'hooks'
+import { usePublic, useStudio } from 'hooks'
 import * as Utils from 'toolkits/utils'
 
 // Import style
@@ -17,10 +17,9 @@ export const Image = (properties) => {
   // Properties
   const { name, timeout } = properties
   // Hooks
-  const path = useNamespace(...(name ? [namespace, name] : [false]))
   const publik = usePublic()
   // Redux
-  const val = useStudio(path) || ''
+  const val = useStudio(`${namespace}.${name}`) || ''
   // States
   const [props, setProps] = useState({})
   const [src, setSrc] = useState(defaultSrc)

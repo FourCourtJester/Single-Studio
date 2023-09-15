@@ -14,12 +14,14 @@ export const useUpdate = (propogate = true) => {
   const [update, setUpdate] = useState(undefined)
 
   useEffect(() => {
+    if (update === undefined) return () => {}
+
     dispatch(
       propogate
-        ? updateStudioLocal({
+        ? updateStudio({
             [namespace]: update,
           })
-        : updateStudio({
+        : updateStudioLocal({
             [namespace]: update,
           })
     )
