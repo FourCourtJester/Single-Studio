@@ -85,6 +85,7 @@ export const studio = createSlice({
       })
     },
     update: (state, { payload: fields }) => _update(state, fields),
+    updateLocal: (state, { payload: fields }) => _update(state, fields, false),
     updateFromStorage: (state, { payload: fields }) => _update(state, fields, false),
   },
 })
@@ -96,6 +97,7 @@ export const {
   reset: resetStudio,
   swap: swapStudio,
   update: updateStudio,
+  updateLocal: updateStudioLocal,
   updateFromStorage: updateStudioFromStorage,
 } = studio.actions
 

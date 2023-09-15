@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom'
 export const useNamespace = (...parts) => {
   // Hooks
   const params = useParams()
+  // Variables
   const { code } = params
 
   return useMemo(() => [code, ...parts].join('.'), [code, parts])
