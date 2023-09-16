@@ -15,8 +15,10 @@ const defaults = {
 
 const obs = new OBSInterface()
 
-export const useOBS = (props = {}) => {
+export const useOBS = (props) => {
+  // Properties
   const { toasts = false } = props
+  // Hooks
   const settings = useSettings('obs')
 
   useEffectOnce(() => {

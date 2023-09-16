@@ -1,62 +1,27 @@
 // Import core components
-import { useEffect, useState } from 'react'
-import Papa from 'papaparse'
+import { useMemo } from 'react'
 
 // Import our components
-const GOOGLE_API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/:id/values/:range?key=:key'
+import { GoogleInterface } from 'workers'
+import { useEffectOnce } from './useEffectOnce'
 
-function _fetch(url) {
-  return fetch(url)
-    .then((response) => {
-      if (!response.ok) throw response
-      return response.json()
+const google = new GoogleInterface()
+
+export const useGoogle = (props) => {
+  // Properties
+  const { id, name, range, t = 5000 } = props
+  const { majorDimension = 'ROWS', valueRenderOption = 'FORMATTED_VALUE' } = props
+
+  useEffectOnce(() => {
+    if (!google) return () => {}
+
+    google.connect({
+      name,
+      params: { id, range },
+      query: { majorDimension, valueRenderOption },
+      t,
     })
-    .then((data) =>
-      Papa.parse(Papa.unparse(data.values), {
-        complete: (records) => ({
-          records: records.data.reduce((arr, record) => {
-            // Create the object
-            const _obj = {}
+  }, [props])
 
-            // Re-cast null or undefined values to an empty string
-            Object.entries(record).forEach(([key, val]) => {
-              _obj[key] = val === null || val === undefined ? '' : val
-            })
-
-            // Save the record
-            arr.push(_obj)
-            return arr
-          }, []),
-        }),
-        dynamicTyping: true, // DynamicTyping auto converts empty columns to null
-        header: true,
-        skipEmptyLines: true,
-        transform: (entry) => entry.trim(),
-        transformHeader: (header) => header.trim(),
-      })
-    )
-    .catch((err) => console.error(err))
-}
-
-export const useGoogle = ({ id, range, t: ts = 5000 }) => {
-  // States
-  const [results, setResults] = useState({})
-
-  const handleFetch = (url) => _fetch(url).then((obj) => setResults(obj))
-
-  useEffect(() => {
-    const url = GOOGLE_API_URL.replace(':id', id).replace(':range', encodeURIComponent(range)).replace(':key', process.env.REACT_APP_GOOGLE_API_KEY)
-
-    handleFetch(url)
-
-    const t = setInterval(() => {
-      handleFetch(url)
-    }, ts)
-
-    return () => {
-      clearInterval(t)
-    }
-  }, [id, range, ts])
-
-  return results
+  return useMemo(() => google, [])
 }
