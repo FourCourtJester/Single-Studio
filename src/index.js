@@ -5,8 +5,8 @@ import { Provider } from 'react-redux'
 import App from 'App'
 
 // Import our components
+import 'db/storage'
 import store from 'db/store'
-import storage from 'db/storage'
 import * as serviceWorkerRegistration from './serviceWorkerRegistration'
 
 const root = createRoot(document.getElementById('app'))
