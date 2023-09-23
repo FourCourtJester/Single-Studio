@@ -66,7 +66,7 @@ export const studio = createSlice({
           Storage.removeObj([name, path], obj[key])
         }
 
-        delete obj[key]
+        if (obj) delete obj[key]
         Storage.remove([name, path])
       })
     },
