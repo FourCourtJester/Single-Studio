@@ -5,7 +5,6 @@ import { Provider } from 'react-redux'
 import App from 'App'
 
 // Import our components
-import 'db/storage'
 import store from 'db/store'
 import * as serviceWorkerRegistration from './serviceWorkerRegistration'
 

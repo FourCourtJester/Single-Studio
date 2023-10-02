@@ -32,7 +32,7 @@ export const useTimer = ({ path, value }) => {
 
   return useMemo(() => {
     const obj = {
-      active: time >= 0,
+      active: time > 0,
       input,
       text: timeToString(time),
     }

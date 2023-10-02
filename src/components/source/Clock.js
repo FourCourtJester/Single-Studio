@@ -3,46 +3,38 @@ import { useEffect, useRef, useState } from 'react'
 import cN from 'classnames'
 
 // Import our components
-// ...
+import { Transition } from 'components/global'
+import { Timer as StyledTimer } from 'components/global/styled/source'
 
 // Import style
 // ...
 
-function getTime() {
+function _getTime() {
   const d = new Date()
   return d.toLocaleTimeString()
 }
 
 export const Clock = (properties) => {
+  // Properties
+  const { className } = properties
   // States
-  const [props, setProps] = useState({})
   const [now, setNow] = useState('00:00:00')
   // Refs
-  const $ref = useRef(null)
   const t = useRef(null)
 
   useEffect(() => {
-    const { className } = properties
-
-    setProps({
-      ...properties,
-      className: cN('clock', className),
-    })
-  }, [properties])
-
-  useEffect(() => {
-    setNow(getTime())
+    setNow(_getTime())
 
     t.current = setInterval(() => {
-      setNow(getTime())
+      setNow(_getTime())
     }, 1000)
 
     return () => clearInterval(t.current)
   }, [])
 
   return (
-    <time ref={$ref} {...props}>
-      {now}
-    </time>
+    <Transition {...properties} className={cN('clock', className)} update={['inactive', 'active']} trigger>
+      <StyledTimer>{now}</StyledTimer>
+    </Transition>
   )
 }

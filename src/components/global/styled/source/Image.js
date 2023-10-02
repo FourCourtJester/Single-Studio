@@ -1,12 +1,13 @@
 // Import core components
 import { forwardRef } from 'react'
+import { Image } from 'react-bootstrap'
 import styled from 'styled-components'
 
 // Import our components
 // ...
 
-// Styled Variable
-const StyledVariable = styled.var`
+// Styled Image
+const StyledImage = styled(Image)`
   font-style: normal;
 
   ${(props) => {
@@ -30,6 +31,6 @@ const StyledVariable = styled.var`
   }}
 `
 
-export const _Variable = forwardRef((properties, ref) => <StyledVariable ref={ref} {...properties} />)
+export const _Image = forwardRef((properties, ref) => <StyledImage ref={ref} {...properties} />)
 
-_Variable.displayName = 'StyledVariable'
+_Image.displayName = 'StyledImage'

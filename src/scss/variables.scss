@@ -7,8 +7,6 @@ $light: #ffeeff;
 $body-bg: #2b2e38;
 $body-color: $light;
 
-// $link-color: $light;
-
 $input-bg: #3c404b;
 $input-border-color: #3c404b;
 $input-border-width: 2px;
@@ -20,14 +18,12 @@ $accordion-button-active-color: $light;
 $accordion-button-active-bg: $input-bg;
 $accordion-button-focus-box-shadow: none;
 
-$dnd-row-hover: lighten($body-bg, 10%);
-$dnd-col-hover: lighten($body-bg, 20%);
-
 $obs-bg: #4f535e;
 
 $zindex-toast: 1060;
 
 @import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/variables-dark";
 
 // Map changes
 // $theme-colors: map-merge(
@@ -45,4 +41,4 @@ $text-shadow: 0 1px rgb(0 0 0 / 40%);
 
 @import "~bootstrap/scss/maps";
 @import "~bootstrap/scss/mixins";
-@import "~bootstrap/scss/utilities";
+@import "~bootstrap/scss/root";

@@ -9,8 +9,30 @@ const name = 'studio'
 const initialState = {}
 const undef = undefined
 
+function _remove(state, paths) {
+  // Attempt to remove each path
+  paths.forEach((path) => {
+    const parts = path.split('.')
+    const key = parts.pop()
+    const obj = parts.length ? Utils.getObjValue(state, parts.join('.')) : state
+
+    // If Object, remove all children keys from Storage
+    if (typeof obj?.[key] === 'object') {
+      Storage.removeObj([name, path], obj[key])
+    }
+
+    if (obj) delete obj[key]
+    Storage.remove([name, path])
+  })
+}
+
 function _update(state, fields, propagate = true) {
   Utils.getObjPaths(fields, (path, val) => {
+    if (val === null || val === '') {
+      _remove(state, [path])
+      return true
+    }
+
     Utils.setObjValue(state, path, val)
     if (propagate) Storage.set([name, path], val)
   })
@@ -54,22 +76,7 @@ export const studio = createSlice({
         }
       })
     },
-    remove: (state, { payload: paths }) => {
-      // Attempt to remove each path
-      paths.forEach((path) => {
-        const parts = path.split('.')
-        const key = parts.pop()
-        const obj = parts.length ? Utils.getObjValue(state, parts.join('.')) : state
-
-        // If Object, remove all children keys from Storage
-        if (typeof obj[key] === 'object') {
-          Storage.removeObj([name, path], obj[key])
-        }
-
-        if (obj) delete obj[key]
-        Storage.remove([name, path])
-      })
-    },
+    remove: (state, { payload: paths }) => _remove(state, paths),
     swap: (state, { payload: fields }) => {
       const mid = Math.ceil(fields.length / 2)
       const from = Object.entries(fields.slice(0, mid).reduce((obj, path) => ({ ...obj, [path]: Utils.getObjValue(state, path) }), {}))

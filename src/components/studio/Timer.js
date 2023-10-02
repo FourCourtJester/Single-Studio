@@ -23,7 +23,7 @@ export const Timer = (properties) => {
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace(namespace, name)
-  const { active, input, text } = useTimer({ path })
+  const { active, input, text } = useTimer({ path: `${namespace}.${name}` })
   // States
   const [disabled, setDisable] = useState(false)
   // Variables

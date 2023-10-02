@@ -5,7 +5,9 @@ import cN from 'classnames'
 
 // Import our components
 import { usePublic, useStudio } from 'hooks'
-import * as Utils from 'toolkits/utils'
+import { Transition } from 'components/global'
+import { Image as StyledImage } from 'components/global/styled/source'
+import { slugify } from 'toolkits/utils'
 
 // Import style
 // ...
@@ -15,51 +17,40 @@ const defaultSrc = `${process.env.PUBLIC_URL}/1x1.png`
 
 export const Image = (properties) => {
   // Properties
-  const { name, timeout } = properties
+  const { className, name, slug = false, src } = properties
+  const { $animation } = properties
   // Hooks
   const publik = usePublic()
   // Redux
-  const val = useStudio(`${namespace}.${name}`) || ''
+  const val = useStudio(`${namespace}.${name}`) || false
   // States
-  const [props, setProps] = useState({})
-  const [src, setSrc] = useState(defaultSrc)
-  // Refs
-  const $ref = useRef(null)
-
-  const handleError = (e) => {
-    console.warn(e)
-    setSrc(defaultSrc)
-  }
+  const [modifiedSrc, setSrc] = useState(defaultSrc)
+  const [active, setActive] = useState(false)
 
   useEffect(() => {
-    const { local = true, slug = false, src: _src } = properties
-    const img = `${_src.replace(/:var:/, slug ? Utils.slugify(val) : val)}`
+    const local = src.startsWith('/')
+    const url = src.replace(/:var:/, slug ? slugify(val) : val)
+    const img = local ? `${publik}${url}` : `${url}`
 
-    setSrc(local ? `${publik}/${img}` : img)
-  }, [properties, publik, val])
-
-  useEffect(() => {
-    const { className } = properties
-
-    setProps({
-      ...properties,
-      className: cN('variable', className),
-      'data-error': src === defaultSrc ? true : undefined,
-      local: undefined,
-      onError: handleError,
-      slug: undefined,
-      src,
-      timeout: undefined,
+    setSrc((_modifiedSrc) => {
+      if (_modifiedSrc !== img) setActive(false)
+      return img
     })
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [properties, src])
+  }, [slug, src, val])
+
+  const handleError = () => {
+    console.warn(`Image ${modifiedSrc} did not load`)
+    setSrc(defaultSrc)
+    setActive(false)
+  }
+
+  const handleLoad = () => setActive(true)
 
   return (
-    <SwitchTransition>
-      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={src} nodeRef={$ref} timeout={timeout}>
-        <img ref={$ref} {...props} />
-      </CSSTransition>
-    </SwitchTransition>
+    <Transition {...properties} className={cN('variable', className)} trigger={active}>
+      <StyledImage src={modifiedSrc} onLoad={handleLoad} onError={handleError} $animation={$animation} />
+    </Transition>
   )
 }

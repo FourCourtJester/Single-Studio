@@ -1,7 +1,7 @@
 @import "variables";
 
 // Layout & components
-@import "~bootstrap/scss/root";
+@import "~bootstrap/scss/utilities";
 @import "~bootstrap/scss/reboot";
 @import "~bootstrap/scss/type";
 @import "~bootstrap/scss/images";
@@ -32,8 +32,6 @@
 @import "~bootstrap/scss/spinners";
 @import "~bootstrap/scss/offcanvas";
 @import "~bootstrap/scss/placeholders";
-
-// // Bootstrap helpers
 @import "~bootstrap/scss/helpers";
 
 // // Bootstrap utilities

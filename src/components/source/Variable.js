@@ -1,10 +1,10 @@
 // Import core components
-import { useEffect, useRef, useState } from 'react'
-import { CSSTransition, SwitchTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
 import { useStudio } from 'hooks'
+import { Transition } from 'components/global'
+import { Variable as StyledVariable } from 'components/global/styled/source'
 
 // Import style
 // ...
@@ -13,40 +13,15 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { fallback, name, cut = false } = properties
+  const { className, fallback, name } = properties
+  const { $animation } = properties
   // Redux
-  const val = useStudio(`${namespace}.${name}`)
-  // States
-  const [props, setProps] = useState({})
-  // Refs
-  const $ref = useRef(null)
-
-  useEffect(() => {
-    const { className, cut: _cut } = properties
-
-    setProps({
-      ...properties,
-      className: cN(_cut ? 'text' : 'variable', className),
-      cut: undefined,
-      fallback: undefined,
-    })
-  }, [properties])
-
-  if (cut) {
-    return (
-      <span ref={$ref} {...props}>
-        {val || fallback || ''}
-      </span>
-    )
-  }
+  const _val = useStudio(`${namespace}.${name}`)
+  const val = typeof _val === 'number' ? _val : _val || fallback || ''
 
   return (
-    <SwitchTransition>
-      <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear key={val} nodeRef={$ref}>
-        <span ref={$ref} {...props}>
-          {typeof val === 'number' ? val : val || fallback || ''}
-        </span>
-      </CSSTransition>
-    </SwitchTransition>
+    <Transition {...properties} className={cN('variable', className)} trigger={val}>
+      <StyledVariable $animation={$animation}>{val}</StyledVariable>
+    </Transition>
   )
 }

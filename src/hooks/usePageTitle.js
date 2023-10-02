@@ -2,11 +2,14 @@
 import { useEffect } from 'react'
 
 // Import our components
+// ...
 
-export const usePageTitle = (title) => {
+const base = 'Single Studio'
+
+export const usePageTitle = (...titles) => {
   useEffect(() => {
-    document.title = `${title} - Single Studio`
-  }, [title])
+    document.title = titles.concat([base]).join(' - ')
+  }, [titles])
 
   return null
 }

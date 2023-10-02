@@ -1,18 +1,15 @@
 // Import core components
-import { useState } from 'react'
-import { useLoaderData, useParams, useRouteError } from 'react-router-dom'
-import { Container } from 'react-bootstrap'
-import cN from 'classnames'
+import { useLoaderData, useRouteError } from 'react-router-dom'
 
 // Import our components
-import { useEffectOnce } from 'hooks'
 import { P404 } from 'pages'
+import { Page } from 'components/pages/source'
 
 // Import style
 // ...
 
 export function loader({ params }) {
-  return import(`studios/${params.code}/sources/${params.source}`)
+  return Promise.all([import(`studios/${params.code}/sources/${params.source}`), import(`studios/${params.code}/db`).catch(() => {})]).then((files) => files)
 }
 
 export function ErrorBoundary() {
@@ -22,21 +19,15 @@ export function ErrorBoundary() {
 
 export function Component() {
   // Hooks
-  const { default: Source } = useLoaderData()
-  const params = useParams()
-  // States
-  const [theme, setTheme] = useState(false)
+  const data = useLoaderData()
   // Variables
-  const { key, mod } = params
-
-  useEffectOnce(() => {
-    if (mod === 'theme') setTheme(key)
-  })
+  const [source, db] = data
+  const { default: Source } = source
 
   return (
-    <Container id="source" className={cN(theme ? `theme-${theme}` : false, 'p-0')} fluid>
+    <Page redux={db}>
       <Source />
-    </Container>
+    </Page>
   )
 }
 

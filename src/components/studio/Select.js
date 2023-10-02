@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FloatingLabel, Form } from 'react-bootstrap'
 
 // Import our components
-import { useNamespace, useStudio } from 'hooks'
+import { useStudio } from 'hooks'
 
 // Import style
 // ...
@@ -13,10 +13,8 @@ const namespace = 'variables'
 export const Select = (properties) => {
   // Properties
   const { children, label, name } = properties
-  // Hooks
-  const path = useNamespace(namespace, name)
   // Redux
-  const val = useStudio(path) || ''
+  const val = useStudio(`${namespace}.${name}`) || ''
   // States
   const [props, setProps] = useState({})
   // Refs

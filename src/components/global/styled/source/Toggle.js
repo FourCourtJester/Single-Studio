@@ -5,8 +5,8 @@ import styled from 'styled-components'
 // Import our components
 // ...
 
-// Styled Variable
-const StyledVariable = styled.var`
+// Styled Toggle
+const StyledToggle = styled.div`
   font-style: normal;
 
   ${(props) => {
@@ -30,6 +30,6 @@ const StyledVariable = styled.var`
   }}
 `
 
-export const _Variable = forwardRef((properties, ref) => <StyledVariable ref={ref} {...properties} />)
+export const _Toggle = forwardRef((properties, ref) => <StyledToggle ref={ref} {...properties} />)
 
-_Variable.displayName = 'StyledVariable'
+_Toggle.displayName = 'StyledToggle'

@@ -27,7 +27,7 @@ export const Toggle = (properties) => {
   }
   const publik = usePublic()
   // Redux
-  const cache = useStudio(paths.toggle) || false
+  const cache = useStudio(`${namespace}.${name}`) || false
   // States
   const [active, setActive] = useState(false)
 
@@ -65,7 +65,7 @@ export const Toggle = (properties) => {
       variant={active ? variant || 'obs' : `outline-${variant || 'obs'}`}
       onClick={handleClick}
     >
-      {image && <Image src={`${publik}/${image}`} fluid />}
+      {image && <Image src={`${publik}${image}`} fluid />}
       {icon && <i className={`fas fa-${icon}`} />}
       {!image && !icon && (
         <>

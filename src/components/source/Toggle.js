@@ -1,10 +1,10 @@
 // Import core components
-import { useEffect, useRef, useState } from 'react'
-import { CSSTransition } from 'react-transition-group'
 import cN from 'classnames'
 
 // Import our components
 import { useStudio } from 'hooks'
+import { Transition } from 'components/global'
+import { Toggle as StyledToggle } from 'components/global/styled/source'
 
 // Import style
 // ...
@@ -13,28 +13,14 @@ const namespace = 'toggles'
 
 export const Toggle = (properties) => {
   // Properties
-  const { children, name } = properties
+  const { children, className, name } = properties
+  const { $animation } = properties
   // Redux
   const val = useStudio(`${namespace}.${name}`) || false
-  // States
-  const [props, setProps] = useState({})
-  // Refs
-  const $ref = useRef(null)
-
-  useEffect(() => {
-    const { className } = properties
-
-    setProps({
-      ...properties,
-      className: cN('toggle', className),
-    })
-  }, [properties, val])
 
   return (
-    <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next, true)} appear in={val} nodeRef={$ref}>
-      <div ref={$ref} {...props}>
-        {children}
-      </div>
-    </CSSTransition>
+    <Transition {...properties} className={cN('toggle', className)} trigger={val}>
+      <StyledToggle $animation={$animation}>{children}</StyledToggle>
+    </Transition>
   )
 }

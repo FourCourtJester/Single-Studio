@@ -21,7 +21,7 @@ export const Cycle = (properties) => {
   const path = useNamespace(namespace, name)
   const publik = usePublic()
   // Redux
-  const val = useStudio(path) || defaultChoice
+  const val = useStudio(`${namespace}.${name}`) || defaultChoice
   // States
   const [isImage, setIsImage] = useState(image !== undefined)
   // Variables

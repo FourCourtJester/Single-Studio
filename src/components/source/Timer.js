@@ -1,9 +1,10 @@
 // Import core components
-import { useEffect, useRef, useState } from 'react'
-import { CSSTransition } from 'react-transition-group'
+import { useEffect } from 'react'
 import cN from 'classnames'
 
 // Import our components
+import { Transition } from 'components/global'
+import { Timer as StyledTimer } from 'components/global/styled/source'
 import { useTimer } from '../studio/hooks'
 
 // Import style
@@ -13,25 +14,10 @@ const namespace = 'timers'
 
 export const Timer = (properties) => {
   // Properties
-  const { fallback, name, onComplete, onEnter, onExit, value } = properties
+  const { className, fallback, name, onComplete, onEnter, onExit, value } = properties
   // Hooks
   const path = `${namespace}.${name}`
   const { active, text } = useTimer({ path, value })
-  // States
-  const [props, setProps] = useState({})
-  // Refs
-  const $ref = useRef(null)
-
-  useEffect(() => {
-    const { className, onComplete: _, onEnter: __, onExit: ___, ..._properties } = properties
-
-    setProps({
-      ..._properties,
-      className: cN('timer', className),
-      fallback: undefined,
-      value: undefined,
-    })
-  }, [properties])
 
   useEffect(() => {
     if (active && onEnter) onEnter()
@@ -42,10 +28,8 @@ export const Timer = (properties) => {
   }, [active])
 
   return (
-    <CSSTransition addEndListener={(next) => $ref.current.addEventListener('transitionend', next)} appear in={active} nodeRef={$ref}>
-      <time ref={$ref} {...props}>
-        {fallback || text}
-      </time>
-    </CSSTransition>
+    <Transition {...properties} className={cN('timer', className)} update={['inactive', 'active']} trigger={active}>
+      <StyledTimer>{text || fallback}</StyledTimer>
+    </Transition>
   )
 }
