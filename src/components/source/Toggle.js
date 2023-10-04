@@ -10,17 +10,22 @@ import { Toggle as StyledToggle } from 'components/global/styled/source'
 // ...
 
 const namespace = 'toggles'
+const defaults = {
+  transition: {
+    update: ['active', 'inactive'],
+  },
+}
 
 export const Toggle = (properties) => {
   // Properties
   const { children, className, name } = properties
-  const { $animation } = properties
+  const { transition = {} } = properties
   // Redux
   const val = useStudio(`${namespace}.${name}`) || false
 
   return (
-    <Transition {...properties} className={cN('toggle', className)} trigger={val}>
-      <StyledToggle $animation={$animation}>{children}</StyledToggle>
+    <Transition {...properties} className={cN('toggle', className)} update={transition?.update || defaults.transition.update} trigger={val}>
+      <StyledToggle $animation={transition?.animation}>{children}</StyledToggle>
     </Transition>
   )
 }

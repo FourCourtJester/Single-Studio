@@ -11,7 +11,8 @@ const StyledVariable = styled.var`
 
   ${(props) => {
     switch (props?.$animation) {
-      case 'custom': {
+      case 'custom':
+      case 'cut': {
         break
       }
 

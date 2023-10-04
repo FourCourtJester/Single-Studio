@@ -11,7 +11,8 @@ const StyledToggle = styled.div`
 
   ${(props) => {
     switch (props?.$animation) {
-      case 'custom': {
+      case 'custom':
+      case 'cut': {
         break
       }
 

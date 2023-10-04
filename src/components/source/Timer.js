@@ -11,10 +11,16 @@ import { useTimer } from '../studio/hooks'
 // ...
 
 const namespace = 'timers'
+const defaults = {
+  transition: {
+    update: ['active', 'inactive'],
+  },
+}
 
 export const Timer = (properties) => {
   // Properties
   const { className, fallback, name, onComplete, onEnter, onExit, value } = properties
+  const { transition = {} } = properties
   // Hooks
   const path = `${namespace}.${name}`
   const { active, text } = useTimer({ path, value })
@@ -28,7 +34,7 @@ export const Timer = (properties) => {
   }, [active])
 
   return (
-    <Transition {...properties} className={cN('timer', className)} update={['inactive', 'active']} trigger={active}>
+    <Transition {...properties} className={cN('timer', className)} update={transition?.update || defaults.transition.update} trigger={active}>
       <StyledTimer>{text || fallback}</StyledTimer>
     </Transition>
   )

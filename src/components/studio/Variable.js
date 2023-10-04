@@ -4,7 +4,7 @@ import { FloatingLabel, Form } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
-import { useNamespace, useStudio } from 'hooks'
+import { useStudio } from 'hooks'
 
 // Import style
 // ...

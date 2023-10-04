@@ -12,7 +12,8 @@ const StyledImage = styled(Image)`
 
   ${(props) => {
     switch (props?.$animation) {
-      case 'custom': {
+      case 'custom':
+      case 'cut': {
         break
       }
 
