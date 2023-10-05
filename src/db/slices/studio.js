@@ -54,28 +54,6 @@ export const studio = createSlice({
   initialState: getState(),
   reducers: {
     clear: () => initialState,
-    reset: (state, { payload: paths }) => {
-      // Attempt to reset each path
-      paths.forEach((path) => {
-        const val = Utils.getObjValue(state, path)
-        const obj = typeof val === 'object' ? { ...val } : {}
-
-        if (Object.keys(obj).length) {
-          // If the path is an object with children
-          // Reset each child instead
-          Utils.getObjPaths(obj, (key) => {
-            Utils.setObjValue(state, `${path}.${key}`, null)
-          })
-
-          Storage.removeObj([name, path], obj)
-        } else {
-          // The path is a simple type, just reset it
-          Utils.setObjValue(state, path, null)
-
-          Storage.remove([name, path])
-        }
-      })
-    },
     remove: (state, { payload: paths }) => _remove(state, paths),
     swap: (state, { payload: fields }) => {
       const mid = Math.ceil(fields.length / 2)
@@ -101,7 +79,6 @@ export const studio = createSlice({
 export const {
   clear: clearStudio,
   remove: removeStudio,
-  reset: resetStudio,
   swap: swapStudio,
   update: updateStudio,
   updateLocal: updateStudioLocal,

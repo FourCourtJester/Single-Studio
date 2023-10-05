@@ -4,7 +4,7 @@ import { Button } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'
-import { resetStudio } from 'db/slices/studio'
+import { removeStudio } from 'db/slices/studio'
 import { useNamespace } from 'hooks'
 
 // Import style
@@ -15,12 +15,12 @@ export const Reset = (properties) => {
   const { label, fields, placement = 'top' } = properties
   // Hooks
   const dispatch = useDispatch()
-  const path = useNamespace()
+  const namespace = useNamespace()
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    dispatch(resetStudio(fields.map((field) => `${[path]}.${field}`)))
+    dispatch(removeStudio(fields.map((field) => `${[namespace]}.${field}`)))
   }
 
   return (

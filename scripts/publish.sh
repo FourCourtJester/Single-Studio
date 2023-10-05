@@ -46,7 +46,7 @@ for subfolder in "$source_folder"/*; do
     fi
 
     # Copy the "public" folder and its contents to the destination
-    cp -r "$subfolder/$public_folder_name"/* "$dest_folder/"
+    cp -r "$subfolder/$public_folder_name"/* "$dest_folder/" 2>/dev/null
 
     if [ $? -eq 0 ]; then
       echo -e "Copied $YELLOW$subfolder/$public_folder_name$NC to $YELLOW$dest_folder$NC."
@@ -55,7 +55,7 @@ for subfolder in "$source_folder"/*; do
     fi
 
     # Copy the studio folder to the temp destination
-    cp -r "$subfolder/$public_folder_name" "$temp_source_folder/$subfolder_name"
+    cp -r "$subfolder/$public_folder_name" "$temp_source_folder/$subfolder_name" 2>/dev/null
 
     if [ ! $? -eq 0 ]; then
       echo -e "${RED}Error copying $subfolder/$public_folder_name to $temp_source_folder/$subfolder_name.$NC"
@@ -99,7 +99,7 @@ for subfolder in "$temp_source_folder"/*; do
     fi
 
     # Copy the "public" folder and its contents to the destination
-    cp -r "$subfolder"/* "$dest_folder/"
+    cp -r "$subfolder"/* "$dest_folder/" 2>/dev/null
 
     if [ $? -eq 0 ]; then
       echo -e "Copied $GREEN$subfolder/$public_folder_name$NC back to $GREEN$dest_folder$NC."
