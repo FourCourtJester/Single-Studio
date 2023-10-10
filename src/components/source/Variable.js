@@ -5,6 +5,7 @@ import cN from 'classnames'
 import { useStudio } from 'hooks'
 import { Transition } from 'components/global'
 import { Variable as StyledVariable } from 'components/global/styled/source'
+import { Fit } from 'components/source/components'
 
 // Import style
 // ...
@@ -18,7 +19,7 @@ const defaults = {
 
 export const Variable = (properties) => {
   // Properties
-  const { className, fallback, name } = properties
+  const { className, fallback, fit, name } = properties
   const { transition = {} } = properties
   // Redux
   const _val = useStudio(`${namespace}.${name}`)
@@ -26,7 +27,13 @@ export const Variable = (properties) => {
 
   return (
     <Transition {...properties} className={cN('variable', className)} update={transition?.update || defaults.transition.update} trigger={val}>
-      <StyledVariable $animation={transition?.animation}>{val}</StyledVariable>
+      {fit ? (
+        <Fit>
+          <StyledVariable $animation={transition?.animation}>{val}</StyledVariable>
+        </Fit>
+      ) : (
+        <StyledVariable $animation={transition?.animation}>{val}</StyledVariable>
+      )}
     </Transition>
   )
 }

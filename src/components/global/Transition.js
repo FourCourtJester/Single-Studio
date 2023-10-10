@@ -1,5 +1,5 @@
 // Import core components
-import React, { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react'
+import { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react'
 import cN from 'classnames'
 
 // Import our components
@@ -16,9 +16,9 @@ function _filterProps(props) {
   }, {})
 }
 
-function _getCSSTransitionDuration($ele) {
-  if (!$ele) return 1
-  return parseFloat(window.getComputedStyle($ele).transitionDuration) * 1000
+function _getCSSTransitionDuration($element) {
+  if (!$element) return 1
+  return parseFloat(window.getComputedStyle($element).transitionDuration) * 1000
 }
 
 const failStates = [false, null, undefined]
