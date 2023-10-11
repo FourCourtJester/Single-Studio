@@ -1,6 +1,6 @@
 // Import core components
 import { forwardRef } from 'react'
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 
 // Import our components
 // ...
@@ -17,7 +17,7 @@ const StyledVariable = styled.var`
       }
 
       default: {
-        return `
+        return css`
           transition: opacity ease 0.5s;
           opacity: 1;
 

@@ -42,8 +42,6 @@ export const Fit = forwardRef((properties, $forwardRef) => {
     // Reset the font size
     $element.style.fontSize = null
 
-    console.log($element, $parent)
-
     // Success case
     if ($element.offsetWidth <= parentWidth) {
       // console.timeEnd('resizing')

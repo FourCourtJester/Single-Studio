@@ -13,7 +13,7 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { align, as: type = 'text', label, name, placeholder, ...otherProps } = properties
+  const { align, as: type = 'text', label, name, placeholder, rows, ...otherProps } = properties
   // Redux
   const val = useStudio(`${namespace}.${name}`) || null
   // States
@@ -31,8 +31,9 @@ export const Variable = (properties) => {
       name: `${namespace}.${name}`,
       placeholder: placeholder || label,
       [type === 'textarea' ? 'as' : 'type']: type,
+      rows,
     })
-  }, [label, name, placeholder, type, val])
+  }, [label, name, placeholder, type, rows, val])
 
   return (
     <FloatingLabel label={label} controlId={name} {...otherProps}>

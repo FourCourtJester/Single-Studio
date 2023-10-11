@@ -1,15 +1,13 @@
 // Import core components
 import { forwardRef } from 'react'
 import { Image } from 'react-bootstrap'
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 
 // Import our components
 // ...
 
 // Styled Image
 const StyledImage = styled(Image)`
-  font-style: normal;
-
   ${(props) => {
     switch (props?.$animation) {
       case 'custom':
@@ -18,7 +16,7 @@ const StyledImage = styled(Image)`
       }
 
       default: {
-        return `
+        return css`
           transition: opacity ease 0.5s;
           opacity: 1;
 

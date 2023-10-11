@@ -1,14 +1,12 @@
 // Import core components
 import { forwardRef } from 'react'
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 
 // Import our components
 // ...
 
 // Styled Toggle
 const StyledToggle = styled.div`
-  font-style: normal;
-
   ${(props) => {
     switch (props?.$animation) {
       case 'custom':
@@ -17,7 +15,7 @@ const StyledToggle = styled.div`
       }
 
       default: {
-        return `
+        return css`
           transition: opacity ease 0.5s;
           opacity: 1;
 

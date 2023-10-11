@@ -32,6 +32,10 @@ body,
     }
   }
 
+  textarea {
+    height: auto;
+  }
+
   .cycle {
     max-height: bs.$form-floating-height;
   }

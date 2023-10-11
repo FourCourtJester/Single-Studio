@@ -1,5 +1,5 @@
 // Import core components
-import { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react'
+import { Children, cloneElement, forwardRef, isValidElement, useEffect, useRef, useState } from 'react'
 import cN from 'classnames'
 
 // Import our components
@@ -60,7 +60,7 @@ const states = {
   },
 }
 
-const Transition = (properties) => {
+const Transition = forwardRef((properties, $forwardRef) => {
   // Properties
   const { children, trigger, update = ['inactive'] } = properties
   // States
@@ -69,7 +69,8 @@ const Transition = (properties) => {
   const [props, setProps] = useState({})
   const [state, setState] = useState(states.inactive)
   // Refs
-  const $ref = useRef(null)
+  const $localRef = useRef(null)
+  const $ref = $forwardRef || $localRef
 
   useEffect(() => {
     const _props = _filterProps(properties)
@@ -113,6 +114,8 @@ const Transition = (properties) => {
           ...props,
         })
   )
-}
+})
 
 export { Transition }
+
+Transition.displayName = 'Transition'
