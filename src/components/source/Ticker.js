@@ -3,14 +3,13 @@ import cN from 'classnames'
 
 // Import our components
 import { useStudio } from 'hooks'
-import { Transition } from 'components/global'
 import { Ticker as StyledTicker } from 'components/global/styled/source'
 import { useEffect, useRef, useState } from 'react'
 
 // Import style
 // ...
 
-const namespace = 'variables'
+const states = ['inactive', 'active']
 const defaults = {
   transition: {
     name: undefined,
@@ -20,56 +19,64 @@ const defaults = {
 
 export const Ticker = (properties) => {
   // Properties
-  const { className, fallback, name, speed = 50 } = properties
+  const { className, fallback, name, speed = 50, toggle } = properties
   const { transition = {} } = properties
   // Redux
-  const val = useStudio(`${namespace}.${name}`) || fallback || ''
+  const val = useStudio(`variables.${name}`) || fallback || ''
+  const show = useStudio(`toggles.${toggle}`)
   // States
+  // eslint-disable-next-line react/jsx-no-useless-fragment
+  const [content, setContent] = useState(<></>)
   const [duration, setDuration] = useState(0)
   const [isActive, setActive] = useState(false)
   const [translateStart, setStart] = useState(1920)
   // Refs
   const $ref = useRef(null)
 
-  const handleUpdate = () => setActive(false)
+  const handleIteration = () => {
+    setActive(false)
+    setTimeout(() => setActive(true), 500)
+  }
 
   useEffect(() => {
     if (!$ref.current) return () => {}
-    if (isActive) return () => {}
 
-    const { clientWidth } = $ref.current
+    const { offsetWidth } = $ref.current
     const scrollWidth = [...$ref.current.children].reduce((width, child) => width + child.clientWidth, 0)
 
-    console.log(scrollWidth)
-
     setDuration(scrollWidth / speed)
-    setStart(clientWidth)
-    setActive(true)
-  }, [$ref, isActive, speed, val])
+    setStart(offsetWidth)
+  }, [$ref, content, speed])
+
+  useEffect(() => {
+    if (isActive) return () => {}
+
+    setContent(val.trim())
+  }, [isActive, val])
 
   useEffect(() => {
     setActive(true)
-  }, [])
+  }, [content])
+
+  useEffect(() => {
+    if (show === undefined) return () => {}
+    setActive(show)
+  }, [show])
 
   return (
-    <Transition
+    <div
       ref={$ref}
       {...properties}
-      className={cN('ticker', 'd-flex align-items-center text-nowrap overflow-hidden w-100 h-100', className)}
-      update={transition?.update || defaults.transition.update}
-      trigger={isActive}
+      className={cN('ticker', states[Number(isActive)], 'd-flex align-items-center text-nowrap overflow-hidden w-100 h-100', className)}
     >
-      <div>
-        <StyledTicker
-          $animation={transition?.animation || defaults.transition.name}
-          $translationStart={`${translateStart}px`}
-          style={{ animationDuration: `${duration}s` }}
-          onAnimationIteration={handleUpdate}
-          onAnimationEnd={handleUpdate}
-        >
-          {val}
-        </StyledTicker>
-      </div>
-    </Transition>
+      <StyledTicker
+        $animation={transition?.animation || defaults.transition.name}
+        $translationStart={`${translateStart}px`}
+        style={{ animationDuration: `${duration}s` }}
+        onAnimationIteration={handleIteration}
+      >
+        {content}
+      </StyledTicker>
+    </div>
   )
 }

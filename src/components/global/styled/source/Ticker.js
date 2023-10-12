@@ -29,7 +29,7 @@ const StyledTicker = styled.span`
 
           .ticker.inactive & {
             animation-name: none;
-            transform: translateX(${props.$translationStart});
+            transform: translateX(9999px);
           }
 
           .toggle.inactive & {

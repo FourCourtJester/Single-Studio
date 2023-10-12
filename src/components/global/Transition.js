@@ -1,5 +1,5 @@
 // Import core components
-import { Children, cloneElement, forwardRef, isValidElement, useEffect, useRef, useState } from 'react'
+import { Children, cloneElement, forwardRef, isValidElement, useEffect, useMemo, useRef, useState } from 'react'
 import cN from 'classnames'
 
 // Import our components
@@ -68,6 +68,18 @@ const Transition = forwardRef((properties, $forwardRef) => {
   const [content, setContent] = useState(<></>)
   const [props, setProps] = useState({})
   const [state, setState] = useState(states.inactive)
+  // Variables
+  const stateFns = useMemo(() => {
+    const { onEnter, onEntering, onActive, onExit, onExiting, onInactive } = properties
+    return {
+      enter: onEnter,
+      entering: onEntering,
+      active: onActive,
+      exit: onExit,
+      exiting: onExiting,
+      inactive: onInactive,
+    }
+  }, [properties])
   // Refs
   const $localRef = useRef(null)
   const $ref = $forwardRef || $localRef
@@ -85,6 +97,8 @@ const Transition = forwardRef((properties, $forwardRef) => {
     const duration = _getCSSTransitionDuration($ref.current) || 1
     let t
 
+    if (stateFns[state.class]) stateFns[state.class]()
+
     if (update.includes(state.class) && failStates.includes(trigger)) return () => clearTimeout(t)
 
     if (state.flow && state?.immediate) {
@@ -96,10 +110,11 @@ const Transition = forwardRef((properties, $forwardRef) => {
     }
 
     return () => clearTimeout(t)
-  }, [state, trigger, update])
+  }, [$ref, state, stateFns, trigger, update])
 
   useEffect(() => {
-    if (update.includes(state.class)) setContent(children)
+    if (!update.includes(state.class)) return () => {}
+    setContent(children)
   }, [children, state, update])
 
   useEffect(() => {
