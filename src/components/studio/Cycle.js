@@ -15,7 +15,7 @@ const defaultChoice = 'None'
 
 export const Cycle = (properties) => {
   // Properties
-  const { choices: _choices, image, name, variant } = properties
+  const { choices: _choices, image, name, variant = 'outline-obs' } = properties
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace(namespace, name)
@@ -46,7 +46,7 @@ export const Cycle = (properties) => {
   }, [choice, image])
 
   return (
-    <Button className="cycle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant || 'outline-obs'} onClick={handleClick}>
+    <Button className="cycle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant} onClick={handleClick}>
       {isImage ? <Image className="mw-100 mh-100" onError={handleError} src={`${publik}/${image.replace(/:choice:/, choice)}`} /> : choice}
     </Button>
   )

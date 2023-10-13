@@ -28,7 +28,7 @@ const nput = '_input'
 
 export const Countdown = (properties) => {
   // Properties
-  const { as = 'datetime-local', label, name, placeholder } = properties
+  const { as = 'datetime-local', label = 'Countdown', name, placeholder } = properties
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace(namespace, name)

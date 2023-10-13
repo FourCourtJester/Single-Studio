@@ -13,7 +13,7 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { align, as: type = 'text', label, name, placeholder, rows, ...otherProps } = properties
+  const { align, as: type = 'text', label = 'Variable', name, placeholder, rows, ...otherProps } = properties
   // Redux
   const val = useStudio(`${namespace}.${name}`) || null
   // States

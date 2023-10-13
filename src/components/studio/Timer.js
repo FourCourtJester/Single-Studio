@@ -19,7 +19,7 @@ const nput = '_input'
 
 export const Timer = (properties) => {
   // Properties
-  const { label, name, placeholder } = properties
+  const { label = 'Timer', name, placeholder } = properties
   // Hooks
   const dispatch = useDispatch()
   const path = useNamespace(namespace, name)

@@ -12,7 +12,7 @@ const namespace = 'variables'
 
 export const Select = (properties) => {
   // Properties
-  const { children, label, name } = properties
+  const { children, label = 'Select', name } = properties
   // Redux
   const val = useStudio(`${namespace}.${name}`) || ''
   // States

@@ -17,7 +17,7 @@ const verbs = ['Show', 'Hide']
 
 export const Toggle = (properties) => {
   // Properties
-  const { icon, image, group, label, name, variant, value } = properties
+  const { icon, image, group, label = 'Toggle', name, variant, value } = properties
   const namespace = value ? variableNamespace : toggleNamespace
   // Hooks
   const dispatch = useDispatch()

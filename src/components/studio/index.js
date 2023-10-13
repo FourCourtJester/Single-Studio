@@ -2,6 +2,7 @@ export { Reset as ResetButton, Swap as SwapButton } from './buttons'
 
 export { Countdown } from './Countdown'
 export { Cycle } from './Cycle'
+export { Leaderboard } from './Leaderboard'
 export { Select } from './Select'
 export { Timer } from './Timer'
 export { Toggle } from './Toggle'
