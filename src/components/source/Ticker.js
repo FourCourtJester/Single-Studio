@@ -19,7 +19,7 @@ const defaults = {
 
 export const Ticker = (properties) => {
   // Properties
-  const { className, fallback, name, speed = 50, toggle } = properties
+  const { className, fallback, name, speed = 100, toggle } = properties
   const { transition = {} } = properties
   // Redux
   const val = useStudio(`variables.${name}`) || fallback || ''
@@ -44,7 +44,7 @@ export const Ticker = (properties) => {
     const { offsetWidth } = $ref.current
     const scrollWidth = [...$ref.current.children].reduce((width, child) => width + child.clientWidth, 0)
 
-    setDuration(scrollWidth / speed)
+    setDuration((offsetWidth + scrollWidth) / speed)
     setStart(offsetWidth)
   }, [$ref, content, speed])
 
@@ -55,13 +55,8 @@ export const Ticker = (properties) => {
   }, [isActive, val])
 
   useEffect(() => {
-    setActive(true)
-  }, [content])
-
-  useEffect(() => {
-    if (show === undefined) return () => {}
-    setActive(show)
-  }, [show])
+    setActive(show !== undefined ? show : content && content.length > 0)
+  }, [content, show])
 
   return (
     <div

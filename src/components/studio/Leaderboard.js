@@ -18,7 +18,7 @@ const defaults = {
 
 export const Leaderboard = (properties) => {
   // Properties
-  const { delimiter = '\t', fields, label = 'Leaderboard', name, ...props } = properties
+  const { delimiter = '\t', fields, label = 'Leaderboard', name } = properties
   // Redux
   const val = useStudio(`${namespace}.${name}`) || null
   // States
