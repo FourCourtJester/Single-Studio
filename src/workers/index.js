@@ -1,2 +1,3 @@
-export { default as OBSInterface } from './obs/interface'
-export { default as GoogleInterface } from './google/interface'
+export { default as OBS } from './obs/singleton'
+export { default as Google } from './google/singleton'
+export { default as RocketLeague } from './rocket-league/singleton'
