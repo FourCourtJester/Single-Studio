@@ -38,11 +38,12 @@ self.onconnect = (conections) => {
     ws.addEventListener('message', async (response) => {
       try {
         const data = JSON.parse(response.data)
-        const listeners = Utils.getObjValue(status.listeners, data.event) || {}
 
         console.log(data.event, data.data)
 
-        Object.values(listeners).forEach((f) => f({ event: data.event, data: data.data }))
+        if (!status.listeners[data.event]) return false
+
+        emit(null, data.event, { event: data.event, data: data.data })
       } catch (err) {
         console.error(err)
       }
@@ -61,26 +62,23 @@ self.onconnect = (conections) => {
     })
   }
 
-  port.addEventListener('message', ({ data: request }) => {
-    const { id, data, name, event } = request
-
-    // console.log(request)
-
-    switch (event) {
+  port.addEventListener('message', ({ data: { data, event, method } }) => {
+    switch (method) {
       case 'connect': {
         status.parameters = data
-
         if (!status.connecting && !status.connected) connect()
         break
       }
 
       case 'on': {
-        Utils.setObjValue(status.listeners, `${name}.${id}`, emit.bind(this, id, name))
+        if (status.listeners[event] === undefined) status.listeners[event] = 0
+
+        status.listeners[event] += 1
         break
       }
 
       case 'off': {
-        delete status.listeners[name][id]
+        status.listeners[event] -= 1
         break
       }
 

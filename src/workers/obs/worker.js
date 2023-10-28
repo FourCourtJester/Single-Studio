@@ -63,40 +63,37 @@ self.onconnect = (connections) => {
   //   port.postMessage({ event: 'connected', data: status.connected })
   // })
 
-  port.addEventListener('message', ({ data: request }) => {
-    const { id, data, name, event } = request
-
-    console.log(request)
-
-    switch (event) {
+  port.addEventListener('message', ({ data: { data, event, id, method } }) => {
+    switch (method) {
       case 'callBatch': {
-        if (status.connected) obs?.[event](data).then((response) => emit(id, 'batch', response))
-        else emit(id, event, { code: 0, error: 'OBS Studio is not connected' })
+        if (status.connected) obs?.[method](data).then((response) => emit(id, 'batch', response))
+        else emit(id, method, { code: 0, error: 'OBS Studio is not connected' })
         break
       }
 
       case 'connect': {
         status.parameters = data
-
         if (!status.connecting && !status.connected) connect()
         break
       }
 
       case 'on': {
-        status.listeners[id] = emit.bind(this, id, name)
-        obs.on(name, status.listeners[id])
+        if (status.listeners[event] === undefined) status.listeners[event] = 0
+        if (!status.listeners[event]) obs.on(event, emit.bind(this, null, event))
+
+        status.listeners[event] += 1
         break
       }
 
       case 'off': {
-        obs.off(name, status.listeners[id])
-        delete status.listeners[id]
+        status.listeners[event] -= 1
+        if (!status.listeners[event]) obs.off(event)
         break
       }
 
       default: {
-        if (status.connected) obs?.[event](...Object.values(data)).then((response) => emit(id, data.request, response))
-        else emit(id, event, { code: 0, error: 'OBS Studio is not connected' })
+        if (status.connected) obs?.[method](...Object.values(data)).then((response) => emit(id, data.request, response))
+        else emit(id, method, { code: 0, error: 'OBS Studio is not connected' })
         break
       }
     }

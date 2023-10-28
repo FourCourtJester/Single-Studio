@@ -17,5 +17,6 @@ export const useRocketLeague = () => {
     })
   })
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => rocketLeague, [])
 }

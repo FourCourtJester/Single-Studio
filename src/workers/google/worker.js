@@ -39,7 +39,7 @@ function _fetch(url) {
 }
 
 const GOOGLE_API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/:id/values/:range?key=:key&majorDimension=:group&valueRenderOption=:format'
-const fetches = {}
+const intervals = {}
 const listeners = {}
 
 // Port constructor
@@ -49,20 +49,17 @@ self.onconnect = (connections) => {
   // Port Emit
   const emit = (id, event, response) => port.postMessage({ id, event, response })
 
-  port.addEventListener('message', ({ data: request }) => {
-    const { id, data, name, event } = request
-
-    console.log(request)
-
-    switch (event) {
+  port.addEventListener('message', ({ data: { data, event, method } }) => {
+    switch (method) {
       case 'on': {
-        Utils.setObjValue(listeners, `${name}.${id}`, emit.bind(this, id, name))
+        if (listeners[event] === undefined) listeners[event] = 0
+
+        listeners[event] += 1
         break
       }
 
       case 'off': {
-        const listener = Utils.getObjValue(listeners, name)
-        delete listener[id]
+        listeners[event] -= 1
         break
       }
 
@@ -74,20 +71,16 @@ self.onconnect = (connections) => {
           .replace(':group', query.majorDimension)
           .replace(':format', query.valueRenderOption)
 
-        const existing = Utils.getObjValue(fetches, url)
-
-        if (existing) {
-          clearInterval(existing)
-        }
+        clearInterval(Utils.getObjValue(intervals, url))
 
         Utils.setObjValue(
-          fetches,
+          intervals,
           url,
           setInterval(() => {
             _fetch(url).then((response) => {
-              const _listeners = Object.values(Utils.getObjValue(listeners, data.name) || {})
+              if (!listeners[data.name]) return false
 
-              _listeners.forEach((cb) => cb(response))
+              emit(null, data.name, response)
             })
           }, t)
         )

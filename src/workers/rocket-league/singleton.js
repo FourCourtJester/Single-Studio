@@ -1,14 +1,13 @@
 // Import core components
+import { Promise } from 'bluebird'
 import { nanoid } from 'nanoid'
 
 class Singleton {
   static #instance
 
-  static #worker = new SharedWorker(new URL('./worker.js', import.meta.url), { name: 'rl.js' } /* webpackChunkName: 'rl-shared-worker.js' */)
+  static #worker = new SharedWorker(new URL('./worker.js', import.meta.url), { name: 'obs.js' } /* webpackChunkName: 'obs-shared-worker.js' */)
 
   #listeners = {}
-
-  #requests = {}
 
   constructor() {
     // eslint-disable-next-line no-constructor-return
@@ -18,57 +17,43 @@ class Singleton {
     Singleton.#worker.port.start()
 
     // Add the message handler
-    // Singleton.#worker.port.addEventListener('message', (response) => console.log(response))
+    Singleton.#worker.port.addEventListener('message', this.#onMessage.bind(this))
 
     Singleton.#instance = this
   }
 
+  #onMessage({ data: { event, response } }) {
+    if (!this.#listeners[event]) return false
+
+    Promise.map(Object.values(this.#listeners[event]), (f) => f(response))
+  }
+
   // eslint-disable-next-line class-methods-use-this
-  #onEvent(id, f, { data: { id: responseID, response } }) {
-    return id !== responseID ? false : f(response)
-  }
-
-  #onRequest(request) {
-    const id = nanoid(4)
-
-    return new Promise((resolve, _) => {
-      this.#requests[id] = this.#onResponse.bind(this, id, resolve)
-
-      Singleton.#worker.port.addEventListener('message', this.#requests[id])
-      Singleton.#worker.port.postMessage({ id, ...request })
-    })
-  }
-
-  #onResponse(id, resolve, { data: { id: responseID, response } }) {
-    if (id !== responseID) return false
-
-    Singleton.#worker.port.removeEventListener('message', this.#requests[id])
-    delete this.#requests[id]
-
-    resolve(response)
-  }
-
   connect(data) {
-    const request = { event: 'connect', data }
-    return this.#onRequest(request).catch((err) => console.error(err))
+    Singleton.#worker.port.postMessage({ method: 'connect', data })
   }
 
   on(event, f) {
     const id = nanoid(4)
 
-    this.#listeners[id] = { event, f: this.#onEvent.bind(this, id, f) }
+    if (!this.#listeners[event]) this.#listeners[event] = {}
+    this.#listeners[event][id] = f
 
-    Singleton.#worker.port.addEventListener('message', this.#listeners[id].f)
-    Singleton.#worker.port.postMessage({ id, event: 'on', name: event })
+    Singleton.#worker.port.postMessage({ method: 'on', event })
 
     return id
   }
 
   off(...ids) {
     ids.forEach((id) => {
-      Singleton.#worker.port.removeEventListener('message', this.#listeners[id].f)
-      Singleton.#worker.port.postMessage({ id, event: 'off', name: this.#listeners[id].event })
-      delete this.#listeners[id]
+      Object.entries(this.#listeners).forEach(([eventKey, eventListeners]) => {
+        if (!eventListeners[id]) return true
+
+        Singleton.#worker.port.postMessage({ method: 'off', event: eventKey })
+        delete this.#listeners[eventKey][id]
+
+        return false
+      })
     })
   }
 }
