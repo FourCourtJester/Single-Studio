@@ -5,7 +5,10 @@ import { nanoid } from 'nanoid'
 class Singleton {
   static #instance
 
-  static #worker = new SharedWorker(new URL('./worker.js', import.meta.url), { name: 'obs.js' } /* webpackChunkName: 'obs-shared-worker.js' */)
+  static #worker = new SharedWorker(
+    new URL('./worker.js', import.meta.url),
+    { name: 'rocket-league.js' } /* webpackChunkName: 'rocket-league-shared-worker.js' */
+  )
 
   #listeners = {}
 

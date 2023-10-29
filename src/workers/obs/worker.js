@@ -10,9 +10,26 @@ const obs = new OBSWebSocket()
 const status = {
   connected: false,
   connecting: false,
+  reconnect: null,
+}
+const properties = {
   listeners: {},
   parameters: {},
-  reconnect: null,
+}
+
+// Initialization
+const connect = () => {
+  const { host, password } = properties.parameters
+  status.connecting = true
+
+  return obs.connect(host, password).then(() => {
+    console.log('Connection Successful')
+
+    status.connected = true
+    status.connecting = false
+
+    // emit(null, 'connected', response)
+  })
 }
 
 // Port constructor
@@ -21,21 +38,6 @@ self.onconnect = (connections) => {
 
   // Port Emit
   const emit = (id, event, response) => port.postMessage({ id, event, response })
-
-  // OBS Connect
-  const connect = () => {
-    const { host, password } = status.parameters
-    status.connecting = true
-
-    return obs.connect(host, password).then((response) => {
-      console.log('Connection Successful')
-
-      status.connected = true
-      status.connecting = false
-
-      // emit(null, 'connected', response)
-    })
-  }
 
   // OBS Connection Opened
   obs.on('ConnectionOpened', () => {
@@ -72,22 +74,22 @@ self.onconnect = (connections) => {
       }
 
       case 'connect': {
-        status.parameters = data
+        properties.parameters = data
         if (!status.connecting && !status.connected) connect()
         break
       }
 
       case 'on': {
-        if (status.listeners[event] === undefined) status.listeners[event] = 0
-        if (!status.listeners[event]) obs.on(event, emit.bind(this, null, event))
+        if (properties.listeners[event] === undefined) properties.listeners[event] = 0
+        if (!properties.listeners[event]) obs.on(event, emit.bind(this, null, event))
 
-        status.listeners[event] += 1
+        properties.listeners[event] += 1
         break
       }
 
       case 'off': {
-        status.listeners[event] -= 1
-        if (!status.listeners[event]) obs.off(event)
+        properties.listeners[event] -= 1
+        if (!properties.listeners[event]) obs.off(event)
         break
       }
 
