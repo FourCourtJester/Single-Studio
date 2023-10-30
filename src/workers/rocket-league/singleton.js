@@ -42,8 +42,6 @@ class Singleton {
     if (!this.#listeners[event]) this.#listeners[event] = {}
     this.#listeners[event][id] = f
 
-    Singleton.#worker.port.postMessage({ method: 'on', event })
-
     return id
   }
 
@@ -52,7 +50,6 @@ class Singleton {
       Object.entries(this.#listeners).forEach(([eventKey, eventListeners]) => {
         if (!eventListeners[id]) return true
 
-        Singleton.#worker.port.postMessage({ method: 'off', event: eventKey })
         delete this.#listeners[eventKey][id]
 
         return false

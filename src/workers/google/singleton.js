@@ -25,7 +25,7 @@ class Singleton {
   #onMessage({ data: { event, response } }) {
     if (!this.#listeners[event]) return false
 
-    Promise.map(Object.values(this.#listeners[event]), (f) => f(response))
+    return Promise.map(Object.values(this.#listeners[event]), (f) => f(response))
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -39,8 +39,6 @@ class Singleton {
     if (!this.#listeners[event]) this.#listeners[event] = {}
     this.#listeners[event][id] = f
 
-    Singleton.#worker.port.postMessage({ method: 'on', event })
-
     return id
   }
 
@@ -49,7 +47,6 @@ class Singleton {
       Object.entries(this.#listeners).forEach(([eventKey, eventListeners]) => {
         if (!eventListeners[id]) return true
 
-        Singleton.#worker.port.postMessage({ method: 'off', event: eventKey })
         delete this.#listeners[eventKey][id]
 
         return false

@@ -9,7 +9,6 @@ const status = {
   reconnect: null,
 }
 const properties = {
-  listeners: {},
   parameters: {},
   ports: [],
 }
@@ -35,8 +34,6 @@ function connect() {
 
       console.log(data.event, data.data)
 
-      if (!properties.listeners[data.event]) return false
-
       properties.ports.forEach((emit) => emit(null, data.event, { event: data.event, data: data.data }))
     } catch (err) {
       console.error(err)
@@ -61,30 +58,17 @@ self.onconnect = (msgEvent) => {
   const port = msgEvent.ports[0]
 
   // Port Emit
-  properties.ports.push((id, event, response) => port.postMessage({ id, event, response }))
+  const emit = (id, event, response) => port.postMessage({ id, event, response })
 
-  port.addEventListener('message', ({ data: { data, event, method } }) => {
+  properties.ports.push(emit)
+
+  port.addEventListener('message', ({ data: { data, method } }) => {
     switch (method) {
-      case 'connect': {
+      // 'connect' is currently the only method
+      default: {
         properties.parameters = data
 
         if (!status.connecting && !status.connected) connect()
-        break
-      }
-
-      case 'on': {
-        if (properties.listeners[event] === undefined) properties.listeners[event] = 0
-
-        properties.listeners[event] += 1
-        break
-      }
-
-      case 'off': {
-        properties.listeners[event] -= 1
-        break
-      }
-
-      default: {
         break
       }
     }

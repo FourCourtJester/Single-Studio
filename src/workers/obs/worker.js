@@ -81,15 +81,15 @@ self.onconnect = (connections) => {
 
       case 'on': {
         if (properties.listeners[event] === undefined) properties.listeners[event] = 0
-        if (!properties.listeners[event]) obs.on(event, emit.bind(this, null, event))
-
         properties.listeners[event] += 1
+
+        obs.on(event, emit.bind(this, null, event))
         break
       }
 
       case 'off': {
         properties.listeners[event] -= 1
-        if (!properties.listeners[event]) obs.off(event)
+        if (properties.listeners[event] <= 0) obs.off(event)
         break
       }
 

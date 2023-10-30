@@ -40,7 +40,6 @@ function _fetch(url) {
 
 const GOOGLE_API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/:id/values/:range?key=:key&majorDimension=:group&valueRenderOption=:format'
 const intervals = {}
-const listeners = {}
 
 // Port constructor
 self.onconnect = (connections) => {
@@ -49,20 +48,9 @@ self.onconnect = (connections) => {
   // Port Emit
   const emit = (id, event, response) => port.postMessage({ id, event, response })
 
-  port.addEventListener('message', ({ data: { data, event, method } }) => {
+  port.addEventListener('message', ({ data: { data, method } }) => {
     switch (method) {
-      case 'on': {
-        if (listeners[event] === undefined) listeners[event] = 0
-
-        listeners[event] += 1
-        break
-      }
-
-      case 'off': {
-        listeners[event] -= 1
-        break
-      }
-
+      // 'connect' is currently the only method
       default: {
         const { params, query, t } = data
         const url = GOOGLE_API_URL.replace(':id', params.id)
@@ -76,14 +64,10 @@ self.onconnect = (connections) => {
         Utils.setObjValue(
           intervals,
           url,
-          setInterval(() => {
-            _fetch(url).then((response) => {
-              if (!listeners[data.name]) return false
-
-              emit(null, data.name, response)
-            })
-          }, t)
+          setInterval(() => _fetch(url).then((response) => emit(null, data.name, response)), t)
         )
+
+        _fetch(url).then((response) => emit(null, data.name, response))
         break
       }
     }
