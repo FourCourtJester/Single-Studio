@@ -101,6 +101,6 @@ self.onconnect = (connections) => {
     }
   })
 
-  console.log('port started')
+  console.log('OBS port started')
   port.start()
 }

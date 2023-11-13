@@ -54,8 +54,8 @@ function connect() {
 }
 
 // Port constructor
-self.onconnect = (msgEvent) => {
-  const port = msgEvent.ports[0]
+self.onconnect = (connections) => {
+  const port = connections.ports[0]
 
   // Port Emit
   const emit = (id, event, response) => port.postMessage({ id, event, response })
@@ -75,5 +75,5 @@ self.onconnect = (msgEvent) => {
   })
 
   port.start()
-  console.log('Port started')
+  console.log('Rocket League Port started')
 }

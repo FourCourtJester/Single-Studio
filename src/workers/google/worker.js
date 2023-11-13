@@ -5,6 +5,11 @@
 import Papa from 'papaparse'
 import * as Utils from 'toolkits/utils'
 
+function _emit(...params) {
+  // eslint-disable-next-line no-use-before-define
+  properties.ports.forEach((emit) => emit(...params))
+}
+
 function _fetch(url) {
   return fetch(url)
     .then((response) => {
@@ -39,7 +44,10 @@ function _fetch(url) {
 }
 
 const GOOGLE_API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/:id/values/:range?key=:key&majorDimension=:group&valueRenderOption=:format'
-const intervals = {}
+const properties = {
+  intervals: {},
+  ports: [],
+}
 
 // Port constructor
 self.onconnect = (connections) => {
@@ -47,6 +55,8 @@ self.onconnect = (connections) => {
 
   // Port Emit
   const emit = (id, event, response) => port.postMessage({ id, event, response })
+
+  properties.ports.push(emit)
 
   port.addEventListener('message', ({ data: { data, method } }) => {
     switch (method) {
@@ -59,20 +69,20 @@ self.onconnect = (connections) => {
           .replace(':group', query.majorDimension)
           .replace(':format', query.valueRenderOption)
 
-        clearInterval(Utils.getObjValue(intervals, url))
+        clearInterval(Utils.getObjValue(properties.intervals, url))
 
         Utils.setObjValue(
-          intervals,
+          properties.intervals,
           url,
-          setInterval(() => _fetch(url).then((response) => emit(null, data.name, response)), t)
+          setInterval(() => _fetch(url).then((response) => _emit(null, data.name, response)), t)
         )
 
-        _fetch(url).then((response) => emit(null, data.name, response))
+        _fetch(url).then((response) => _emit(null, data.name, response))
         break
       }
     }
   })
 
-  console.log('port started')
+  console.log('Google port started')
   port.start()
 }
