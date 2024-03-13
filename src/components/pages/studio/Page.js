@@ -1,42 +1,39 @@
 // Import core components
 import { useCallback, useEffect, useRef } from 'react'
-import { useDispatch } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Container, NavbarBrand } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'
 import { Studio, Navbar } from 'components/global/styled'
-import { usePageTitle, useRedux } from 'hooks'
-import { updateStudio } from 'db/slices/studio'
+import { useEffectOnce, usePageTitle, useVelcro } from 'hooks'
 
 // Import style
 // ...
 
 export function Page(properties) {
   // Properties
-  const { children, name, redux } = properties
+  const { children, name } = properties
   // Hooks
   const params = useParams()
-  const dispatch = useDispatch()
   const navigate = useNavigate()
+  const velcro = useVelcro()
   // Refs
   const $btn = useRef(null)
   const $form = useRef(null)
 
-  usePageTitle(`${name}`, 'Studio')
-  useRedux(redux)
+  usePageTitle(name, 'Studio')
 
   const handleSubmit = useCallback(
     (e) => {
       e.preventDefault()
 
       const data = [...new URLSearchParams(new FormData($form.current))]
-      const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`${params.code}.${key}`]: val }), {})
+      const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [key]: val }), {})
 
-      dispatch(updateStudio(obj))
+      velcro.action('update', obj)
     },
-    [dispatch, params]
+    [velcro],
   )
 
   const handleSubmitKey = useCallback(
@@ -46,7 +43,7 @@ export function Page(properties) {
         handleSubmit(new SubmitEvent('submit', { submitter: $btn.current }))
       }
     },
-    [$btn, handleSubmit]
+    [$btn, handleSubmit],
   )
 
   const handleReturn = () => navigate(`/`)
@@ -55,6 +52,10 @@ export function Page(properties) {
     document.addEventListener('keydown', handleSubmitKey)
     return () => document.removeEventListener('keydown', handleSubmitKey)
   }, [handleSubmitKey])
+
+  useEffectOnce(() => {
+    velcro.connect(params.code)
+  })
 
   return (
     <>
@@ -76,7 +77,7 @@ export function Page(properties) {
         </Container>
       </Navbar>
       <Studio ref={$form} id="studio" className="w-100 h-100" onSubmit={handleSubmit}>
-        <Container className="py-2 h-100 overflow-x-hidden overflow-y-auto" fluid>
+        <Container className="py-2 h-100 scrollbar" fluid>
           {children}
         </Container>
       </Studio>

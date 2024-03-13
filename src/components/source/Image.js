@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import cN from 'classnames'
 
 // Import our components
-import { usePublic, useStudio } from 'hooks'
+import { usePublic, useVelcroValue } from 'hooks'
 import { Transition } from 'components/global'
 import { Image as StyledImage } from 'components/global/styled/source'
 import { slugify } from 'toolkits/utils'
@@ -20,8 +20,7 @@ export const Image = (properties) => {
   const { $animation } = properties
   // Hooks
   const publik = usePublic()
-  // Redux
-  const val = useStudio(`${namespace}.${name}`) || false
+  const val = useVelcroValue(`${namespace}.${name}`) || false
   // States
   const [modifiedSrc, setSrc] = useState(defaultSrc)
   const [active, setActive] = useState(false)

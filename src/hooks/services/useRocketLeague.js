@@ -3,20 +3,14 @@ import { useMemo } from 'react'
 
 // Import our components
 import { RocketLeague } from 'workers'
-import { useEffectOnce } from 'hooks'
+import { useEffectOnce } from 'hooks/useEffectOnce'
 
-export const useRocketLeague = () => {
-  // Variables
-  const rocketLeague = new RocketLeague()
+export const useRocketLeague = (props = {}) => {
+  const instance = RocketLeague.getInstance()
 
   useEffectOnce(() => {
-    const host = 'ws://localhost:49122'
-
-    rocketLeague.connect({
-      host,
-    })
+    instance.connect(props)
   })
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => rocketLeague, [])
+  return useMemo(() => instance, [instance])
 }

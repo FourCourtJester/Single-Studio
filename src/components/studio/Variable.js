@@ -4,7 +4,7 @@ import { FloatingLabel, Form } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
-import { useStudio } from 'hooks'
+import { useVelcroValue } from 'hooks'
 
 // Import style
 // ...
@@ -14,12 +14,12 @@ const namespace = 'variables'
 export const Variable = (properties) => {
   // Properties
   const { align, as: type = 'text', label = 'Variable', name, placeholder, rows, ...otherProps } = properties
-  // Redux
-  const val = useStudio(`${namespace}.${name}`) || null
+  // Hooks
+  const val = useVelcroValue(`${namespace}.${name}`) || null
   // States
   const [props, setProps] = useState({})
   // Refs
-  const $ref = useRef(null)
+  const $ref = useRef()
 
   useEffect(() => {
     $ref.current.value = val

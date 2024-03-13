@@ -3,11 +3,9 @@ import { useParams } from 'react-router-dom'
 
 // Import our components
 
-export const usePublic = () => {
+export const usePublic = (code = true) => {
   // Hooks
   const params = useParams()
-  // Variables
-  const publik = `${process.env.PUBLIC_URL}/${params.code}`
 
-  return publik
+  return code ? `${process.env.PUBLIC_URL}/${params.code}` : process.env.PUBLIC_URL
 }

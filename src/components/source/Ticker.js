@@ -2,7 +2,7 @@
 import cN from 'classnames'
 
 // Import our components
-import { useStudio } from 'hooks'
+import { useVelcroValue } from 'hooks'
 import { Ticker as StyledTicker } from 'components/global/styled/source'
 import { useEffect, useRef, useState } from 'react'
 
@@ -21,9 +21,9 @@ export const Ticker = (properties) => {
   // Properties
   const { className, fallback, name, speed = 100, toggle } = properties
   const { transition = {} } = properties
-  // Redux
-  const val = useStudio(`variables.${name}`) || fallback || ''
-  const show = useStudio(`toggles.${toggle}`)
+  // Hooks
+  const val = useVelcroValue(`variables.${name}`) || fallback || ''
+  const show = useVelcroValue(`toggles.${toggle}`)
   // States
   // eslint-disable-next-line react/jsx-no-useless-fragment
   const [content, setContent] = useState(<></>)

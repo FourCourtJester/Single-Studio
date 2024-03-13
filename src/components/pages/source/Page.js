@@ -5,16 +5,17 @@ import { Container } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
-import { useEffectOnce, useRedux } from 'hooks'
+import { useEffectOnce, useVelcro } from 'hooks'
 
 // Import style
 // ...
 
 export function Page(properties) {
   // Properties
-  const { children, redux } = properties
+  const { children } = properties
   // Hooks
   const params = useParams()
+  const velcro = useVelcro()
   // States
   const [theme, setTheme] = useState(false)
   // Variables
@@ -24,7 +25,9 @@ export function Page(properties) {
     if (mod === 'theme') setTheme(key)
   })
 
-  useRedux(redux)
+  useEffectOnce(() => {
+    velcro.connect(params.code)
+  })
 
   return (
     <Container id="source" className={cN(theme ? `theme-${theme}` : false, 'p-0')} fluid>

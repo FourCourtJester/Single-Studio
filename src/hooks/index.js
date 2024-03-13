@@ -1,10 +1,10 @@
-export { useEffectOnce } from './useEffectOnce'
 export { useGoogle } from './services/useGoogle'
-export { useNamespace } from './useNamespace'
 export { useOBS } from './services/useOBS'
+export { useRocketLeague } from './services/useRocketLeague'
+
+export { useEffectOnce } from './useEffectOnce'
 export { usePageTitle } from './usePageTitle'
 export { usePublic } from './usePublic'
-export { useRocketLeague } from './services/useRocketLeague'
-export { useSettings } from './useSettings'
-export { useRedux } from './useRedux'
-export { useStudio } from './useStudio'
+
+export { useVelcro } from './useVelcro'
+export { useVelcroValue } from './useVelcroValue'

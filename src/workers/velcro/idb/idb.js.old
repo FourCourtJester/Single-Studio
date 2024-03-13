@@ -1,0 +1,60 @@
+// Import core components
+import Promise from 'bluebird'
+
+// Import our components
+import IDBBase from './base'
+
+class IDB extends IDBBase {
+  #requests = []
+
+  #request(params) {
+    return new Promise((resolve, reject) => {
+      this.#requests.push({ resolve, reject, ...params })
+    }).catch((err) => console.error(err))
+  }
+
+  connect(studio = 'Unnamed') {
+    return super
+      .connect(studio)
+      .then(() =>
+        Promise.map(this.#requests, (request) => {
+          const { action, params, resolve, reject } = request
+
+          return Promise.resolve(true)
+            .then(() => super[action](params))
+            .then((results) => resolve(results))
+            .catch((err) => reject(err))
+        }).bind(this),
+      )
+      .then(() => {
+        this.#requests = []
+      })
+      .catch((err) => console.error(err))
+  }
+
+  get(path) {
+    return super.isConnected() ? super.get(path) : this.#request({ action: 'get', params: path })
+  }
+
+  increment(data) {
+    return super.isConnected() ? super.increment(data) : this.#request({ action: 'increment', params: data })
+  }
+
+  range(path) {
+    return super.isConnected() ? super.range(path) : this.#request({ action: 'range', params: path })
+  }
+
+  remove(keys) {
+    return super.isConnected() ? super.remove(keys) : this.#request({ action: 'remove', params: keys })
+  }
+
+  swap(keys) {
+    return super.isConnected() ? super.swap(keys) : this.#request({ action: 'swap', params: keys })
+  }
+
+  update(data) {
+    return super.isConnected() ? super.update(data) : this.#request({ action: 'update', params: data })
+  }
+}
+
+export default IDB

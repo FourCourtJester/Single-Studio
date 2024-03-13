@@ -1,11 +1,9 @@
 // Import core components
 import { useEffect, useMemo, useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 
 // Import our components
-import { useNamespace, usePublic, useStudio } from 'hooks'
-import { updateStudio } from 'db/slices/studio'
+import { usePublic, useVelcro, useVelcroValue } from 'hooks'
 
 // Import style
 // ...
@@ -15,13 +13,12 @@ const defaultChoice = 'None'
 
 export const Cycle = (properties) => {
   // Properties
-  const { choices: _choices, image, name, variant = 'outline-obs' } = properties
+  const { choices: _choices, image, label, name, variant = 'obs' } = properties
   // Hooks
-  const dispatch = useDispatch()
-  const path = useNamespace(namespace, name)
+  const path = `${namespace}.${name}`
   const publik = usePublic()
-  // Redux
-  const val = useStudio(`${namespace}.${name}`) || defaultChoice
+  const velcro = useVelcro()
+  const val = useVelcroValue(path) || defaultChoice
   // States
   const [isImage, setIsImage] = useState(image !== undefined)
   // Variables
@@ -33,7 +30,7 @@ export const Cycle = (properties) => {
 
     const next = choices.findIndex((c) => c === val) + 1
 
-    dispatch(updateStudio({ [path]: choices[next] }))
+    velcro.action('update', { [path]: choices[next] === defaultChoice ? undefined : choices[next] })
   }
 
   const handleError = (e) => {
@@ -47,7 +44,7 @@ export const Cycle = (properties) => {
 
   return (
     <Button className="cycle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100" variant={variant} onClick={handleClick}>
-      {isImage ? <Image className="mw-100 mh-100" onError={handleError} src={`${publik}/${image.replace(/:choice:/, choice)}`} /> : choice}
+      {isImage ? <Image className="mw-100 mh-100" onError={handleError} src={`${publik}/${image.replace(/:choice:/, choice)}`} /> : label}
     </Button>
   )
 }

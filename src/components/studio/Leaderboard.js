@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import { Button, Col, FloatingLabel, Form, Row } from 'react-bootstrap'
 
 // Import our components
-import { useStudio } from 'hooks'
+import { useVelcroValue } from 'hooks'
 import { Variable } from 'components/studio'
-import * as Utils from 'toolkits/utils'
 import { ToolTip } from 'components/global'
+import * as Utils from 'toolkits/utils'
 
 // Import style
 // ...
@@ -19,8 +19,8 @@ const defaults = {
 export const Leaderboard = (properties) => {
   // Properties
   const { delimiter = '\t', fields, label = 'Leaderboard', name } = properties
-  // Redux
-  const val = useStudio(`${namespace}.${name}`) || null
+  // Hooks
+  const val = useVelcroValue(`${namespace}.${name}`) || null
   // States
   const [isText, setView] = useState(true)
   const [entries, setEntries] = useState([])
@@ -47,7 +47,7 @@ export const Leaderboard = (properties) => {
         : val.split('\n').map((entry) => {
             const parts = entry.split(delimiter)
             return (fields || defaults.fields).reduce((obj, field, i) => ({ ...obj, [field]: parts[i] }), {})
-          })
+          }),
     )
   }, [delimiter, fields, val])
 
@@ -62,7 +62,7 @@ export const Leaderboard = (properties) => {
           <legend>{label}</legend>
         </Col>
         <Col xs="auto">
-          <ToolTip placement="left" tooltip={<>Swap leaderboard</>}>
+          <ToolTip placement="left" tooltip={<>Swap Leaderboard View</>}>
             <Button className="text-dark" variant="warning" onClick={handleView}>
               {isText ? <i className="fas fa-list" /> : <i className="fas fa-code" />}
             </Button>

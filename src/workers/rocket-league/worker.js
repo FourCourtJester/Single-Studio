@@ -2,78 +2,24 @@
 // To inspect: chrome://inspect/#workers
 // Rocket League Websocket API: https://gitlab.com/bakkesplugins/sos/sos-plugin/-/tree/master
 
-let ws
-const status = {
-  connected: false,
-  connecting: false,
-  reconnect: null,
-}
-const properties = {
-  parameters: {},
-  ports: [],
-}
+// Import core components
+// ...
 
-// Initialization
-function connect() {
-  // Connect
-  const { host } = properties.parameters
-  status.connecting = true
+// Import our components
+import RocketLeague from 'workers/rocket-league/src/rocket-league'
 
-  ws = new WebSocket(host)
-
-  ws.addEventListener('open', async () => {
-    console.log('Connection Successful')
-
-    status.connected = true
-    status.connecting = false
-  })
-
-  ws.addEventListener('message', async (response) => {
-    try {
-      const data = JSON.parse(response.data)
-
-      console.log(data.event, data.data)
-
-      properties.ports.forEach((emit) => emit(null, data.event, { event: data.event, data: data.data }))
-    } catch (err) {
-      console.error(err)
-    }
-  })
-
-  ws.addEventListener('close', async (msg) => {
-    console.log('Connection Closed', msg)
-
-    status.connected = false
-
-    clearTimeout(status.reconnect)
-
-    status.reconnect = setTimeout(() => connect(), 5 * 1000)
-  })
-
-  return true
-}
+const api = RocketLeague.getInstance()
 
 // Port constructor
 self.onconnect = (connections) => {
   const port = connections.ports[0]
 
-  // Port Emit
-  const emit = (id, event, response) => port.postMessage({ id, event, response })
+  // Initiate connection
+  port.onmessage = ({ data }) => {
+    api.connect(data)
+  }
 
-  properties.ports.push(emit)
-
-  port.addEventListener('message', ({ data: { data, method } }) => {
-    switch (method) {
-      // 'connect' is currently the only method
-      default: {
-        properties.parameters = data
-
-        if (!status.connecting && !status.connected) connect()
-        break
-      }
-    }
-  })
+  console.log('Rocket League port started')
 
   port.start()
-  console.log('Rocket League Port started')
 }

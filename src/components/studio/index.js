@@ -1,5 +1,6 @@
-export { Reset as ResetButton, Swap as SwapButton } from './buttons'
+export { Math as MathButton, Reset as ResetButton, Swap as SwapButton } from './buttons'
 
+export { Break } from './Break'
 export { Countdown } from './Countdown'
 export { Cycle } from './Cycle'
 export { Leaderboard } from './Leaderboard'

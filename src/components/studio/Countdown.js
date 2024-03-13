@@ -1,12 +1,10 @@
 // Import core components
 import { useEffect, useRef, useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { FloatingLabel, Form, InputGroup } from 'react-bootstrap'
 
 // Import our components
+import { useVelcro } from 'hooks'
 import { Button } from 'components/global/styled'
-import { useNamespace } from 'hooks'
-import { updateStudio } from 'db/slices/studio'
 import { clockDifference, dateDifference } from 'toolkits/time'
 import { useTimer } from './hooks'
 
@@ -29,10 +27,10 @@ const nput = '_input'
 export const Countdown = (properties) => {
   // Properties
   const { as = 'datetime-local', label = 'Countdown', name, placeholder } = properties
+  const path = `${namespace}.${name}`
   // Hooks
-  const dispatch = useDispatch()
-  const path = useNamespace(namespace, name)
-  const { active, input, text } = useTimer({ path: `${namespace}.${name}` })
+  const velcro = useVelcro()
+  const { active, input, text } = useTimer({ path })
   // States
   const [disabled, setDisable] = useState(false)
   // Variables
@@ -41,7 +39,7 @@ export const Countdown = (properties) => {
     input: `${path}.${nput}`,
   }
   // Refs
-  const $ref = useRef(null)
+  const $ref = useRef()
 
   const handleFocus = () => {
     $ref.current?.showPicker()
@@ -60,22 +58,18 @@ export const Countdown = (properties) => {
         // Ignore the past
         if (later < now) return true
 
-        dispatch(
-          updateStudio({
-            [paths.ts]: dateDifference(now, later),
-            [paths.input]: $ref.current.value,
-          })
-        )
+        velcro.action('update', {
+          [paths.ts]: dateDifference(now, later),
+          [paths.input]: $ref.current.value,
+        })
         break
       }
 
       case 'time': {
-        dispatch(
-          updateStudio({
-            [paths.ts]: clockDifference(now, $ref.current.value),
-            [paths.input]: $ref.current.value,
-          })
-        )
+        velcro.action('update', {
+          [paths.ts]: clockDifference(now, $ref.current.value),
+          [paths.input]: $ref.current.value,
+        })
         break
       }
 
@@ -86,7 +80,7 @@ export const Countdown = (properties) => {
     setDisable(true)
   }
 
-  const handleStop = () => dispatch(updateStudio({ [paths.ts]: null }))
+  const handleStop = () => velcro.action('update', { [path]: undefined })
 
   const handleKey = (e) => {
     if (e.which === 13) {

@@ -5,22 +5,12 @@ import { useMemo } from 'react'
 import { Google } from 'workers'
 import { useEffectOnce } from '../useEffectOnce'
 
-export const useGoogle = (props) => {
-  // Properties
-  const { id, name, range, t = 5000 } = props
-  const { majorDimension = 'ROWS', valueRenderOption = 'FORMATTED_VALUE' } = props
-  // Variables
-  const google = new Google()
+export const useGoogle = (props = {}) => {
+  const instance = Google.getInstance()
 
   useEffectOnce(() => {
-    google.connect({
-      name,
-      params: { id, range },
-      query: { majorDimension, valueRenderOption },
-      t,
-    })
+    instance.connect(props)
   })
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => google, [])
+  return useMemo(() => instance, [instance])
 }

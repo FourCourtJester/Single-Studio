@@ -1,3 +1,4 @@
-export { default as OBS } from './obs/singleton'
-export { default as Google } from './google/singleton'
-export { default as RocketLeague } from './rocket-league/singleton'
+export { OBS } from './obs'
+export { Google } from './google'
+export { RocketLeague } from './rocket-league'
+export { Velcro } from './velcro'

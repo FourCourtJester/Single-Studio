@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FloatingLabel, Form } from 'react-bootstrap'
 
 // Import our components
-import { useStudio } from 'hooks'
+import { useVelcroValue } from 'hooks'
 
 // Import style
 // ...
@@ -13,12 +13,12 @@ const namespace = 'variables'
 export const Select = (properties) => {
   // Properties
   const { children, label = 'Select', name } = properties
-  // Redux
-  const val = useStudio(`${namespace}.${name}`) || ''
+  // Hooks
+  const val = useVelcroValue(`${namespace}.${name}`) || ''
   // States
   const [props, setProps] = useState({})
   // Refs
-  const $ref = useRef(null)
+  const $ref = useRef()
 
   useEffect(() => {
     const _props = { ...properties }

@@ -1,12 +1,10 @@
 // Import core components
 import { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { Button, Image } from 'react-bootstrap'
 import cN from 'classnames'
 
 // Import our components
-import { useNamespace, usePublic, useStudio } from 'hooks'
-import { updateStudio } from 'db/slices/studio'
+import { usePublic, useVelcro, useVelcroValue } from 'hooks'
 
 // Import style
 // ...
@@ -20,14 +18,9 @@ export const Toggle = (properties) => {
   const { icon, image, group, label = 'Toggle', name, variant, value } = properties
   const namespace = value ? variableNamespace : toggleNamespace
   // Hooks
-  const dispatch = useDispatch()
-  const paths = {
-    group: useNamespace(namespace),
-    toggle: useNamespace(namespace, name),
-  }
   const publik = usePublic()
-  // Redux
-  const cache = useStudio(`${namespace}.${name}`) || false
+  const velcro = useVelcro()
+  const cache = useVelcroValue(`${namespace}.${name}`) || false
   // States
   const [active, setActive] = useState(false)
 
@@ -41,14 +34,14 @@ export const Toggle = (properties) => {
     if (group) {
       obj = {
         ...obj,
-        ...group.reduce((props, key) => ({ ...props, [`${paths.group}.${key}`]: false }), {}),
+        ...group.reduce((props, key) => ({ ...props, [`${namespace}.${key}`]: false }), {}),
       }
     }
 
     // Toggle this
-    obj[paths.toggle] = value === cache ? false : value || !cache
+    obj[`${namespace}.${name}`] = value === cache ? false : value || !cache
 
-    dispatch(updateStudio(obj))
+    velcro.action('update', obj)
   }
 
   useEffect(() => {
@@ -60,7 +53,7 @@ export const Toggle = (properties) => {
       className={cN(
         'toggle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100',
         image ? 'p-0 overflow-hidden' : false,
-        image && !active ? 'opacity-50' : false
+        image && !active ? 'opacity-50' : false,
       )}
       variant={active ? variant || 'obs' : `outline-${variant || 'obs'}`}
       onClick={handleClick}

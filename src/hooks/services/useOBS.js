@@ -1,40 +1,18 @@
 // Import core components
 import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 
 // Import our components
 import { OBS } from 'workers'
-import { useSettings, useEffectOnce } from 'hooks'
-
-const defaults = {
-  connect: {
-    host: '127.0.0.1',
-    port: 4455,
-    password: undefined,
-  },
-}
+import { useEffectOnce } from 'hooks/useEffectOnce'
 
 export const useOBS = (props = {}) => {
-  // Properties
-  const { toasts = false } = props
-  // Hooks
-  const settings = useSettings('obs')
-  // Variables
-  const obs = new OBS()
+  const instance = OBS.getInstance()
+  const params = useParams()
 
   useEffectOnce(() => {
-    const host = ['ws://', settings?.host || defaults.connect.host, ':', settings?.port || defaults.connect.port].join('')
-
-    if (toasts) {
-      obs.on('Hello', (data) => console.log(data))
-      obs.on('ConnectionClosed', (data) => console.error(data))
-    }
-
-    obs.connect({
-      host,
-      password: settings?.password || defaults.connect.host.password,
-    })
+    instance.connect({ ...props, studio: params.code })
   })
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => obs, [])
+  return useMemo(() => instance, [instance])
 }
