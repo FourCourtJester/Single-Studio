@@ -21,7 +21,7 @@
       "runtimeArgs": [
         "--explicitly-allowed-ports=6666"
       ],
-      "type": "pwa-chrome",
+      "type": "chrome",
       "url": "http://localhost:3000",
       // "userDataDir": false,
       "webRoot": "${workspaceFolder}/src",

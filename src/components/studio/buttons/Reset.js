@@ -1,11 +1,9 @@
 // Import core components
-import { useDispatch } from 'react-redux'
 import { Button } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'
-import { removeStudio } from 'db/slices/studio'
-import { useNamespace } from 'hooks'
+import { useVelcro } from 'hooks'
 
 // Import style
 // ...
@@ -14,13 +12,15 @@ export const Reset = (properties) => {
   // Properties
   const { label, fields, placement = 'top' } = properties
   // Hooks
-  const dispatch = useDispatch()
-  const namespace = useNamespace()
+  const velcro = useVelcro()
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    dispatch(removeStudio(fields.map((field) => `${[namespace]}.${field}`)))
+    velcro.action(
+      'update',
+      fields.reduce((obj, entry) => ({ ...obj, [entry]: undefined }), {}),
+    )
   }
 
   return (

@@ -1,28 +1,23 @@
 // Import core components
-import { useDispatch } from 'react-redux'
 import { Button } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'
-import { swapStudio } from 'db/slices/studio'
-import { useNamespace } from 'hooks'
+import { useVelcro } from 'hooks'
 
 // Import style
 // ...
 
-const namespace = 'variables'
-
 export const Swap = (properties) => {
   // Properties
-  const { fields, label, placement = 'top' } = properties
+  const { fields = [], label, placement = 'top' } = properties
   // Hooks
-  const dispatch = useDispatch()
-  const path = useNamespace(namespace)
+  const velcro = useVelcro()
 
   const handleClick = (e) => {
     e.preventDefault()
 
-    dispatch(swapStudio(fields.map((field) => `${[path]}.${field}`)))
+    velcro.action('swap', fields)
   }
 
   return (

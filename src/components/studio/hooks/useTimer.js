@@ -2,19 +2,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Import our components
-import { useStudio } from 'hooks'
+import { useVelcroValue } from 'hooks'
 import { timeToString } from 'toolkits/time'
 
 export const useTimer = ({ path, value }) => {
-  // Redux
-  const timer = useStudio(path)
+  // Hooks
+  const timer = useVelcroValue(path)
   // States
   const [time, setTime] = useState(0)
   // Variables
   const cache = timer?._ts
   const input = timer?._input
   // Refs
-  const t = useRef(null)
+  const t = useRef()
 
   const calc = useCallback(() => {
     const _cache = cache || value

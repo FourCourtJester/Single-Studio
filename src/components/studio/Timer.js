@@ -1,12 +1,10 @@
 // Import core components
 import { useEffect, useRef, useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { FloatingLabel, Form, InputGroup } from 'react-bootstrap'
 
 // Import our components
 import { Button } from 'components/global/styled'
-import { useNamespace } from 'hooks'
-import { updateStudio } from 'db/slices/studio'
+import { useVelcro } from 'hooks'
 import { stringToTime } from 'toolkits/time'
 import { useTimer } from './hooks'
 
@@ -20,10 +18,10 @@ const nput = '_input'
 export const Timer = (properties) => {
   // Properties
   const { label = 'Timer', name, placeholder } = properties
+  const path = `${namespace}.${name}`
   // Hooks
-  const dispatch = useDispatch()
-  const path = useNamespace(namespace, name)
-  const { active, input, text } = useTimer({ path: `${namespace}.${name}` })
+  const velcro = useVelcro()
+  const { active, input, text } = useTimer({ path })
   // States
   const [disabled, setDisable] = useState(false)
   // Variables
@@ -32,7 +30,7 @@ export const Timer = (properties) => {
     input: `${path}.${nput}`,
   }
   // Refs
-  const $ref = useRef(null)
+  const $ref = useRef()
 
   const handleStart = () => {
     // Ignore zero length inputs
@@ -41,17 +39,15 @@ export const Timer = (properties) => {
     const now = Date.now()
     const target = stringToTime($ref.current.value)
 
-    dispatch(
-      updateStudio({
-        [paths.ts]: now + target * 1000,
-        [paths.input]: $ref.current.value,
-      })
-    )
+    velcro.action('update', {
+      [paths.ts]: now + target * 1000,
+      [paths.input]: $ref.current.value,
+    })
 
     setDisable(true)
   }
 
-  const handleStop = () => dispatch(updateStudio({ [paths.ts]: null }))
+  const handleStop = () => velcro.action('update', { [path]: undefined })
 
   const handleKey = (e) => {
     if (e.which === 13) {

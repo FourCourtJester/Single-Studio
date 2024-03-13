@@ -9,7 +9,7 @@ import { Page } from 'components/pages/studio'
 // ...
 
 export function loader({ params }) {
-  return Promise.all([import(`studios/${params.code}/Studio`), import(`studios/${params.code}/db`).catch(() => {})]).then((files) => files)
+  return import(`studios/${params.code}/Studio`)
 }
 
 export function ErrorBoundary() {
@@ -21,11 +21,11 @@ export function Component() {
   // Hooks
   const data = useLoaderData()
   // Variables
-  const [studio, db] = data
+  const studio = data
   const { name, Studio } = studio
 
   return (
-    <Page name={name} redux={db}>
+    <Page name={name}>
       <Studio />
     </Page>
   )

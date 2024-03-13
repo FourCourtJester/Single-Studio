@@ -1,7 +1,7 @@
 import _slugify from 'slugify'
 
-export function capitalize(str) {
-  return str.split(' ').map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+export function capitalize(str, spacer = ' ') {
+  return str.split(spacer).map((part) => part.at(0).toUpperCase() + part.slice(1))
 }
 
 export function debounce(func, wait, immediate) {
@@ -42,6 +42,15 @@ export function getObjPaths(obj, fn, path = '') {
   })
 }
 
+export function getObjProps(obj, props = []) {
+  const result = {}
+
+  props.forEach((prop) => (result[prop] = obj?.[prop]))
+
+  // return (({ ..._ }) => ({ ...props }))(obj)
+  return result
+}
+
 export function getObjValue(obj = {}, _path = '', opts = { split: true }) {
   if (obj === undefined) return undefined
   if (_path === null) return undefined
@@ -49,34 +58,32 @@ export function getObjValue(obj = {}, _path = '', opts = { split: true }) {
   // Do not alter if already the proper type
   let path = !Array.isArray(_path) ? undefined : _path
 
+  // Convert to an array
   if (path === undefined) {
-    // Convert to an array
     path = opts.split ? _path.toString().split('.') : [_path.toString()]
   }
 
   // If the prop does not exist, return undefined
   // Otherwise, return the value
-  return path.reduce((val, part) => {
-    if (val?.[part] === undefined) return undefined
-    return val[part]
-  }, obj)
+  return path.reduce((val, part) => (val?.[part] === undefined ? undefined : val[part]), obj)
 }
 
 export function setObjValue(obj = {}, _path = [], val = undefined, opts = { split: true }) {
   // Do not alter if already the proper type
   let path = !Array.isArray(_path) ? undefined : _path
 
+  // Convert to an array
   if (path === undefined) {
-    // Convert to an array
     path = opts.split ? _path.toString().split('.') : [_path.toString()]
   }
 
+  // Edge case: No path length. Just return
   if (!path.length) {
-    // Edge case: No path length. Just return
     return obj
   }
+
+  // When there is no more depth to recurse, assign the value
   if (path.length === 1) {
-    // When there is no more depth to recurse, assign the value
     obj[path] = val
     return obj
   }
@@ -105,10 +112,6 @@ export function setObjValue(obj = {}, _path = [], val = undefined, opts = { spli
   }
 
   return obj
-}
-
-export function getObjProps(obj, props = []) {
-  return (({ ..._ }) => ({ ...props }))(obj)
 }
 
 export function ordinal(num) {

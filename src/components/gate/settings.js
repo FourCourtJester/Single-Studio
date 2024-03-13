@@ -1,24 +1,19 @@
 // Import core components
 import { useRef, useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { Accordion, Col, FloatingLabel, Form, Row, Stack } from 'react-bootstrap'
 
 // Import our components
 import { ToolTip } from 'components/global'
 import { Button } from 'components/global/styled'
-import { useSettings } from 'hooks'
-import { updateSettings } from 'db/slices/settings'
 
 // Import style
 // ...
 
 function GateFormSettings() {
-  // Hooks
-  const dispatch = useDispatch()
-  // Redux
-  const settings = useSettings()
   // States
   const [validated, setValidated] = useState(false)
+  // Variables
+  const settings = {}
   // Refs
   const $form = useRef(null)
 
@@ -32,10 +27,8 @@ function GateFormSettings() {
       return false
     }
 
-    const data = [...new URLSearchParams(new FormData($form.current))]
-    const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`obs.${key}`]: val }), {})
-
-    dispatch(updateSettings(obj))
+    // const data = [...new URLSearchParams(new FormData($form.current))]
+    // const obj = data.reduce((_obj, [key, val]) => ({ ..._obj, [`obs.${key}`]: val }), {})
 
     setValidated(false)
 

@@ -9,7 +9,7 @@ import { Page } from 'components/pages/source'
 // ...
 
 export function loader({ params }) {
-  return Promise.all([import(`studios/${params.code}/sources/${params.source}`), import(`studios/${params.code}/db`).catch(() => {})]).then((files) => files)
+  return import(`studios/${params.code}/sources/${params.source}`)
 }
 
 export function ErrorBoundary() {
@@ -21,11 +21,11 @@ export function Component() {
   // Hooks
   const data = useLoaderData()
   // Variables
-  const [source, db] = data
+  const source = data
   const { default: Source } = source
 
   return (
-    <Page redux={db}>
+    <Page>
       <Source />
     </Page>
   )
