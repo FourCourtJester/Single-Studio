@@ -19,7 +19,7 @@ export const Reset = (properties) => {
 
     velcro.action(
       'update',
-      fields.reduce((obj, entry) => ({ ...obj, [entry]: undefined }), {}),
+      fields.reduce((obj, entry) => ({ ...obj, [entry]: undefined }), {})
     )
   }
 

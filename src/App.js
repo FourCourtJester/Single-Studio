@@ -23,8 +23,8 @@ function routes() {
         </Route>
         {/* 404 */}
         <Route path="*" Component={P404} />
-      </>,
-    ),
+      </>
+    )
   )
 }
 

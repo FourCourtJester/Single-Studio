@@ -53,7 +53,7 @@ export const Toggle = (properties) => {
       className={cN(
         'toggle d-flex flex-grow-1 justify-content-center align-items-center w-100 h-100',
         image ? 'p-0 overflow-hidden' : false,
-        image && !active ? 'opacity-50' : false,
+        image && !active ? 'opacity-50' : false
       )}
       variant={active ? variant || 'obs' : `outline-${variant || 'obs'}`}
       onClick={handleClick}

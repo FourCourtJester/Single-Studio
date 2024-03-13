@@ -127,7 +127,7 @@ const Transition = forwardRef((properties, $forwardRef) => {
       : cloneElement(child, {
           ref: $ref,
           ...props,
-        }),
+        })
   )
 })
 

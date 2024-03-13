@@ -33,7 +33,7 @@ export function Page(properties) {
 
       velcro.action('update', obj)
     },
-    [velcro],
+    [velcro]
   )
 
   const handleSubmitKey = useCallback(
@@ -43,7 +43,7 @@ export function Page(properties) {
         handleSubmit(new SubmitEvent('submit', { submitter: $btn.current }))
       }
     },
-    [$btn, handleSubmit],
+    [$btn, handleSubmit]
   )
 
   const handleReturn = () => navigate(`/`)

@@ -47,7 +47,7 @@ export const Leaderboard = (properties) => {
         : val.split('\n').map((entry) => {
             const parts = entry.split(delimiter)
             return (fields || defaults.fields).reduce((obj, field, i) => ({ ...obj, [field]: parts[i] }), {})
-          }),
+          })
     )
   }, [delimiter, fields, val])
 

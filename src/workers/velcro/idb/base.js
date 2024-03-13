@@ -39,7 +39,7 @@ class IDBBase {
           transaction.onerror = (e) => _reject(e.target.error)
 
           data.onerror = (e) => _reject(e.target.error)
-        }),
+        })
     )
       .then(() => resolve())
       .catch((err) => reject(err))
@@ -129,7 +129,7 @@ class IDBBase {
               cursor.continue()
             }
           }
-        }),
+        })
     )
       .then((results) => resolve(results))
       .catch((err) => reject(err))
@@ -172,7 +172,7 @@ class IDBBase {
 
                 result.push([store, danglingIndex].join('.'))
               }
-            }),
+            })
         )
           .then(() => resolve(result))
           .catch((err) => reject(err))
@@ -273,7 +273,7 @@ class IDBBase {
       promises.push(
         new Promise((resolve, reject) => {
           this.#increment({ key, value, resolve, reject })
-        }),
+        })
       )
     })
 
@@ -292,7 +292,7 @@ class IDBBase {
       (key) =>
         new Promise((resolve, reject) => {
           this.#delete({ key, resolve, reject })
-        }),
+        })
     )
       .then((results) => results.flat())
       .catch((err) => console.error(err))
@@ -317,7 +317,7 @@ class IDBBase {
         return new Promise((resolve, reject) => {
           this.#swap({ from, to, entries, resolve, reject })
         })
-      }),
+      })
     ).catch((err) => console.error(err))
   }
 
@@ -331,7 +331,7 @@ class IDBBase {
       promises.push(
         new Promise((resolve, reject) => {
           this.#write({ key, value: value && value.toString().length ? value : undefined, resolve, reject })
-        }),
+        })
       )
     })
 

@@ -56,7 +56,7 @@ class Singleton {
           skipEmptyLines: true,
           transform: (entry) => entry.trim(),
           transformHeader: (header) => header.trim(),
-        }),
+        })
       )
   }
 
@@ -80,7 +80,7 @@ class Singleton {
         this.#fetch(url)
           .then((response) => this.#port.postMessage({ action: `google:${name}`, data: response.data }))
           .catch((err) => console.error(err)),
-      t,
+      t
     )
   }
 
