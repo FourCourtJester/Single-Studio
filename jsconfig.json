@@ -3,9 +3,7 @@
     "baseUrl": "src"
   },
   "include": [
-    "src",
-    "src/studios/Boise-State-Rocket-League/.components",
-    "ztemp/db"
+    "src"
   ],
   "exclude": [
     "node_modules"
