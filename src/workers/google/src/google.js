@@ -65,7 +65,7 @@ class Singleton {
   connect(props) {
     const { name, id, majorDimension = defaults.majorDimension, range, t = defaults.t, valueRenderOption = defaults.valueRenderOption } = props
 
-    if (this.#intervals[name]) return false
+    // if (this.#intervals[name]) return false
 
     const url = URL.replace(':id', id)
       .replace(':range', encodeURIComponent(range))
