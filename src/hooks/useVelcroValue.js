@@ -13,7 +13,7 @@ export const useVelcroValue = (path) => {
   useEffect(() => {
     const name = path.split('.').at(-1)
 
-    if (name === 'undefined') return () => {}
+    // if (name === 'undefined') return () => {}
 
     const channel = velcro.subscribe(path)
 

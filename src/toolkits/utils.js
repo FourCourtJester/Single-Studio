@@ -122,6 +122,8 @@ export function ordinal(num) {
 }
 
 export function slugify(str) {
+  if (typeof str !== 'string') return undefined
+
   return _slugify(str, {
     replacement: '-',
     remove: /[,*+~.()'"!:@]/g,
