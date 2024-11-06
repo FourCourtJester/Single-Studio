@@ -11,7 +11,7 @@ export const useVelcroValue = (path) => {
   const velcro = useVelcro()
 
   useEffect(() => {
-    const name = path.split('.').at(-1)
+    // const name = path.split('.').at(-1)
 
     // if (name === 'undefined') return () => {}
 

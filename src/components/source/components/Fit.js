@@ -95,7 +95,7 @@ export const Fit = forwardRef((properties, $forwardRef) => {
       : cloneElement(child, {
           ref: $ref,
           ...props,
-        })
+        }),
   )
 })
 

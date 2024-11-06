@@ -13,7 +13,7 @@ const namespace = 'variables'
 
 export const Variable = (properties) => {
   // Properties
-  const { align, as: type = 'text', label = 'Variable', name, placeholder, rows, ...otherProps } = properties
+  const { align, as: type = 'text', disabled, label = 'Variable', name, placeholder, readOnly, rows, ...otherProps } = properties
   // Hooks
   const val = useVelcroValue(`${namespace}.${name}`) || null
   // States
@@ -27,13 +27,15 @@ export const Variable = (properties) => {
 
   useEffect(() => {
     setProps({
+      disabled,
       defaultValue: val,
       name: `${namespace}.${name}`,
       placeholder: placeholder || label,
       [type === 'textarea' ? 'as' : 'type']: type,
+      readOnly,
       rows,
     })
-  }, [label, name, placeholder, type, rows, val])
+  }, [disabled, label, name, placeholder, type, readOnly, rows, val])
 
   return (
     <FloatingLabel label={label} controlId={name} {...otherProps}>
