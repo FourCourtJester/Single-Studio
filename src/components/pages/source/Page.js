@@ -30,7 +30,7 @@ export function Page(properties) {
   })
 
   return (
-    <Container id="source" className={cN(theme ? `theme-${theme}` : false, 'p-0')} fluid>
+    <Container id="source" className={cN(theme ? `theme-${theme}` : false, 'position-relative p-0')} fluid>
       {children}
     </Container>
   )

@@ -85,7 +85,7 @@ export const Leaderboard = (properties) => {
                     <FloatingLabel
                       label={`${Utils.ordinal(i + 1)} Place ${Utils.capitalize(key)}`}
                       controlId={name + key + i + j}
-                      onChange={(e) => handleUpdate(e, key, i)}
+                      // onChange={(e) => handleUpdate(e, key, i)}
                     >
                       <Form.Control
                         placeholder={`${Utils.ordinal(i + 1)} Place ${Utils.capitalize(key)}`}
