@@ -28,8 +28,11 @@ pnpm --filter @single-studio/demo e2e
    SharedWorker and its own IndexedDB.
 
 2. **Each graphic** — one Browser source per URL from the control page. Set the
-   resolution to your canvas (usually 1920x1080) and leave _Shutdown source when
-   not visible_ unchecked so state stays warm.
+   resolution to your canvas (usually 1920x1080).
+
+   _Shutdown source when not visible_ is safe to enable if you want the memory back.
+   The graphic is rebuilt from scratch each time its scene returns, and nothing is
+   painted until the store has answered — see [Loading and reload](#sources-that-unload-when-hidden).
 
 ## Start a new studio
 
@@ -201,8 +204,33 @@ stripped from your build.
 
 `@single-studio/core/styles.css` carries only behaviour-critical rules: transparent
 backgrounds for sources, the `Transition` state classes and their timing, and the
-ticker keyframes. Override the timing there and the transition machine follows it —
-there is no duration prop to keep in sync.
+ticker keyframes.
+
+CSS owns the timing. `Transition` reads the duration back off computed style, so
+there is no duration prop to keep in sync — retune it any of three ways:
+
+```jsx
+<Variable name="home.name" className="duration-500" />   {/* Tailwind utility */}
+```
+
+```css
+.scoreboard .ss-transition {
+  transition-duration: 700ms;
+} /* your own rule */
+.scoreboard {
+  --ss-duration: 900ms;
+} /* custom property */
+```
+
+All of the framework's rules live in `@layer components` so any of these win.
+That is load-bearing rather than tidy: unlayered declarations beat layered ones, so
+framework CSS outside a layer would silently outrank every Tailwind utility a studio
+wrote, and `duration-500` would quietly resolve to the default.
+
+**Reduced motion applies to your control surface, not to graphics.** On a browser
+source, animation is broadcast content, and the preference being read belongs to the
+operator's machine — nobody watching the stream has a say in it. Honouring it there
+would let one person's OS setting strip the animation from everyone's screen.
 
 ## Deploy
 
@@ -224,5 +252,15 @@ must be in the same browser process, and `STUDIO_ID` in `config.js` must match w
 IndexedDB database. Renaming it starts from a clean slate; the old data is still
 under the old name.
 
-**A source is blank in OBS but fine in a browser.** Check _Shutdown source when not
-visible_, and confirm the browser source URL includes the `#/source/...` fragment.
+**A source is blank in OBS but fine in a browser.** Confirm the browser source URL
+includes the `#/source/...` fragment.
+
+### Sources that unload when hidden
+
+These are supported and tested. A graphic is
+destroyed and rebuilt every time its scene returns, and nothing is painted until the
+store has answered — no fallback flash, no empty panel, and the state comes back
+every cycle. The one thing that has to hold is that the dock stays open, since it is
+what keeps the SharedWorker (and therefore the store) alive while every source is
+unloaded. If everything unloads at once the worker exits and the next source to load
+rehydrates from IndexedDB, which is slower but not lossy.

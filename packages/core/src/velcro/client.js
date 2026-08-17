@@ -95,6 +95,11 @@ export class VelcroClient {
 
     if (!entry || entry.closed) return
 
+    // `hydrated` is separate from `value !== undefined`: a path that genuinely
+    // holds nothing still counts as loaded once the host has said so. Graphics use
+    // this to tell "no value yet" from "no value" -- the first must render nothing,
+    // the second may render a fallback.
+    entry.hydrated = true
     entry.value = value
 
     for (const fn of entry.listeners) fn(value)
@@ -143,7 +148,7 @@ export class VelcroClient {
     const key = normalize(path)
 
     if (!this.#subs.has(key)) {
-      const entry = { channel: null, listeners: new Set(), value: undefined, closed: false }
+      const entry = { channel: null, listeners: new Set(), value: undefined, hydrated: false, closed: false }
 
       this.#subs.set(key, entry)
 
@@ -163,9 +168,10 @@ export class VelcroClient {
 
     entry.listeners.add(listener)
 
-    // A later subscriber to an already-warm path gets the cached value now
-    // rather than waiting for the next change.
-    if (entry.value !== undefined) listener(entry.value)
+    // A later subscriber to an already-warm path gets the cached value now rather
+    // than waiting for the next change. Keyed on `hydrated`, not on the value being
+    // defined, so a path that holds nothing still reports as loaded.
+    if (entry.hydrated) listener(entry.value)
 
     return () => {
       entry.listeners.delete(listener)

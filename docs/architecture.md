@@ -226,6 +226,29 @@ its staged value wins over the store, so a remote change can never yank text out
 from under an operator mid-edit — which is also exactly what multi-operator
 editing will need.
 
+## Loading and reload
+
+OBS browser sources can be set to unload when hidden, so a graphic is destroyed and
+rebuilt every time its scene comes back. Two things have to hold on every cycle, and
+both needed work:
+
+**Nothing wrong is ever painted.** A subscription tracks `hydrated` separately from
+"has a value", because "no value yet" and "no value" have to look different on air.
+Source components render nothing until their path has loaded, then fade in; the
+`fallback` prop is for a path that is loaded and genuinely empty. `SourcePage` also
+holds the whole graphic until the store is reachable, because per-component gating
+alone would still let a studio's static chrome — a scoreboard panel, a lower-third
+plate — paint as an empty shell.
+
+`Image` has two loads to line up and names them apart: `hydrated` is the store
+saying what the value is, `painted` is the browser saying the file arrived. Neither
+alone is enough.
+
+**The state comes back.** Covered by the smoke test running four consecutive
+unload/reload cycles, plus a recorder installed via `addInitScript` that captures
+every frame the source ever displayed and asserts the fallback never appears among
+them.
+
 ## Services
 
 None ship yet. The base class exists because the old OBS, Sheets, and Rocket

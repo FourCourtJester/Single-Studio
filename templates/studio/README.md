@@ -18,8 +18,11 @@ URL with a copy button.
    Running the dock inside OBS is what puts it in the same browser process as your
    graphics, so they share one store with no network involved.
 2. **Each graphic** — add a Browser source per URL listed on the control page.
-   Set the resolution to your canvas (typically 1920x1080) and leave
-   _Shutdown source when not visible_ unchecked so state stays warm.
+   Set the resolution to your canvas (typically 1920x1080).
+
+   _Shutdown source when not visible_ is safe to enable. The graphic is rebuilt when
+   its scene returns and paints nothing until it has real values, so you get the
+   memory back without a flash of placeholder text on air.
 
 ## Add a graphic
 

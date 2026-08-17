@@ -8,40 +8,51 @@
  *
  * That @source line matters: Tailwind v4 scans your files for utility classes,
  * and the framework's components live outside them.
+ *
+ * Everything below sits in @layer components on purpose. Unlayered declarations
+ * beat layered ones, so an earlier cut of this file could not be overridden at
+ * all -- `duration-500` on a component resolved to 300ms anyway, silently, which
+ * made the "CSS owns the timing" promise a lie. In the components layer, Tailwind
+ * utilities (which live in @layer utilities) win, and so does any unlayered CSS a
+ * studio writes.
  */
 
-/* OBS composites browser sources over the scene, so the page must not paint. */
-.ss-source,
-.ss-scene {
-  background: transparent;
-}
+@layer components {
+  /* OBS composites browser sources over the scene, so the page must not paint. */
+  .ss-source,
+  .ss-scene {
+    background: transparent;
+  }
 
-/*
- * Transition drives these four states and reads its own duration from computed
- * style. Override the timing here (or per component) and the machine follows --
- * there is no duration prop to keep in sync.
- */
-.ss-transition {
-  transition-property: opacity, transform;
-  transition-duration: 300ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
+  /*
+   * Transition drives these four phases and reads its own duration back off
+   * computed style, so this is the single source of truth for timing -- there is
+   * no duration prop to keep in sync. Retune it with the custom property, a
+   * Tailwind duration utility, or your own rule; the state machine follows
+   * whatever the element actually computes to.
+   */
+  .ss-transition {
+    transition-property: opacity, transform;
+    transition-duration: var(--ss-duration, 300ms);
+    transition-timing-function: var(--ss-ease, cubic-bezier(0.4, 0, 0.2, 1));
+  }
 
-.ss-inactive,
-.ss-exiting,
-.ss-entering {
-  opacity: 0;
-}
+  .ss-inactive,
+  .ss-exiting,
+  .ss-entering {
+    opacity: 0;
+  }
 
-.ss-active {
-  opacity: 1;
-}
+  .ss-active {
+    opacity: 1;
+  }
 
-/* Graphics are authored against a fixed canvas; OBS scales the result. */
-.ss-canvas {
-  width: 1920px;
-  height: 1080px;
-  transform-origin: top left;
+  /* Graphics are authored against a fixed canvas; OBS scales the result. */
+  .ss-canvas {
+    width: 1920px;
+    height: 1080px;
+    transform-origin: top left;
+  }
 }
 
 @keyframes ss-ticker-scroll {
@@ -53,8 +64,17 @@
   }
 }
 
+/*
+ * Reduced motion applies to the control surface, not to graphics.
+ *
+ * On a browser source, animation is broadcast content rather than interface
+ * motion, and the preference being read belongs to the operator's machine --
+ * nobody watching the stream has any say in it. Honouring it there would let one
+ * person's OS setting silently strip the animation from everyone's screen. The
+ * operator's own board is interface, so it honours the preference normally.
+ */
 @media (prefers-reduced-motion: reduce) {
-  .ss-transition {
+  .ss-control .ss-transition {
     transition-duration: 1ms;
   }
 }

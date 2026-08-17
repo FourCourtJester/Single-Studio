@@ -182,6 +182,49 @@ await source.waitForSelector('.ss-scene')
 // arrives, then has to travel a full 300ms exit/enter cycle before it is on screen.
 check(await becomes(source, sceneHas, 'vandals'), 'state survived a source reload')
 
+// -- Unload / reload cycles --------------------------------------------------
+// OBS sources can be set to unload when hidden, so a graphic is destroyed and
+// rebuilt every time its scene comes back. Two things have to hold every time:
+// nothing wrong is ever painted, and the state comes back.
+//
+// The recorder is installed with addInitScript so it runs before page scripts on
+// every navigation, capturing everything the source ever displayed rather than
+// just what it settled on.
+await source.addInitScript(() => {
+  window.__painted = []
+
+  const record = () => {
+    const text = document.body.innerText.replace(/\s+/g, ' ').trim()
+
+    if (text && window.__painted.at(-1) !== text) window.__painted.push(text)
+  }
+
+  addEventListener('DOMContentLoaded', () => {
+    record()
+    new MutationObserver(record).observe(document.body, { childList: true, subtree: true, characterData: true })
+  })
+})
+
+for (let cycle = 1; cycle <= 4; cycle += 1) {
+  await source.reload()
+  const back = await becomes(source, sceneHas, 'vandals')
+
+  if (!back) {
+    check(false, `state came back on reload cycle ${cycle}`)
+    break
+  }
+
+  if (cycle === 4) check(true, 'state came back on four consecutive unload/reload cycles')
+}
+
+const painted = await source.evaluate(() => window.__painted)
+console.log(`  first paint: ${JSON.stringify(painted[0] ?? null)}`)
+
+// "Home" is the home-name fallback and must never reach air, because the store
+// holds Vandals. ("Away" legitimately shows -- that path was never set.)
+check(!painted.some((frame) => /\bHOME\b/i.test(frame)), 'the fallback never flashes on air during a reload')
+check(painted.length > 0 && /vandals/i.test(painted[0]), 'the first thing painted already has real values in it')
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is

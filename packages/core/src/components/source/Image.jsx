@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { useVelcroValue } from '../../hooks/useVelcroValue'
+import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 import { slugify } from '../../toolkits/slug'
 import { Transition } from '../common/Transition'
@@ -17,30 +17,34 @@ import { Transition } from '../common/Transition'
  * `slug` normalises the value first ("Boise State" -> "boise-state"), which is
  * what makes operator free-text usable in a filename.
  *
- * Two behaviours matter on air. The transition triggers on *load*, not on the
- * value changing, so a graphic never animates in around a half-fetched image. And
- * a failed load falls back rather than showing a broken-image glyph over the
+ * Two loads have to line up here and they are deliberately named apart:
+ * `hydrated` is the store telling us what the value is, `painted` is the browser
+ * telling us the file arrived. Nothing renders until both are true, so a graphic
+ * never animates in around a half-fetched image, and a source rebuilt mid-show
+ * never requests a URL built from an empty value and 404s onto the fallback.
+ *
+ * A failed load falls back rather than showing a broken-image glyph over the
  * stream -- a missing logo should read as "no logo", not as a bug.
  */
 export function Image({ name, src, slug = false, fallback, alt = '', className, namespace = 'variables', ...rest }) {
-  const value = useVelcroValue(name ? `${namespace}.${name}` : undefined)
+  const { value, loaded: hydrated } = useVelcroState(name ? `${namespace}.${name}` : undefined)
   const [current, setCurrent] = useState(null)
-  const [loaded, setLoaded] = useState(false)
+  const [painted, setPainted] = useState(false)
 
   useEffect(() => {
-    if (!src) return
+    if (!src || !hydrated) return
 
     const resolved = String(src).replace(/:value:/g, slug ? slugify(value) : String(value ?? ''))
 
     setCurrent((previous) => {
-      if (previous !== resolved) setLoaded(false)
+      if (previous !== resolved) setPainted(false)
       return resolved
     })
-  }, [slug, src, value])
+  }, [hydrated, slug, src, value])
 
   const onError = () => {
     // Warn rather than fail silently: a wrong path is a studio bug worth seeing in
-    // the worker console, even though the graphic degrades quietly on screen.
+    // the console, even though the graphic degrades quietly on screen.
     console.warn(`[single-studio] image did not load: ${current}`)
 
     if (fallback && current !== fallback) {
@@ -48,14 +52,14 @@ export function Image({ name, src, slug = false, fallback, alt = '', className, 
       return
     }
 
-    setLoaded(false)
+    setPainted(false)
   }
 
-  if (!current) return null
+  if (!hydrated || !current) return null
 
   return (
-    <Transition trigger={loaded} className={cx('ss-image', className)} {...rest}>
-      <img src={current} alt={alt} onLoad={() => setLoaded(true)} onError={onError} className="max-h-full max-w-full object-contain" />
+    <Transition trigger={painted} className={cx('ss-image', className)} {...rest}>
+      <img src={current} alt={alt} onLoad={() => setPainted(true)} onError={onError} className="max-h-full max-w-full object-contain" />
     </Transition>
   )
 }

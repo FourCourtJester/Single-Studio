@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import { useVelcroValue } from '../../hooks/useVelcroValue'
+import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
 /**
@@ -12,7 +12,8 @@ import { cx } from '../../toolkits/cx'
  * New text is staged and only swapped in between passes, never mid-scroll.
  */
 export function Ticker({ name, fallback = '', speed = 100, className, namespace = 'variables', ...rest }) {
-  const incoming = useVelcroValue(`${namespace}.${name}`, fallback)
+  const { value, loaded } = useVelcroState(`${namespace}.${name}`)
+  const incoming = loaded ? (value ?? fallback) : ''
   const [text, setText] = useState('')
   const [duration, setDuration] = useState(0)
   const staged = useRef('')

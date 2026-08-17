@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { useStudio } from '../studio/context'
@@ -12,9 +12,29 @@ import { NotFoundPage } from './NotFound'
  */
 export function SourcePage() {
   const { name } = useParams()
-  const { studio } = useStudio()
+  const { studio, velcro } = useStudio()
   const [params] = useSearchParams()
+  const [ready, setReady] = useState(false)
   const loader = studio.sources[name]
+
+  // Hold the whole graphic until the store is reachable.
+  //
+  // Per-component load gating stops values flashing, but a studio's own static
+  // chrome -- a scoreboard's panel, a lower third's plate -- would still paint the
+  // instant the page mounted. On a source set to unload when hidden that is a
+  // visible empty shell on air every time the scene returns. Nothing renders until
+  // there is a store to render from.
+  useEffect(() => {
+    let live = true
+
+    velcro.ready().then(() => {
+      if (live) setReady(true)
+    })
+
+    return () => {
+      live = false
+    }
+  }, [velcro])
 
   const View = useMemo(() => (loader ? lazy(() => Promise.resolve(loader()).then((mod) => ({ default: mod.default ?? mod }))) : null), [loader])
 
@@ -30,10 +50,17 @@ export function SourcePage() {
   const theme = params.get('theme')
 
   return (
-    <div data-source={name} data-theme={theme ?? undefined} className="ss-source h-screen w-screen overflow-hidden bg-transparent">
-      <Suspense fallback={null}>
-        <View />
-      </Suspense>
+    <div
+      data-source={name}
+      data-theme={theme ?? undefined}
+      data-ready={ready ? '' : undefined}
+      className="ss-source h-screen w-screen overflow-hidden bg-transparent"
+    >
+      {ready ? (
+        <Suspense fallback={null}>
+          <View />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

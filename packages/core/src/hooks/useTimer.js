@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { formatDuration } from '../toolkits/time'
-import { useVelcroValue } from './useVelcroValue'
+import { useVelcroState } from './useVelcroValue'
 
 /**
  * Read a countdown stored as an absolute epoch (`{ ts, duration }`).
@@ -12,7 +12,7 @@ import { useVelcroValue } from './useVelcroValue'
  * is the one caveat -- see docs/collaboration.md.)
  */
 export function useTimer(path) {
-  const timer = useVelcroValue(path)
+  const { value: timer, loaded } = useVelcroState(path)
   const target = timer?.ts
   const [remaining, setRemaining] = useState(0)
   const frame = useRef(null)
@@ -39,6 +39,7 @@ export function useTimer(path) {
 
   return useMemo(
     () => ({
+      loaded,
       active: remaining > 0,
       remaining,
       duration: timer?.duration ?? 0,
@@ -47,6 +48,6 @@ export function useTimer(path) {
       input: timer?.input,
       text: formatDuration(remaining),
     }),
-    [remaining, timer?.duration, timer?.input],
+    [loaded, remaining, timer?.duration, timer?.input],
   )
 }
