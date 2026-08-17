@@ -1,5 +1,0 @@
-export { _Image as Image } from './Image'
-export { _Ticker as Ticker } from './Ticker'
-export { _Timer as Timer } from './Timer'
-export { _Toggle as Toggle } from './Toggle'
-export { _Variable as Variable } from './Variable'

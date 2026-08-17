@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+@import '@single-studio/core/styles.css';
+
+/*
+ * Tailwind v4 scans your own files for utility classes. The framework's
+ * components live in node_modules, so they have to be pointed at explicitly or
+ * every class they use gets tree-shaken away.
+ */
+@source '../node_modules/@single-studio/core/dist';
+
+/* Graphics are authored at a fixed size; OBS scales the browser source. */
+@layer components {
+  .scoreboard {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+}

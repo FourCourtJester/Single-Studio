@@ -1,103 +1,29 @@
 {
-  "name": "client",
-  "version": "0.1.0",
-  "homepage": "https://fourcourtester.github.io/Single-Studio/",
+  "name": "single-studio",
+  "version": "0.0.0",
   "private": true,
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.5.1",
-    "@reduxjs/toolkit": "^2.2.1",
-    "bluebird": "^3.7.2",
-    "bootstrap": "^5.3.3",
-    "classnames": "^2.5.1",
-    "lodash": "^4.17.21",
-    "nanoid": "5.0.6",
-    "obs-websocket-js": "^5.0.5",
-    "papaparse": "^5.4.1",
-    "prop-types": "^15.8.1",
-    "react": "^18.2.0",
-    "react-bootstrap": "^2.10.1",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3",
-    "react-svg": "^16.1.33",
-    "slugify": "^1.6.6",
-    "styled-components": "^6.1.8",
-    "use-deep-compare-effect": "^1.8.1"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.24.0",
-    "@babel/eslint-parser": "^7.23.10",
-    "@babel/preset-react": "^7.23.3",
-    "eslint": "^8.57.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-google": "^0.14.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-config-wesbos": "^4.0.1",
-    "eslint-plugin-html": "^8.0.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jsx-a11y": "^6.8.0",
-    "eslint-plugin-prettier": "^5.1.3",
-    "eslint-plugin-react": "^7.34.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "gh-pages": "^6.1.1",
-    "prettier": "^3.2.5",
-    "react-scripts": "^5.0.1",
-    "sass": "^1.71.1"
+  "description": "Monorepo for Single Studio: a local-first broadcast graphics framework for OBS.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
   },
   "scripts": {
-    "build": "react-scripts build",
-    "deploy": "bash ./scripts/publish.sh",
-    "eject": "react-scripts eject",
-    "start": "BROWSER=none react-scripts start",
-    "test": "react-scripts test"
+    "build": "pnpm -r --filter \"./packages/*\" build",
+    "demo": "pnpm --filter @single-studio/demo dev",
+    "demo:build": "pnpm --filter @single-studio/demo build",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,jsx,json,css,md,yaml,yml}\"",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm --filter @single-studio/core test:watch"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest",
-      "wesbos"
-    ],
-    "rules": {
-      "eslint/class-methods-use-this": 0,
-      "import/no-extraneous-dependencies": 0,
-      "import/no-unresolved": 0,
-      "jsx-a11y/alt-text": 0,
-      "jsx-a11y/media-has-caption": 0,
-      "no-unused-vars": [
-        "warn",
-        {
-          "ignoreRestSiblings": true,
-          "argsIgnorePattern": "_|res|next|^err"
-        }
-      ],
-      "no-use-before-define": [
-        "error",
-        {
-          "functions": false,
-          "classes": true,
-          "variables": true
-        }
-      ],
-      "prettier/prettier": [
-        "warn",
-        {
-          "endOfLine": "auto",
-          "printWidth": 160,
-          "semi": false,
-          "singleQuote": true
-        }
-      ]
-    }
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "globals": "^15.12.0",
+    "playwright": "^1.62.1",
+    "prettier": "^3.4.1"
   }
 }

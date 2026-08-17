@@ -1,0 +1,60 @@
+/*
+ * Behaviour-critical styles only. Everything cosmetic belongs in the studio.
+ *
+ * A studio imports this once, alongside its own Tailwind entry:
+ *   @import 'tailwindcss';
+ *   @import '@single-studio/core/styles.css';
+ *   @source '../node_modules/@single-studio/core/dist';
+ *
+ * That @source line matters: Tailwind v4 scans your files for utility classes,
+ * and the framework's components live outside them.
+ */
+
+/* OBS composites browser sources over the scene, so the page must not paint. */
+.ss-source,
+.ss-scene {
+  background: transparent;
+}
+
+/*
+ * Transition drives these four states and reads its own duration from computed
+ * style. Override the timing here (or per component) and the machine follows --
+ * there is no duration prop to keep in sync.
+ */
+.ss-transition {
+  transition-property: opacity, transform;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ss-inactive,
+.ss-exiting,
+.ss-entering {
+  opacity: 0;
+}
+
+.ss-active {
+  opacity: 1;
+}
+
+/* Graphics are authored against a fixed canvas; OBS scales the result. */
+.ss-canvas {
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+}
+
+@keyframes ss-ticker-scroll {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-transition {
+    transition-duration: 1ms;
+  }
+}

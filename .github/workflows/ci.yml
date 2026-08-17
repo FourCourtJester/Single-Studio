@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm test
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build demo studio
+        run: pnpm demo:build
+
+      # Integration coverage for the parts that only exist in a browser:
+      # SharedWorker startup, cross-tab BroadcastChannel fan-out, IndexedDB.
+      - name: Install Chromium
+        run: pnpm --filter @single-studio/demo exec playwright install --with-deps chromium
+
+      - name: Smoke test
+        working-directory: apps/demo
+        run: |
+          pnpm preview --port 4173 &
+          npx wait-on http://localhost:4173 --timeout 60000
+          pnpm e2e http://localhost:4173
