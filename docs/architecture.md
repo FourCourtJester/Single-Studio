@@ -155,12 +155,27 @@ rewrite rules.
 
 Two families, one store.
 
-**Source** (`Scene`, `Variable`, `Toggle`, `Timer`, `Clock`, `Ticker`) render on
-air. Each is a thin wrapper over `useVelcroValue`.
+**Source** (`Scene`, `Variable`, `Image`, `Toggle`, `Timer`, `Clock`, `Ticker`)
+render on air. Each is a thin wrapper over `useVelcroValue`.
 
-**Control** (`Field`, `Stepper`, `ToggleButton`, `Cycle`, `SwapButton`,
-`TimerButton`, `Panel`) drive it. Styled with Tailwind, replacing Bootstrap and
-react-bootstrap.
+**Control** (`Field`, `Select`, `Stepper`, `Cycle`, `ToggleButton`, `SwapButton`,
+`ResetButton`, `TimerButton`, `Countdown`, `Leaderboard`, `Panel`, `Break`) drive
+it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
+
+Three carry non-obvious decisions:
+
+- **`Image`** templates its `src` with the value at a path (`logos/:value:.svg`),
+  optionally slugified, so a team name resolves a badge with no lookup table. It
+  transitions on _load_ rather than on the value changing, so a graphic never
+  animates in around a half-fetched image, and a failed load falls back instead of
+  showing a broken-image glyph on air.
+- **`Leaderboard`** stores the whole board as one delimited string in one path, not
+  a path per cell. An operator pastes standings in from a spreadsheet, and one
+  value keeps that a single atomic write instead of twenty racing ones — and lets
+  the graphic render the board from one subscription.
+- **`ResetButton`** uses `unset`, not empty strings. Removing the keys makes each
+  source fall back to its own default; writing `''` would leave the paths present
+  and holding blanks, which looks identical on the board and different on air.
 
 Two pieces carried over from the old build unchanged in spirit, because they were
 the hard-won parts:

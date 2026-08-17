@@ -1,4 +1,18 @@
-import { Cycle, Field, Panel, Stepper, SwapButton, TimerButton, ToggleButton, useVelcroMutate } from '@single-studio/core'
+import {
+  Break,
+  Countdown,
+  Cycle,
+  Field,
+  Leaderboard,
+  Panel,
+  ResetButton,
+  Select,
+  Stepper,
+  SwapButton,
+  TimerButton,
+  ToggleButton,
+  useVelcroMutate,
+} from '@single-studio/core'
 
 // The operator's board. Plain composition -- every control is bound to a path,
 // and there is no save button because writes land as you type.
@@ -13,6 +27,10 @@ export default function Control() {
         <Stepper name="away.score" label="Away score" />
         <Field name="away.name" label="Away" placeholder="Vandals" />
         <SwapButton label="Swap ends" paths={['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name']} />
+        <Break />
+        <Select name="sport" label="Sport" options={['Rocket League', 'Valorant', 'Overwatch']} />
+        <Cycle name="period" label="Period" choices={['1st', '2nd', '3rd', 'OT']} />
+        <ResetButton label="scores" paths={['variables.home.score', 'variables.away.score']} />
       </Panel>
 
       <Panel title="Lower third">
@@ -21,9 +39,17 @@ export default function Control() {
         <ToggleButton name="lowerthird" label="lower third" />
       </Panel>
 
-      <Panel title="Break">
+      <Panel title="Clocks">
         <TimerButton name="break" label="break" duration="5:00" />
-        <Cycle name="period" label="Period" choices={['1st', '2nd', '3rd', 'OT']} />
+        {/* Counts down to a wall-clock time, not a duration -- "we go live at 19:00". */}
+        <Countdown name="showtime" label="Show starts" as="time" />
+      </Panel>
+
+      <Panel title="Standings">
+        <Field name="standings.title" label="Heading" placeholder="Standings" />
+        <ToggleButton name="standings" label="standings" />
+        <Break />
+        <Leaderboard name="standings" label="Board" fields={['name', 'score']} rows={5} />
       </Panel>
 
       <Panel title="Ticker">

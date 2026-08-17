@@ -88,6 +88,37 @@ const mutate = useVelcroMutate()
 <button onClick={() => mutate('my:new-period')}>New period</button>
 ```
 
+## Component reference
+
+**Source** — what goes on air:
+
+| Component  | Reads              | Notes                                                  |
+| ---------- | ------------------ | ------------------------------------------------------ |
+| `Scene`    | —                  | Root of a graphic. One per browser source.             |
+| `Variable` | `variables.<name>` | Text. `fit` shrinks it to stay on one line.            |
+| `Image`    | `variables.<name>` | `src="logos/:value:.svg"`, plus `slug` and `fallback`. |
+| `Toggle`   | `toggles.<name>`   | Shows or hides its children.                           |
+| `Timer`    | `timers.<name>`    | Countdown. `onComplete` fires once it lands.           |
+| `Clock`    | — (local)          | Wall clock. Never replicates.                          |
+| `Ticker`   | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes. |
+
+**Control** — the operator's board:
+
+| Component      | Writes             | Notes                                                           |
+| -------------- | ------------------ | --------------------------------------------------------------- |
+| `Field`        | `variables.<name>` | Text or `as="textarea"`. Debounced, uncontrolled while focused. |
+| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`.                     |
+| `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.   |
+| `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                     |
+| `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                           |
+| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                        |
+| `ResetButton`  | any paths          | Unsets them. `confirm` asks first.                              |
+| `TimerButton`  | `timers.<name>`    | Start/stop a duration (`'5:00'`).                               |
+| `Countdown`    | `timers.<name>`    | Counts to a wall-clock time, not a duration.                    |
+| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view.                |
+| `Panel`        | —                  | Titled group. Children wrap in a flex row.                      |
+| `Break`        | —                  | Forces a line break inside a `Panel`.                           |
+
 ## Browser requirements
 
 A studio needs a `SharedWorker` that can load an ES module — `new SharedWorker(url, { type: 'module' })`:

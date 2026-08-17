@@ -47,15 +47,15 @@ await source.waitForSelector('.ss-scene')
 await source.waitForTimeout(1500)
 
 // innerText reflects CSS text-transform, so compare case-insensitively.
-const board = () => source.locator('.ss-scene').innerText().then((t) => t.replace(/\s+/g, ' ').trim().toLowerCase())
-console.log(`  scoreboard: ${JSON.stringify(await board())}`)
-check((await board()).includes('broncos'), 'source received the team name across tabs')
-check(/\b2\b/.test(await board()), 'source received the score across tabs')
+const scoreboardText = () => source.locator('.ss-scene').innerText().then((t) => t.replace(/\s+/g, ' ').trim().toLowerCase())
+console.log(`  scoreboard: ${JSON.stringify(await scoreboardText())}`)
+check((await scoreboardText()).includes('broncos'), 'source received the team name across tabs')
+check(/\b2\b/.test(await scoreboardText()), 'source received the score across tabs')
 
 // Live propagation while both pages are open.
 await homeName.fill('Vandals')
 await control.waitForTimeout(900)
-check((await board()).includes('vandals'), 'edits propagate live to an open source')
+check((await scoreboardText()).includes('vandals'), 'edits propagate live to an open source')
 
 // Toggle drives a second graphic.
 const lower = await context.newPage()
@@ -70,7 +70,37 @@ check((await lower.locator('.ss-scene').innerText()).toLowerCase().includes('jan
 await source.reload()
 await source.waitForSelector('.ss-scene')
 await source.waitForTimeout(1500)
-check((await board()).includes('vandals'), 'state survived a source reload (IndexedDB)')
+check((await scoreboardText()).includes('vandals'), 'state survived a source reload (IndexedDB)')
+
+// Leaderboard: a paste into the raw view drives the standings graphic, which reads
+// the whole board from one subscription.
+const standings = await context.newPage()
+await standings.goto(`${BASE}/#/source/standings`)
+await standings.waitForSelector('.ss-scene')
+
+await control.locator('button:has-text("Show standings")').click()
+await control.locator('.ss-leaderboard textarea').fill('Kim\t12\nAlvarez\t9\nOkafor\t7')
+await control.waitForTimeout(900)
+
+const standingsText = (await standings.locator('.ss-scene').innerText()).replace(/\s+/g, ' ').trim()
+console.log(`  standings: ${JSON.stringify(standingsText)}`)
+check(/Kim/.test(standingsText) && /Alvarez/.test(standingsText) && /Okafor/.test(standingsText), 'leaderboard paste reaches the standings graphic')
+check(/12/.test(standingsText) && /9/.test(standingsText), 'leaderboard scores parse into their own column')
+
+// Table view edits the same single path, so the graphic follows either way.
+await control.locator('.ss-leaderboard button:has-text("Table")').click()
+await control.locator('.ss-leaderboard input[aria-label="Place 1 name"]').fill('Nakamura')
+await control.waitForTimeout(900)
+check(/Nakamura/.test(await standings.locator('.ss-scene').innerText()), 'table view writes back to the same path')
+
+// Image: the team name drives the logo through slugify.
+const logo = source.locator('.ss-image img').first()
+check((await logo.getAttribute('src')) === './logos/vandals.svg', 'team name resolves a logo through slugify')
+
+// ResetButton unsets rather than blanking, so the source falls back to its default.
+await control.locator('button[title="Reset scores"]').click()
+await control.waitForTimeout(800)
+check(/\b0\b/.test(await scoreboardText()), 'reset clears the score back to its fallback')
 
 // The capability guard. Simulate a browser whose SharedWorker predates the options
 // object -- it coerces { type: 'module' } to a name and loads the script as a

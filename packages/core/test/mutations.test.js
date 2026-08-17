@@ -135,6 +135,34 @@ describe('mutations', () => {
 
       expect(Doc.read(doc, 'timers.break')).toBeUndefined()
     })
+
+    it('accepts an absolute target, for a wall-clock countdown', () => {
+      const at = Date.now() + 3_600_000
+
+      run(doc, 'timer', { 'timers.show': { at, input: '19:00' } })
+
+      expect(Doc.read(doc, 'timers.show')).toMatchObject({ ts: at, input: '19:00' })
+    })
+
+    it('derives a duration from an absolute target', () => {
+      const at = Date.now() + 60_000
+
+      run(doc, 'timer', { 'timers.show': { at } })
+
+      expect(Doc.read(doc, 'timers.show').duration).toBeGreaterThan(58_000)
+    })
+
+    it('clears rather than starting a countdown already in the past', () => {
+      run(doc, 'timer', { 'timers.show': { at: Date.now() - 1_000 } })
+
+      expect(Doc.read(doc, 'timers.show')).toBeUndefined()
+    })
+
+    it('omits input when none was given, so the stored object stays clean', () => {
+      run(doc, 'timer', { 'timers.break': 90_000 })
+
+      expect(Doc.read(doc, 'timers.break')).not.toHaveProperty('input')
+    })
   })
 
   describe('clear', () => {

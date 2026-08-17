@@ -42,8 +42,11 @@ export function useTimer(path) {
       active: remaining > 0,
       remaining,
       duration: timer?.duration ?? 0,
+      // The operator's raw entry, when one was stored -- lets a Countdown field
+      // repopulate after a reload instead of coming back empty.
+      input: timer?.input,
       text: formatDuration(remaining),
     }),
-    [remaining, timer?.duration],
+    [remaining, timer?.duration, timer?.input],
   )
 }

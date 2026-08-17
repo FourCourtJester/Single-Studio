@@ -98,17 +98,32 @@ export const mutations = {
     }
   },
 
-  /** Start a countdown. Stored as an absolute epoch so no peer has to tick. */
+  /**
+   * Start a countdown. Always stored as an absolute epoch so no peer has to tick.
+   *
+   * Accepts a duration in milliseconds (`{ 'timers.break': 90_000 }`) or an
+   * absolute target (`{ 'timers.show': { at, input } }`). The second form is what
+   * a wall-clock countdown needs, and keeping both here means a component never
+   * has to know the stored shape. `input` round-trips the operator's raw entry so
+   * the field can repopulate. A non-positive or past target clears the timer.
+   */
   timer(ctx, payload) {
-    for (const [path, duration] of toEntries(payload)) {
-      const ms = Number(duration)
+    const now = Date.now()
 
-      if (!Number.isFinite(ms) || ms <= 0) {
+    for (const [path, value] of toEntries(payload)) {
+      const spec = value && typeof value === 'object' ? value : { duration: value }
+      const at = spec.at !== undefined ? Number(spec.at) : now + Number(spec.duration)
+
+      if (!Number.isFinite(at) || at <= now) {
         writeOne(ctx, path, undefined)
         continue
       }
 
-      ctx.state.set(normalize(path), { ts: Date.now() + ms, duration: ms })
+      const timer = { ts: at, duration: spec.duration !== undefined ? Number(spec.duration) : at - now }
+
+      if (spec.input) timer.input = String(spec.input)
+
+      ctx.state.set(normalize(path), timer)
     }
   },
 

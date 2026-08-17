@@ -1,4 +1,4 @@
-import { Field, Panel, Stepper, SwapButton } from '@single-studio/core'
+import { Break, Field, Panel, ResetButton, Select, Stepper, SwapButton } from '@single-studio/core'
 
 // Your operator's board. Every control binds to a path; writes land as you type,
 // so there is no save step.
@@ -10,6 +10,9 @@ export default function Control() {
       <Stepper name="away.score" label="Away score" />
       <Field name="away.name" label="Away" placeholder="Away team" />
       <SwapButton label="sides" paths={['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name']} />
+      <Break />
+      <Select name="period" label="Period" options={['1st', '2nd', '3rd', 'OT']} />
+      <ResetButton label="scores" paths={['variables.home.score', 'variables.away.score']} />
     </Panel>
   )
 }
