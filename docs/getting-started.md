@@ -88,6 +88,25 @@ const mutate = useVelcroMutate()
 <button onClick={() => mutate('my:new-period')}>New period</button>
 ```
 
+## Browser requirements
+
+A studio needs a `SharedWorker` that can load an ES module — `new SharedWorker(url, { type: 'module' })`:
+
+| Browser       | Minimum |
+| ------------- | ------- |
+| Chrome / Edge | 83      |
+| Firefox       | 114     |
+| Safari        | 16      |
+
+All three engines have supported this since mid-2023, so in practice any current
+browser works. The OBS dock runs on CEF (Chromium), and remote operators on the
+collaboration path can use whatever they already have.
+
+One sharp edge worth knowing: a browser too old to understand the options object
+treats the second argument as the worker's _name_ rather than erroring, so the
+script loads as a classic worker and its `import` statements fail instead. It
+presents as a broken worker, not as an unsupported-feature message.
+
 ## Styling
 
 Tailwind v4. A studio's CSS entry needs three lines:
