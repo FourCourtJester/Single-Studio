@@ -1,5 +1,5 @@
 services:
-  react:
+  single-studio:
     build: ./
     command: sleep infinity
     # Host networking is load-bearing, not incidental: OBS WebSocket listens on
