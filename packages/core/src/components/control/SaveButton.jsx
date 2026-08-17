@@ -36,7 +36,7 @@ export function SaveButton({ className, ...rest }) {
   }, [save])
 
   return (
-    <div className={cx('ss-save flex items-center gap-2', className)} {...rest}>
+    <div className={cx('ss-save flex shrink-0 items-center gap-2', className)} {...rest}>
       {pending ? (
         <button
           type="button"
@@ -54,7 +54,7 @@ export function SaveButton({ className, ...rest }) {
         title={`Save changes (${isMac() ? '⌘' : 'Ctrl'}+S)`}
         aria-keyshortcuts={isMac() ? 'Meta+S' : 'Control+S'}
         className={cx(
-          'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+          'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
           pending ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-600',
         )}
       >

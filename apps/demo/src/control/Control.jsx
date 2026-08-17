@@ -53,7 +53,7 @@ export default function Control() {
       </Panel>
 
       <Panel title="Ticker">
-        <Field name="ticker" label="Crawl text" as="textarea" rows={2} className="min-w-80 grow" />
+        <Field name="ticker" label="Crawl text" as="textarea" rows={2} className="basis-full" />
       </Panel>
 
       <Panel title="Match">

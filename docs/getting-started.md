@@ -147,6 +147,41 @@ const mutate = useVelcroMutate()
 | `Panel`        | —                  | Titled group. Children wrap in a flex row.                      |
 | `Break`        | —                  | Forces a line break inside a `Panel`.                           |
 
+## Sizing for the dock
+
+An OBS dock is either a narrow column pinned down one side or most of a monitor, and
+the same board has to work at both. `Panel` handles that by default: children grow to
+fill the row, wrap when they cannot, and never push the panel wider than the dock.
+
+```jsx
+<Panel title="Teams">
+  <Field name="home.name" label="Home" />
+  <Stepper name="home.score" label="Home score" />
+  <Break /> {/* force a row break */}
+  <Leaderboard name="standings" /> {/* compound controls take a row */}
+</Panel>
+```
+
+Retune where it wraps with `--ss-control-min` (default `12rem`), globally or per panel:
+
+```css
+.ss-control {
+  --ss-control-min: 9rem;
+} /* pack tighter */
+.ss-panel:has(.ss-leaderboard) {
+  --ss-control-min: 100%;
+} /* one per row */
+```
+
+Two rules make this work and are worth knowing if you write your own layout:
+`min-width: 0` is what lets a flex item shrink below its content at all, and
+`max-width: 100%` is what stops a wide control from forcing a horizontal scrollbar
+across the whole board. A control with a hard `min-w-*` will escape a narrow dock —
+that is the one thing to avoid.
+
+The smoke test asserts a 260px dock has no horizontal scroll and that no control
+escapes it.
+
 ## Saving
 
 Free-text controls stage their edits and commit on save. Typing does not reach air:

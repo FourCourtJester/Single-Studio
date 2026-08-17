@@ -225,6 +225,61 @@ console.log(`  first paint: ${JSON.stringify(painted[0] ?? null)}`)
 check(!painted.some((frame) => /\bHOME\b/i.test(frame)), 'the fallback never flashes on air during a reload')
 check(painted.length > 0 && /vandals/i.test(painted[0]), 'the first thing painted already has real values in it')
 
+// -- Ticker geometry ---------------------------------------------------------
+// A percentage transform resolves against the element's own width, so the crawl
+// used to start one text-width in from the left -- visibly partway across for a
+// short message -- and travel a different distance than its duration assumed.
+const ticker = await context.newPage()
+await control.locator('.ss-field:has-text("Crawl text") textarea').fill('Short message')
+await save()
+await ticker.goto(`${BASE}/#/source/ticker`)
+await ticker.waitForSelector('.ss-ticker-track', { timeout: 5000 })
+
+const crawl = await ticker.evaluate(() => {
+  const viewport = document.querySelector('.ss-ticker')
+  const track = document.querySelector('.ss-ticker-track')
+  const style = getComputedStyle(track)
+
+  return {
+    across: viewport.clientWidth,
+    content: track.scrollWidth,
+    from: style.getPropertyValue('--ss-ticker-from').trim(),
+    to: style.getPropertyValue('--ss-ticker-to').trim(),
+    duration: parseFloat(style.animationDuration),
+  }
+})
+
+console.log(`  ticker: ${JSON.stringify(crawl)}`)
+check(crawl.from === `${crawl.across}px`, 'the crawl starts one full viewport-width off the right edge')
+check(crawl.to === `${-crawl.content}px`, 'the crawl ends one full text-width off the left edge')
+// speed is 120px/s in the demo, and distance must match the duration or the crawl
+// moves at the wrong rate for its length.
+check(Math.abs(crawl.duration - (crawl.across + crawl.content) / 120) < 0.05, 'duration matches the distance actually travelled')
+
+// -- Narrow dock -------------------------------------------------------------
+// An OBS dock can be a narrow column. Nothing may overflow it horizontally --
+// a board you have to scroll sideways during a show is unusable.
+const narrow = await browser.newContext({ viewport: { width: 260, height: 900 } })
+const dock = await narrow.newPage()
+await dock.goto(`${BASE}/#/`)
+await dock.waitForSelector('text=Teams')
+await dock.waitForTimeout(900)
+
+const overflow = await dock.evaluate(() => {
+  const root = document.documentElement
+  const widest = [...document.querySelectorAll('.ss-panel, .ss-panel-body > *')]
+    .map((el) => Math.round(el.getBoundingClientRect().right))
+    .reduce((max, right) => Math.max(max, right), 0)
+
+  return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth, widestRight: widest }
+})
+
+console.log(`  narrow dock: ${JSON.stringify(overflow)}`)
+check(overflow.scrollWidth <= overflow.clientWidth + 1, 'a 260px dock has no horizontal scroll')
+check(overflow.widestRight <= overflow.clientWidth + 1, 'no control escapes a 260px dock')
+
+await narrow.close()
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is

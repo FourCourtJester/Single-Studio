@@ -53,14 +53,59 @@
     height: 1080px;
     transform-origin: top left;
   }
+
+  /*
+   * The control surface has to survive both shapes an OBS dock takes: a narrow
+   * column pinned down one side, and most of a monitor. Rather than ask every
+   * studio to get that right, a Panel lays its children out so the same markup
+   * works at either extreme.
+   *
+   * Each control grows to fill the row and wraps when it cannot fit. The two
+   * declarations that do the real work are easy to leave out and painful to debug:
+   * `min-width: 0` is what allows a flex item to shrink below its content width at
+   * all, and `max-width: 100%` is what stops a wide control -- a textarea, a long
+   * button label -- from pushing the panel wider than the dock and giving the whole
+   * board a horizontal scrollbar.
+   *
+   * Retune the wrap point with --ss-control-min, per panel or globally.
+   */
+  .ss-panel-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+  }
+
+  .ss-panel-body > * {
+    flex: 1 1 var(--ss-control-min, 12rem);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Compound and structural children take a row to themselves. */
+  .ss-panel-body > .ss-break,
+  .ss-panel-body > .ss-leaderboard {
+    flex-basis: 100%;
+  }
 }
 
+/*
+ * Ticker travel, in measured pixels.
+ *
+ * The offsets come from the component as custom properties: --ss-ticker-from is
+ * one viewport-width to the right, --ss-ticker-to is one text-width to the left.
+ * They cannot be percentages, because a percentage transform resolves against the
+ * element's own width -- translateX(100%) on a short message only pushes it one
+ * text-width across, which is still inside the viewport, so the crawl appeared to
+ * start partway in. The percentage fallbacks below only apply if a Ticker somehow
+ * renders before it has been measured.
+ */
 @keyframes ss-ticker-scroll {
   from {
-    transform: translateX(100%);
+    transform: translateX(var(--ss-ticker-from, 100%));
   }
   to {
-    transform: translateX(-100%);
+    transform: translateX(var(--ss-ticker-to, -100%));
   }
 }
 

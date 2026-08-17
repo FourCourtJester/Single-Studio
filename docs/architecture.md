@@ -249,6 +249,20 @@ unload/reload cycles, plus a recorder installed via `addInitScript` that capture
 every frame the source ever displayed and asserts the fallback never appears among
 them.
 
+## Sizing
+
+The control surface has two shapes to survive — a narrow OBS dock and a full screen
+— so `Panel` owns the responsive behaviour rather than each studio reinventing it.
+Children flex to `--ss-control-min` (12rem), wrap, and are clamped to the container
+width. See `.ss-panel-body`.
+
+`Ticker` measures its travel rather than expressing it in percentages. A percentage
+transform resolves against the element's own width, so `translateX(100%)` on a short
+message only moved it one text-width across — still inside the viewport — and the
+distance travelled disagreed with the duration, so `speed` did not mean pixels per
+second. The offsets now come from measurement and reach the keyframes as custom
+properties, re-measured on resize.
+
 ## Services
 
 None ship yet. The base class exists because the old OBS, Sheets, and Rocket
