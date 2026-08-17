@@ -1,0 +1,50 @@
+{
+  // Formatting is Prettier, linting is ESLint. These were the same tool before
+  // (eslint-config-wesbos ran Prettier as an ESLint rule); the flat config here
+  // keeps them separate, so the default formatter moves to Prettier.
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "git.enableSmartCommit": true,
+  "json.format.enable": true,
+
+  "eslint.enable": true,
+  "eslint.lintTask.enable": true,
+  // eslint.config.js is flat config, which ESLint 9 needs told explicitly on
+  // some extension versions.
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
+  // Tailwind v4 keeps its config in CSS, so the language server needs pointing
+  // at the entry that imports it.
+  "tailwindCSS.experimental.configFile": "apps/demo/src/index.css",
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

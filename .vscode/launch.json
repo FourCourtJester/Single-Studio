@@ -1,0 +1,50 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start demo studio",
+      "cwd": "${workspaceFolder}",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["demo"],
+      "type": "node",
+      "console": "integratedTerminal"
+    },
+    {
+      // The control surface. Same URL you point the OBS dock at.
+      "name": "Debug control surface",
+      "request": "launch",
+      "type": "chrome",
+      "url": "http://localhost:5173/#/",
+      "webRoot": "${workspaceFolder}/apps/demo/src"
+    },
+    {
+      // A single graphic, as OBS would load it. Change the source name to taste.
+      "name": "Debug source (scoreboard)",
+      "request": "launch",
+      "type": "chrome",
+      "url": "http://localhost:5173/#/source/scoreboard",
+      "webRoot": "${workspaceFolder}/apps/demo/src"
+    },
+    {
+      "name": "Test core (vitest)",
+      "cwd": "${workspaceFolder}/packages/core",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["test"],
+      "type": "node",
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      // Note: breakpoints inside the SharedWorker will not bind here. Inspect it
+      // at chrome://inspect/#workers instead.
+      "name": "Demo: server + control surface",
+      "configurations": ["Start demo studio", "Debug control surface"]
+    }
+  ]
+}
