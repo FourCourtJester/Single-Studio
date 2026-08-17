@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { UnsupportedPage } from '../pages/Unsupported'
 import { createVelcroClient } from '../velcro/client'
+import { DraftProvider } from './DraftProvider'
 import { getSupport } from '../velcro/support'
 import { StudioContext } from './context'
 
@@ -34,7 +35,11 @@ function Provider({ studio, children, fallback }) {
 
   if (!ready && fallback) return fallback
 
-  return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>
+  return (
+    <StudioContext.Provider value={value}>
+      <DraftProvider>{children}</DraftProvider>
+    </StudioContext.Provider>
+  )
 }
 
 /**

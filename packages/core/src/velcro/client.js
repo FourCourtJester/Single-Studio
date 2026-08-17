@@ -72,6 +72,13 @@ export class VelcroClient {
   }
 
   #receive(data) {
+    // The opening value for a subscription comes back down the port rather than
+    // over the channel -- see the note in host.js subscribe().
+    if (data?.type === 'value') {
+      this.#deliver(data.path, data.value)
+      return
+    }
+
     if (!data?.type?.endsWith(':result')) return
 
     const resolver = this.#pending.get(data.id)
@@ -80,6 +87,17 @@ export class VelcroClient {
 
     this.#pending.delete(data.id)
     resolver(data.value)
+  }
+
+  /** Fan a value out to everything listening on a path, from either transport. */
+  #deliver(path, value) {
+    const entry = this.#subs.get(path)
+
+    if (!entry || entry.closed) return
+
+    entry.value = value
+
+    for (const fn of entry.listeners) fn(value)
   }
 
   #request(type, extra = {}) {
@@ -132,11 +150,10 @@ export class VelcroClient {
       this.ready().then(() => {
         if (entry.closed) return
 
+        // Channel first, then ask: subsequent changes fan out over the channel, and
+        // it has to be listening before the host can publish one.
         entry.channel = new BroadcastChannel(channelFor(this.#name, key))
-        entry.channel.addEventListener('message', ({ data }) => {
-          entry.value = data.value
-          for (const fn of entry.listeners) fn(data.value)
-        })
+        entry.channel.addEventListener('message', ({ data }) => this.#deliver(data.path, data.value))
 
         this.#port.postMessage({ type: 'subscribe', path: key })
       })

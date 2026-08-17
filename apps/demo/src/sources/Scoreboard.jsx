@@ -16,7 +16,7 @@ export default function Scoreboard() {
           <Image name="home.name" src="./logos/:value:.svg" slug fallback="./logos/placeholder.svg" alt="" />
         </div>
         <div className="flex w-56 items-center justify-end px-4 py-3 text-2xl font-semibold uppercase tracking-wide">
-          <Variable name="home.name" fallback="Home" fit />
+          <Variable name="home.name" fallback="Home" fit className="home-name" />
         </div>
         <div className="flex w-20 items-center justify-center bg-sky-600 text-4xl font-bold">
           <Variable name="home.score" fallback="0" />
@@ -31,7 +31,7 @@ export default function Scoreboard() {
           <Variable name="away.score" fallback="0" />
         </div>
         <div className="flex w-56 items-center px-4 py-3 text-2xl font-semibold uppercase tracking-wide">
-          <Variable name="away.name" fallback="Away" fit />
+          <Variable name="away.name" fallback="Away" fit className="away-name" />
         </div>
         <div className="flex w-12 items-center justify-center bg-white/5 p-1.5">
           <Image name="away.name" src="./logos/:value:.svg" slug fallback="./logos/placeholder.svg" alt="" />

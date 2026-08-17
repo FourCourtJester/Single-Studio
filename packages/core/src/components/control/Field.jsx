@@ -1,55 +1,49 @@
-import { useEffect, useId, useRef } from 'react'
+import { useId } from 'react'
 
-import { useVelcroMutate } from '../../hooks/useVelcroMutate'
-import { useVelcroValue } from '../../hooks/useVelcroValue'
+import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 
 /**
- * Text input bound to a path.
+ * Text input bound to a path, staged until saved.
  *
- * Uncontrolled on purpose. A controlled input round-trips every keystroke
- * through the worker, which fights the operator's cursor; instead the DOM owns
- * the value while focused and Velcro only writes back over it when the change
- * came from somewhere else. That is also exactly the behaviour multi-operator
- * editing needs later.
+ * Nothing here reaches air as you type. An operator types at their own pace and
+ * revises mid-word; writing every keystroke through would put "Vand" on the lower
+ * third while somebody was still thinking. Save commits it — button, Ctrl/Cmd+S,
+ * or Enter. Escape abandons this field's edit.
+ *
+ * Controlled is safe now that edits are local: there is no round-trip through the
+ * worker to fight the cursor. And while a field is dirty its staged value wins over
+ * the store, so a remote change cannot yank text out from under an operator
+ * mid-edit.
  */
-export function Field({ name, label, placeholder, as = 'input', rows = 3, namespace = 'variables', debounce = 250, className, ...rest }) {
+export function Field({ name, label, placeholder, as = 'input', rows = 3, namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
-  const value = useVelcroValue(path, '')
-  const mutate = useVelcroMutate()
-  const ref = useRef(null)
-  const timer = useRef(null)
+  const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const id = useId()
   const Tag = as === 'textarea' ? 'textarea' : 'input'
 
-  useEffect(() => {
-    const element = ref.current
-
-    if (!element || element === document.activeElement) return
-
-    element.value = value ?? ''
-  }, [value])
-
-  const onChange = (event) => {
-    const next = event.target.value
-
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => mutate('set', { [path]: next }), debounce)
-  }
-
-  useEffect(() => () => clearTimeout(timer.current), [])
-
   return (
     <label className={cx('ss-field flex flex-col gap-1', className)} htmlFor={id}>
-      {label ? <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span> : null}
+      {label ? (
+        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+          {label}
+          {/* Unsaved marker. An operator has to be able to see at a glance that
+              what is on their screen is not what is on air. */}
+          {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+        </span>
+      ) : null}
       <Tag
-        ref={ref}
         id={id}
         rows={as === 'textarea' ? rows : undefined}
         placeholder={placeholder ?? label ?? name}
-        defaultValue={value ?? ''}
-        onChange={onChange}
-        className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:border-sky-500"
+        value={value ?? ''}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        data-dirty={dirty ? '' : undefined}
+        className={cx(
+          'rounded-md border bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors placeholder:text-slate-600',
+          dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-slate-700 focus:border-sky-500',
+        )}
         {...rest}
       />
     </label>

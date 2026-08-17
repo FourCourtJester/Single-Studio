@@ -2,9 +2,10 @@
 //
 // Unit tests cover the store in isolation; this covers the parts that only exist
 // in a browser -- SharedWorker startup, BroadcastChannel fan-out between tabs,
-// and IndexedDB persistence across a reload. It is the test that catches wiring
+// IndexedDB persistence, and animation timing. It is the test that catches wiring
 // bugs a unit test cannot see, like a channel-name mismatch that leaves the UI
-// looking connected while talking to nobody.
+// looking connected while talking to nobody, or a transition that swaps its
+// content at the wrong moment.
 //
 // Usage: pnpm --filter @single-studio/demo build && pnpm --filter @single-studio/demo preview
 //        node apps/demo/e2e/smoke.mjs http://localhost:4173
@@ -13,102 +14,182 @@ import { chromium } from 'playwright'
 
 const BASE = process.argv[2] ?? 'http://localhost:4173'
 let failed = 0
-const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failed += 1 }
+const check = (ok, msg) => {
+  console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`)
+  if (!ok) failed += 1
+}
+
+/**
+ * Poll for a condition instead of sleeping and hoping.
+ *
+ * Positive assertions ("this becomes true") race worker round-trips and a 300ms
+ * transition cycle, so a fixed sleep either flakes or wastes time -- this one
+ * flaked. Negative assertions ("this must never happen") keep their fixed waits
+ * below, because there is nothing to poll for: you have to wait a bounded time and
+ * then confirm nothing arrived.
+ */
+const becomes = async (page, fn, arg = null) => {
+  try {
+    await page.waitForFunction(fn, arg, { timeout: 5000 })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Runs in the page; the needle arrives as becomes()'s argument. */
+const sceneHas = (needle) => document.querySelector('.ss-scene')?.innerText.toLowerCase().includes(needle)
 
 // CHROMIUM_PATH lets a sandbox point at a preinstalled browser; otherwise
 // Playwright resolves its own.
 const executablePath = process.env.CHROMIUM_PATH || undefined
 const browser = await chromium.launch({ executablePath })
-const context = await browser.newContext()
+// Pinned explicitly: the stylesheet collapses transitions to 1ms under
+// prefers-reduced-motion, which would make the timing assertions meaningless.
+const context = await browser.newContext({ reducedMotion: 'no-preference' })
 
 const control = await context.newPage()
 control.on('pageerror', (e) => console.log('[control pageerror]', e.message))
 await control.goto(`${BASE}/#/`)
 await control.waitForSelector('text=Teams')
-// Wait for the host handshake before driving the UI.
 await control.waitForFunction(() => document.querySelectorAll('.ss-stepper output').length > 0)
 await control.waitForTimeout(1000)
 
 const homeName = control.locator('.ss-field:has-text("Home") input').first()
-const homeScore = control.locator('.ss-stepper').filter({ hasText: 'Home score' }).locator('output')
-
-await homeName.fill('Broncos')
-await control.locator('button[aria-label="Increase Home score"]').click()
-await control.locator('button[aria-label="Increase Home score"]').click()
-await control.waitForTimeout(800)
-
-check((await homeScore.innerText()).trim() === '2', 'two increments read as 2 on the control surface')
+const saveButton = control.locator('.ss-save button').last()
+/**
+ * Ctrl+S on the control page.
+ *
+ * bringToFront() is load-bearing. Unlike click() and fill(), page.keyboard does not
+ * focus the page first, so a keypress aimed at a background tab can be dropped --
+ * and this test drives three tabs. Without it the save silently does nothing and a
+ * later assertion fails somewhere unrelated, which is exactly how this flaked.
+ */
+const save = async () => {
+  await control.bringToFront()
+  await control.keyboard.press('Control+s')
+}
 
 // A graphic in a separate tab: same browser, therefore same SharedWorker.
 const source = await context.newPage()
 source.on('pageerror', (e) => console.log('[source pageerror]', e.message))
 await source.goto(`${BASE}/#/source/scoreboard`)
 await source.waitForSelector('.ss-scene')
-await source.waitForTimeout(1500)
+await source.waitForTimeout(1200)
 
 // innerText reflects CSS text-transform, so compare case-insensitively.
-const scoreboardText = () => source.locator('.ss-scene').innerText().then((t) => t.replace(/\s+/g, ' ').trim().toLowerCase())
-console.log(`  scoreboard: ${JSON.stringify(await scoreboardText())}`)
-check((await scoreboardText()).includes('broncos'), 'source received the team name across tabs')
-check(/\b2\b/.test(await scoreboardText()), 'source received the score across tabs')
+const scoreboardText = () =>
+  source
+    .locator('.ss-scene')
+    .innerText()
+    .then((t) => t.replace(/\s+/g, ' ').trim().toLowerCase())
 
-// Live propagation while both pages are open.
+// -- Staged edits ------------------------------------------------------------
+// Typing must not reach air. An operator revises mid-word, and every intermediate
+// state of that would otherwise be on screen.
+await homeName.fill('Broncos')
+await control.waitForTimeout(700)
+check(!(await scoreboardText()).includes('broncos'), 'typing does not reach the graphic before a save')
+check((await saveButton.textContent()).includes('1 change'), 'the board reports one unsaved change')
+
+await save()
+check(await becomes(source, sceneHas, 'broncos'), 'Ctrl+S commits the edit to the graphic')
+check(await becomes(control, () => /Saved/.test(document.querySelector('.ss-save button:last-of-type')?.textContent ?? '')), 'the board reports itself saved again')
+
+// Buttons stay immediate -- a stepper is one deliberate act with no half-typed state.
+await control.locator('button[aria-label="Increase Home score"]').click()
+await control.locator('button[aria-label="Increase Home score"]').click()
+check(await becomes(control, () => document.querySelector('.ss-stepper output')?.textContent.trim() === '2'), 'two increments read as 2 on the control surface')
+check(await becomes(source, sceneHas, '2'), 'button presses reach the graphic with no save')
+
+// -- Transition ordering -----------------------------------------------------
+// The regression that matters: content must swap at the *bottom* of the cycle. If
+// it swaps on the way out, the new value shows inside the old value's outgoing
+// animation -- it changes, then fades out, then fades in.
+await source.evaluate(() => {
+  const element = document.querySelector('.home-name')
+
+  window.__frames = []
+
+  const record = () => window.__frames.push([element.dataset.state, element.textContent.trim()])
+
+  record()
+  new MutationObserver(record).observe(element, { attributes: true, childList: true, subtree: true, characterData: true })
+})
+
 await homeName.fill('Vandals')
-await control.waitForTimeout(900)
-check((await scoreboardText()).includes('vandals'), 'edits propagate live to an open source')
+await save()
+await source.waitForFunction(() => document.querySelector('.home-name')?.dataset.state === 'active' && /Vandals/i.test(document.body.textContent), null, {
+  timeout: 5000,
+})
+await source.waitForTimeout(200)
 
-// Toggle drives a second graphic.
+const frames = await source.evaluate(() => window.__frames)
+const seen = (state, text) => frames.some(([s, t]) => s === state && new RegExp(text, 'i').test(t))
+
+console.log(`  transition: ${JSON.stringify(frames)}`)
+check(seen('exiting', 'Broncos'), 'the old value is what fades out')
+check(!seen('exiting', 'Vandals'), 'the new value never appears during the exit')
+check(seen('active', 'Vandals'), 'the new value ends up active')
+
+// -- Other graphics ----------------------------------------------------------
 const lower = await context.newPage()
 await lower.goto(`${BASE}/#/source/lowerthird`)
 await lower.waitForSelector('.ss-scene')
 await control.locator('.ss-field:has-text("Title") input').first().fill('Jane Doe')
+await save()
 await control.locator('button:has-text("Show lower third")').click()
-await control.waitForTimeout(1200)
-check((await lower.locator('.ss-scene').innerText()).toLowerCase().includes('jane doe'), 'toggle reveals the lower third with its text')
+check(await becomes(lower, sceneHas, 'jane doe'), 'toggle reveals the lower third with its text')
 
-// Reload: state must come back from IndexedDB.
-await source.reload()
-await source.waitForSelector('.ss-scene')
-await source.waitForTimeout(1500)
-check((await scoreboardText()).includes('vandals'), 'state survived a source reload (IndexedDB)')
-
-// Leaderboard: a paste into the raw view drives the standings graphic, which reads
-// the whole board from one subscription.
+// Leaderboard: a paste drives the standings graphic, which reads the whole board
+// from one subscription.
 const standings = await context.newPage()
 await standings.goto(`${BASE}/#/source/standings`)
 await standings.waitForSelector('.ss-scene')
 
 await control.locator('button:has-text("Show standings")').click()
 await control.locator('.ss-leaderboard textarea').fill('Kim\t12\nAlvarez\t9\nOkafor\t7')
-await control.waitForTimeout(900)
+await save()
+check(await becomes(standings, sceneHas, 'okafor'), 'standings graphic receives the pasted board')
 
 const standingsText = (await standings.locator('.ss-scene').innerText()).replace(/\s+/g, ' ').trim()
 console.log(`  standings: ${JSON.stringify(standingsText)}`)
 check(/Kim/.test(standingsText) && /Alvarez/.test(standingsText) && /Okafor/.test(standingsText), 'leaderboard paste reaches the standings graphic')
 check(/12/.test(standingsText) && /9/.test(standingsText), 'leaderboard scores parse into their own column')
 
-// Table view edits the same single path, so the graphic follows either way.
+// Table view edits the same single path.
 await control.locator('.ss-leaderboard button:has-text("Table")').click()
 await control.locator('.ss-leaderboard input[aria-label="Place 1 name"]').fill('Nakamura')
-await control.waitForTimeout(900)
-check(/Nakamura/.test(await standings.locator('.ss-scene').innerText()), 'table view writes back to the same path')
+await save()
+check(await becomes(standings, sceneHas, 'nakamura'), 'table view writes back to the same path')
+
+// Escape abandons a single field's edit rather than committing it.
+await homeName.fill('Typo')
+await homeName.press('Escape')
+check(await becomes(control, () => document.querySelector('.ss-field input')?.value === 'Vandals'), 'Escape reverts a field to the stored value')
 
 // Image: the team name drives the logo through slugify.
-const logo = source.locator('.ss-image img').first()
-check((await logo.getAttribute('src')) === './logos/vandals.svg', 'team name resolves a logo through slugify')
+check((await source.locator('.ss-image img').first().getAttribute('src')) === './logos/vandals.svg', 'team name resolves a logo through slugify')
 
 // ResetButton unsets rather than blanking, so the source falls back to its default.
 await control.locator('button[title="Reset scores"]').click()
-await control.waitForTimeout(800)
-check(/\b0\b/.test(await scoreboardText()), 'reset clears the score back to its fallback')
+check(await becomes(source, () => /\b0\b/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'reset clears the score back to its fallback')
 
-// The capability guard. Simulate a browser whose SharedWorker predates the options
-// object -- it coerces { type: 'module' } to a name and loads the script as a
-// classic worker, which is the silent failure the guard exists to convert into a
-// visible one.
+// Reload: state must come back from IndexedDB.
+await source.reload()
+await source.waitForSelector('.ss-scene')
+// This is the assertion that flaked on a fixed sleep: after a reload the value
+// arrives, then has to travel a full 300ms exit/enter cycle before it is on screen.
+check(await becomes(source, sceneHas, 'vandals'), 'state survived a source reload')
+
+// -- Capability guard --------------------------------------------------------
+// Simulate a browser whose SharedWorker predates the options object -- it coerces
+// { type: 'module' } to a name and loads the script as a classic worker, which is
+// the silent failure the guard exists to convert into a visible one.
 const legacy = await context.newPage()
 await legacy.addInitScript(() => {
   const Real = window.SharedWorker
+
   window.SharedWorker = class {
     constructor(url, nameOrOptions) {
       // Never reads .type, exactly as a pre-2020 implementation would not.

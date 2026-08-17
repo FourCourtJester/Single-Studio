@@ -162,8 +162,11 @@ Surface two things, because with _hired_ operators they aren't cosmetic:
 - **Connection state** on the control surface — connected, reconnecting, offline
   and local-only. An operator must never be unsure whether their edits are landing.
 - **Field-level presence** — who is editing what. Two operators fighting over one
-  player-name field is the most likely day-one annoyance, and `Field` is already
-  uncontrolled-while-focused, which is exactly the behaviour presence needs.
+  player-name field is the most likely day-one annoyance. The staged-edit model
+  already gives this most of its foundation: an edit is local until saved, and a
+  dirty field's staged value wins over the store, so presence is a matter of
+  broadcasting _which paths someone has staged_ rather than inventing a locking
+  scheme.
 
 **Done when:** an operator's board visibly shows the host going offline and
 recovering, without a reload.

@@ -62,10 +62,24 @@ browser gets an explanation rather than a board where nothing updates.
 
 ### Transport split
 
-| Direction      | Mechanism                        | Why                                                                            |
-| -------------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| client → host  | `MessagePort`                    | Per-client and ordered, and the host knows who sent what.                      |
-| host → clients | `BroadcastChannel`, one per path | A lower third bound to `variables.home.name` is never woken by the shot clock. |
+| Direction           | Mechanism                        | Why                                                                                                |
+| ------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| client → host       | `MessagePort`                    | Per-client and ordered, and the host knows who sent what.                                          |
+| host → one client   | `MessagePort`                    | The opening value for a subscription. Targeted and unmissable.                                     |
+| host → every client | `BroadcastChannel`, one per path | Subsequent changes. A lower third bound to `variables.home.name` is never woken by the shot clock. |
+
+The split between those last two matters more than it looks. A subscription's
+opening value is a point-to-point handshake — exactly one client asked — and an
+earlier cut sent it over the channel like any other change. That was wasteful
+(every other tab woke for a value it already had) and, worse, unreliable:
+delivery depended on the asking client's channel listener being attached at that
+exact instant, and a reloading OBS browser source raced it. A missed opening value
+has no recovery path, so the graphic sat on its fallback until something else
+happened to change. It reproduced about half the time under load and vanished
+whenever anything was attached that slowed the page down.
+
+Sending it back down the port the request arrived on makes it ordered, targeted,
+and impossible to miss.
 
 The client refcounts subscriptions locally, so ten components reading one path
 open one channel and one host subscription.
@@ -188,10 +202,29 @@ the hard-won parts:
   The long-player-name problem: a lower third sized for "Kim" must also hold
   "Vandersteen-Rodriguez".
 
-`Field` is uncontrolled while focused. A controlled input round-trips every
-keystroke through the worker and fights the operator's cursor; instead the DOM owns
-the value while focused and Velcro only writes over it when the change came from
-elsewhere. That is also exactly what multi-operator editing needs.
+### Text edits are staged, not live
+
+Free-text controls (`Field`, `Select`, `Leaderboard`) do not write as you type.
+They stage into a draft, and a save commits the lot — the Save button,
+Ctrl/Cmd+S, or Enter. Escape abandons one field's edit.
+
+This is a broadcast requirement, not a preference. Operators type at their own
+pace and revise mid-word, and writing every keystroke through would put "Vand" on
+the lower third while somebody was still thinking about "Vandersteen".
+
+Committing together is also more correct than per-field writes. One save is one
+`set`, therefore one Yjs transaction, so home and away names land on air in the
+same frame rather than a few hundred milliseconds apart.
+
+**Buttons stay immediate.** A stepper, toggle, swap, or reset is a single
+deliberate act with no half-finished state to protect. The rule an operator
+learns is "typing and picking need a save, buttons don't."
+
+A dirty field shows an amber marker, because someone has to be able to tell at a
+glance that what is on their screen is not what is on air. While a field is dirty
+its staged value wins over the store, so a remote change can never yank text out
+from under an operator mid-edit — which is also exactly what multi-operator
+editing will need.
 
 ## Services
 

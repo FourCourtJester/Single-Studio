@@ -75,7 +75,7 @@ export function createVelcroHost(config = {}) {
 
   // -- subscriptions ------------------------------------------------------
 
-  function subscribe(path, portId) {
+  function subscribe(path, portId, port) {
     const key = normalize(path)
 
     if (!subscriptions.has(key)) subscriptions.set(key, { channel: new BroadcastChannel(channelFor(name, key)), ports: new Set() })
@@ -84,9 +84,17 @@ export function createVelcroHost(config = {}) {
 
     entry.ports.add(portId)
 
-    // Hand over the current value immediately so a source that mounts mid-show
-    // paints straight away instead of waiting for the next change.
-    entry.channel.postMessage({ path: key, value: Doc.read(doc, key) })
+    // The opening value goes back down the requesting port, not over the channel.
+    //
+    // It is a point-to-point handshake -- exactly one client asked -- and routing
+    // it through a fan-out primitive was both wasteful and unreliable: every other
+    // tab woke for a value it already had, and delivery depended on the asking
+    // client's channel listener being attached at that instant. On a reloading OBS
+    // browser source that raced, and a missed opening value has no recovery path:
+    // the graphic sits on its fallback until something else happens to change.
+    // A port reply is ordered, targeted, and cannot be missed by a client that just
+    // sent the request down it.
+    port.postMessage({ type: 'value', path: key, value: Doc.read(doc, key) })
   }
 
   function unsubscribe(path, portId) {
@@ -138,7 +146,7 @@ export function createVelcroHost(config = {}) {
         break
 
       case 'subscribe':
-        subscribe(message.path, portId)
+        subscribe(message.path, portId, port)
         break
 
       case 'unsubscribe':

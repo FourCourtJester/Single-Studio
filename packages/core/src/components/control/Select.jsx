@@ -1,40 +1,41 @@
-import { useEffect, useId, useRef } from 'react'
+import { useId } from 'react'
 
-import { useVelcroMutate } from '../../hooks/useVelcroMutate'
-import { useVelcroValue } from '../../hooks/useVelcroValue'
+import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 
 /**
- * Dropdown bound to a path.
+ * Dropdown bound to a path, staged until saved.
  *
- * `options` takes plain strings or `{ value, label }` pairs; children are
- * accepted too for anything more involved. The empty option is always present so
- * an operator can clear a choice -- writing '' deletes the key, which is what
- * makes a source fall back to its own default rather than render a stale value.
+ * Staged rather than immediate for consistency with the fields beside it: a board
+ * where some controls are live and others are not is worse than one where the rule
+ * is simply "typing and picking need a save, buttons do not".
+ *
+ * The empty option always exists so a choice can be cleared. Saving '' deletes the
+ * key, which makes a source fall back to its own default rather than hold a blank.
  */
 export function Select({ name, label = 'Select', options = [], children, placeholder = '— none —', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
-  const value = useVelcroValue(path, '')
-  const mutate = useVelcroMutate()
-  const ref = useRef(null)
+  const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const id = useId()
-
-  // Keep the DOM in step with remote changes without fighting an open dropdown.
-  useEffect(() => {
-    const element = ref.current
-
-    if (element && element !== document.activeElement) element.value = value ?? ''
-  }, [value])
 
   return (
     <label className={cx('ss-select flex flex-col gap-1', className)} htmlFor={id}>
-      {label ? <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span> : null}
+      {label ? (
+        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+          {label}
+          {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+        </span>
+      ) : null}
       <select
-        ref={ref}
         id={id}
-        defaultValue={value ?? ''}
-        onChange={(event) => mutate('set', { [path]: event.target.value })}
-        className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors focus:border-sky-500"
+        value={value ?? ''}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        data-dirty={dirty ? '' : undefined}
+        className={cx(
+          'rounded-md border bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors',
+          dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-slate-700 focus:border-sky-500',
+        )}
         {...rest}
       >
         <option value="">{placeholder}</option>

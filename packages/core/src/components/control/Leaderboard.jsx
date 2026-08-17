@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { useVelcroMutate } from '../../hooks/useVelcroMutate'
-import { useVelcroValue } from '../../hooks/useVelcroValue'
+import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 import { DEFAULT_DELIMITER, DEFAULT_FIELDS, parseBoard, serializeBoard, sizeBoard } from '../../toolkits/board'
 import { Field } from './Field'
@@ -32,8 +31,8 @@ export function Leaderboard({
   ...rest
 }) {
   const path = `${namespace}.${name}`
-  const value = useVelcroValue(path, '')
-  const mutate = useVelcroMutate()
+  // Staged like any other text control: a half-pasted board must not reach air.
+  const { value, dirty, onChange } = useDraftValue(path)
   const [tabular, setTabular] = useState(false)
 
   const entries = useMemo(() => {
@@ -47,19 +46,22 @@ export function Leaderboard({
   const editCell = (index, field, next) => {
     const updated = entries.map((row, i) => (i === index ? { ...row, [field]: next } : row))
 
-    mutate('set', { [path]: serializeBoard(updated, { fields, delimiter }) })
+    onChange(serializeBoard(updated, { fields, delimiter }))
   }
 
   const addRow = () => {
     const blank = fields.reduce((row, field) => ({ ...row, [field]: '' }), {})
 
-    mutate('set', { [path]: serializeBoard([...entries, blank], { fields, delimiter }) })
+    onChange(serializeBoard([...entries, blank], { fields, delimiter }))
   }
 
   return (
     <section className={cx('ss-leaderboard flex w-full flex-col gap-3', className)} {...rest}>
       <header className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{label}</h3>
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          {label}
+          {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+        </h3>
         <button
           type="button"
           onClick={() => setTabular((previous) => !previous)}

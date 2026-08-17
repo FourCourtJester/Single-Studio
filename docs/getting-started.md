@@ -106,8 +106,8 @@ const mutate = useVelcroMutate()
 
 | Component      | Writes             | Notes                                                           |
 | -------------- | ------------------ | --------------------------------------------------------------- |
-| `Field`        | `variables.<name>` | Text or `as="textarea"`. Debounced, uncontrolled while focused. |
-| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`.                     |
+| `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                    |
+| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved. |
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.   |
 | `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                     |
 | `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                           |
@@ -115,9 +115,40 @@ const mutate = useVelcroMutate()
 | `ResetButton`  | any paths          | Unsets them. `confirm` asks first.                              |
 | `TimerButton`  | `timers.<name>`    | Start/stop a duration (`'5:00'`).                               |
 | `Countdown`    | `timers.<name>`    | Counts to a wall-clock time, not a duration.                    |
-| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view.                |
+| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.        |
+| `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.         |
 | `Panel`        | —                  | Titled group. Children wrap in a flex row.                      |
 | `Break`        | —                  | Forces a line break inside a `Panel`.                           |
+
+## Saving
+
+Free-text controls stage their edits and commit on save. Typing does not reach air:
+an operator revises mid-word, and every intermediate state of that would otherwise
+be on screen.
+
+| Action                  | Effect                    |
+| ----------------------- | ------------------------- |
+| **Ctrl/Cmd + S**        | Commit every staged edit  |
+| **Enter** (in a field)  | Commit every staged edit  |
+| **Escape** (in a field) | Abandon that field's edit |
+| **Discard**             | Abandon all staged edits  |
+
+Buttons — `Stepper`, `ToggleButton`, `SwapButton`, `ResetButton`, `TimerButton`,
+`Cycle`, `Countdown` — act immediately. Each is a single deliberate press with no
+half-finished state to protect.
+
+A save is one mutation, so every staged path lands in a single transaction and the
+whole board changes on air together.
+
+`ControlPage` renders a `SaveButton` in its header automatically. To put one
+somewhere else, or to read the pending count yourself:
+
+```jsx
+import { SaveButton, useDraft, useDraftCount } from '@single-studio/core'
+
+const pending = useDraftCount()
+const { save, revert } = useDraft()
+```
 
 ## Browser requirements
 
