@@ -39,9 +39,12 @@ and its own Pages deployment. Framework upgrades are a version bump, not a merge
 
 ```bash
 pnpm install
-pnpm demo      # control surface, with copy-paste browser-source URLs
+pnpm demo      # builds core, then serves the demo studio
 pnpm test
 ```
+
+`pnpm demo` builds `@single-studio/core` first — the demo consumes it as a package
+rather than reaching into its source, and `dist` is not committed.
 
 See [getting-started.md](docs/getting-started.md) for wiring a studio into OBS and
 starting your own.

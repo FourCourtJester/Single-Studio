@@ -10,12 +10,36 @@ pnpm demo
 Open the printed URL. That is the control surface; it lists every graphic's
 browser-source URL with a copy button.
 
+`pnpm demo` builds `@single-studio/core` first. The demo consumes the framework
+through its published entrypoints rather than reaching into its source — which is
+what keeps the package boundary honest — so the package has to exist before the
+demo can resolve it, and `dist` is not committed.
+
+| Command             | Does                                                    |
+| ------------------- | ------------------------------------------------------- |
+| `pnpm demo`         | Build core, then run the demo studio with HMR           |
+| `pnpm demo:build`   | Build core, then build the demo for production          |
+| `pnpm demo:preview` | Serve the built demo (this is what OBS should point at) |
+| `pnpm core:watch`   | Rebuild core on change — run alongside `pnpm demo`      |
+| `pnpm test`         | Unit tests                                              |
+| `pnpm e2e`          | Browser smoke test against a running preview            |
+| `pnpm e2e:browser`  | One-off: download Chromium for the smoke test           |
+
+Editing the framework itself while the demo runs needs `pnpm core:watch` in a
+second shell — Vite reloads the demo when core's `dist` changes, but nothing
+rebuilds core on its own.
+
+The browser suite wants two shells:
+
 ```bash
-pnpm test                                   # unit tests
-pnpm --filter @single-studio/demo build
-pnpm --filter @single-studio/demo preview   # then, in another shell:
-pnpm --filter @single-studio/demo e2e
+pnpm demo:build && pnpm demo:preview   # shell A
+pnpm e2e                               # shell B
 ```
+
+Chromium ships in the devcontainer image, so `pnpm e2e:browser` is only needed
+outside it, or after a Playwright version bump. It never needs root: the system
+libraries are installed at image build time and the browser directory belongs to
+the container's `node` user.
 
 ## Wire a studio into OBS
 
