@@ -229,6 +229,36 @@ control does arrive, it arrives as an **intent log beside the state document** â
 never as more state. That distinction is why the boundary is worth holding even
 though relaxing it looks easy.
 
+## Operator-supplied files
+
+Images arrive two ways and only one is solved. A **URL** is a reference: it costs a
+string in the store, replicates for free, and every peer fetches it independently.
+That is what ships today, and it covers the sponsor card, the guest headshot, the
+externally generated chart.
+
+A **file** an operator drops in is a different problem, because the bytes have to
+get to every machine that renders it. Three places they could live:
+
+| Where                                            | Verdict                                                                                                                                                                                            |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In the Y.Doc as a data URI                       | No. The document is persisted whole and structured-cloned to every tab on every change; a few megabytes of image makes each of those expensive, and a CRDT keeps more history than you would like. |
+| Uploaded to a third-party host, URL in the store | Works today with no code â€” it collapses to the URL case. The cost is an account and a dependency per user, which is a poor default for a public release.                                           |
+| Content-addressed blob store beside the document | The right answer, and the most work.                                                                                                                                                               |
+
+The third means: hash the bytes, keep them in their own IndexedDB store (not the
+doc), put only the hash in the document, and have a peer that lacks a blob request
+it over the relay. The document stays small and replicates as it does now; blobs
+move out-of-band and only to peers that need them.
+
+This is deliberately deferred. It wants the relay to exist first, since blob
+transfer is a second channel over the same connection, and until then a
+single-machine studio can reference local files by path anyway.
+
+The near-term half-step, if drag-and-drop is wanted before the relay: accept a
+dropped file, store it in a local blob store keyed by hash, and hand the graphic an
+object URL. Works perfectly on one machine, does not replicate, and the storage
+shape is already the one the full version needs.
+
 ## Explicitly out of scope
 
 - **Remote OBS control.** Above.

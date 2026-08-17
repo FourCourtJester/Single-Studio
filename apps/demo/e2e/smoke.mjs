@@ -280,6 +280,40 @@ check(overflow.widestRight <= overflow.clientWidth + 1, 'no control escapes a 26
 
 await narrow.close()
 
+// -- Images from a URL -------------------------------------------------------
+// The value *is* the URL: an operator pastes a link and it goes on air with no
+// studio code. What separates this from an <img> tag is that a new URL is loaded
+// and decoded off-screen first -- the previous image stays up until the new one is
+// ready, so a slow fetch never leaves a hole in the scene.
+const sponsor = await context.newPage()
+await sponsor.goto(`${BASE}/#/source/sponsor`)
+await sponsor.waitForSelector('.ss-scene')
+
+await control.locator('.ss-field:has-text("Image URL") input').fill(`${BASE}/logos/broncos.svg`)
+await control.locator('.ss-field:has-text("Accent") input').fill('rgb(240, 169, 60)')
+await save()
+await control.locator('button:has-text("Show sponsor")').click()
+
+check(
+  await becomes(sponsor, (url) => document.querySelector('.sponsor-image img')?.src === url, `${BASE}/logos/broncos.svg`),
+  'a pasted URL renders as the image',
+)
+
+// A colour the operator controls reaches a CSS custom property, so anything the
+// stylesheet can express is drivable without a component for it.
+check(
+  await becomes(sponsor, () => getComputedStyle(document.querySelector('.ss-scene')).getPropertyValue('--accent').trim() === 'rgb(240, 169, 60)'),
+  'an operator value drives a CSS custom property through Scene vars',
+)
+
+// A dead URL must not blank the graphic. It retries, then lands on the fallback.
+await control.locator('.ss-field:has-text("Image URL") input').fill(`${BASE}/logos/does-not-exist.svg`)
+await save()
+check(
+  await becomes(sponsor, () => /placeholder/.test(document.querySelector('.sponsor-image img')?.src ?? '')),
+  'a broken URL falls back rather than leaving a hole',
+)
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is

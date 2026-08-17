@@ -119,15 +119,15 @@ const mutate = useVelcroMutate()
 
 **Source** — what goes on air:
 
-| Component  | Reads              | Notes                                                  |
-| ---------- | ------------------ | ------------------------------------------------------ |
-| `Scene`    | —                  | Root of a graphic. One per browser source.             |
-| `Variable` | `variables.<name>` | Text. `fit` shrinks it to stay on one line.            |
-| `Image`    | `variables.<name>` | `src="logos/:value:.svg"`, plus `slug` and `fallback`. |
-| `Toggle`   | `toggles.<name>`   | Shows or hides its children.                           |
-| `Timer`    | `timers.<name>`    | Countdown. `onComplete` fires once it lands.           |
-| `Clock`    | — (local)          | Wall clock. Never replicates.                          |
-| `Ticker`   | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes. |
+| Component  | Reads              | Notes                                                                           |
+| ---------- | ------------------ | ------------------------------------------------------------------------------- |
+| `Scene`    | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                  |
+| `Variable` | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                     |
+| `Image`    | `variables.<name>` | A URL, or `src="logos/:value:.svg"`. Preloads before swapping; `refresh` polls. |
+| `Toggle`   | `toggles.<name>`   | Shows or hides its children.                                                    |
+| `Timer`    | `timers.<name>`    | Countdown. `onComplete` fires once it lands.                                    |
+| `Clock`    | — (local)          | Wall clock. Never replicates.                                                   |
+| `Ticker`   | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                          |
 
 **Control** — the operator's board:
 
@@ -146,6 +146,60 @@ const mutate = useVelcroMutate()
 | `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.         |
 | `Panel`        | —                  | Titled group. Children wrap in a flex row.                      |
 | `Break`        | —                  | Forces a line break inside a `Panel`.                           |
+
+## Images
+
+Two shapes, both first-class.
+
+Templated from a value — "Boise State" resolves `logos/boise-state.svg`:
+
+```jsx
+<Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/placeholder.svg" />
+```
+
+The value _is_ the URL — paste a link into a `Field` and it is on air:
+
+```jsx
+<Image name="sponsor.url" fallback="/logos/placeholder.svg" />
+```
+
+Contents change behind a stable URL — a chart, a camera still:
+
+```jsx
+<Image name="chart.url" refresh={30} />
+```
+
+What separates this from an `<img>` tag is what happens **between** images. A new
+URL is loaded and decoded off-screen first, and only swapped in once it can paint.
+The previous image stays up meanwhile. Setting `src` directly leaves a hole on air
+for however long the network takes — fine in a web page, not over a live scene.
+
+The rest is failure handling that a broadcast needs and a web page does not:
+
+| Behaviour                                         | Why                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------- |
+| Retries with backoff (`retries`, default 3)       | A blip mid-show should not cost the graphic for the night               |
+| Falls back after retries are exhausted            | A missing image should read as "no image", not as a broken-image glyph  |
+| A failed `refresh` keeps what is showing          | Never blank a working graphic because a poll failed                     |
+| `referrerpolicy="no-referrer"`                    | Many hosts block hotlinking by `Referer`                                |
+| Warns loudly on `http://` from an `https://` page | Mixed content is blocked silently and is the most common way this fails |
+
+**Use `https://` URLs.** A studio deployed to GitHub Pages is served over https, so
+an `http://` image is blocked as mixed content. The console says so explicitly.
+
+### Driving anything else from a value
+
+`Scene` maps CSS custom properties to paths, which covers everything the framework
+does not have a component for — colours, offsets, widths, radii:
+
+```jsx
+<Scene vars={{ '--accent': 'variables.sponsor.color' }}>
+  <div style={{ borderLeft: '6px solid var(--accent, #0ea5e9)' }} />
+</Scene>
+```
+
+A path holding nothing is left unset rather than blanked, so the `var()` fallback
+still applies.
 
 ## Sizing for the dock
 

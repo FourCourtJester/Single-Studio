@@ -52,6 +52,14 @@ export default function Control() {
         <Leaderboard name="standings" label="Board" fields={['name', 'score']} rows={5} />
       </Panel>
 
+      <Panel title="Sponsor">
+        {/* The value is the URL -- no src template needed. */}
+        <Field name="sponsor.url" label="Image URL" placeholder="https://example.com/logo.png" className="basis-full" />
+        <Field name="sponsor.name" label="Name" placeholder="Acme" />
+        <Field name="sponsor.color" label="Accent" placeholder="#f59e0b" />
+        <ToggleButton name="sponsor" label="sponsor" />
+      </Panel>
+
       <Panel title="Ticker">
         <Field name="ticker" label="Crawl text" as="textarea" rows={2} className="basis-full" />
       </Panel>

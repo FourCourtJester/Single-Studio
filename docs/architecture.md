@@ -249,6 +249,34 @@ unload/reload cycles, plus a recorder installed via `addInitScript` that capture
 every frame the source ever displayed and asserts the fallback never appears among
 them.
 
+## Images
+
+Images are a first-class input, not a special case. `Image` covers two shapes with
+one component: a URL templated from a value (`/logos/:value:.svg`, optionally
+slugified) and a value that _is_ the URL. The second is the default, so an operator
+pasting a link needs no studio code.
+
+The design decision worth naming is that a new URL is **loaded and decoded
+off-screen before it is shown**, with the previous image left up in the meantime.
+Setting `src` directly leaves a hole on air for the duration of the fetch. Around
+that sits the failure handling a live scene needs and a web page does not: retries
+with backoff, a fallback once they are exhausted, a `refresh` poll that keeps the
+current image when a fetch fails, `no-referrer` to survive hotlink blocking, and an
+explicit warning for `http://` on an `https://` page, which is otherwise blocked in
+silence.
+
+Beyond images, `Scene`'s `vars` maps CSS custom properties to paths. That is the
+general form of the same idea: rather than growing a component for every property
+an operator might want to control, anything a stylesheet can express becomes
+drivable from the board.
+
+**Bytes are deliberately not in the store.** A URL is a reference; the image itself
+never enters the Y.Doc. Putting multi-megabyte binaries in a CRDT that is persisted
+whole and structured-cloned to every tab on change would be expensive locally and
+worse once it replicates. Operator-supplied _files_ — as opposed to URLs — need a
+content-addressed blob store beside the document, which is described in
+[collaboration.md](./collaboration.md#operator-supplied-files).
+
 ## Sizing
 
 The control surface has two shapes to survive — a narrow OBS dock and a full screen

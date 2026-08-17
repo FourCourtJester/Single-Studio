@@ -16,6 +16,7 @@ export const studio = defineStudio({
     scoreboard: () => import('./sources/Scoreboard'),
     lowerthird: () => import('./sources/LowerThird'),
     standings: () => import('./sources/Standings'),
+    sponsor: () => import('./sources/Sponsor'),
     ticker: () => import('./sources/Ticker'),
   },
 })

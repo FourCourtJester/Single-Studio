@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
@@ -8,58 +8,154 @@ import { Transition } from '../common/Transition'
 /**
  * An image chosen by a value the operator controls.
  *
- * The `src` is a template containing `:value:`, substituted with the path's
- * current value -- so a team name drives a logo without anyone maintaining a
- * lookup table:
+ * Two shapes, and both matter on a broadcast:
  *
- *   <Image name="home.name" src="/logos/:value:.png" slug />
+ *   <Image name="home.name" src="/logos/:value:.svg" slug />   templated from a value
+ *   <Image name="sponsor.logo" />                              the value *is* the URL
  *
- * `slug` normalises the value first ("Boise State" -> "boise-state"), which is
- * what makes operator free-text usable in a filename.
+ * The second is the default (`src` is `:value:`), so pasting a URL into a field
+ * puts that image on air with no studio code at all.
  *
- * Two loads have to line up here and they are deliberately named apart:
- * `hydrated` is the store telling us what the value is, `painted` is the browser
- * telling us the file arrived. Nothing renders until both are true, so a graphic
- * never animates in around a half-fetched image, and a source rebuilt mid-show
- * never requests a URL built from an empty value and 404s onto the fallback.
+ * What makes this different from an `<img>` tag is what happens between images.
+ * A new URL is loaded and decoded off-screen first, and only swapped in once it is
+ * ready to paint. The previous image stays up in the meantime. Swapping the src
+ * directly leaves a hole on air for however long the network takes -- fine in a
+ * web page, not fine over a live scene.
  *
- * A failed load falls back rather than showing a broken-image glyph over the
- * stream -- a missing logo should read as "no logo", not as a bug.
+ * `refresh` re-fetches on an interval for an image whose *contents* change behind a
+ * stable URL -- a chart, a camera still, an externally generated card. Each poll is
+ * cache-busted and, again, only swapped once decoded, so a slow or failed refresh
+ * never blanks what is already showing.
  */
-export function Image({ name, src, slug = false, fallback, alt = '', className, namespace = 'variables', ...rest }) {
+
+const RETRY_BASE = 400
+const isAbsolute = (url) => /^[a-z][a-z0-9+.-]*:/i.test(url)
+
+/** Remote hosts commonly block hotlinking by Referer, and we never need to send one. */
+const REFERRER_POLICY = 'no-referrer'
+
+function bust(url, token) {
+  try {
+    const parsed = new URL(url, window.location.href)
+
+    parsed.searchParams.set('_ss', token)
+
+    return parsed.toString()
+  } catch {
+    // Not parseable as a URL (a bare relative path on an odd base); fall back to
+    // naive concatenation rather than dropping the refresh entirely.
+    return `${url}${url.includes('?') ? '&' : '?'}_ss=${token}`
+  }
+}
+
+/**
+ * Load and decode before showing. Resolves to the URL once it is safe to paint.
+ *
+ * `decode()` rather than `onload` because onload fires before the bitmap is ready,
+ * and painting then can still drop a frame on a large image.
+ */
+function preload(url) {
+  return new Promise((resolve, reject) => {
+    const probe = new window.Image()
+
+    probe.referrerPolicy = REFERRER_POLICY
+    probe.onerror = () => reject(new Error(`could not load ${url}`))
+    probe.onload = () =>
+      probe.decode
+        ? probe.decode().then(
+            () => resolve(url),
+            () => resolve(url),
+          )
+        : resolve(url)
+    probe.src = url
+  })
+}
+
+export function Image({ name, src = ':value:', slug = false, fallback, alt = '', refresh, retries = 3, className, namespace = 'variables', ...rest }) {
   const { value, loaded: hydrated } = useVelcroState(name ? `${namespace}.${name}` : undefined)
-  const [current, setCurrent] = useState(null)
-  const [painted, setPainted] = useState(false)
+  // What is on air. Only ever replaced by something already decoded.
+  const [shown, setShown] = useState(null)
+  const attempt = useRef(0)
+  const timer = useRef(null)
+
+  const target = hydrated && src ? String(src).replace(/:value:/g, slug ? slugify(value) : String(value ?? '')) : null
+  const usable = target && !/:value:|^\s*$/.test(target) && target !== 'undefined' && target !== 'null'
 
   useEffect(() => {
-    if (!src || !hydrated) return
+    clearTimeout(timer.current)
+    attempt.current = 0
 
-    const resolved = String(src).replace(/:value:/g, slug ? slugify(value) : String(value ?? ''))
-
-    setCurrent((previous) => {
-      if (previous !== resolved) setPainted(false)
-      return resolved
-    })
-  }, [hydrated, slug, src, value])
-
-  const onError = () => {
-    // Warn rather than fail silently: a wrong path is a studio bug worth seeing in
-    // the console, even though the graphic degrades quietly on screen.
-    console.warn(`[single-studio] image did not load: ${current}`)
-
-    if (fallback && current !== fallback) {
-      setCurrent(fallback)
-      return
+    if (!usable) {
+      setShown(null)
+      return undefined
     }
 
-    setPainted(false)
-  }
+    // An http:// image on an https:// page is blocked as mixed content and fails
+    // with nothing useful in the console. Say so plainly -- pasting an http URL is
+    // the single most common way this goes wrong.
+    if (isAbsolute(target) && target.startsWith('http://') && window.location.protocol === 'https:') {
+      console.warn(`[single-studio] blocked as mixed content: ${target}\nThe page is served over https, so the image URL must be https too.`)
+    }
 
-  if (!hydrated || !current) return null
+    let live = true
+
+    const show = (url) => {
+      if (live) setShown(url)
+    }
+
+    const load = (url) => {
+      preload(url).then(show, (err) => {
+        if (!live) return
+
+        attempt.current += 1
+
+        if (attempt.current <= retries) {
+          // A blip mid-show should not cost the graphic for the rest of the night.
+          timer.current = setTimeout(() => load(url), RETRY_BASE * 2 ** (attempt.current - 1))
+          return
+        }
+
+        console.warn(`[single-studio] image failed after ${retries} retries: ${url}`, err?.message ?? err)
+
+        if (fallback) preload(fallback).then(show, () => show(null))
+        else show(null)
+      })
+    }
+
+    load(target)
+
+    return () => {
+      live = false
+      clearTimeout(timer.current)
+    }
+  }, [fallback, retries, target, usable])
+
+  // Polling for an image whose contents change behind a stable URL.
+  useEffect(() => {
+    if (!usable || !refresh) return undefined
+
+    const every = Number(refresh) * 1000
+
+    if (!Number.isFinite(every) || every <= 0) return undefined
+
+    const poll = setInterval(() => {
+      preload(bust(target, Date.now())).then(
+        (url) => setShown(url),
+        () => {
+          // Keep whatever is already on air. A failed refresh is not a reason to
+          // blank a graphic mid-show.
+        },
+      )
+    }, every)
+
+    return () => clearInterval(poll)
+  }, [refresh, target, usable])
+
+  if (!shown) return null
 
   return (
-    <Transition trigger={painted} className={cx('ss-image', className)} {...rest}>
-      <img src={current} alt={alt} onLoad={() => setPainted(true)} onError={onError} className="max-h-full max-w-full object-contain" />
+    <Transition trigger={shown} className={cx('ss-image', className)} {...rest}>
+      <img src={shown} alt={alt} referrerPolicy={REFERRER_POLICY} className="max-h-full max-w-full object-contain" />
     </Transition>
   )
 }
