@@ -72,6 +72,27 @@ await source.waitForSelector('.ss-scene')
 await source.waitForTimeout(1500)
 check((await board()).includes('vandals'), 'state survived a source reload (IndexedDB)')
 
+// The capability guard. Simulate a browser whose SharedWorker predates the options
+// object -- it coerces { type: 'module' } to a name and loads the script as a
+// classic worker, which is the silent failure the guard exists to convert into a
+// visible one.
+const legacy = await context.newPage()
+await legacy.addInitScript(() => {
+  const Real = window.SharedWorker
+  window.SharedWorker = class {
+    constructor(url, nameOrOptions) {
+      // Never reads .type, exactly as a pre-2020 implementation would not.
+      return new Real(url, String(nameOrOptions))
+    }
+  }
+})
+await legacy.goto(`${BASE}/#/`)
+await legacy.waitForTimeout(1200)
+const legacyText = await legacy.locator('body').innerText()
+check(/can.?t run/i.test(legacyText), 'guard shows a clear message on a browser without module shared workers')
+check(/114/.test(legacyText), 'guard names the minimum versions')
+check(!/Teams/.test(legacyText), 'guard replaces the board rather than rendering a dead one')
+
 await browser.close()
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed')
 process.exitCode = failed ? 1 : 0

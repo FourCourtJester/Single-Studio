@@ -102,10 +102,26 @@ All three engines have supported this since mid-2023, so in practice any current
 browser works. The OBS dock runs on CEF (Chromium), and remote operators on the
 collaboration path can use whatever they already have.
 
-One sharp edge worth knowing: a browser too old to understand the options object
-treats the second argument as the worker's _name_ rather than erroring, so the
-script loads as a classic worker and its `import` statements fail instead. It
-presents as a broken worker, not as an unsupported-feature message.
+A browser too old to understand the options object does not error — it treats the
+second argument as the worker's _name_, loads the script as a classic worker, and
+its `import` statements fail somewhere the page never sees. That would hand an
+operator a board where every field looks fine and nothing ever updates.
+
+So the framework checks before it starts the store, and replaces the board with a
+message naming what is missing and the version needed. The check is behavioural,
+not a user-agent sniff: it hands the constructor an options object whose `type` is
+a getter and sees whether anything reads it. Override the screen with
+`onUnsupported`, or call `getSupport()` yourself:
+
+```jsx
+import { getSupport } from '@single-studio/core'
+
+const { ok, missing, persistent } = getSupport()
+```
+
+`persistent: false` (no IndexedDB — private windows, some locked-down profiles) is
+_not_ a failure: the store falls back to memory, which still drives graphics
+correctly for the length of a session. It just will not survive a reload.
 
 ## Styling
 

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { UnsupportedPage } from '../pages/Unsupported'
 import { createVelcroClient } from '../velcro/client'
+import { getSupport } from '../velcro/support'
 import { StudioContext } from './context'
 
 /**
@@ -10,7 +12,7 @@ import { StudioContext } from './context'
  * the store injectable, which is what makes components testable without a
  * SharedWorker.
  */
-export function StudioProvider({ studio, children, fallback = null }) {
+function Provider({ studio, children, fallback }) {
   const [ready, setReady] = useState(false)
 
   const value = useMemo(() => {
@@ -33,4 +35,30 @@ export function StudioProvider({ studio, children, fallback = null }) {
   if (!ready && fallback) return fallback
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>
+}
+
+/**
+ * Gate the store behind a capability check.
+ *
+ * Split in two so the check happens before any hook runs -- `getSupport()` is a
+ * plain memoized function, not a hook, and its answer cannot change during a page
+ * load, so the early return is stable.
+ *
+ * Without this, a browser that ignores `{ type: 'module' }` on SharedWorker gives
+ * an operator a board where every field looks fine and nothing ever updates, with
+ * no error anywhere they would think to look. See velcro/support.js.
+ */
+export function StudioProvider({ studio, children, fallback = null, onUnsupported }) {
+  const support = getSupport()
+
+  if (!support.ok) {
+    if (onUnsupported) return onUnsupported(support)
+    return <UnsupportedPage support={support} name={studio?.name} />
+  }
+
+  return (
+    <Provider studio={studio} fallback={fallback}>
+      {children}
+    </Provider>
+  )
 }

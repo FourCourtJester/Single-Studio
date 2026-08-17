@@ -51,6 +51,15 @@ This depends on running the control surface as an **OBS custom browser dock**. A
 control page in a separate browser is a separate process with a separate
 SharedWorker and separate IndexedDB, and would need the sync layer to bridge them.
 
+Module SharedWorkers need Chrome 83+, Firefox 114+, Safari 16+, or OBS 28+ (OBS 27
+and earlier embed CEF 75). A browser below that floor does not throw on
+`{ type: 'module' }` — it reads the object as the worker's _name_ and loads the
+script as a classic worker, so the store silently never starts.
+`velcro/support.js` probes for this behaviourally (an options object whose `type`
+is a getter, and whether anything reads it) and `StudioProvider` swaps in a screen
+naming the missing capability. That check is why a companion operator on an old
+browser gets an explanation rather than a board where nothing updates.
+
 ### Transport split
 
 | Direction      | Mechanism                        | Why                                                                            |

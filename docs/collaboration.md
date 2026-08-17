@@ -44,6 +44,15 @@ Local fan-out is already solved by BroadcastChannel; the network layer only ever
 sees machine-to-machine traffic. This falls out of the existing architecture
 rather than being added to it.
 
+Worth noting for later: cross-tab sharing is only load-bearing on the **host**,
+which runs a dock plus a dozen sources. A companion operator runs one board in one
+tab and shares it with nothing. So once the relay exists, a companion's store could
+live in a dedicated worker — or on the main thread — and still participate fully.
+That would drop the browser floor for companions to roughly "anything current",
+leaving the module-SharedWorker requirement where it is actually needed. Not worth
+building before the relay, but it is the natural fallback if a companion's browser
+ever turns out to be a problem in practice.
+
 ## Transport: a WebSocket relay, not peer-to-peer
 
 Decided on reliability grounds, and reinforced by a hard platform constraint:
