@@ -1,10 +1,24 @@
 # Dependencies
 node_modules
 
+# pnpm relocates its content-addressable store next to the project whenever the
+# store and node_modules would land on different filesystems -- which is exactly
+# what a devcontainer does, with the workspace bind-mounted from the host and the
+# home directory on the container's own overlay. It is a cache, it is enormous,
+# and it must never be committed.
+.pnpm-store
+.pnpm-state
+
 # Build output
 dist
 build
 *.tsbuildinfo
+*.tgz
+
+# Tooling caches
+.vite
+.turbo
+.eslintcache
 
 # Environment / local config
 .env
@@ -23,6 +37,16 @@ pnpm-debug.log*
 
 # Test output
 coverage
+playwright-report
+test-results
 
-# Client studios are never committed to the framework repo.
-studios/*
+# Client studios are never committed to the framework repo. A studio lives in its
+# own repo and depends on @single-studio/core; anything here is a working copy.
+# Matches at any depth -- note it is `studios` plural, so templates/studio stays.
+**/studios/
+
+# Material from the pre-rewrite version, kept locally for reference. The old tree
+# is at tag v0-cra if you need it; copies dropped in here are for reading, not for
+# carrying forward, and should never end up back in this history.
+reference/
+legacy/
