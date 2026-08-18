@@ -172,11 +172,12 @@ Three things it guarantees, each pinned by a test:
 `sync:status` over the existing port answers a board that asks, which is the hook
 stage 3 hangs the connection indicator on.
 
-### Stage 2 — Relay 🚧
+### Stage 2 — Relay ✅
 
-**Built and tested, not finished.** `packages/relay` exists and is covered by 21
-tests, including real `y-websocket` clients and real velcro hosts converging
-through a real socket. One acceptance check does not pass — see below.
+**Shipped.** `packages/relay`, covered by 21 tests plus a browser acceptance test
+that runs two separate browsers against a real relay: edits both ways, concurrent
+increments adding up, the relay dying mid-show without the graphics blinking,
+peers reconnecting on their own, and a late joiner being handed the show.
 
 Three pieces:
 
@@ -214,49 +215,36 @@ own bookkeeping and can leave a transaction half applied — the same
 delete-without-insert outcome. A channel that will not take a message is a local
 problem with one subscriber; it must never become a corrupt document. Guarded.
 
-#### Known issue: two browser hosts diverge on a replace
+#### The bug that made it look impossible
 
-The acceptance test (`apps/demo/e2e/relay.mjs`) passes on everything except one
-check. Reproduction: peer A sets a value, B receives it, B replaces it — and A ends
-up with the key **absent**, then stops syncing outward.
+The acceptance test failed for a long time on one check: peer A sets a value, B
+receives it, B replaces it — and A ends up with the key **absent**.
 
-What has been established, so the next attempt does not start over:
+It was two copies of Yjs in one worker. The framework imports it; so does the sync
+provider. Externalised now, and deduped in the studio's Vite config.
 
-| Combination                                    | Result                                           |
-| ---------------------------------------------- | ------------------------------------------------ |
-| Two `y-websocket` clients in Node              | ✅ converges                                     |
-| Two velcro hosts in Node, subscribers attached | ✅ converges                                     |
-| One browser + one Node `y-websocket` client    | ✅ converges, both directions, including replace |
-| Two browsers, each a velcro host               | ❌ diverges                                      |
+Worth writing down, because nothing about the symptom points at packaging:
 
-Ruled out: the relay itself; `y-indexeddb` (fails with `persist: false`);
-y-websocket's cross-tab BroadcastChannel (fails with `disableBc`); Playwright
-context partitioning (fails with two separate browser _processes_); an exception in
-the worker (nothing is thrown — worker `error`, `unhandledrejection` and
-`console.error` were all routed out to the test and stayed silent); a client-id
-collision (the two ids differ).
+- The bytes on the wire were **byte-for-byte identical** in both directions.
+- Nothing threw — not in the worker, not in the page, not in the relay.
+- The receiving document integrated the operation and ended with the **same state
+  vector** as the sender. Both peers agreed on exactly which operations existed.
+- They disagreed only on what those operations _were_: on the receiving side the
+  remote insert was a garbage-collected placeholder, marked deleted, instead of an
+  item holding a string.
 
-The sharpest measurement, taken by instrumenting all three documents at once:
+A document created by one copy of Yjs and updated by another integrates structs
+whose `instanceof` checks all fail against the other copy's classes. The value does
+not go stale — it goes missing, only on the receiving side, silently.
 
-```
-operator's own update            33 bytes   state = {home.name: "Redline"}
-relay applies and broadcasts     34 bytes   state = {home.name: "Redline"}
-host applies                     18 bytes   state = {}          pending = none
-```
+Two rounds of tests missed it entirely. Unit tests import the source rather than
+the build. Node integration tests resolve one copy of Yjs through node_modules, so
+two velcro hosts converged there perfectly — which is exactly what made the relay
+look guilty for so long. Only two _browser_ peers replicating through a real socket
+reproduces it, and `packages/core/test/bundle.test.js` now fails the build outright
+if Yjs ever gets bundled again.
 
-The relay sends the whole thing. The host integrates roughly the delete half of it,
-reports **no pending structs**, and afterwards lists the operator's client as known.
-Yjs skipping an insert with nothing pending means it believes it already holds that
-operation — so the question is how the host's clock for the operator's client got
-ahead of the operation it was sent, and the answer is not yet known.
-
-Two facts that should constrain the next attempt: it needs _both_ peers to be
-browser velcro hosts (one browser against a plain Node client converges fine in
-both directions, including this exact replace), and a relay restart repairs it,
-which fits a bad baseline being replaced by a fresh handshake rather than ongoing
-corruption.
-
-**Done when:** that check passes too.
+**Done.**
 
 ### Stage 3 — Status and presence
 

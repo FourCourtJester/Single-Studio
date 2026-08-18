@@ -79,8 +79,25 @@ encryption and a revocation path are stage 4 in
 [collaboration.md](../../docs/collaboration.md): productions lose operators, and
 that must not mean rotating one secret everyone else has to be re-told.
 
-## Status
+## One Yjs, always
 
-Stage 2 is built and tested but not finished — one acceptance check in
-`apps/demo/e2e/relay.mjs` does not pass. See **Known issue** in
-[collaboration.md](../../docs/collaboration.md) for the evidence gathered so far.
+A studio's worker loads Yjs twice if anything bundles a copy of it — the framework
+imports it and so does the sync provider. Two copies means a document created by
+one and updated by the other: structs integrate, every `instanceof` check fails
+against the wrong copy's classes, and remote values arrive as deleted placeholders.
+Nothing throws, the bytes on the wire are perfect, and only the receiving side is
+wrong.
+
+`@single-studio/core` externalises it, the demo's Vite config dedupes it, and
+`packages/core/test/bundle.test.js` fails if it is ever bundled again. If you build
+a studio with a different bundler, make sure Yjs resolves to exactly one copy.
+
+## Testing
+
+```bash
+pnpm --filter @single-studio/relay test   # 21 tests, no browser
+
+VITE_RELAY_URL=ws://127.0.0.1:1234 pnpm demo:build
+pnpm demo:preview
+pnpm e2e:relay                            # two browsers against a real relay
+```

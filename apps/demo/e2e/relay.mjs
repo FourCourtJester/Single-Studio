@@ -1,11 +1,5 @@
 // Two machines, one show.
 //
-// STATUS: one check in here does not pass, and it is a real failure, not a flaky
-// test. See "Known issue" in docs/collaboration.md for everything established so
-// far. In short: two *browser* velcro hosts diverge on a value replace, while the
-// same code converges in every other combination that has been tried, including
-// two velcro hosts in Node against this same relay. The relay is not the suspect.
-//
 // The stage-2 claim from docs/collaboration.md: two browser profiles converge
 // through a running relay. Playwright contexts are the profiles -- each gets its
 // own storage partition, so each gets its own SharedWorker and its own IndexedDB,

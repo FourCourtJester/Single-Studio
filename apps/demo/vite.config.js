@@ -11,4 +11,15 @@ export default defineConfig({
   plugins: [react(), tailwind()],
   build: { target: 'es2022' },
   worker: { format: 'es' },
+
+  /**
+   * One Yjs, whatever route it arrives by.
+   *
+   * The framework imports it, and so does the sync provider. Two copies in one
+   * worker means a document created by one is updated by the other: structs
+   * integrate, every `instanceof` check fails against the wrong copy's classes,
+   * and remote values land as deleted placeholders. Nothing throws, and only the
+   * receiving side is wrong.
+   */
+  resolve: { dedupe: ['yjs'] },
 })
