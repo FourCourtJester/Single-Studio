@@ -178,6 +178,14 @@ render on air. Each is a thin wrapper over `useVelcroValue`.
 `Countdown`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
 it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
 
+`Transition` is the machine underneath every source component. It sets three phase
+classes — `ss-exiting`, `ss-entering`, `ss-active` — and never touches a transform,
+so what a phase _looks_ like belongs entirely to the stylesheet. That is why a
+slide, a wipe or a bounce is a class name (`transition="slide-up ease-back"`) rather
+than more code in the component, and why a studio can add its own variant without
+the framework knowing. Duration is read back off computed style for the same reason:
+CSS is the single source of truth, including for keyframe variants.
+
 Three carry non-obvious decisions:
 
 - **`Image`** templates its `src` with the value at a path (`logos/:value:.svg`),

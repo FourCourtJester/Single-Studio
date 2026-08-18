@@ -28,7 +28,11 @@ import { cx } from '../../toolkits/cx'
 // timer and stall the swap.
 //
 // Duration comes from computed style, so CSS stays the single source of truth for
-// timing -- there is no duration prop to keep in sync with a stylesheet.
+// timing -- there is no duration prop to keep in sync with a stylesheet. The same
+// applies to the motion itself: the machine sets `ss-exiting` / `ss-entering` /
+// `ss-active` and never touches a transform. What those phases *look* like is the
+// stylesheet's business, which is why a slide, a wipe or a bounce is a class name
+// (`transition="slide-up ease-back"`) rather than more code in here.
 
 /**
  * Two frames: one for the browser to paint the entering state, one to start the
@@ -63,7 +67,22 @@ function durationOf(element) {
   return Math.max(0, ...times) * 1000
 }
 
-export function Transition({ children, trigger, className, as: Tag = 'div', ...rest }) {
+/**
+ * `transition="slide-up ease-back"` becomes `ss-slide-up ss-ease-back`.
+ *
+ * One prop rather than one per axis, because the phases are styled entirely in
+ * CSS: a variant is a class, so a studio can add its own alongside the built-in
+ * ones and pass its name here without changing a component.
+ */
+function variantsOf(transition) {
+  return String(transition)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((name) => `ss-${name}`)
+}
+
+export function Transition({ children, trigger, transition = 'fade', className, as: Tag = 'div', ...rest }) {
   const [content, setContent] = useState(children)
   const [phase, setPhase] = useState(trigger ? 'entering' : 'inactive')
   const ref = useRef(null)
@@ -118,7 +137,7 @@ export function Transition({ children, trigger, className, as: Tag = 'div', ...r
   useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
-    <Tag ref={ref} data-state={phase} className={cx('ss-transition', `ss-${phase}`, className)} {...rest}>
+    <Tag ref={ref} data-state={phase} className={cx('ss-transition', variantsOf(transition), `ss-${phase}`, className)} {...rest}>
       {content}
     </Tag>
   )

@@ -31,7 +31,8 @@ function Rows() {
 export default function Standings() {
   return (
     <Scene className="standings flex items-center justify-end p-12">
-      <Toggle name="standings">
+      {/* Slides in from the edge it is anchored to. */}
+      <Toggle name="standings" transition="slide-left ease-out opaque" style={{ '--ss-shift': '26rem', '--ss-duration': '450ms' }}>
         <div className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-300">
             <Variable name="standings.title" fallback="Standings" />

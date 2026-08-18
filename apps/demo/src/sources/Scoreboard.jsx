@@ -7,6 +7,10 @@ import { Image, Scene, Timer, Variable } from '@single-studio/core'
  * "boise-state" and looks up `logos/boise-state.svg`, so an operator typing a name
  * gets the badge without anyone maintaining a mapping. An unknown name falls back
  * to the placeholder rather than showing a broken image on air.
+ *
+ * The transitions are deliberately different per element: a name flips over, a
+ * score slides up and overshoots, and the badge fades because a logo swapping with
+ * a flourish reads as a mistake. All three are class names on the same machine.
  */
 export default function Scoreboard() {
   return (
@@ -16,10 +20,10 @@ export default function Scoreboard() {
           <Image name="home.name" src="./logos/:value:.svg" slug fallback="./logos/placeholder.svg" alt="" />
         </div>
         <div className="flex w-56 items-center justify-end px-4 py-3 text-2xl font-semibold uppercase tracking-wide">
-          <Variable name="home.name" fallback="Home" fit className="home-name" />
+          <Variable name="home.name" fallback="Home" transition="flip ease-sharp" fit className="home-name" />
         </div>
         <div className="flex w-20 items-center justify-center bg-sky-600 text-4xl font-bold">
-          <Variable name="home.score" fallback="0" />
+          <Variable name="home.score" fallback="0" transition="slide-up ease-back" />
         </div>
         <div className="flex w-24 flex-col items-center justify-center bg-slate-900 px-2 py-1">
           <span className="text-[10px] uppercase tracking-widest text-slate-400">
@@ -28,10 +32,10 @@ export default function Scoreboard() {
           <Timer name="break" fallback="--:--" className="text-lg font-semibold" />
         </div>
         <div className="flex w-20 items-center justify-center bg-rose-600 text-4xl font-bold">
-          <Variable name="away.score" fallback="0" />
+          <Variable name="away.score" fallback="0" transition="slide-up ease-back" />
         </div>
         <div className="flex w-56 items-center px-4 py-3 text-2xl font-semibold uppercase tracking-wide">
-          <Variable name="away.name" fallback="Away" fit className="away-name" />
+          <Variable name="away.name" fallback="Away" transition="flip ease-sharp" fit className="away-name" />
         </div>
         <div className="flex w-12 items-center justify-center bg-white/5 p-1.5">
           <Image name="away.name" src="./logos/:value:.svg" slug fallback="./logos/placeholder.svg" alt="" />

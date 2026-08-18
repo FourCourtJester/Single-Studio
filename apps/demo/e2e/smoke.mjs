@@ -460,6 +460,66 @@ check(
   'the wall-clock countdown shows a real time, not its fallback',
 )
 
+// -- Transition variants -----------------------------------------------------
+// The state machine sets three phase classes and never touches a transform, so a
+// variant is only ever CSS. These checks are here because a mistyped class name
+// fails silently: the graphic still appears, it just stops moving.
+const styleOf = (selector) =>
+  match.evaluate((sel) => {
+    const element = document.querySelector(sel)
+
+    if (!element) return null
+
+    const style = getComputedStyle(element)
+
+    return {
+      state: element.dataset.state,
+      transform: style.transform,
+      opacity: style.opacity,
+      clipPath: style.clipPath,
+      duration: style.transitionDuration,
+      ease: style.transitionTimingFunction,
+      animation: style.animationName,
+    }
+  }, selector)
+
+// Hidden, the map card is parked 12rem off the left edge and stays fully opaque,
+// because `opaque` makes it a slide rather than a fade.
+//
+// Measuring this while hidden is only meaningful because --ss-shift is a length. A
+// percentage would resolve against the collapsed box and read as no movement at
+// all -- which is how the demo was written first, and what this caught.
+await control.locator('button:has-text("Hide map")').click()
+check(await becomes(match, () => document.querySelector('.ss-slide-right')?.dataset.state === 'inactive'), 'the map card goes inactive when hidden')
+
+const parked = await styleOf('.ss-slide-right')
+console.log(`  slide-right parked: ${JSON.stringify(parked)}`)
+check(/^matrix\(/.test(parked.transform) && parseFloat(parked.transform.split(',').at(4)) <= -192, 'a hidden slide is parked off-screen, not just transparent')
+check(parked.opacity === '1', 'opaque keeps a slide from fading as well as moving')
+check(parked.duration === '0.45s', 'the studio -- not the framework -- owns the duration')
+
+await control.locator('button:has-text("Show map")').click()
+check(
+  await becomes(match, () => getComputedStyle(document.querySelector('.ss-slide-right')).transform === 'none'),
+  'showing it slides the card back to its resting place',
+)
+
+// The keyframe variant: the machine reads animation duration as well as
+// transition duration, so the content swap still waits for the bounce to land.
+const bounced = await styleOf('.ss-bounce')
+console.log(`  bounce: ${JSON.stringify(bounced)}`)
+check(bounced.animation === 'ss-bounce-in', 'the bounce variant runs a keyframe animation, not a transition')
+
+// Easing is a class, and it is the difference between mechanical and produced.
+const overshoot = await styleOf('.ss-slide-up')
+check(/cubic-bezier\(0.34, 1.56/.test(overshoot.ease), 'ease-back resolves to an overshooting curve')
+
+// A wipe reveals rather than fades, so it overrides the phase opacity.
+const wiped = await styleOf('.ss-wipe')
+console.log(`  wipe: ${JSON.stringify(wiped)}`)
+check(wiped.clipPath.startsWith('inset('), 'a wipe is clipped rather than faded')
+check(wiped.opacity === '1', 'a wipe stays fully opaque throughout')
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is

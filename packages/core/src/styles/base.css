@@ -32,7 +32,19 @@
    * whatever the element actually computes to.
    */
   .ss-transition {
-    transition-property: opacity, transform;
+    /*
+     * How far a slide travels.
+     *
+     * Prefer a length. A percentage transform resolves against the element's own
+     * size, and a Toggle that is hidden has no content in it -- so `150%` of a
+     * collapsed box is zero, and the graphic sits parked exactly where it will
+     * land. It still animates correctly on the way in and out, when content is
+     * present, which is what makes the failure so easy to miss. This is the same
+     * trap the ticker fell into.
+     */
+    --ss-shift: 1.5rem;
+
+    transition-property: opacity, transform, clip-path;
     transition-duration: var(--ss-duration, 300ms);
     transition-timing-function: var(--ss-ease, cubic-bezier(0.4, 0, 0.2, 1));
   }
@@ -45,6 +57,134 @@
 
   .ss-active {
     opacity: 1;
+  }
+
+  /*
+   * Motion variants.
+   *
+   * The state machine only ever sets three phase classes; what those phases look
+   * like is entirely CSS, which is why a variant is a class and not a prop that
+   * has to be plumbed through every component. `transition="slide-up ease-back"`
+   * on any source component becomes `ss-slide-up ss-ease-back` here.
+   *
+   * Each variant styles the same three "off" phases and lets `.ss-active` be the
+   * resting state, so entering and exiting mirror each other for free.
+   *
+   * Everything below is a plain transition -- no keyframes -- except ss-bounce.
+   * A settling bounce needs more than a start and an end, and it is worth having
+   * one keyframe variant to prove the machine handles them: it reads animation
+   * duration alongside transition duration, so the swap still waits for the
+   * animation to finish.
+   */
+
+  /* Direction names the way the content travels as it arrives. */
+  .ss-slide-up.ss-inactive,
+  .ss-slide-up.ss-exiting,
+  .ss-slide-up.ss-entering {
+    transform: translateY(var(--ss-shift));
+  }
+
+  .ss-slide-down.ss-inactive,
+  .ss-slide-down.ss-exiting,
+  .ss-slide-down.ss-entering {
+    transform: translateY(calc(-1 * var(--ss-shift)));
+  }
+
+  .ss-slide-left.ss-inactive,
+  .ss-slide-left.ss-exiting,
+  .ss-slide-left.ss-entering {
+    transform: translateX(var(--ss-shift));
+  }
+
+  .ss-slide-right.ss-inactive,
+  .ss-slide-right.ss-exiting,
+  .ss-slide-right.ss-entering {
+    transform: translateX(calc(-1 * var(--ss-shift)));
+  }
+
+  .ss-zoom.ss-inactive,
+  .ss-zoom.ss-exiting,
+  .ss-zoom.ss-entering {
+    transform: scale(0.88);
+  }
+
+  .ss-flip.ss-inactive,
+  .ss-flip.ss-exiting,
+  .ss-flip.ss-entering {
+    transform: perspective(60rem) rotateX(-90deg);
+  }
+
+  .ss-flip {
+    transform-origin: center top;
+  }
+
+  /*
+   * A wipe reveals rather than fades, so it overrides the phase opacity. The
+   * two-class selectors below outrank the single-class phase rules above.
+   */
+  .ss-wipe.ss-inactive,
+  .ss-wipe.ss-exiting,
+  .ss-wipe.ss-entering {
+    clip-path: inset(0 100% 0 0);
+    opacity: 1;
+  }
+
+  .ss-wipe.ss-active {
+    clip-path: inset(0 0 0 0);
+  }
+
+  /* Same, for any variant that should move without also fading. */
+  .ss-opaque.ss-inactive,
+  .ss-opaque.ss-exiting,
+  .ss-opaque.ss-entering {
+    opacity: 1;
+  }
+
+  /*
+   * The one keyframe variant: drops in and settles, twice, the way a physical
+   * lower third does. Transform belongs to the animation here, so the transition
+   * is narrowed to opacity to stop the two fighting over it.
+   */
+  .ss-bounce {
+    --ss-drop: 2.5rem;
+
+    transition-property: opacity;
+  }
+
+  .ss-bounce.ss-inactive,
+  .ss-bounce.ss-exiting,
+  .ss-bounce.ss-entering {
+    transform: translateY(calc(-1 * var(--ss-drop)));
+  }
+
+  .ss-bounce.ss-active {
+    animation: ss-bounce-in var(--ss-duration, 300ms) both;
+  }
+
+  /*
+   * Easings, as classes, because a curve is the difference between a graphic that
+   * looks mechanical and one that looks produced -- and it is the cheapest change
+   * in this file. ss-ease-back overshoots and settles, which is what reads as
+   * "bounce" on a slide without needing keyframes at all.
+   */
+  .ss-ease-back {
+    --ss-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ss-ease-out {
+    --ss-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ss-ease-in {
+    --ss-ease: cubic-bezier(0.7, 0, 0.84, 0);
+  }
+
+  .ss-ease-sharp {
+    --ss-ease: cubic-bezier(0.87, 0, 0.13, 1);
+  }
+
+  .ss-ease-linear {
+    --ss-ease: linear;
   }
 
   /* Graphics are authored against a fixed canvas; OBS scales the result. */
@@ -88,6 +228,29 @@
   .ss-panel-body > .ss-image-picker,
   .ss-panel-body > .ss-asset-library {
     flex-basis: 100%;
+  }
+}
+
+@keyframes ss-bounce-in {
+  0% {
+    transform: translateY(calc(-1 * var(--ss-drop, 2.5rem)));
+  }
+  45% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  62% {
+    transform: translateY(calc(-0.26 * var(--ss-drop, 2.5rem)));
+  }
+  80% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  90% {
+    transform: translateY(calc(-0.08 * var(--ss-drop, 2.5rem)));
+  }
+  100% {
+    transform: translateY(0);
   }
 }
 

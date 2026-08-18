@@ -130,6 +130,9 @@ const mutate = useVelcroMutate()
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                       |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
 
+Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
+[Transitions](#transitions).
+
 **Control** — the operator's board:
 
 | Component      | Writes             | Notes                                                           |
@@ -331,6 +334,74 @@ does not have a component for — colours, offsets, widths, radii:
 A path holding nothing is left unset rather than blanked, so the `var()` fallback
 still applies.
 
+## Transitions
+
+Broadcast graphics do not snap between values; they animate out, swap, and animate
+back in. Every source component does that already — the interesting part is _how_.
+
+```jsx
+<Toggle name="lowerthird" transition="slide-right ease-back opaque" />
+<Variable name="home.name" transition="flip ease-sharp" />
+<Image name="home.faction" transition="wipe" />
+<Toggle name="showtime" transition="bounce" />
+```
+
+The prop is a space-separated list of variant names; each becomes an `ss-` class.
+That is the whole mechanism. The state machine sets `ss-exiting` / `ss-entering` /
+`ss-active` and **never touches a transform** — what a phase looks like is CSS, so
+a variant costs a rule rather than a code path, and your own variant is just another
+class you write and pass by name.
+
+| Motion        | What it does                                       |
+| ------------- | -------------------------------------------------- |
+| `fade`        | The default. Opacity only.                         |
+| `slide-up`    | Arrives travelling upward (starts below its place) |
+| `slide-down`  | Arrives travelling downward                        |
+| `slide-left`  | Arrives travelling leftward (starts to the right)  |
+| `slide-right` | Arrives travelling rightward                       |
+| `zoom`        | Scales up into place                               |
+| `flip`        | Rotates in about its top edge                      |
+| `wipe`        | Reveals left to right, clipped rather than faded   |
+| `bounce`      | Drops in and settles twice (keyframes)             |
+
+| Modifier      | What it does                                      |
+| ------------- | ------------------------------------------------- |
+| `opaque`      | Move without also fading — a pure slide           |
+| `ease-out`    | Fast then settling. The safe default for a reveal |
+| `ease-back`   | Overshoots and comes back. Reads as a bounce      |
+| `ease-in`     | Slow then fast. For exits                         |
+| `ease-sharp`  | Hard in, hard out. Mechanical, good for a wipe    |
+| `ease-linear` | No easing                                         |
+
+Two custom properties tune the rest:
+
+```jsx
+<Toggle name="sponsor" transition="slide-up ease-out opaque" style={{ '--ss-shift': '14rem', '--ss-duration': '480ms' }} />
+```
+
+- `--ss-shift` — how far a slide travels (default `1.5rem`)
+- `--ss-duration` — how long a phase takes (default `300ms`); `--ss-drop` for `bounce`
+
+**Use a length for `--ss-shift`, not a percentage.** A percentage transform resolves
+against the element's own size, and a hidden `Toggle` has no content in it — so
+`150%` of a collapsed box is zero and the graphic sits parked exactly where it will
+land. It still animates correctly on the way in and out, when content _is_ present,
+which is what makes the mistake so easy to miss.
+
+Two more things worth knowing before you build a scene around this:
+
+- **Pin blocks that reveal independently.** If two graphics share a flex row, one
+  sliding in shoves the other sideways to make room. On air that reads as a bug
+  rather than as a transition. The demo's `Match` scene positions each bottom block
+  absolutely for exactly this reason.
+- **Do not centre a transitioning element with a transform.** `-translate-x-1/2`
+  and a variant that animates transform will fight, and the variant wins. Centre
+  with a wrapper.
+
+Pick per element rather than per scene. In the demo's scoreboard a name flips over,
+a score slides up and overshoots, and the badge plainly fades — because a logo
+swapping with a flourish reads as a mistake.
+
 ## Sizing for the dock
 
 An OBS dock is either a narrow column pinned down one side or most of a monitor, and
@@ -446,8 +517,8 @@ the framework's components live in `node_modules` — without it their classes g
 stripped from your build.
 
 `@single-studio/core/styles.css` carries only behaviour-critical rules: transparent
-backgrounds for sources, the `Transition` state classes and their timing, and the
-ticker keyframes.
+backgrounds for sources, the `Transition` state classes, their timing and motion
+variants, and the ticker keyframes.
 
 CSS owns the timing. `Transition` reads the duration back off computed style, so
 there is no duration prop to keep in sync — retune it any of three ways:
