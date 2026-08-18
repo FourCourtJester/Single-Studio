@@ -163,10 +163,12 @@ build configuration rather than a URL parameter. Sources come from an explicit
 registry, so the framework never dynamically imports a user-supplied path.
 
 Hash routing, because it lets a static Pages deploy serve deep links with no
-rewrite rules. The cost is that every source shares one origin and one path, so
-anything naming a page from its URL sees them all as the same page — `?title=`,
-which sits ahead of the hash and sets `document.title`, is what gives each one an
-identity again. `SourceList` puts it on every URL it hands out.
+rewrite rules. The cost is that every source shares one origin and one path, so OBS
+— which names a browser source from its URL — sees them all as the same page.
+`?layer-name=`, ahead of the hash where OBS looks, is what gives each one an
+identity again. `SourceList` puts it on what it links and what it copies, and
+leaves it off what it displays: the encoded parameter roughly doubles the length of
+a line nobody reads off the screen.
 
 ## Components
 

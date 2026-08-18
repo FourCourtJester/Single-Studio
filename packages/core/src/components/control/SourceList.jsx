@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { useStudio } from '../../studio/context'
 import { cx } from '../../toolkits/cx'
+import { LAYER_NAME } from '../../toolkits/url'
 
 /**
  * Every source's browser-source URL, ready to paste into OBS.
@@ -10,26 +11,34 @@ import { cx } from '../../toolkits/cx'
  * into OBS, and hand-assembling a dozen `#/source/...` URLs is where people give
  * up. Rendered on the control page by default.
  *
- * Each URL carries `?title=`, which the source page applies to `document.title`.
- * Hash routing means every source shares one origin and one path, so anything that
- * names a page from its URL or its title sees a dozen identical pages -- which is
- * where a scene full of "localhost", "localhost (2)", "localhost (3)" comes from.
- * The parameter sits before the hash so it is part of the URL proper.
+ * Two forms of the same URL, on purpose.
+ *
+ * What an operator copies carries `?layer-name=`, which is what OBS reads to name a
+ * browser source. Hash routing means every source on a studio shares one origin and
+ * one path, so without it OBS sees a dozen identical pages and produces a scene full
+ * of "localhost", "localhost (2)", "localhost (3)". The parameter sits ahead of the
+ * hash because that is where OBS looks.
+ *
+ * What is *shown* is the bare URL. The encoded parameter roughly doubles the length
+ * of every line for something nobody reads off the screen -- it only has to survive
+ * the clipboard.
  */
 export function SourceList({ className }) {
   const { studio } = useStudio()
   const [copied, setCopied] = useState(null)
   const names = Object.keys(studio.sources)
 
-  const urlFor = (name) => {
-    const title = encodeURIComponent(`${studio.name} ${name}`)
+  const base = () => `${window.location.origin}${window.location.pathname}`
 
-    return `${window.location.origin}${window.location.pathname}?title=${title}#/source/${name}`
-  }
+  /** What is shown: readable, and what you would type. */
+  const urlFor = (name) => `${base()}#/source/${name}`
+
+  /** What is copied and linked: the same page, named for OBS. */
+  const obsUrlFor = (name) => `${base()}?${LAYER_NAME}=${encodeURIComponent(`${studio.name} ${name}`)}#/source/${name}`
 
   const copy = async (name) => {
     try {
-      await navigator.clipboard.writeText(urlFor(name))
+      await navigator.clipboard.writeText(obsUrlFor(name))
       setCopied(name)
       setTimeout(() => setCopied(null), 1500)
     } catch {
@@ -49,9 +58,9 @@ export function SourceList({ className }) {
     <section className={cx('rounded-lg border border-slate-800 bg-slate-900/40 p-4', className)}>
       <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">Browser sources</h2>
       <p className="mb-3 text-xs text-slate-500">
-        Add each of these to OBS as a Browser source. Leave &ldquo;Shutdown source when not visible&rdquo; unchecked so state stays warm. The{' '}
-        <code className="text-slate-400">?title=</code> on the end names the page, so a scene of these does not come back as a list of identical entries &mdash;
-        edit it if you want the source called something else.
+        Add each of these to OBS as a Browser source. Leave &ldquo;Shutdown source when not visible&rdquo; unchecked so state stays warm. Use Copy rather than
+        retyping: it adds <code className="text-slate-400">?{LAYER_NAME}=</code>, which is what OBS names the source from. Without it a scene of these comes
+        back as a list of identical entries.
       </p>
       <ul className="flex flex-col gap-2">
         {names.map((name) => (
@@ -64,7 +73,13 @@ export function SourceList({ className }) {
               {copied === name ? 'Copied' : 'Copy'}
             </button>
             <span className="text-sm font-medium text-slate-200">{name}</span>
-            <a href={`#/source/${name}`} target="_blank" rel="noreferrer" className="ml-auto truncate text-xs text-sky-400 hover:underline">
+            <a
+              href={obsUrlFor(name)}
+              target="_blank"
+              rel="noreferrer"
+              title={obsUrlFor(name)}
+              className="ml-auto truncate text-xs text-sky-400 hover:underline"
+            >
               {urlFor(name)}
             </a>
           </li>

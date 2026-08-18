@@ -58,18 +58,19 @@ the container's `node` user.
    The graphic is rebuilt from scratch each time its scene returns, and nothing is
    painted until the store has answered — see [Loading and reload](#sources-that-unload-when-hidden).
 
-   The URLs the control page hands you carry a `?title=` parameter:
+   **Use Copy rather than retyping what is on screen.** What it puts on the
+   clipboard carries an OBS parameter the displayed URL leaves off:
 
    ```
-   http://localhost:4173/?title=Demo%20scoreboard#/source/scoreboard
+   http://localhost:4173/?layer-name=Demo%20scoreboard#/source/scoreboard
    ```
 
-   The source page applies it to `document.title`. Routing is hash-based, so every
-   source on a studio shares one origin and one path — to anything that names a page
-   from its URL, a dozen sources look like a dozen copies of the same one, which is
-   how a scene ends up full of `localhost`, `localhost (2)`, `localhost (3)`. The
-   parameter sits ahead of the hash so it is part of the URL proper, and it is plain
-   text: edit it if you want the source called something else.
+   `layer-name` is what OBS names the source from. Routing is hash-based, so every
+   source on a studio shares one origin and one path — without the parameter OBS
+   sees a dozen copies of the same page, which is how a scene ends up full of
+   `localhost`, `localhost (2)`, `localhost (3)`. It sits ahead of the hash because
+   that is where OBS looks, and it is plain text: edit it if you want the source
+   called something else.
 
 ## Start a new studio
 

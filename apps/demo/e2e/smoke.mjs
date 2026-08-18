@@ -60,7 +60,9 @@ const executablePath = process.env.CHROMIUM_PATH || undefined
 const browser = await chromium.launch({ executablePath })
 // Pinned explicitly: the stylesheet collapses transitions to 1ms under
 // prefers-reduced-motion, which would make the timing assertions meaningless.
-const context = await browser.newContext({ reducedMotion: 'no-preference' })
+// Clipboard permission so the Copy button can be checked for what it actually put
+// there, rather than only that it changed its label.
+const context = await browser.newContext({ reducedMotion: 'no-preference', permissions: ['clipboard-read', 'clipboard-write'] })
 
 const control = await context.newPage()
 control.on('pageerror', (e) => console.log('[control pageerror]', e.message))
@@ -711,25 +713,40 @@ check(wiped.clipPath.startsWith('inset('), 'a wipe is clipped rather than faded'
 check(wiped.opacity === '1', 'a wipe stays fully opaque throughout')
 
 // -- Browser-source URLs -----------------------------------------------------
-// Hash routing means every source shares one origin and one path, so anything that
-// names a page from its URL sees a dozen identical pages -- which is where a scene
-// full of "localhost", "localhost (2)" comes from. The title rides in the query
-// string, before the hash, so it is part of the URL proper.
+// Hash routing means every source shares one origin and one path, so OBS -- which
+// names a browser source from its URL -- sees a dozen identical pages and produces
+// a scene full of "localhost", "localhost (2)". The name rides in `?layer-name=`,
+// ahead of the hash, because that is where OBS looks.
+//
+// Shown and linked are deliberately different: the encoded parameter roughly
+// doubles every line for something nobody reads off the screen.
 const listed = await control.evaluate(() =>
-  [...document.querySelectorAll('section:has(> h2) a[href^="#/source/"]')].map((link) => link.textContent.trim()),
+  [...document.querySelectorAll('section:has(> h2) a[href*="/source/"]')].map((link) => ({ shown: link.textContent.trim(), href: link.href })),
 )
 
-console.log(`  source urls: ${listed.length} listed, first ${listed[0]}`)
+console.log(`  source urls: ${listed.length} listed, first ${listed[0]?.href}`)
 check(listed.length >= 6, 'every registered source is listed for OBS')
 check(
-  listed.every((url) => /\?title=[^#]+#\/source\//.test(url)),
-  'each source URL carries a title ahead of the hash',
+  listed.every((row) => /\?layer-name=[^#]+#\/source\//.test(row.href)),
+  'each link carries a layer name ahead of the hash',
 )
-check(new Set(listed.map((url) => url.split('#')[0])).size === listed.length, 'and no two of them are the same page as far as a URL is concerned')
+check(
+  listed.every((row) => !row.shown.includes('layer-name')),
+  'and the URL on screen stays readable, without it',
+)
+check(new Set(listed.map((row) => row.href.split('#')[0])).size === listed.length, 'no two links are the same page as far as OBS is concerned')
+
+// Copy has to carry the parameter even though the text does not -- the clipboard is
+// how the URL actually reaches OBS.
+await control.locator('section:has(> h2) li:has-text("scoreboard") button:has-text("Copy")').first().click()
+const copiedUrl = await control.evaluate(() => navigator.clipboard.readText())
+
+console.log(`  copied: ${copiedUrl}`)
+check(copiedUrl.includes('layer-name=Demo%20scoreboard'), 'Copy puts the named URL on the clipboard, not the bare one')
 
 // The page has to actually honour it, or the parameter is decoration.
 const titled = await context.newPage()
-await titled.goto(listed.find((url) => url.includes('scoreboard')))
+await titled.goto(listed.find((row) => row.href.includes('scoreboard')).href)
 await titled.waitForSelector('.ss-scene')
 check(await becomes(titled, () => document.title === 'Demo scoreboard'), `the source names itself from the URL (got "${await titled.title()}")`)
 await titled.close()
