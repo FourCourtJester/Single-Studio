@@ -56,8 +56,28 @@ export function createVelcroHost(config = {}) {
     entry.channel.postMessage({ path, value: Doc.read(doc, path) })
   }
 
+  /**
+   * Publish everything the transaction touched.
+   *
+   * Guarded, and that guard is load-bearing rather than defensive habit. This runs
+   * inside Yjs's `afterTransaction`, so an exception here escapes into the middle
+   * of Yjs's own bookkeeping and can leave a transaction half applied. When the
+   * transaction is a remote update, half applied means the deletes land and the
+   * inserts do not -- a Y.Map set being a delete plus an insert, the value on that
+   * path does not go stale, it goes *missing*, on air, permanently.
+   *
+   * A channel that will not take a message is a local problem with one subscriber.
+   * It must never be allowed to become a corrupt document.
+   */
   function flush() {
-    for (const path of dirty) publish(path)
+    for (const path of dirty) {
+      try {
+        publish(path)
+      } catch (error) {
+        console.error('[velcro] could not publish', path, error)
+      }
+    }
+
     dirty.clear()
   }
 

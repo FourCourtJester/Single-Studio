@@ -20,7 +20,9 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md,yaml,yml}\"",
     "test": "pnpm -r test",
-    "test:watch": "pnpm --filter @single-studio/core test:watch"
+    "test:watch": "pnpm --filter @single-studio/core test:watch",
+    "relay": "node packages/relay/bin/relay.mjs",
+    "e2e:relay": "pnpm --filter @single-studio/demo e2e:relay"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

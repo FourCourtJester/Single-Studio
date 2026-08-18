@@ -34,4 +34,9 @@ export default [
     files: ['**/e2e/**/*.mjs', '**/*.config.js'],
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    // The relay's Cloudflare adapter runs on workerd, which has its own globals.
+    files: ['packages/relay/src/worker.js'],
+    languageOptions: { globals: { ...globals.worker, WebSocketPair: 'readonly' } },
+  },
 ]

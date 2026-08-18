@@ -1,0 +1,86 @@
+# @single-studio/relay
+
+One room per show, holding the document and rebroadcasting updates.
+
+**The relay is not authoritative.** It holds a replica like everybody else. If it
+dies mid-show every peer keeps rendering from its own document; when it comes back,
+queued edits converge. That is the reason for a CRDT here rather than a server that
+owns the truth: a relay outage costs collaboration, never the broadcast.
+
+It speaks the standard y-websocket protocol, so a studio can point at this, at
+`y-websocket`, at Hocuspocus or at y-sweet without changing a line.
+
+## Run one
+
+```bash
+pnpm relay                              # ws://127.0.0.1:1234, memory only
+pnpm relay -- --storage ./rooms         # survives a restart
+pnpm relay -- --token hunter2           # clients must present ?token=
+```
+
+## Deploy one
+
+Cloudflare Durable Objects: one object per room, no machine to look after, and the
+free tier covers a small production comfortably.
+
+```bash
+cd packages/relay
+npx wrangler secret put RELAY_TOKEN     # optional, but do it
+npx wrangler deploy
+```
+
+Then point a studio at `wss://<your-worker>.workers.dev`.
+
+## Connect a studio
+
+Core imports no transport. The studio builds the provider, which is what keeps a
+deployment static — the relay's URL is runtime configuration, never baked in.
+
+```js
+import { createVelcroHost } from '@single-studio/core/worker'
+import { WebsocketProvider } from 'y-websocket'
+
+createVelcroHost({
+  name: STUDIO_ID,
+  mutations,
+  sync: {
+    url: 'wss://relay.example.com',
+    room: 'friday-show',
+    token,
+    connect: ({ doc, url, room, token, report }) => {
+      const provider = new WebsocketProvider(url, room, doc, { params: { token } })
+
+      provider.on('status', ({ status }) => report(status))
+
+      return provider
+    },
+  },
+})
+```
+
+## Layout
+
+| File                             | What                                                             |
+| -------------------------------- | ---------------------------------------------------------------- |
+| `src/room.js`                    | One room, n peers. Transport-agnostic, and where the logic lives |
+| `src/protocol.js`                | The y-websocket wire protocol, server side                       |
+| `src/node.js`, `bin/relay.mjs`   | A relay for Node: development, self-hosting, and the tests       |
+| `src/worker.js`, `wrangler.toml` | The Cloudflare Durable Object                                    |
+
+A room knows nothing about sockets. It is handed peers that can `send(bytes)` and
+told when bytes arrive, so the same logic runs behind `ws`, behind a Durable Object,
+and behind a pair of fakes — which is what makes convergence, late joiners and
+presence cleanup testable with no socket in sight.
+
+## Tokens
+
+A single shared token is the floor, not the ceiling. Per-operator tokens, payload
+encryption and a revocation path are stage 4 in
+[collaboration.md](../../docs/collaboration.md): productions lose operators, and
+that must not mean rotating one secret everyone else has to be re-told.
+
+## Status
+
+Stage 2 is built and tested but not finished — one acceptance check in
+`apps/demo/e2e/relay.mjs` does not pass. See **Known issue** in
+[collaboration.md](../../docs/collaboration.md) for the evidence gathered so far.

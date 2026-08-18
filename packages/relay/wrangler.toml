@@ -1,0 +1,17 @@
+name = "single-studio-relay"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+
+# One Durable Object per room. Cloudflare guarantees a single instance per name
+# globally, so "the room" is one object holding the document rather than a cluster
+# with a consensus problem to solve.
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+# Set the shared token out of band, never in this file:
+#   wrangler secret put RELAY_TOKEN

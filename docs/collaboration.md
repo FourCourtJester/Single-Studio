@@ -172,15 +172,91 @@ Three things it guarantees, each pinned by a test:
 `sync:status` over the existing port answers a board that asks, which is the hook
 stage 3 hangs the connection indicator on.
 
-### Stage 2 — Relay
+### Stage 2 — Relay 🚧
 
-`packages/relay`: a Durable Object that authenticates, holds the document, and
-rebroadcasts updates. Persists to Durable Object storage so a late-joining
-operator, or a reloading host, gets current state without the other side being
-online.
+**Built and tested, not finished.** `packages/relay` exists and is covered by 21
+tests, including real `y-websocket` clients and real velcro hosts converging
+through a real socket. One acceptance check does not pass — see below.
 
-**Done when:** two browser profiles on one machine converge through a locally
-running relay, and the smoke test's assertions hold across both.
+Three pieces:
+
+| File                              | What                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| `src/room.js`                     | One room, one document, n peers. Transport-agnostic, and where the logic is |
+| `src/node.js`                     | A relay for `node`. Development, self-hosting, and the test suite           |
+| `src/worker.js` + `wrangler.toml` | The Cloudflare Durable Object: the recommended deploy                       |
+
+The room is deliberately ignorant of transports. It is handed peers that can
+`send(bytes)` and told when bytes arrive, which is what lets the same logic run
+behind `ws`, behind a Durable Object, and behind a pair of fakes in a test — so
+convergence, late joiners and presence cleanup are testable with no socket in
+sight.
+
+It speaks the standard y-websocket protocol rather than one of our own, which
+keeps the promise made above: the endpoint is just a URL, and a studio can point at
+y-websocket, Hocuspocus or y-sweet instead without changing a line.
+
+#### Two bugs found on the way, both worth remembering
+
+**A dropped opening frame is nearly silent.** `join` used to be async, so a
+transport could not attach its message listener until after an await — and a
+peer's opening `syncStep1` is already in flight by then. Losing it looks like
+nothing: the peer still _receives_ broadcasts, so it appears connected. What it
+never gets is the state it asked for. Then a `Y.Map` set arrives, which is a delete
+of the old value plus an insert of the new one; the peer resolves the delete
+because it holds the old value, and parks the insert because it depends on
+operations it never received. The key does not go stale, it goes **missing**, on
+air, permanently. `join` is synchronous now and queues anything early.
+
+**An exception while publishing can corrupt the document.** The host's `flush()`
+runs inside Yjs's `afterTransaction`, so anything thrown there escapes into Yjs's
+own bookkeeping and can leave a transaction half applied — the same
+delete-without-insert outcome. A channel that will not take a message is a local
+problem with one subscriber; it must never become a corrupt document. Guarded.
+
+#### Known issue: two browser hosts diverge on a replace
+
+The acceptance test (`apps/demo/e2e/relay.mjs`) passes on everything except one
+check. Reproduction: peer A sets a value, B receives it, B replaces it — and A ends
+up with the key **absent**, then stops syncing outward.
+
+What has been established, so the next attempt does not start over:
+
+| Combination                                    | Result                                           |
+| ---------------------------------------------- | ------------------------------------------------ |
+| Two `y-websocket` clients in Node              | ✅ converges                                     |
+| Two velcro hosts in Node, subscribers attached | ✅ converges                                     |
+| One browser + one Node `y-websocket` client    | ✅ converges, both directions, including replace |
+| Two browsers, each a velcro host               | ❌ diverges                                      |
+
+Ruled out: the relay itself; `y-indexeddb` (fails with `persist: false`);
+y-websocket's cross-tab BroadcastChannel (fails with `disableBc`); Playwright
+context partitioning (fails with two separate browser _processes_); an exception in
+the worker (nothing is thrown — worker `error`, `unhandledrejection` and
+`console.error` were all routed out to the test and stayed silent); a client-id
+collision (the two ids differ).
+
+The sharpest measurement, taken by instrumenting all three documents at once:
+
+```
+operator's own update            33 bytes   state = {home.name: "Redline"}
+relay applies and broadcasts     34 bytes   state = {home.name: "Redline"}
+host applies                     18 bytes   state = {}          pending = none
+```
+
+The relay sends the whole thing. The host integrates roughly the delete half of it,
+reports **no pending structs**, and afterwards lists the operator's client as known.
+Yjs skipping an insert with nothing pending means it believes it already holds that
+operation — so the question is how the host's clock for the operator's client got
+ahead of the operation it was sent, and the answer is not yet known.
+
+Two facts that should constrain the next attempt: it needs _both_ peers to be
+browser velcro hosts (one browser against a plain Node client converges fine in
+both directions, including this exact replace), and a relay restart repairs it,
+which fits a bad baseline being replaced by a fresh handshake rather than ongoing
+corruption.
+
+**Done when:** that check passes too.
 
 ### Stage 3 — Status and presence
 
