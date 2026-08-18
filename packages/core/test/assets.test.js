@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ASSET_SCHEME, assetKeyOf, hashBytes, isAssetRef, toAssetRef, toKey } from '../src/velcro/assets'
+import { ASSET_SCHEME, assetKeyOf, groupOf, hashBytes, isAssetRef, leafOf, toAssetRef, toKey } from '../src/velcro/assets'
 
 const bytes = (text) => new TextEncoder().encode(text).buffer
 
@@ -35,6 +35,39 @@ describe('keys', () => {
 
   it('reduces accents so a key stays ASCII', () => {
     expect(toKey('Atlético.png')).toBe('atletico')
+  })
+
+  it('keeps slashes, so a key can name a group as well as an image', () => {
+    // The whole organisation scheme. A hundred images in one flat list is a
+    // scroll; the same hundred under a handful of prefixes is a menu.
+    expect(toKey('players/Ada Okafor.jpg')).toBe('players/ada-okafor')
+    expect(toKey('Team Logos/Atlético.png')).toBe('team-logos/atletico')
+  })
+
+  it('slugs each segment on its own, and strips the extension from the last only', () => {
+    expect(toKey('season.2/logo.v2.svg')).toBe('season-2/logo-v2')
+  })
+
+  it('drops empty segments rather than leaving a key with a hole in it', () => {
+    expect(toKey('/players//ada/')).toBe('players/ada')
+    expect(toKey('///')).toBe('')
+  })
+})
+
+describe('grouping', () => {
+  it('splits a key into the group it lives in and the name inside it', () => {
+    expect(groupOf('players/ada-okafor')).toBe('players')
+    expect(leafOf('players/ada-okafor')).toBe('ada-okafor')
+  })
+
+  it('treats an ungrouped key as ungrouped rather than as a group of one', () => {
+    expect(groupOf('ada-okafor')).toBe('')
+    expect(leafOf('ada-okafor')).toBe('ada-okafor')
+  })
+
+  it('groups by everything before the last slash, so nesting survives', () => {
+    expect(groupOf('season-2/players/ada')).toBe('season-2/players')
+    expect(leafOf('season-2/players/ada')).toBe('ada')
   })
 
   it('survives input with nothing usable in it', () => {

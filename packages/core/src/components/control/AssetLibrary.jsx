@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
-import { toAssetRef } from '../../velcro/assets'
+import { groupOf, leafOf, toAssetRef } from '../../velcro/assets'
+import { filesFromDrop } from '../../toolkits/entries'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
@@ -15,17 +16,30 @@ import { Tooltip } from '../common/Tooltip'
  * pressure, and means repointing a slot is a rename here rather than an edit
  * everywhere it is used.
  *
+ * A key can be a path -- `players/ada-okafor` -- and that slash is the whole
+ * organisation scheme. A hundred images in one flat list is a scroll an operator
+ * has to read; the same hundred under `players/`, `logos/`, `maps/` is a menu they
+ * can aim at. Groups are not a separate concept with its own storage and its own
+ * editing UI: the key already existed, renaming it already worked, and a graphic
+ * still points at one string.
+ *
+ * Dropping or picking a folder files its contents under the folder's name, which
+ * is how a hundred images arrive in one motion and come out organised.
+ *
  * Rendered inline as a panel, or inside AssetLibraryDialog as a modal. `onPick`
  * turns it into a chooser.
  */
 export function AssetLibrary({ onPick, selected, className, ...rest }) {
-  const { assets, addFile, addUrl, remove, rename } = useAssetLibrary()
+  const { assets, addFiles, addUrl, remove, rename } = useAssetLibrary()
   const [url, setUrl] = useState('')
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(null)
   const [error, setError] = useState(null)
   const [over, setOver] = useState(false)
+  const [filter, setFilter] = useState('')
   const input = useRef(null)
+  const folder = useRef(null)
 
   const run = async (work) => {
     setBusy(true)
@@ -41,21 +55,34 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
     }
   }
 
-  const takeFiles = async (files) => {
-    const chosen = [...(files ?? [])].filter((file) => file.type.startsWith('image/'))
+  /**
+   * Takes plain Files or the `{ file, path }` pairs a walked drop produces.
+   *
+   * A key typed alongside a multi-file add would collide, so a single file uses it
+   * as its key and a batch uses it as the group to file everything under -- which
+   * is the same field meaning the same thing at two scales.
+   */
+  const takeFiles = async (items) => {
+    const chosen = [...(items ?? [])].filter((item) => (item?.file ?? item)?.type?.startsWith('image/'))
 
     if (!chosen.length) {
-      setError('that is not an image')
+      setError('no images in that')
       return
     }
 
-    // A key typed alongside a multi-file drop would collide, so it only applies to
-    // a single file; the rest are named from their filenames.
-    const entries = await run(() =>
-      Promise.all(chosen.map((file) => addFile(file, { key: chosen.length === 1 ? key || undefined : undefined, name: file.name }))),
+    const single = chosen.length === 1
+
+    const result = await run(() =>
+      addFiles(single && key ? [{ file: chosen[0].file ?? chosen[0], path: key }] : chosen, {
+        group: single ? undefined : key || undefined,
+        onProgress: chosen.length > 4 ? setProgress : undefined,
+      }),
     )
 
-    if (entries?.length === 1 && onPick) onPick(entries[0])
+    setProgress(null)
+
+    if (result?.failed?.length) setError(`${result.failed.length} of ${chosen.length} could not be read`)
+    if (result?.added?.length === 1 && onPick) onPick(result.added[0])
     setKey('')
   }
 
@@ -71,13 +98,28 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
     }
   }
 
+  // Ungrouped entries sort last: they are the leftovers, and a heading-less block
+  // above a set of named ones reads as a mistake rather than as a category.
+  const needle = filter.trim().toLowerCase()
+  const groups = [
+    ...assets
+      .filter((entry) => !needle || entry.key.toLowerCase().includes(needle))
+      .reduce((map, entry) => {
+        const group = groupOf(entry.key)
+
+        return map.set(group, [...(map.get(group) ?? []), entry])
+      }, new Map()),
+  ].sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+
   return (
     <section className={cx('ss-asset-library flex w-full flex-col gap-3', className)} {...rest}>
       <div
         onDrop={(event) => {
           event.preventDefault()
           setOver(false)
-          takeFiles(event.dataTransfer?.files)
+          // Captured synchronously inside the handler: dataTransfer items are gone
+          // by the time an await resolves.
+          filesFromDrop(event.dataTransfer).then(takeFiles)
         }}
         onDragOver={(event) => {
           event.preventDefault()
@@ -102,7 +144,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           <input
             value={key}
             onChange={(event) => setKey(event.target.value)}
-            placeholder="name (optional)"
+            placeholder="name or group (optional)"
             aria-label="Asset name"
             className="w-36 rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500"
           />
@@ -126,9 +168,19 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
             disabled={busy}
             className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
           >
-            {busy ? 'Working…' : 'Choose a file'}
+            Choose files
           </button>
-          <span className="text-xs text-slate-500">or drop one here</span>
+          <button
+            type="button"
+            onClick={() => folder.current?.click()}
+            disabled={busy}
+            className="ss-choose-folder rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
+          >
+            Choose a folder
+          </button>
+          <span className="text-xs text-slate-500">
+            {progress ? `${progress.done} of ${progress.total}…` : busy ? 'Working…' : 'or drop them here — a folder files itself under its own name'}
+          </span>
         </div>
 
         {error ? <span className="text-xs text-rose-400">{error}</span> : null}
@@ -145,23 +197,71 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           aria-label="Add image files"
           className="hidden"
         />
+
+        {/* webkitdirectory is the only way to pick a folder, and every browser that
+            matters supports it under that vendor name. React needs it lowercase. */}
+        <input
+          ref={folder}
+          type="file"
+          accept="image/*"
+          multiple
+          webkitdirectory=""
+          onChange={(event) => {
+            takeFiles(event.target.files)
+            event.target.value = ''
+          }}
+          aria-label="Add a folder of images"
+          className="hidden"
+        />
       </div>
 
       {assets.length ? (
-        <ul className="ss-asset-grid grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7rem, 1fr))' }}>
-          {assets.map((entry) => (
-            <AssetTile
-              key={entry.key}
-              entry={entry}
-              selected={selected === toAssetRef(entry.key)}
-              onPick={onPick}
-              onRemove={() => remove(entry.key)}
-              onRename={(next) => rename(entry.key, next)}
+        <>
+          {/* Only once there is enough to lose something in. Below that the filter
+              is a control asking to be used on a list you can already see. */}
+          {assets.length > 8 ? (
+            <input
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder="Filter by name or group…"
+              aria-label="Filter images"
+              className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500"
             />
-          ))}
-        </ul>
+          ) : null}
+
+          {groups.length ? (
+            groups.map(([group, entries]) => (
+              <section key={group || '—'} className="ss-asset-group flex flex-col gap-1.5">
+                {/* The ungrouped block gets a heading only when something above it
+                    has one. On a flat library it would be a label for everything,
+                    which is no label at all; under a set of named groups its absence
+                    reads as a rendering fault. */}
+                {group || groups.length > 1 ? (
+                  <h3 className="flex items-baseline gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {group || <span className="text-slate-600">ungrouped</span>}
+                    <span className="text-[0.65rem] normal-case tracking-normal text-slate-600">{entries.length}</span>
+                  </h3>
+                ) : null}
+                <ul className="ss-asset-grid grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7rem, 1fr))' }}>
+                  {entries.map((entry) => (
+                    <AssetTile
+                      key={entry.key}
+                      entry={entry}
+                      selected={selected === toAssetRef(entry.key)}
+                      onPick={onPick}
+                      onRemove={() => remove(entry.key)}
+                      onRename={(next) => rename(entry.key, next)}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))
+          ) : (
+            <p className="text-xs text-slate-500">Nothing matches &ldquo;{filter}&rdquo;.</p>
+          )}
+        </>
       ) : (
-        <p className="text-xs text-slate-500">Nothing here yet. Drop an image in, or paste a URL.</p>
+        <p className="text-xs text-slate-500">Nothing here yet. Drop images or a folder in, or paste a URL.</p>
       )}
     </section>
   )
@@ -210,10 +310,10 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
               setDraft(entry.key)
               setEditing(true)
             }}
-            title="Rename"
+            title={`Rename ${entry.key}`}
             className="ss-asset-name min-w-0 grow cursor-text truncate text-left text-[11px] text-slate-300 decoration-slate-600 decoration-dotted underline-offset-2 hover:text-white hover:underline"
           >
-            {entry.key}
+            {leafOf(entry.key)}
           </button>
         )}
         <span

@@ -327,7 +327,7 @@ check(
   'a pasted URL becomes a named library entry',
 )
 
-await control.locator('.ss-asset-library input[type="file"]').setInputFiles(asset('logos/vandals.svg'))
+await control.locator('.ss-asset-library input[aria-label="Add image files"]').setInputFiles(asset('logos/vandals.svg'))
 check(
   await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals/.test(tile.textContent))),
   'a dropped file becomes a named library entry',
@@ -335,11 +335,73 @@ check(
 
 // Adding the same file again keeps both entries distinct rather than clobbering the
 // first -- the same photo can legitimately be filed under two names.
-await control.locator('.ss-asset-library input[type="file"]').setInputFiles(asset('logos/vandals.svg'))
+await control.locator('.ss-asset-library input[aria-label="Add image files"]').setInputFiles(asset('logos/vandals.svg'))
 check(
   await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals-2/.test(tile.textContent))),
   'a second copy gets its own key rather than colliding',
 )
+
+// -- Groups ------------------------------------------------------------------
+// A hundred images in one flat list is a scroll an operator has to read. The key
+// is a path, so the part before the last slash is a group, and the name field
+// means "group" when more than one file arrives at once.
+const library = control.locator('.ss-asset-library')
+
+await library.locator('input[aria-label="Asset name"]').fill('units')
+// The whole set, not a token two: the progress readout and the filter both only
+// exist above a threshold, and a batch small enough to skip them proves nothing.
+const units = ['artillery', 'battle-tank', 'engineer', 'gunship', 'missile-squad', 'rifleman', 'scout-bike', 'sniper']
+
+await library.locator('input[aria-label="Add image files"]').setInputFiles(units.map((unit) => asset(`units/${unit}.svg`)))
+
+check(
+  await becomes(control, () => document.querySelectorAll('.ss-asset-group').length >= 2),
+  'a batch files itself under the group that was typed',
+)
+
+const filed = await control.evaluate(() => {
+  const section = [...document.querySelectorAll('.ss-asset-group')].find((group) => group.querySelector('h3')?.textContent.startsWith('units'))
+
+  return section ? [...section.querySelectorAll('.ss-asset-name')].map((name) => name.textContent).sort() : null
+})
+
+console.log(`  grouped: ${JSON.stringify(filed)}`)
+check(filed?.length === units.length, `every file in the batch lands in the same group (${filed?.length} of ${units.length})`)
+check(filed?.includes('rifleman'), 'and the tile shows the name inside the group, not the whole path')
+
+// The dropdown is where this pays for itself: an optgroup is a menu you aim at
+// rather than a list you read.
+const options = await control.evaluate(() => {
+  const select = document.querySelector('.ss-image-picker select')
+
+  return {
+    groups: [...select.querySelectorAll('optgroup')].map((group) => group.label),
+    grouped: [...select.querySelectorAll('optgroup option')].map((option) => option.textContent),
+    loose: [...select.children].filter((child) => child.tagName === 'OPTION').map((option) => option.textContent),
+  }
+})
+
+console.log(`  optgroups: ${JSON.stringify(options.groups)}`)
+check(options.groups.includes('units'), 'the picker dropdown groups by the key path')
+check(options.grouped.includes('rifleman'), 'a grouped option reads as its short name')
+check(
+  options.loose.some((label) => label.includes('home-badge')),
+  'an ungrouped entry stays loose rather than being filed under a heading of its own',
+)
+
+// The filter only appears once there is enough to lose something in.
+const filterBox = library.locator('input[aria-label="Filter images"]')
+
+check(await filterBox.isVisible(), 'a filter appears once the library is big enough to need one')
+
+await filterBox.fill('gunship')
+check(
+  await becomes(control, () => document.querySelectorAll('.ss-asset-tile').length === 1),
+  'filtering narrows the library to what was asked for',
+)
+
+await filterBox.fill('')
+check(await becomes(control, () => document.querySelectorAll('.ss-asset-tile').length > 1), 'and clearing it brings everything back')
 
 // -- Picking from the library ------------------------------------------------
 const sponsor = await context.newPage()
@@ -396,13 +458,16 @@ check(
 const libraryOrder = await control.evaluate(() => {
   const library = document.querySelector('.ss-asset-library')
   const url = library.querySelector('input[aria-label="Image URL"]')
-  const file = [...library.querySelectorAll('button')].find((button) => /choose a file/i.test(button.textContent))
+  const file = [...library.querySelectorAll('button')].find((button) => /choose files/i.test(button.textContent))
 
   // 4 === Node.DOCUMENT_POSITION_FOLLOWING
   return Boolean(url.compareDocumentPosition(file) & 4)
 })
 
 check(libraryOrder, 'the file button sits below the URL row, not in front of it')
+
+// Picking a whole folder is the answer to "a hundred images, one at a time?".
+check(await control.locator('.ss-choose-folder').isVisible(), 'a folder can be added in one go, not file by file')
 
 // Tailwind's reset leaves a button at `cursor: default`, so nothing on the board
 // looked pressable until this was put back.

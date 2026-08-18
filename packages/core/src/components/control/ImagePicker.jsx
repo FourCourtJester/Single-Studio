@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
 import { useDraftValue } from '../../studio/DraftProvider'
-import { assetKeyOf, isAssetRef, toAssetRef } from '../../velcro/assets'
+import { assetKeyOf, groupOf, isAssetRef, leafOf, toAssetRef } from '../../velcro/assets'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
@@ -40,6 +40,17 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
   const known = key ? assets.some((entry) => entry.key === key) : false
   const orphaned = Boolean(value) && (isAssetRef(value) ? !known : true)
 
+  // A key can be a path, and the part before the last slash becomes an optgroup.
+  // At a hundred images the difference between a flat list and a grouped one is the
+  // difference between reading the dropdown and aiming at it. Ungrouped entries
+  // stay loose at the top rather than being filed under a heading of their own.
+  const loose = assets.filter((entry) => !groupOf(entry.key))
+  const grouped = [
+    ...assets
+      .filter((entry) => groupOf(entry.key))
+      .reduce((map, entry) => map.set(groupOf(entry.key), [...(map.get(groupOf(entry.key)) ?? []), entry]), new Map()),
+  ].sort(([a], [b]) => a.localeCompare(b))
+
   return (
     <section className={cx('ss-image-picker flex w-full flex-col gap-2', className)} {...rest}>
       <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -68,10 +79,19 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
               className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500 focus:relative"
             >
               <option value="">— none —</option>
-              {assets.map((entry) => (
+              {loose.map((entry) => (
                 <option key={entry.key} value={toAssetRef(entry.key)}>
                   {entry.key}
                 </option>
+              ))}
+              {grouped.map(([group, entries]) => (
+                <optgroup key={group} label={group}>
+                  {entries.map((entry) => (
+                    <option key={entry.key} value={toAssetRef(entry.key)}>
+                      {leafOf(entry.key)}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <Tooltip label="Browse the image library" align="end">

@@ -198,6 +198,14 @@ Three carry non-obvious decisions:
   transitions on _load_ rather than on the value changing, so a graphic never
   animates in around a half-fetched image, and a failed load falls back instead of
   showing a broken-image glyph on air.
+- **The asset library** keys entries by path — `players/ada-okafor`. Grouping is
+  the key's own shape rather than a second concept beside it, which is why re-filing
+  an image is the rename that already existed and why nothing downstream had to
+  learn about groups: a reference is still `asset:<one string>`. A folder add takes
+  its prefix from the folder, so a hundred images arrive in one motion already
+  organised. Batch adds read one file at a time against a single snapshot of the
+  taken keys; the obvious `Promise.all(files.map(addFile))` reads every file into
+  memory at once and re-reads the whole key list per file.
 - **`Leaderboard`** stores the whole board as one delimited string in one path, not
   a path per cell. An operator pastes standings in from a spreadsheet, and one
   value keeps that a single atomic write instead of twenty racing ones — and lets

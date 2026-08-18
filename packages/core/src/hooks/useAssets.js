@@ -86,6 +86,17 @@ export function useAssetLibrary() {
     [store],
   )
 
+  const addFiles = useCallback(
+    async (files, options) => {
+      const result = await store.addFiles(files, options)
+
+      bump()
+
+      return result
+    },
+    [store],
+  )
+
   const addUrl = useCallback(
     async (url, options) => {
       const entry = await store.addUrl(url, options)
@@ -118,5 +129,5 @@ export function useAssetLibrary() {
     [store],
   )
 
-  return { assets, addFile, addUrl, remove, rename, store }
+  return { assets, addFile, addFiles, addUrl, remove, rename, store }
 }

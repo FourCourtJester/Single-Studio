@@ -286,7 +286,8 @@ repo, and it usually arrives as a file.
 The library is where those live. Two ways in, and both produce a **named entry**:
 
 - **Paste a URL** — the bytes stay wherever they are.
-- **Drop or choose a file** — the bytes are stored locally, content-addressed.
+- **Drop or choose files, or a whole folder** — the bytes are stored locally,
+  content-addressed.
 
 A graphic then points at the key (`asset:ada-okafor`) rather than at a link or a
 hash. That is the name an operator recognises under pressure, and it means
@@ -298,6 +299,55 @@ used.
 <ImagePicker name="guest.photo" label="Headshot" />  {/* choose one */}
 <Image name="guest.photo" />                     {/* on air */}
 ```
+
+#### Groups
+
+A key can be a path, and the slash is the whole organisation scheme:
+
+```
+players/ada-okafor
+players/kim-nakamura
+logos/acme
+```
+
+The part before the last slash becomes a group: an `<optgroup>` in every picker's
+dropdown, and a heading in the library. A hundred images in one flat list is a
+scroll an operator has to read; the same hundred under a handful of prefixes is a
+menu they can aim at.
+
+Groups are deliberately not a second concept with their own storage and their own
+editing screen. The key already existed, renaming it already worked, and a graphic
+still points at one string — so **re-filing an image is renaming it**, and nothing
+downstream knows the difference.
+
+Three ways to file something:
+
+| You do this                          | You get                                       |
+| ------------------------------------ | --------------------------------------------- |
+| Type `players/ada` as the name       | That exact key                                |
+| Type `players` and add several files | `players/<each filename>`                     |
+| Drop or choose a folder              | `<folder>/<each filename>`, nesting preserved |
+
+The name field means "name" for one file and "group" for several, which is the same
+field meaning the same thing at two scales.
+
+#### How many images can it hold?
+
+There is no limit in the framework. The practical ones:
+
+- **Browser quota.** IndexedDB gets a share of free disk — typically a large
+  fraction of it in Chromium, so hundreds of megabytes of photos is not a problem.
+  A show's worth of headshots is nowhere near it.
+- **Duplicates are free.** Blobs are content-addressed by SHA-256, so the same
+  photo filed under two keys stores its bytes once. Re-uploading a folder you
+  already added costs nothing but entries.
+- **Adds are sequential**, one file read at a time, so a folder of a hundred does
+  not spike memory the way reading all hundred at once would. There is a progress
+  readout above four files, and one unreadable file is reported rather than losing
+  the rest of the batch.
+
+Bytes never enter the Y.Doc — that document is persisted whole and cloned to every
+tab on every change. The document holds `asset:<key>`; IndexedDB holds the image.
 
 `ImagePicker` gives a preview, a dropdown of the library's keys for a fast swap
 between segments, and a magnifier joined onto the dropdown that opens the library

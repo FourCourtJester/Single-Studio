@@ -32,15 +32,51 @@ export const isAssetRef = (value) => typeof value === 'string' && value.startsWi
 export const toAssetRef = (key) => `${ASSET_SCHEME}${key}`
 export const assetKeyOf = (ref) => (isAssetRef(ref) ? ref.slice(ASSET_SCHEME.length) : null)
 
-/** Keys are slugs: predictable to type, safe to show, stable to sort. */
-export function toKey(value) {
-  return String(value ?? '')
-    .replace(/\.[a-z0-9]+$/i, '')
+const slug = (value) =>
+  String(value ?? '')
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+
+/**
+ * Keys are slug paths: predictable to type, safe to show, stable to sort.
+ *
+ * The slash is the whole organisation scheme. A hundred images in one flat list is
+ * a scroll an operator has to read; the same hundred as `players/…`, `logos/…`,
+ * `maps/…` is a menu they can aim at. Nothing else changes -- the key is still one
+ * string, a reference is still `asset:<key>`, and re-filing an image is the rename
+ * that already existed.
+ *
+ * Each segment is slugged on its own so the separator survives, and only the last
+ * one loses a file extension.
+ */
+export function toKey(value) {
+  const parts = String(value ?? '')
+    .split('/')
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  if (!parts.length) return ''
+
+  const last = parts.pop().replace(/\.[a-z0-9]+$/i, '')
+
+  return [...parts, last].map(slug).filter(Boolean).join('/')
+}
+
+/** Everything before the last slash. '' when a key is ungrouped. */
+export function groupOf(key) {
+  const at = String(key ?? '').lastIndexOf('/')
+
+  return at === -1 ? '' : String(key).slice(0, at)
+}
+
+/** The name inside the group. The whole key when there is no group. */
+export function leafOf(key) {
+  const at = String(key ?? '').lastIndexOf('/')
+
+  return at === -1 ? String(key ?? '') : String(key).slice(at + 1)
 }
 
 /** SHA-256 of the bytes, hex. Content identity, so the same file stores once. */
@@ -91,22 +127,70 @@ export class AssetStore {
     return db.transaction(name, mode).objectStore(name)
   }
 
-  /** A key not already taken, suffixed only when it has to be. */
-  async #freeKey(preferred) {
+  /**
+   * A key not already taken, suffixed only when it has to be.
+   *
+   * `taken` lets a batch reserve as it goes. Without it, adding a folder re-reads
+   * every entry once per file -- quadratic, and on a hundred images that is ten
+   * thousand reads to answer a question the caller already knew the answer to.
+   */
+  async #freeKey(preferred, taken) {
     const base = toKey(preferred) || 'image'
-    const taken = new Set((await this.list()).map((entry) => entry.key))
+    const used = taken ?? new Set((await this.list()).map((entry) => entry.key))
 
-    if (!taken.has(base)) return base
+    if (!used.has(base)) return base
 
+    // Suffix the leaf, not the path: `players/ada-2`, never `players/ada/2`.
     let n = 2
 
-    while (taken.has(`${base}-${n}`)) n += 1
+    while (used.has(`${base}-${n}`)) n += 1
 
     return `${base}-${n}`
   }
 
+  /**
+   * Store several files, reading one at a time.
+   *
+   * A folder of a hundred photos through `Promise.all(files.map(addFile))` reads
+   * every one into memory at once and asks for the key list a hundred times. This
+   * reads them in sequence against one snapshot of what is taken, and reports
+   * progress, because a hundred files is long enough that silence looks broken.
+   *
+   * A file that fails is collected rather than thrown: one unreadable image in a
+   * folder of a hundred should not lose the other ninety-nine.
+   *
+   * Takes plain `File`s or `{ file, path }` pairs. A drop knows a file's path only
+   * by having walked the folder to find it, and that path is not on the File.
+   */
+  async addFiles(files, { group, onProgress } = {}) {
+    const list = [...files]
+    const taken = new Set((await this.list()).map((entry) => entry.key))
+    const added = []
+    const failed = []
+
+    for (const [index, item] of list.entries()) {
+      const file = item?.file ?? item
+      // A folder pick carries webkitRelativePath, a walked drop carries `path`, and
+      // a plain multi-select carries neither.
+      const relative = item?.path || file?.webkitRelativePath || file?.name
+
+      try {
+        const entry = await this.addFile(file, { key: [group, relative].filter(Boolean).join('/'), name: file.name }, taken)
+
+        taken.add(entry.key)
+        added.push(entry)
+      } catch (error) {
+        failed.push({ name: file?.name ?? relative, error })
+      }
+
+      onProgress?.({ done: index + 1, total: list.length })
+    }
+
+    return { added, failed }
+  }
+
   /** Store a File or Blob under a key. Identical bytes reuse the existing blob. */
-  async addFile(file, { key, name } = {}) {
+  async addFile(file, { key, name } = {}, taken) {
     const buffer = await file.arrayBuffer()
     const hash = await hashBytes(buffer)
 
@@ -122,7 +206,7 @@ export class AssetStore {
     }
 
     const entry = {
-      key: await this.#freeKey(key ?? file.name),
+      key: await this.#freeKey(key ?? file.name, taken),
       kind: 'file',
       hash,
       name: name ?? file.name ?? 'image',
