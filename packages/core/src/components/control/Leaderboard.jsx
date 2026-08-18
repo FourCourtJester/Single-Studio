@@ -73,8 +73,8 @@ export function Leaderboard({
       </header>
 
       {tabular ? (
-        <div className="flex flex-col gap-2">
-          <div className="grid gap-2" style={{ gridTemplateColumns: `2.5rem repeat(${fields.length}, minmax(0, 1fr))` }}>
+        <div className="flex flex-col gap-1">
+          <div className="grid gap-x-2" style={{ gridTemplateColumns: `1.5rem repeat(${fields.length}, minmax(0, 1fr))` }}>
             <span />
             {fields.map((field) => (
               <span key={field} className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -85,8 +85,11 @@ export function Leaderboard({
           {entries.map((row, index) => (
             // Index as key is correct here: rows are positional places, not
             // identities, so row 3 stays row 3 no matter what is typed into it.
-            <div key={index} className="grid items-center gap-2" style={{ gridTemplateColumns: `2.5rem repeat(${fields.length}, minmax(0, 1fr))` }}>
-              <span className="text-right text-xs tabular-nums text-slate-500">{index + 1}</span>
+            <div key={index} className="grid items-center gap-x-2" style={{ gridTemplateColumns: `1.5rem repeat(${fields.length}, minmax(0, 1fr))` }}>
+              {/* Tight on purpose. The place number is one or two digits doing one
+                  job, and a wide column for it pushes every name away from the edge
+                  it should be reading against. */}
+              <span className="text-right text-xs tabular-nums leading-none text-slate-500">{index + 1}</span>
               {fields.map((field) => (
                 <input
                   key={field}

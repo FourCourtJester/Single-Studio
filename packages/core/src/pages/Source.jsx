@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { usePageTitle } from '../hooks/usePageTitle'
+import { titleFromUrl } from '../toolkits/url'
 import { useStudio } from '../studio/context'
 import { NotFoundPage } from './NotFound'
 
@@ -18,7 +19,11 @@ export function SourcePage() {
   const [ready, setReady] = useState(false)
   const loader = studio.sources[name]
 
-  usePageTitle(name, studio.name)
+  // `?title=` wins outright when it is there. An operator naming a browser source
+  // wants that name and nothing appended to it.
+  const named = titleFromUrl()
+
+  usePageTitle(...(named ? [named] : [name, studio.name]))
 
   // Hold the whole graphic until the store is reachable.
   //

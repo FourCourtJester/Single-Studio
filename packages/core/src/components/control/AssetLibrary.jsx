@@ -86,18 +86,6 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
         onDragLeave={() => setOver(false)}
         className={cx('flex flex-col gap-2 rounded-md border border-dashed p-3 transition-colors', over ? 'border-sky-500 bg-sky-500/10' : 'border-slate-700')}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => input.current?.click()}
-            disabled={busy}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500"
-          >
-            {busy ? 'Working…' : 'Choose a file'}
-          </button>
-          <span className="text-xs text-slate-500">or drop one here, or paste a URL</span>
-        </div>
-
         <div className="flex flex-wrap gap-2">
           <input
             value={url}
@@ -126,6 +114,21 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           >
             Add URL
           </button>
+        </div>
+
+        {/* Under the URL line, not above it. Pasting a link is the common case on a
+            board -- a logo lives somewhere already -- and the file button was
+            sitting in front of it collecting the first glance every time. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            disabled={busy}
+            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
+          >
+            {busy ? 'Working…' : 'Choose a file'}
+          </button>
+          <span className="text-xs text-slate-500">or drop one here</span>
         </div>
 
         {error ? <span className="text-xs text-rose-400">{error}</span> : null}
@@ -208,7 +211,7 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
               setEditing(true)
             }}
             title="Rename"
-            className="min-w-0 grow truncate text-left text-[11px] text-slate-300 hover:text-white"
+            className="ss-asset-name min-w-0 grow cursor-text truncate text-left text-[11px] text-slate-300 decoration-slate-600 decoration-dotted underline-offset-2 hover:text-white hover:underline"
           >
             {entry.key}
           </button>

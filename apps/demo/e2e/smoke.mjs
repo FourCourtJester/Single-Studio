@@ -184,6 +184,18 @@ await control.locator('.ss-leaderboard input[aria-label="Place 1 name"]').fill('
 await save()
 check(await becomes(standings, sceneHas, 'nakamura'), 'table view writes back to the same path')
 
+// The place column is one or two digits doing one job. Measured rather than eyed,
+// because a grid template is exactly the sort of thing that gets widened by
+// accident and never noticed.
+const place = await control.evaluate(() => {
+  const row = document.querySelector('.ss-leaderboard .grid')
+
+  return { columns: getComputedStyle(row).gridTemplateColumns, gap: getComputedStyle(row).columnGap }
+})
+
+console.log(`  standings grid: ${JSON.stringify(place)}`)
+check(parseFloat(place.columns) <= 24, `the place column is narrow (${place.columns.split(' ')[0]})`)
+
 // Escape abandons a single field's edit rather than committing it.
 await homeName.fill('Typo')
 await homeName.press('Escape')
@@ -382,6 +394,41 @@ check(
   (await control.locator('.ss-image-toggle[title="Sponsor"] img').getAttribute('src')) === `${BASE}/logos/broncos.svg`,
   'an image toggle takes its face from the path it is pointed at',
 )
+
+// -- The board's own affordances ---------------------------------------------
+// Pasting a link is the common case -- a logo lives somewhere already -- so the URL
+// row comes first and the file button sits under it.
+const libraryOrder = await control.evaluate(() => {
+  const library = document.querySelector('.ss-asset-library')
+  const url = library.querySelector('input[aria-label="Image URL"]')
+  const file = [...library.querySelectorAll('button')].find((button) => /choose a file/i.test(button.textContent))
+
+  // 4 === Node.DOCUMENT_POSITION_FOLLOWING
+  return Boolean(url.compareDocumentPosition(file) & 4)
+})
+
+check(libraryOrder, 'the file button sits below the URL row, not in front of it')
+
+// Tailwind's reset leaves a button at `cursor: default`, so nothing on the board
+// looked pressable until this was put back.
+const cursors = await control.evaluate(() => {
+  const read = (selector) => {
+    const element = document.querySelector(selector)
+
+    return element ? getComputedStyle(element).cursor : null
+  }
+
+  // The save button is deliberately not the sample here: with nothing staged it is
+  // disabled, and a disabled control should read `default`. Which it does -- that
+  // is the second check.
+  return { enabled: read('.ss-reset'), disabled: read('.ss-save button:disabled'), name: read('.ss-asset-name'), select: read('.ss-image-picker select') }
+})
+
+console.log(`  cursors: ${JSON.stringify(cursors)}`)
+check(cursors.enabled === 'pointer', 'a control on the board says it can be pressed')
+check(cursors.select === 'pointer', 'and so does a dropdown')
+check(cursors.disabled === 'default', 'a disabled control does not pretend otherwise')
+check(cursors.name === 'text', 'a click-to-rename name says it can be edited instead')
 
 // -- Uploads on air ----------------------------------------------------------
 // The podcast case: a guest headshot arrives minutes before air. The magnifier
@@ -662,6 +709,30 @@ const wiped = await styleOf('.ss-wipe')
 console.log(`  wipe: ${JSON.stringify(wiped)}`)
 check(wiped.clipPath.startsWith('inset('), 'a wipe is clipped rather than faded')
 check(wiped.opacity === '1', 'a wipe stays fully opaque throughout')
+
+// -- Browser-source URLs -----------------------------------------------------
+// Hash routing means every source shares one origin and one path, so anything that
+// names a page from its URL sees a dozen identical pages -- which is where a scene
+// full of "localhost", "localhost (2)" comes from. The title rides in the query
+// string, before the hash, so it is part of the URL proper.
+const listed = await control.evaluate(() =>
+  [...document.querySelectorAll('section:has(> h2) a[href^="#/source/"]')].map((link) => link.textContent.trim()),
+)
+
+console.log(`  source urls: ${listed.length} listed, first ${listed[0]}`)
+check(listed.length >= 6, 'every registered source is listed for OBS')
+check(
+  listed.every((url) => /\?title=[^#]+#\/source\//.test(url)),
+  'each source URL carries a title ahead of the hash',
+)
+check(new Set(listed.map((url) => url.split('#')[0])).size === listed.length, 'and no two of them are the same page as far as a URL is concerned')
+
+// The page has to actually honour it, or the parameter is decoration.
+const titled = await context.newPage()
+await titled.goto(listed.find((url) => url.includes('scoreboard')))
+await titled.waitForSelector('.ss-scene')
+check(await becomes(titled, () => document.title === 'Demo scoreboard'), `the source names itself from the URL (got "${await titled.title()}")`)
+await titled.close()
 
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces

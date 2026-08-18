@@ -204,6 +204,35 @@
     --ss-ease: linear;
   }
 
+  /*
+   * Cursors on the board.
+   *
+   * Tailwind's reset leaves a button at `cursor: default`, so every control on the
+   * control surface looked inert -- nothing under the pointer ever suggested it
+   * could be pressed. Scoped to `.ss-control` because a graphic has no cursor to
+   * worry about.
+   *
+   * The exception is a name that turns into a field when you click it: that is not
+   * a button being pressed, it is text being edited, and `cursor: text` is the only
+   * thing that says so before the click rather than after.
+   */
+  .ss-control button:not(:disabled),
+  .ss-control [role='button']:not([aria-disabled='true']),
+  .ss-control summary,
+  .ss-control input[type='color'],
+  .ss-control input[type='file'],
+  .ss-control select {
+    cursor: pointer;
+  }
+
+  .ss-control button:disabled {
+    cursor: default;
+  }
+
+  .ss-control .ss-asset-name {
+    cursor: text;
+  }
+
   /* Graphics are authored against a fixed canvas; OBS scales the result. */
   .ss-canvas {
     width: 1920px;
