@@ -314,6 +314,48 @@ check(
   'a broken URL falls back rather than leaving a hole',
 )
 
+// -- Operator uploads --------------------------------------------------------
+// The podcast case: a guest's headshot arrives minutes before air. Too late to
+// patch the repo, and they sent a file rather than a link. Dropping it in stores
+// the bytes locally, content-addressed, and writes an asset: reference to the path.
+const guest = await context.newPage()
+await guest.goto(`${BASE}/#/source/guest`)
+await guest.waitForSelector('.ss-scene')
+
+await control.locator('.ss-image-picker input[type="file"]').setInputFiles('apps/demo/public/logos/broncos.svg')
+await control.locator('.ss-field:has-text("Name") input').first().fill('Ada Okafor')
+
+// Uploading is not a broadcast change: the bytes are stored, but the path stays
+// staged until save, so an operator can line up the next guest mid-segment.
+await control.waitForTimeout(600)
+check(await becomes(control, () => document.querySelector('.ss-image-picker img') !== null), 'the upload previews on the board immediately')
+check(!(await guest.locator('.ss-scene').innerText()).includes('Ada'), 'an upload does not reach air before a save')
+
+await save()
+await control.locator('button:has-text("Show guest")').click()
+
+check(
+  await becomes(guest, () => (document.querySelector('.guest-photo img')?.src ?? '').startsWith('blob:')),
+  'a stored upload resolves to an image on the graphic',
+)
+check(await becomes(guest, sceneHas, 'ada okafor'), 'the guest name lands alongside it')
+
+// Content addressing: the same bytes must not become a second library entry.
+await control.locator('.ss-image-picker input[type="file"]').setInputFiles('apps/demo/public/logos/broncos.svg')
+await control.waitForTimeout(700)
+const library = await control.evaluate(() => document.querySelectorAll('.ss-image-picker .group').length)
+console.log(`  asset library entries: ${library}`)
+check(library === 1, 're-uploading identical bytes does not duplicate the asset')
+
+// The bytes live in IndexedDB beside the document, so a rebuilt source still finds
+// them -- this is the case a data URI in the doc would have solved expensively.
+await guest.reload()
+await guest.waitForSelector('.ss-scene')
+check(
+  await becomes(guest, () => (document.querySelector('.guest-photo img')?.src ?? '').startsWith('blob:')),
+  'an uploaded image survives a source reload',
+)
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is

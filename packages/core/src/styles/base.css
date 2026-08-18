@@ -84,7 +84,8 @@
 
   /* Compound and structural children take a row to themselves. */
   .ss-panel-body > .ss-break,
-  .ss-panel-body > .ss-leaderboard {
+  .ss-panel-body > .ss-leaderboard,
+  .ss-panel-body > .ss-image-picker {
     flex-basis: 100%;
   }
 }

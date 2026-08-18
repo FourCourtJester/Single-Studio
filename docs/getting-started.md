@@ -119,21 +119,22 @@ const mutate = useVelcroMutate()
 
 **Source** — what goes on air:
 
-| Component  | Reads              | Notes                                                                           |
-| ---------- | ------------------ | ------------------------------------------------------------------------------- |
-| `Scene`    | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                  |
-| `Variable` | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                     |
-| `Image`    | `variables.<name>` | A URL, or `src="logos/:value:.svg"`. Preloads before swapping; `refresh` polls. |
-| `Toggle`   | `toggles.<name>`   | Shows or hides its children.                                                    |
-| `Timer`    | `timers.<name>`    | Countdown. `onComplete` fires once it lands.                                    |
-| `Clock`    | — (local)          | Wall clock. Never replicates.                                                   |
-| `Ticker`   | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                          |
+| Component  | Reads              | Notes                                                                               |
+| ---------- | ------------------ | ----------------------------------------------------------------------------------- |
+| `Scene`    | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                      |
+| `Variable` | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
+| `Image`    | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
+| `Toggle`   | `toggles.<name>`   | Shows or hides its children.                                                        |
+| `Timer`    | `timers.<name>`    | Countdown. `onComplete` fires once it lands.                                        |
+| `Clock`    | — (local)          | Wall clock. Never replicates.                                                       |
+| `Ticker`   | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
 
 **Control** — the operator's board:
 
 | Component      | Writes             | Notes                                                           |
 | -------------- | ------------------ | --------------------------------------------------------------- |
 | `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                    |
+| `ImagePicker`  | `variables.<name>` | Drop or choose an image. Stores bytes locally, writes `asset:`. |
 | `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved. |
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.   |
 | `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                     |
@@ -149,7 +150,7 @@ const mutate = useVelcroMutate()
 
 ## Images
 
-Two shapes, both first-class.
+Four ways in, all handled by the same component.
 
 Templated from a value — "Boise State" resolves `logos/boise-state.svg`:
 
@@ -169,6 +170,21 @@ Contents change behind a stable URL — a chart, a camera still:
 <Image name="chart.url" refresh={30} />
 ```
 
+An operator's upload, stored locally and referenced by content hash:
+
+```jsx
+<Image name="guest.photo" />
+```
+
+paired with a picker on the board:
+
+```jsx
+<ImagePicker name="guest.photo" label="Headshot" />
+```
+
+`Image` does not care which of the four it is given. A bundled path, a URL, and an
+`asset:` reference all follow the same code path.
+
 What separates this from an `<img>` tag is what happens **between** images. A new
 URL is loaded and decoded off-screen first, and only swapped in once it can paint.
 The previous image stays up meanwhile. Setting `src` directly leaves a hole on air
@@ -186,6 +202,38 @@ The rest is failure handling that a broadcast needs and a web page does not:
 
 **Use `https://` URLs.** A studio deployed to GitHub Pages is served over https, so
 an `http://` image is blocked as mixed content. The console says so explicitly.
+
+### Images that arrive during the show
+
+Framing and logos belong in the repo — they do not change, and shipping them is
+simplest. A guest headshot that lands five minutes before air does not: there is no
+time to patch a repo, and it usually arrives as a file rather than a link.
+
+`ImagePicker` covers that. Drop a file on the board and the bytes go into a local
+store; the path gets an `asset:<sha-256>` reference.
+
+Two properties worth knowing:
+
+- **Uploading and going to air are separate.** The bytes land immediately, because a
+  file arriving is not a broadcast change. The path is _staged_ like any other
+  field, so nothing appears until save — an operator can line up the next guest
+  mid-segment and commit on the cut.
+- **The reference is the content.** Re-uploading identical bytes is a no-op rather
+  than a duplicate, and the library under the drop zone makes a returning guest one
+  click.
+
+Bytes live in their own IndexedDB database, not in the document. Putting a few
+megabytes of JPEG in a store that is persisted whole and cloned to every tab on
+every change would be expensive now and worse once it replicates.
+
+**This is per-machine.** An upload does not reach a remote operator — that needs
+blob transfer over the relay, which is [planned but not
+built](./collaboration.md#operator-supplied-files). For a single-machine studio,
+which is what ships today, it works completely. Use a URL when something has to
+reach more than one machine.
+
+`AssetStore` is exported if you want to manage the library yourself — `list()`,
+`remove(id)`, and `prune(keepRefs)` to drop everything no longer referenced.
 
 ### Driving anything else from a value
 

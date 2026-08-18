@@ -270,12 +270,39 @@ general form of the same idea: rather than growing a component for every propert
 an operator might want to control, anything a stylesheet can express becomes
 drivable from the board.
 
-**Bytes are deliberately not in the store.** A URL is a reference; the image itself
-never enters the Y.Doc. Putting multi-megabyte binaries in a CRDT that is persisted
-whole and structured-cloned to every tab on change would be expensive locally and
-worse once it replicates. Operator-supplied _files_ — as opposed to URLs — need a
-content-addressed blob store beside the document, which is described in
-[collaboration.md](./collaboration.md#operator-supplied-files).
+### Where the bytes live
+
+Images reach a studio two ways, and they want different homes.
+
+**Shipped assets** — framing, logos, anything that does not change between shows —
+belong in the repo. They are build-time inputs and need nothing from the store.
+
+**Show-time images** cannot be. A podcast guest sends a headshot minutes before air:
+too late to patch a repo, and it arrives as a file rather than a link. That is what
+`AssetStore` is for.
+
+Bytes go in their own IndexedDB database, content-addressed by SHA-256, and the
+document holds only an `asset:<hash>` reference. They are deliberately **not** in
+the Y.Doc: that document is persisted whole and structured-cloned to every tab on
+every change, so a few megabytes of JPEG would make each of those expensive, and a
+CRDT retains more history than you want for a large value that gets replaced.
+
+Content addressing costs nothing now and buys the property that matters later: when
+blobs replicate over the relay, a peer can tell from the reference alone whether it
+already holds the bytes. Re-uploading identical bytes is also a no-op rather than a
+duplicate.
+
+IndexedDB is per-origin, so the dock writes and every browser source reads the same
+database with no worker protocol between them.
+
+`Image` treats all four inputs identically — bundled path, URL, `asset:` reference,
+templated value. Asset resolution happens _in front of_ the existing preload
+pipeline rather than beside it, so nothing downstream knows where the bytes came
+from.
+
+This is per-machine. Reaching a remote operator needs blob transfer over the relay,
+described in [collaboration.md](./collaboration.md#operator-supplied-files); the
+storage shape here is already the one that will need.
 
 ## Sizing
 

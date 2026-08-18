@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { useAssetUrl } from '../../hooks/useAssets'
 import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 import { slugify } from '../../toolkits/slug'
@@ -12,9 +13,13 @@ import { Transition } from '../common/Transition'
  *
  *   <Image name="home.name" src="/logos/:value:.svg" slug />   templated from a value
  *   <Image name="sponsor.logo" />                              the value *is* the URL
+ *   <Image name="guest.photo" />                               ...or an `asset:` upload
  *
  * The second is the default (`src` is `:value:`), so pasting a URL into a field
- * puts that image on air with no studio code at all.
+ * puts that image on air with no studio code at all. An `asset:<hash>` reference --
+ * what ImagePicker writes when an operator drops a file in -- resolves through the
+ * local asset store and then follows exactly the same path, so nothing downstream
+ * needs to know where the bytes came from.
  *
  * What makes this different from an `<img>` tag is what happens between images.
  * A new URL is loaded and decoded off-screen first, and only swapped in once it is
@@ -78,7 +83,9 @@ export function Image({ name, src = ':value:', slug = false, fallback, alt = '',
   const attempt = useRef(0)
   const timer = useRef(null)
 
-  const target = hydrated && src ? String(src).replace(/:value:/g, slug ? slugify(value) : String(value ?? '')) : null
+  const templated = hydrated && src ? String(src).replace(/:value:/g, slug ? slugify(value) : String(value ?? '')) : null
+  // An asset reference becomes an object URL here; everything else passes through.
+  const target = useAssetUrl(templated)
   const usable = target && !/:value:|^\s*$/.test(target) && target !== 'undefined' && target !== 'null'
 
   useEffect(() => {

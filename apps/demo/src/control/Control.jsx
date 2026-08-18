@@ -3,6 +3,7 @@ import {
   Countdown,
   Cycle,
   Field,
+  ImagePicker,
   Leaderboard,
   Panel,
   ResetButton,
@@ -50,6 +51,15 @@ export default function Control() {
         <ToggleButton name="standings" label="standings" />
         <Break />
         <Leaderboard name="standings" label="Board" fields={['name', 'score']} rows={5} />
+      </Panel>
+
+      <Panel title="Guest">
+        {/* A headshot that arrives minutes before air: drop it in, it goes to the
+            local store, and the path is staged until save like any other field. */}
+        <ImagePicker name="guest.photo" label="Headshot" />
+        <Field name="guest.name" label="Name" placeholder="Guest" />
+        <Field name="guest.title" label="Title" placeholder="Author" />
+        <ToggleButton name="guest" label="guest" />
       </Panel>
 
       <Panel title="Sponsor">
