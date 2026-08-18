@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ASSET_SCHEME, assetKeyOf, groupOf, hashBytes, isAssetRef, leafOf, toAssetRef, toKey } from '../src/velcro/assets'
+import { ASSET_SCHEME, assetKeyOf, groupOf, hashBytes, isAssetRef, leafOf, toAssetRef, toKey, uploadKey } from '../src/velcro/assets'
 
 const bytes = (text) => new TextEncoder().encode(text).buffer
 
@@ -68,6 +68,33 @@ describe('grouping', () => {
   it('groups by everything before the last slash, so nesting survives', () => {
     expect(groupOf('season-2/players/ada')).toBe('season-2/players')
     expect(leafOf('season-2/players/ada')).toBe('ada')
+  })
+})
+
+describe('uploadKey', () => {
+  it('files a loose file under the group that was typed', () => {
+    expect(uploadKey('players', 'Ada Okafor.jpg')).toBe('players/ada-okafor')
+  })
+
+  it('takes the folder name as the group when none was typed', () => {
+    expect(uploadKey('', 'Headshots/Ada Okafor.jpg')).toBe('headshots/ada-okafor')
+    expect(uploadKey(undefined, 'Headshots/Ada.jpg')).toBe('headshots/ada')
+  })
+
+  it('lets a typed group *rename* the folder rather than nest inside it', () => {
+    // The case that made this a function rather than a join. Typing "players" and
+    // picking a folder called "Headshots 2024" means "file these under players" --
+    // `players/headshots-2024/ada` is nobody's intent, and it buries every image a
+    // level deeper than the picker's grouping reads.
+    expect(uploadKey('players', 'Headshots 2024/Ada Okafor.jpg')).toBe('players/ada-okafor')
+  })
+
+  it('keeps nesting below the folder it renamed', () => {
+    expect(uploadKey('players', 'Headshots/goalies/Ada.jpg')).toBe('players/goalies/ada')
+  })
+
+  it('leaves a bare filename bare when nothing was typed', () => {
+    expect(uploadKey('', 'Ada Okafor.jpg')).toBe('ada-okafor')
   })
 
   it('survives input with nothing usable in it', () => {

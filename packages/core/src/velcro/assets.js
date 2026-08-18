@@ -65,6 +65,28 @@ export function toKey(value) {
   return [...parts, last].map(slug).filter(Boolean).join('/')
 }
 
+/**
+ * The key an uploaded file should land under.
+ *
+ * `group` is what the operator typed; `relative` is where the file came from -- a
+ * bare filename for a loose pick, `Headshots/Ada.jpg` for a folder.
+ *
+ * A typed group *renames* the folder rather than nesting inside it. Typing
+ * "players" and picking a folder called "Headshots 2024" means "file these under
+ * players"; `players/headshots-2024/ada` is nobody's intent, and it buries every
+ * image one level below where the picker's grouping reads. Nesting deeper than the
+ * top folder is kept, since that is structure the operator built on purpose.
+ */
+export function uploadKey(group, relative) {
+  const path = String(relative ?? '')
+
+  if (!group) return toKey(path)
+
+  const at = path.indexOf('/')
+
+  return toKey(`${group}/${at === -1 ? path : path.slice(at + 1)}`)
+}
+
 /** Everything before the last slash. '' when a key is ungrouped. */
 export function groupOf(key) {
   const at = String(key ?? '').lastIndexOf('/')
@@ -175,7 +197,7 @@ export class AssetStore {
       const relative = item?.path || file?.webkitRelativePath || file?.name
 
       try {
-        const entry = await this.addFile(file, { key: [group, relative].filter(Boolean).join('/'), name: file.name }, taken)
+        const entry = await this.addFile(file, { key: uploadKey(group, relative), name: file.name }, taken)
 
         taken.add(entry.key)
         added.push(entry)

@@ -403,6 +403,46 @@ check(
 await filterBox.fill('')
 check(await becomes(control, () => document.querySelectorAll('.ss-asset-tile').length > 1), 'and clearing it brings everything back')
 
+// -- Folders -----------------------------------------------------------------
+// A real directory pick, not a multi-select standing in for one: setInputFiles on a
+// webkitdirectory input populates webkitRelativePath the way the browser does, so
+// this exercises the path the operator actually takes.
+const folderInput = library.locator('input[aria-label="Add a folder of images"]')
+
+check((await folderInput.getAttribute('webkitdirectory')) !== null, 'the folder input asks the browser for a directory')
+
+await folderInput.setInputFiles(fileURLToPath(new URL('../public/maps', import.meta.url)))
+
+const fromFolder = await becomes(control, () =>
+  [...document.querySelectorAll('.ss-asset-group h3')].some((heading) => heading.textContent.startsWith('maps')),
+)
+
+check(fromFolder, 'a folder files itself under its own name, with no typing at all')
+
+// And a typed group renames that folder rather than nesting under it -- otherwise
+// "players" plus a folder called "Headshots 2024" buries everything two deep.
+await library.locator('input[aria-label="Asset name"]').fill('crests')
+await folderInput.setInputFiles(fileURLToPath(new URL('../public/factions', import.meta.url)))
+
+check(
+  await becomes(control, () => [...document.querySelectorAll('.ss-asset-group h3')].some((heading) => heading.textContent.startsWith('crests'))),
+  'a typed group appears as its own heading',
+)
+
+const renamed = await control.evaluate(() => {
+  const section = [...document.querySelectorAll('.ss-asset-group')].find((group) => group.querySelector('h3')?.textContent.startsWith('crests'))
+
+  return section ? [...section.querySelectorAll('.ss-asset-name')].map((name) => name.textContent).sort() : null
+})
+
+console.log(`  folder renamed to a group: ${JSON.stringify(renamed)}`)
+check(renamed?.length === 3, 'a typed group takes the place of the folder name')
+check(renamed?.includes('vanguard'), 'and the filenames inside it survive intact')
+check(
+  await control.evaluate(() => ![...document.querySelectorAll('.ss-asset-group h3')].some((h) => h.textContent.startsWith('crests/factions'))),
+  'the folder name is replaced, not nested under',
+)
+
 // -- Picking from the library ------------------------------------------------
 const sponsor = await context.newPage()
 await sponsor.goto(`${BASE}/#/source/sponsor`)

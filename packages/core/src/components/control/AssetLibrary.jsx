@@ -58,9 +58,11 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
   /**
    * Takes plain Files or the `{ file, path }` pairs a walked drop produces.
    *
-   * A key typed alongside a multi-file add would collide, so a single file uses it
-   * as its key and a batch uses it as the group to file everything under -- which
-   * is the same field meaning the same thing at two scales.
+   * The typed field means "key" for one loose file and "group" for anything else --
+   * the same field meaning the same thing at two scales. What decides is whether
+   * the file arrived with a folder above it, not merely whether it arrived alone: a
+   * folder holding one image is still a folder being filed, and treating its typed
+   * group as that image's whole key would throw the filename away.
    */
   const takeFiles = async (items) => {
     const chosen = [...(items ?? [])].filter((item) => (item?.file ?? item)?.type?.startsWith('image/'))
@@ -70,11 +72,12 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
       return
     }
 
-    const single = chosen.length === 1
+    const pathOf = (item) => item?.path || (item?.file ?? item)?.webkitRelativePath || ''
+    const lone = chosen.length === 1 && !pathOf(chosen[0]).includes('/')
 
     const result = await run(() =>
-      addFiles(single && key ? [{ file: chosen[0].file ?? chosen[0], path: key }] : chosen, {
-        group: single ? undefined : key || undefined,
+      addFiles(lone && key ? [{ file: chosen[0].file ?? chosen[0], path: key }] : chosen, {
+        group: lone ? undefined : key || undefined,
         onProgress: chosen.length > 4 ? setProgress : undefined,
       }),
     )
@@ -179,7 +182,11 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
             Choose a folder
           </button>
           <span className="text-xs text-slate-500">
-            {progress ? `${progress.done} of ${progress.total}…` : busy ? 'Working…' : 'or drop them here — a folder files itself under its own name'}
+            {progress
+              ? `${progress.done} of ${progress.total}…`
+              : busy
+                ? 'Working…'
+                : 'or drop them here. A folder files itself under its own name; type a group above to use that instead.'}
           </span>
         </div>
 
