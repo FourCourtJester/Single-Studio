@@ -1,5 +1,6 @@
 export { Clock } from './Clock'
 export { Image } from './Image'
+export { ImageList } from './ImageList'
 export { Scene } from './Scene'
 export { Ticker } from './Ticker'
 export { Timer } from './Timer'

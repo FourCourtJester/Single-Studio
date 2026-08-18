@@ -13,6 +13,7 @@ export const studio = defineStudio({
   worker: () => new SharedWorker(new URL('./velcro.worker.js', import.meta.url), { type: 'module', name: 'velcro-demo' }),
   control: () => import('./control/Control'),
   sources: {
+    match: () => import('./sources/Match'),
     scoreboard: () => import('./sources/Scoreboard'),
     lowerthird: () => import('./sources/LowerThird'),
     standings: () => import('./sources/Standings'),

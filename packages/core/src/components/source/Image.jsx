@@ -76,8 +76,25 @@ function preload(url) {
   })
 }
 
-export function Image({ name, src = ':value:', slug = false, fallback, alt = '', refresh, retries = 3, className, namespace = 'variables', ...rest }) {
-  const { value, loaded: hydrated } = useVelcroState(name ? `${namespace}.${name}` : undefined)
+export function Image({
+  name,
+  value: literal,
+  src = ':value:',
+  slug = false,
+  fallback,
+  alt = '',
+  refresh,
+  retries = 3,
+  className,
+  namespace = 'variables',
+  ...rest
+}) {
+  const { value: stored, loaded } = useVelcroState(name ? `${namespace}.${name}` : undefined)
+  // A literal value stands in for the store, so a component that already holds a
+  // value -- one row of a list, say -- can reuse all of the loading machinery below
+  // without inventing a path to put it at.
+  const value = literal !== undefined ? literal : stored
+  const hydrated = literal !== undefined || loaded
   // What is on air. Only ever replaced by something already decoded.
   const [shown, setShown] = useState(null)
   const attempt = useRef(0)

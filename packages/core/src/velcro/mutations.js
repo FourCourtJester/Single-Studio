@@ -127,6 +127,52 @@ export const mutations = {
     }
   },
 
+  /**
+   * A count-up clock: `{ 'timers.match': 'start' | 'pause' | 'reset' }`.
+   *
+   * Stored as an origin rather than an accumulating count, for the same reason
+   * countdowns store a target: no peer has to tick, and every one of them derives
+   * the same number from the same timestamp.
+   *
+   *   { from }     running since that epoch
+   *   { elapsed }  paused, holding that many milliseconds
+   *
+   * Resuming sets `from` to now minus the held elapsed, so the clock picks up
+   * exactly where it stopped without ever having counted anything itself.
+   */
+  stopwatch(ctx, payload) {
+    const now = Date.now()
+
+    for (const [path, action] of toEntries(payload)) {
+      const key = normalize(path)
+      const current = ctx.read(key)
+
+      switch (action ?? 'start') {
+        case 'start': {
+          if (current?.from) break
+
+          ctx.state.set(key, { from: now - Number(current?.elapsed ?? 0) })
+          break
+        }
+
+        case 'pause': {
+          if (!current?.from) break
+
+          ctx.state.set(key, { elapsed: now - Number(current.from) })
+          break
+        }
+
+        case 'reset': {
+          writeOne(ctx, key, undefined)
+          break
+        }
+
+        default:
+          throw new Error(`Unknown stopwatch action: ${action}`)
+      }
+    }
+  },
+
   /** Wipe everything, or everything under a prefix. `{ prefix: 'variables' }` */
   clear(ctx, payload = {}) {
     const { prefix } = payload

@@ -125,7 +125,7 @@ registry and dispatch identically. **A studio is not special; it is just more
 mutations.**
 
 Built-ins: `set`, `merge`, `unset`, `toggle`, `only`, `increment`, `decrement`,
-`swap`, `timer`, `clear`.
+`swap`, `timer`, `stopwatch`, `clear`.
 
 Every mutation runs inside one `doc.transact()`, so observers see one atomic
 change and a multi-path write never publishes a half-state.
@@ -169,11 +169,13 @@ rewrite rules.
 
 Two families, one store.
 
-**Source** (`Scene`, `Variable`, `Image`, `Toggle`, `Timer`, `Clock`, `Ticker`)
+**Source** (`Scene`, `Variable`, `Image`, `ImageList`, `Toggle`, `Timer`, `Clock`,
+`Ticker`)
 render on air. Each is a thin wrapper over `useVelcroValue`.
 
-**Control** (`Field`, `Select`, `Stepper`, `Cycle`, `ToggleButton`, `SwapButton`,
-`ResetButton`, `TimerButton`, `Countdown`, `Leaderboard`, `Panel`, `Break`) drive
+**Control** (`Field`, `Select`, `ImageSelect`, `ImagePicker`, `Stepper`, `Cycle`,
+`ToggleButton`, `ImageToggle`, `SwapButton`, `ResetButton`, `TimerButton`,
+`Countdown`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
 it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
 
 Three carry non-obvious decisions:

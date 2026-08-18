@@ -119,15 +119,16 @@ const mutate = useVelcroMutate()
 
 **Source** — what goes on air:
 
-| Component  | Reads              | Notes                                                                               |
-| ---------- | ------------------ | ----------------------------------------------------------------------------------- |
-| `Scene`    | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                      |
-| `Variable` | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
-| `Image`    | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
-| `Toggle`   | `toggles.<name>`   | Shows or hides its children.                                                        |
-| `Timer`    | `timers.<name>`    | Countdown. `onComplete` fires once it lands.                                        |
-| `Clock`    | — (local)          | Wall clock. Never replicates.                                                       |
-| `Ticker`   | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
+| Component   | Reads              | Notes                                                                               |
+| ----------- | ------------------ | ----------------------------------------------------------------------------------- |
+| `Scene`     | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                      |
+| `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
+| `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
+| `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                        |
+| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. `onComplete` fires once it lands.  |
+| `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.            |
+| `Clock`     | — (local)          | Wall clock. Never replicates.                                                       |
+| `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
 
 **Control** — the operator's board:
 
@@ -135,6 +136,8 @@ const mutate = useVelcroMutate()
 | -------------- | ------------------ | --------------------------------------------------------------- |
 | `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                    |
 | `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and Browse. Writes `asset:<key>`.        |
+| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.          |
+| `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture on it. `group` for radio.         |
 | `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.              |
 | `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved. |
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.   |
@@ -143,11 +146,45 @@ const mutate = useVelcroMutate()
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first.                        |
 | `ResetButton`  | any paths          | Unsets them. `confirm` asks first.                              |
 | `TimerButton`  | `timers.<name>`    | Start/stop a duration (`'5:00'`).                               |
-| `Countdown`    | `timers.<name>`    | Counts to a wall-clock time, not a duration.                    |
+| `Countdown`    | `timers.<name>`    | Counts down to a wall-clock time, not a duration.               |
+| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                 |
 | `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.        |
 | `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.         |
 | `Panel`        | —                  | Titled group. Children wrap in a flex row.                      |
 | `Break`        | —                  | Forces a line break inside a `Panel`.                           |
+
+## Clocks
+
+Three of them, because a broadcast asks three different questions:
+
+| Control       | Question                    | Stored as      |
+| ------------- | --------------------------- | -------------- |
+| `TimerButton` | "five more minutes"         | target instant |
+| `Countdown`   | "we go live at 19:00"       | target instant |
+| `Stopwatch`   | "how long have we been on?" | origin instant |
+
+```jsx
+<TimerButton name="round" label="round" duration="5:00" />
+<Countdown name="showtime" label="Doors open" as="time" />
+<Stopwatch name="match" label="Show elapsed" />
+```
+
+All three land at `timers.<name>` and all three are read by the same source
+component, which works out from the stored shape which kind it is:
+
+```jsx
+<Timer name="round" fallback="--:--" />
+```
+
+**Nothing ticks in the store.** A countdown stores the instant it ends and a
+count-up stores the instant it began; every page derives the same number from the
+same timestamp. That is why a second operator's clock agrees with the OBS machine's
+without either of them sending the other a single frame, and why a graphic that OBS
+destroys and rebuilds comes back showing the right time instead of restarting.
+
+A pause stores the elapsed time it held, and resuming backdates the origin by that
+much — so the clock picks up where it stopped without ever having counted anything
+itself.
 
 ## Images
 
@@ -230,6 +267,37 @@ used.
 between segments, and **Browse** to open the library as a modal for adding,
 renaming and deleting. The same `AssetLibrary` component serves both.
 
+### Picking by picture
+
+When the choice _is_ a picture — a faction crest, a commander portrait, a map —
+reading nine words is slower than recognising nine images, and a draft does not wait.
+`ImageSelect` is `Select` laid out as a grid of tiles, and `ImageToggle` is
+`ToggleButton` with a picture on it.
+
+```jsx
+<ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
+<ImageSelect name="home.army" label="Army" options={UNITS} multiple max={5} />
+<ImageToggle name="sponsor" label="Sponsor" image="./logos/acme.svg" />
+```
+
+Each option is `{ value, label, image }`. The stored value is the plain one — a
+source reading `variables.home.faction` cannot tell which control wrote it — so the
+usual templating still applies:
+
+```jsx
+<Image name="home.faction" src="./factions/:value:.svg" />
+<ImageList name="home.army" src="./units/:value:.svg" limit={5} />
+```
+
+`multiple` stores an array in the order the picks were made, which is what an army
+composition or a ban list is, and `max` stops the grid rather than silently dropping
+the overflow. `ImageList` puts that array on air, giving each entry the full `Image`
+treatment.
+
+These are buttons, so they act immediately. Pass `staged` to an `ImageSelect` that
+should wait for a save with the text fields — a draft assembled off-air and revealed
+on the cut.
+
 Two properties worth knowing:
 
 - **Adding and going to air are separate.** Bytes land in the library immediately,
@@ -311,8 +379,8 @@ be on screen.
 | **Escape** (in a field) | Abandon that field's edit |
 | **Discard**             | Abandon all staged edits  |
 
-Buttons — `Stepper`, `ToggleButton`, `SwapButton`, `ResetButton`, `TimerButton`,
-`Cycle`, `Countdown` — act immediately. Each is a single deliberate press with no
+Buttons — `Stepper`, `ToggleButton`, `ImageToggle`, `ImageSelect`, `SwapButton`,
+`ResetButton`, `TimerButton`, `Countdown`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
 half-finished state to protect.
 
 A save is one mutation, so every staged path lands in a single transaction and the

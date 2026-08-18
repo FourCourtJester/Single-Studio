@@ -1,50 +1,94 @@
 import {
+  AssetLibrary,
   Break,
   Countdown,
   Cycle,
-  AssetLibrary,
   Field,
   ImagePicker,
+  ImageSelect,
+  ImageToggle,
   Leaderboard,
   Panel,
   ResetButton,
-  Select,
   Stepper,
+  Stopwatch,
   SwapButton,
   TimerButton,
   ToggleButton,
   useVelcroMutate,
 } from '@single-studio/core'
 
-// The operator's board. Plain composition -- every control is bound to a path,
-// and there is no save button because writes land as you type.
+import { ARMY_SIZE, COMMANDERS, FACTIONS, MAPS, UNITS } from '../roster'
+
+// The operator's board.
+//
+// Plain composition: every control is bound to a path and knows nothing about any
+// other. Buttons write immediately; anything you type into stages until you save
+// (the save button, or Ctrl+S, lives on the control page itself).
+
+/** One player's draft. Same controls both sides, so the board reads symmetrically. */
+function Draft({ side, title }) {
+  return (
+    <Panel title={title}>
+      <Field name={`${side}.name`} label={title} placeholder={side === 'home' ? 'Kestrel Corps' : 'Redline'} />
+      <Stepper name={`${side}.score`} label={`${title} score`} />
+      <Break />
+      {/* Picked by picture rather than by name -- inside a draft timer nobody is
+          reading a dropdown. */}
+      <ImageSelect name={`${side}.faction`} label="Faction" options={FACTIONS} />
+      <ImageSelect name={`${side}.commander`} label="Commander" options={COMMANDERS} />
+      <ImageSelect name={`${side}.army`} label="Army" options={UNITS} multiple max={ARMY_SIZE} size="sm" />
+      <ResetButton label="draft" paths={[`variables.${side}.faction`, `variables.${side}.commander`, `variables.${side}.army`]} />
+    </Panel>
+  )
+}
+
 export default function Control() {
   const mutate = useVelcroMutate()
 
   return (
     <div className="flex flex-col gap-4">
-      <Panel title="Teams">
-        <Field name="home.name" label="Home" placeholder="Broncos" />
-        <Stepper name="home.score" label="Home score" />
-        <Stepper name="away.score" label="Away score" />
-        <Field name="away.name" label="Away" placeholder="Vandals" />
-        <SwapButton label="Swap ends" paths={['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name']} />
+      <Panel title="Match">
+        <Cycle name="period" label="Game" choices={['Game 1', 'Game 2', 'Game 3', 'Tiebreak']} />
+        <SwapButton label="Swap sides" paths={['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name']} />
+        <button
+          type="button"
+          onClick={() => mutate('demo:reset')}
+          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500"
+        >
+          Reset scores
+        </button>
+        <button
+          type="button"
+          onClick={() => mutate('demo:next-game')}
+          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500"
+        >
+          Next game (studio mutation)
+        </button>
         <Break />
-        <Select name="sport" label="Sport" options={['Rocket League', 'Valorant', 'Overwatch']} />
-        <Cycle name="period" label="Period" choices={['1st', '2nd', '3rd', 'OT']} />
-        <ResetButton label="scores" paths={['variables.home.score', 'variables.away.score']} />
+        <ImageSelect name="map" label="Map" options={MAPS} />
+        <Break />
+        {/* The scene's own blocks, each on its own switch. */}
+        <ToggleButton name="map" label="map" />
+        <ToggleButton name="armies" label="armies" />
+        <ToggleButton name="elapsed" label="elapsed" />
+        <ToggleButton name="showtime" label="pre-show" />
+      </Panel>
+
+      <Draft side="home" title="Home" />
+      <Draft side="away" title="Away" />
+
+      <Panel title="Clocks">
+        {/* All three kinds, side by side. */}
+        <TimerButton name="round" label="round" duration="5:00" />
+        <Countdown name="showtime" label="Doors open" as="time" />
+        <Stopwatch name="match" label="Show elapsed" />
       </Panel>
 
       <Panel title="Lower third">
         <Field name="lowerthird.title" label="Title" placeholder="Player name" />
-        <Field name="lowerthird.subtitle" label="Subtitle" placeholder="Position" />
+        <Field name="lowerthird.subtitle" label="Subtitle" placeholder="Team / role" />
         <ToggleButton name="lowerthird" label="lower third" />
-      </Panel>
-
-      <Panel title="Clocks">
-        <TimerButton name="break" label="break" duration="5:00" />
-        {/* Counts down to a wall-clock time, not a duration -- "we go live at 19:00". */}
-        <Countdown name="showtime" label="Show starts" as="time" />
       </Panel>
 
       <Panel title="Standings">
@@ -58,42 +102,26 @@ export default function Control() {
         {/* A headshot that arrives minutes before air: drop it in, it goes to the
             local store, and the path is staged until save like any other field. */}
         <ImagePicker name="guest.photo" label="Headshot" />
-        <Field name="guest.name" label="Name" placeholder="Guest" />
-        <Field name="guest.title" label="Title" placeholder="Author" />
+        <Field name="guest.name" label="Guest name" placeholder="Guest" />
+        <Field name="guest.title" label="Role" placeholder="Analyst" />
         <ToggleButton name="guest" label="guest" />
-      </Panel>
-
-      <Panel title="Images">
-        {/* The manager, inline. The same component opens as a modal from any picker. */}
-        <AssetLibrary />
       </Panel>
 
       <Panel title="Sponsor">
         <ImagePicker name="sponsor.url" label="Logo" />
-        <Field name="sponsor.name" label="Name" placeholder="Acme" />
+        <Field name="sponsor.name" label="Sponsor name" placeholder="Acme" />
         <Field name="sponsor.color" label="Accent" placeholder="#f59e0b" />
-        <ToggleButton name="sponsor" label="sponsor" />
+        {/* An image-faced switch: the picture is the thing being turned on. */}
+        <ImageToggle name="sponsor" label="Sponsor" image="./logos/placeholder.svg" />
       </Panel>
 
       <Panel title="Ticker">
         <Field name="ticker" label="Crawl text" as="textarea" rows={2} className="basis-full" />
       </Panel>
 
-      <Panel title="Match">
-        <button
-          type="button"
-          onClick={() => mutate('demo:reset')}
-          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500"
-        >
-          Reset match
-        </button>
-        <button
-          type="button"
-          onClick={() => mutate('demo:swap-ends')}
-          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500"
-        >
-          Swap ends (studio mutation)
-        </button>
+      <Panel title="Images">
+        {/* The manager, inline. The same component opens as a modal from any picker. */}
+        <AssetLibrary />
       </Panel>
     </div>
   )

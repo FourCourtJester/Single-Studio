@@ -165,6 +165,76 @@ describe('mutations', () => {
     })
   })
 
+  describe('stopwatch', () => {
+    it('stores an origin rather than a count, so no peer has to tick', () => {
+      const before = Date.now()
+
+      run(doc, 'stopwatch', { 'timers.match': 'start' })
+
+      const clock = Doc.read(doc, 'timers.match')
+
+      expect(clock.from).toBeGreaterThanOrEqual(before - 1)
+      expect(clock.from).toBeLessThanOrEqual(Date.now())
+      expect(clock).not.toHaveProperty('elapsed')
+    })
+
+    it('defaults a bare path to start', () => {
+      run(doc, 'stopwatch', 'timers.match')
+
+      expect(Doc.read(doc, 'timers.match')).toHaveProperty('from')
+    })
+
+    it('leaves a running clock alone rather than restarting it', () => {
+      run(doc, 'stopwatch', { 'timers.match': 'start' })
+
+      const first = Doc.read(doc, 'timers.match').from
+
+      run(doc, 'stopwatch', { 'timers.match': 'start' })
+
+      expect(Doc.read(doc, 'timers.match').from).toBe(first)
+    })
+
+    it('holds the elapsed time on pause', () => {
+      run(doc, 'set', { 'timers.match': { from: Date.now() - 5_000 } })
+      run(doc, 'stopwatch', { 'timers.match': 'pause' })
+
+      const clock = Doc.read(doc, 'timers.match')
+
+      expect(clock).not.toHaveProperty('from')
+      expect(clock.elapsed).toBeGreaterThanOrEqual(5_000)
+      expect(clock.elapsed).toBeLessThan(6_000)
+    })
+
+    it('resumes from where it stopped', () => {
+      run(doc, 'set', { 'timers.match': { elapsed: 30_000 } })
+      run(doc, 'stopwatch', { 'timers.match': 'start' })
+
+      const clock = Doc.read(doc, 'timers.match')
+
+      // Backdating the origin is what carries the held time across the pause.
+      expect(Date.now() - clock.from).toBeGreaterThanOrEqual(30_000)
+      expect(Date.now() - clock.from).toBeLessThan(31_000)
+    })
+
+    it('ignores a pause on a clock that is not running', () => {
+      run(doc, 'stopwatch', { 'timers.match': 'pause' })
+
+      expect(Doc.read(doc, 'timers.match')).toBeUndefined()
+    })
+
+    it('clears the key on reset', () => {
+      run(doc, 'stopwatch', { 'timers.match': 'start' })
+      run(doc, 'stopwatch', { 'timers.match': 'reset' })
+
+      expect(Doc.read(doc, 'timers.match')).toBeUndefined()
+      expect(Doc.keys(doc)).not.toContain('timers.match')
+    })
+
+    it('refuses an action it does not know, rather than silently doing nothing', () => {
+      expect(() => run(doc, 'stopwatch', { 'timers.match': 'stop' })).toThrow(/stopwatch action/)
+    })
+  })
+
   describe('clear', () => {
     it('wipes only the requested prefix', () => {
       run(doc, 'set', { 'variables.a': 1, 'toggles.b': true })

@@ -51,7 +51,7 @@ const context = await browser.newContext({ reducedMotion: 'no-preference' })
 const control = await context.newPage()
 control.on('pageerror', (e) => console.log('[control pageerror]', e.message))
 await control.goto(`${BASE}/#/`)
-await control.waitForSelector('text=Teams')
+await control.waitForSelector('text=Clocks')
 await control.waitForFunction(() => document.querySelectorAll('.ss-stepper output').length > 0)
 await control.waitForTimeout(1000)
 
@@ -94,7 +94,10 @@ check((await saveButton.textContent()).includes('1 change'), 'the board reports 
 
 await save()
 check(await becomes(source, sceneHas, 'broncos'), 'Ctrl+S commits the edit to the graphic')
-check(await becomes(control, () => /Saved/.test(document.querySelector('.ss-save button:last-of-type')?.textContent ?? '')), 'the board reports itself saved again')
+check(
+  await becomes(control, () => /Saved/.test(document.querySelector('.ss-save button:last-of-type')?.textContent ?? '')),
+  'the board reports itself saved again',
+)
 
 // Buttons stay immediate -- a stepper is one deliberate act with no half-typed state.
 await control.locator('button[aria-label="Increase Home score"]').click()
@@ -172,7 +175,7 @@ check(await becomes(control, () => document.querySelector('.ss-field input')?.va
 check((await source.locator('.ss-image img').first().getAttribute('src')) === './logos/vandals.svg', 'team name resolves a logo through slugify')
 
 // ResetButton unsets rather than blanking, so the source falls back to its default.
-await control.locator('button[title="Reset scores"]').click()
+await control.locator('button:has-text("Reset scores")').click()
 check(await becomes(source, () => /\b0\b/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'reset clears the score back to its fallback')
 
 // Reload: state must come back from IndexedDB.
@@ -262,7 +265,7 @@ check(Math.abs(crawl.duration - (crawl.across + crawl.content) / 120) < 0.05, 'd
 const narrow = await browser.newContext({ viewport: { width: 260, height: 900 } })
 const dock = await narrow.newPage()
 await dock.goto(`${BASE}/#/`)
-await dock.waitForSelector('text=Teams')
+await dock.waitForSelector('text=Clocks')
 await dock.waitForTimeout(900)
 
 const overflow = await dock.evaluate(() => {
@@ -287,15 +290,24 @@ await control.locator('.ss-asset-library input[aria-label="Image URL"]').fill(`$
 await control.locator('.ss-asset-library input[aria-label="Asset name"]').fill('home-badge')
 await control.locator('.ss-asset-library button:has-text("Add URL")').click()
 
-check(await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /home-badge/.test(tile.textContent))), 'a pasted URL becomes a named library entry')
+check(
+  await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /home-badge/.test(tile.textContent))),
+  'a pasted URL becomes a named library entry',
+)
 
 await control.locator('.ss-asset-library input[type="file"]').setInputFiles('apps/demo/public/logos/vandals.svg')
-check(await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals/.test(tile.textContent))), 'a dropped file becomes a named library entry')
+check(
+  await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals/.test(tile.textContent))),
+  'a dropped file becomes a named library entry',
+)
 
 // Adding the same file again keeps both entries distinct rather than clobbering the
 // first -- the same photo can legitimately be filed under two names.
 await control.locator('.ss-asset-library input[type="file"]').setInputFiles('apps/demo/public/logos/vandals.svg')
-check(await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals-2/.test(tile.textContent))), 'a second copy gets its own key rather than colliding')
+check(
+  await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals-2/.test(tile.textContent))),
+  'a second copy gets its own key rather than colliding',
+)
 
 // -- Picking from the library ------------------------------------------------
 const sponsor = await context.newPage()
@@ -304,13 +316,13 @@ await sponsor.waitForSelector('.ss-scene')
 
 const sponsorPicker = control.locator('.ss-image-picker').filter({ hasText: 'Logo' })
 await sponsorPicker.locator('select').selectOption('asset:home-badge')
-await control.locator('.ss-field:has-text("Name") input').first().fill('Acme')
+await control.locator('.ss-field:has-text("Sponsor name") input').fill('Acme')
 await control.waitForTimeout(500)
 
 check(!(await sponsor.locator('.ss-scene').innerText()).includes('Acme'), 'a selection does not reach air before a save')
 
 await save()
-await control.locator('button:has-text("Show sponsor")').click()
+await control.locator('.ss-image-toggle[title="Sponsor"]').click()
 check(
   await becomes(sponsor, (url) => document.querySelector('.sponsor-image img')?.src === url, `${BASE}/logos/broncos.svg`),
   'a URL entry resolves to its URL on the graphic',
@@ -339,7 +351,7 @@ check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.o
 await control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first().click()
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open !== true), 'picking an entry closes the modal')
 
-await control.locator('.ss-field:has-text("Name") input').first().fill('Ada Okafor')
+await control.locator('.ss-field:has-text("Guest name") input').fill('Ada Okafor')
 await save()
 await control.locator('button:has-text("Show guest")').click()
 
@@ -353,9 +365,99 @@ check(await becomes(guest, sceneHas, 'ada okafor'), 'the guest name lands alongs
 // them -- the case a data URI in the doc would have solved expensively.
 await guest.reload()
 await guest.waitForSelector('.ss-scene')
+check(await becomes(guest, () => (document.querySelector('.guest-photo img')?.src ?? '').startsWith('blob:')), 'an uploaded image survives a source reload')
+
+// -- One scene, three clocks, pictures as controls ---------------------------
+// The demo scene an esports show actually runs: two drafts, a map, and all three
+// kinds of clock in one browser source. These checks exist because the image
+// controls and the count-up clock have no other coverage -- a dropdown writing the
+// wrong path is obvious, a tile grid writing the wrong path is not.
+const match = await context.newPage()
+match.on('pageerror', (e) => console.log('[match pageerror]', e.message))
+await match.goto(`${BASE}/#/source/match`)
+await match.waitForSelector('.ss-scene')
+
+const seconds = (text) => text.split(':').reduce((total, part) => total * 60 + Number(part), 0)
+const sceneAttr = (selector) => match.locator(`.ss-scene ${selector}`).first().getAttribute('src')
+const picker = (label, index = 0) => control.locator('.ss-image-select').filter({ hasText: label }).nth(index)
+
+// A tile is a button, so it goes to air on click like every other button.
+await picker('Faction').locator('button[data-value="vanguard"]').click()
+check(await becomes(match, () => !!document.querySelector('.ss-scene img[src*="factions/vanguard"]')), 'an image pick reaches the graphic with no save')
+
+await picker('Commander').locator('button[data-value="kestrel"]').click()
+check(await becomes(match, sceneHas, 'kestrel'), 'the picked commander names itself on the scene')
+check((await sceneAttr('img[src*="commanders"]')) === './commanders/kestrel.svg', 'the stored slug templates the portrait path')
+
+// Away side writes its own paths -- the same component twice must not collide.
+await picker('Faction', 1).locator('button[data-value="syndicate"]').click()
+check(await becomes(match, () => !!document.querySelector('.ss-scene img[src*="factions/syndicate"]')), 'the away picker writes the away path')
+
+// -- Army composition (multi-select) -----------------------------------------
+const army = picker('Army')
+
+for (const unit of ['rifleman', 'battle-tank', 'gunship', 'sniper', 'engineer']) await army.locator(`button[data-value="${unit}"]`).click()
+
+check(await becomes(control, () => document.querySelectorAll('.ss-image-select button[aria-pressed="true"]').length >= 5), 'five units register as picked')
+check(await army.locator('button[data-value="artillery"]').isDisabled(), 'a full army blocks the sixth pick rather than dropping it silently')
+check((await army.locator('button[data-value="battle-tank"] span:last-child').textContent()) === '2', 'picks are numbered in the order they were made')
+
+await control.locator('button:has-text("Show armies")').click()
 check(
-  await becomes(guest, () => (document.querySelector('.guest-photo img')?.src ?? '').startsWith('blob:')),
-  'an uploaded image survives a source reload',
+  await becomes(match, () => document.querySelectorAll('.ss-scene .ss-image-list img').length === 5, null),
+  'the whole army reaches the scene as a row of images',
+)
+
+// Clicking a picked unit takes it back off and frees the slot.
+await army.locator('button[data-value="sniper"]').click()
+check(
+  await becomes(control, () => !document.querySelector('.ss-image-select button[data-value="artillery"]')?.disabled),
+  'removing a unit frees the slot again',
+)
+
+// -- Map ---------------------------------------------------------------------
+await control.locator('.ss-image-select').filter({ hasText: 'Map' }).locator('button[data-value="redline"]').click()
+await control.locator('button:has-text("Show map")').click()
+check(await becomes(match, sceneHas, 'redline'), 'the map card names the picked map')
+check((await sceneAttr('img[src*="maps"]')) === './maps/redline.svg', 'the map graphic follows the same slug')
+
+// -- Three clocks ------------------------------------------------------------
+// Duration countdown.
+await control.locator('button:has-text("Start round")').click()
+check(await becomes(match, () => /0[45]:\d\d/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the duration countdown reaches the scene')
+
+// Count-up. Nothing ticks in the store -- both pages derive the same number from
+// the same stored origin.
+await control.locator('.ss-stopwatch button:has-text("Start")').click()
+await control.locator('button:has-text("Show elapsed")').click()
+check(await becomes(control, () => /00:0[1-9]/.test(document.querySelector('.ss-stopwatch output')?.textContent ?? '')), 'the count-up clock advances')
+check(
+  await becomes(match, () => /elapsed\s+00:0\d/i.test(document.querySelector('.ss-scene')?.innerText ?? '')),
+  'the count-up clock reads the same on the scene',
+)
+
+await control.locator('.ss-stopwatch button:has-text("Pause")').click()
+const held = (await control.locator('.ss-stopwatch output').textContent()).trim()
+await control.waitForTimeout(1500)
+check((await control.locator('.ss-stopwatch output').textContent()).trim() === held, 'pausing holds the elapsed time instead of losing it')
+
+await control.locator('.ss-stopwatch button:has-text("Resume")').click()
+await control.waitForTimeout(1200)
+const resumed = (await control.locator('.ss-stopwatch output').textContent()).trim()
+
+// Comparing against the held value, not merely against "it changed": a clock that
+// restarted from zero on resume would also change, and that is the bug.
+console.log(`  stopwatch: held ${held}, resumed ${resumed}`)
+check(seconds(resumed) > seconds(held), 'resuming carries on from the held time rather than restarting')
+
+// Wall-clock countdown.
+await control.locator('.ss-countdown input[type="time"]').fill('23:59')
+await control.locator('.ss-countdown button:has-text("Start")').click()
+await control.locator('button:has-text("Show pre-show")').click()
+check(await becomes(match, () => /starting in/i.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the pre-show card appears')
+check(
+  await becomes(match, () => !/soon/i.test(document.querySelector('.ss-scene')?.innerText ?? '')),
+  'the wall-clock countdown shows a real time, not its fallback',
 )
 
 // -- Capability guard --------------------------------------------------------
@@ -378,7 +480,7 @@ await legacy.waitForTimeout(1200)
 const legacyText = await legacy.locator('body').innerText()
 check(/can.?t run/i.test(legacyText), 'guard shows a clear message on a browser without module shared workers')
 check(/114/.test(legacyText), 'guard names the minimum versions')
-check(!/Teams/.test(legacyText), 'guard replaces the board rather than rendering a dead one')
+check(!/Clocks/.test(legacyText), 'guard replaces the board rather than rendering a dead one')
 
 await browser.close()
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed')
