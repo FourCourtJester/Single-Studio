@@ -7,7 +7,6 @@ import {
   Field,
   ImagePicker,
   ImageSelect,
-  ImageToggle,
   Leaderboard,
   Panel,
   ResetButton,
@@ -116,9 +115,7 @@ export default function Control() {
         {/* The accent reaches the scene as a CSS custom property, so a colour the
             operator picks drives anything the stylesheet can express. */}
         <ColorPicker name="sponsor.color" label="Accent" fallback="#f59e0b" presets={['#f59e0b', '#0ea5e9', '#e11d48', '#22c55e', '#a855f7', '#f8fafc']} />
-        {/* An image-faced switch, showing the sponsor actually chosen rather than a
-            placeholder: `from` points the face at a path. */}
-        <ImageToggle name="sponsor" label="Sponsor" from="variables.sponsor.url" image="./logos/placeholder.svg" />
+        <ToggleButton name="sponsor" label="sponsor" />
       </Panel>
 
       <Panel title="Ticker">

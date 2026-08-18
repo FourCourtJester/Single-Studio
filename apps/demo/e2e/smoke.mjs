@@ -354,7 +354,7 @@ await control.waitForTimeout(500)
 check(!(await sponsor.locator('.ss-scene').innerText()).includes('Acme'), 'a selection does not reach air before a save')
 
 await save()
-await control.locator('.ss-image-toggle[title="Sponsor"]').click()
+await control.locator('button:has-text("Show sponsor")').click()
 check(
   await becomes(sponsor, (url) => document.querySelector('.sponsor-image img')?.src === url, `${BASE}/logos/broncos.svg`),
   'a URL entry resolves to its URL on the graphic',
@@ -388,13 +388,6 @@ check(
 check(
   await becomes(control, () => document.querySelector('.ss-color-picker input[type="color"]')?.value === '#22c55e'),
   'the swatch reflects the stored colour',
-)
-
-// The sponsor switch wears the sponsor. A fixed placeholder here is a picture that
-// never once matches what is about to go on air.
-check(
-  (await control.locator('.ss-image-toggle[title="Sponsor"] img').getAttribute('src')) === `${BASE}/logos/broncos.svg`,
-  'an image toggle takes its face from the path it is pointed at',
 )
 
 // -- The board's own affordances ---------------------------------------------
