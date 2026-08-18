@@ -5,6 +5,7 @@ import * as Counter from './counter'
 import * as Doc from './doc'
 import { apply, mutations as defaults } from './mutations'
 import { normalize } from './paths'
+import { createSync } from './sync'
 
 // The host runs inside the SharedWorker. It owns the one Y.Doc for this studio.
 //
@@ -16,11 +17,16 @@ import { normalize } from './paths'
 // Transport split:
 //   client -> host   MessagePort   (per-client, ordered, and the host knows who sent it)
 //   host -> clients  BroadcastChannel  (one channel per path, so tabs only wake for their own data)
+//
+// `sync` attaches a collaboration transport to the same doc. It is inert unless a
+// studio configures one, and it needs nothing from the code below: a provider
+// applying a remote update produces an ordinary Yjs transaction, which the
+// observers already turn into publishes. See sync.js.
 
 const READY = 'ready'
 
 export function createVelcroHost(config = {}) {
-  const { name = 'studio', mutations: extra = {}, persist = true, onReady } = config
+  const { name = 'studio', mutations: extra = {}, persist = true, onReady, sync: syncConfig } = config
 
   const doc = Doc.createDoc()
   const registry = { ...defaults, ...extra }
@@ -33,6 +39,8 @@ export function createVelcroHost(config = {}) {
   const subscriptions = new Map()
   /** Paths touched by the current transaction, flushed once it commits. */
   const dirty = new Set()
+
+  const sync = createSync({ doc, name, status, config: syncConfig })
 
   let persistence = null
   let ready = false
@@ -127,6 +135,12 @@ export function createVelcroHost(config = {}) {
     .then(() => {
       ready = true
       status.postMessage({ type: READY, name })
+
+      // Only after persistence has replayed. A provider that starts syncing first
+      // either pushes a half-empty document at the room or has the replay land on
+      // top of remote state; both read as data loss to whoever is watching.
+      if (sync.configured && sync.autoConnect) sync.attach()
+
       return onReady?.({ doc, registry })
     })
     .catch((err) => {
@@ -165,6 +179,10 @@ export function createVelcroHost(config = {}) {
         port.postMessage({ type: 'snapshot:result', id: message.id, value: Doc.snapshot(doc) })
         break
 
+      case 'sync:status':
+        port.postMessage({ type: 'sync', name, ...sync.snapshot })
+        break
+
       case 'bye':
         dropPort(portId)
         break
@@ -194,5 +212,5 @@ export function createVelcroHost(config = {}) {
     self.onconnect = (event) => connect(event.ports[0])
   }
 
-  return { doc, registry, connect, started, subscriptions }
+  return { doc, registry, connect, started, subscriptions, sync }
 }

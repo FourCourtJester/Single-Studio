@@ -146,6 +146,19 @@ createVelcroHost({ name: STUDIO_ID, mutations })
 Nothing is discovered by path convention, nothing is globbed, and the worker
 bundle contains no React. Extension is an explicit import.
 
+### The sync seam
+
+`sync.connect` is the same idea for the network. The studio builds the provider;
+core imports no transport, so the framework stays dependency-free and a studio's
+deployment stays static — a relay URL is runtime configuration, never a build-time
+constant. With no `sync` configured the seam is entirely inert, down to posting no
+status messages.
+
+It attaches to the _document_, not to the mutation path, which is why it needed no
+publishing code: a remote update is an ordinary Yjs transaction and the observers
+above already turn those into publishes. See
+[collaboration.md](./collaboration.md#stage-1--provider-seam-).
+
 `STUDIO_ID` is shared between the worker and `defineStudio` because it names the
 IndexedDB database and every channel. When those drifted apart during
 development, the app looked connected while talking to nobody — so the client now

@@ -123,24 +123,54 @@ the countdown locally, so there is no tick to synchronise and no drift to correc
 
 ## Staged delivery
 
-### Stage 1 — Provider seam
+### Stage 1 — Provider seam ✅
 
-Add a transport interface to the host with a no-op default, so single-user stays
-byte-for-byte what it is today.
+**Shipped.** `velcro/sync.js`, wired into the host.
+
+The studio supplies `connect`; core imports no transport at all. That keeps the
+framework dependency-free and keeps a deployment static — the relay's URL is
+runtime configuration, never baked into a build.
 
 ```js
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
-  sync: { url: '...', room: '...', token: '...' }, // absent => offline, as now
+  sync: {
+    room: 'friday-show',
+    url: 'wss://relay.example.com',
+    token,
+    connect: ({ doc, url, room, token, report }) => {
+      const provider = new WebsocketProvider(url, room, doc, { params: { token } })
+
+      provider.on('status', ({ status }) => report(status))
+
+      return provider
+    },
+  },
 })
 ```
 
-The host already funnels every write through `apply()` inside one Yjs
-transaction, so a provider attaches to the doc without touching mutations.
+Absent `sync`, nothing runs and nothing is announced — the offline studio does not
+even post an "offline" status, because that would be traffic that never existed.
 
-**Done when:** `sync: undefined` behaves identically to the MVP, and a provider
-stub can be attached and detached mid-session without dropping subscriptions.
+The seam needs no publishing code of its own. A provider applying a remote update
+produces an ordinary Yjs transaction, and the host's existing observers turn that
+into a publish. Attaching to the _document_ rather than to the mutation path is
+what buys that.
+
+Three things it guarantees, each pinned by a test:
+
+- **Attach waits for persistence.** A provider syncing before IndexedDB has
+  replayed either pushes a half-empty document at the room or has the replay land
+  on top of remote state.
+- **A failed connect is local-only, not fatal.** The host keeps rendering from its
+  own doc. A relay that will not connect costs collaboration, never the broadcast.
+- **Attach/detach is safe mid-show,** including mid-connect. Subscriptions are
+  untouched, so an operator repointing at another room does not lose the graphics
+  they are driving.
+
+`sync:status` over the existing port answers a board that asks, which is the hook
+stage 3 hangs the connection indicator on.
 
 ### Stage 2 — Relay
 
@@ -249,6 +279,29 @@ The third means: hash the bytes, keep them in their own IndexedDB store (not the
 doc), put only the hash in the document, and have a peer that lacks a blob request
 it over the relay. The document stays small and replicates as it does now; blobs
 move out-of-band and only to peers that need them.
+
+### Replicate the index before the bytes
+
+There is a half-step worth taking first, because without it the naive version has
+a silent on-air failure.
+
+An operator drops in a headshot, picks it, saves. The reference `asset:players/ada`
+replicates fine. The host has no bytes for that hash, `resolveAsset` returns null,
+and **the graphic goes to air showing its fallback** — while the operator's own
+screen shows the photo. The failure is invisible in exactly the direction that
+matters.
+
+So replicate the **asset index**, not the blobs. An entry's metadata — key, kind,
+url, hash, size — is a few hundred bytes and belongs in the document. Then:
+
+- URL entries work everywhere, unchanged.
+- File entries appear in every operator's picker under the right name and group, so
+  the host's library is browsable remotely.
+- A peer that lacks the bytes _knows_ it lacks them, so the UI can say so instead of
+  quietly rendering nothing.
+
+That turns the limitation from a trap into a visible boundary, and the index is the
+same structure the eventual blob transfer needs anyway.
 
 This is deliberately deferred. It wants the relay to exist first, since blob
 transfer is a second channel over the same connection, and until then a
