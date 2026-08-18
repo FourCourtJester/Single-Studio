@@ -347,12 +347,40 @@ check(
 )
 
 // A colour the operator controls reaches a CSS custom property, so anything the
-// stylesheet can express is drivable without a component for it.
-await control.locator('.ss-field:has-text("Accent") input').fill('rgb(240, 169, 60)')
+// stylesheet can express is drivable without a component for it. Typed as text
+// here; the swatch and the presets write the same path.
+const accent = control.locator('.ss-color-picker').filter({ hasText: 'Accent' })
+await accent.locator('input[type="text"], input:not([type])').fill('rgb(240, 169, 60)')
 await save()
 check(
   await becomes(sponsor, () => getComputedStyle(document.querySelector('.ss-scene')).getPropertyValue('--accent').trim() === 'rgb(240, 169, 60)'),
   'an operator value drives a CSS custom property through Scene vars',
+)
+
+// A preset is one click and a save, for the operator who does not know their hex.
+// A custom property holds the token it was given rather than a computed colour, so
+// this reads back the hex exactly as written.
+await accent.locator('.ss-color-preset[title="#22c55e"]').click()
+await save()
+check(
+  await becomes(sponsor, () => getComputedStyle(document.querySelector('.ss-scene')).getPropertyValue('--accent').trim() === '#22c55e'),
+  'a colour preset writes the same path as the field',
+)
+
+// The swatch only accepts #rrggbb, so it has to fall back rather than go blank on
+// the rgb() string typed above -- and pick up a real hex when there is one. Polled,
+// because a save clears the draft here before the committed value has come back
+// round through the worker, and a single read can land in that gap.
+check(
+  await becomes(control, () => document.querySelector('.ss-color-picker input[type="color"]')?.value === '#22c55e'),
+  'the swatch reflects the stored colour',
+)
+
+// The sponsor switch wears the sponsor. A fixed placeholder here is a picture that
+// never once matches what is about to go on air.
+check(
+  (await control.locator('.ss-image-toggle[title="Sponsor"] img').getAttribute('src')) === `${BASE}/logos/broncos.svg`,
+  'an image toggle takes its face from the path it is pointed at',
 )
 
 // -- Uploads on air ----------------------------------------------------------
@@ -464,7 +492,9 @@ check((await sceneAttr('img[src*="maps"]')) === './maps/redline.svg', 'the map g
 
 // -- Three clocks ------------------------------------------------------------
 // Duration countdown.
-await control.locator('button:has-text("Start round")').click()
+const round = control.locator('.ss-timer-button').filter({ hasText: 'Round' })
+await round.locator('input').fill('4:30')
+await round.locator('button:has-text("Start")').click()
 check(await becomes(match, () => /0[45]:\d\d/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the duration countdown reaches the scene')
 
 // Count-up. Nothing ticks in the store -- both pages derive the same number from
@@ -596,6 +626,32 @@ check(
 const bounced = await styleOf('.ss-bounce')
 console.log(`  bounce: ${JSON.stringify(bounced)}`)
 check(bounced.animation === 'ss-bounce-in', 'the bounce variant runs a keyframe animation, not a transition')
+
+// Leaving has to be animated too. An entrance animation ends with `both`, so its
+// final transform is filled in by the animation -- take the animation away on the
+// way out and the element drops straight to the off-phase transform with nothing
+// to interpolate from. It teleports to the top of its travel and fades there. The
+// giveaway is that the transform is *already* at its full offset on the first
+// frame of exiting, which is exactly what this samples.
+await control.locator('button:has-text("Hide pre-show")').click()
+
+const leaving = await match.evaluate(async () => {
+  const element = document.querySelector('.ss-bounce')
+  const frames = []
+
+  for (let i = 0; i < 4; i += 1) {
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+
+    const style = getComputedStyle(element)
+    frames.push({ state: element.dataset.state, animation: style.animationName, y: Math.round(new DOMMatrix(style.transform).m42) })
+  }
+
+  return frames
+})
+
+console.log(`  bounce exit: ${JSON.stringify(leaving)}`)
+check(leaving[0].animation === 'ss-bounce-out', 'the bounce runs its own exit animation rather than snapping back')
+check(Math.abs(leaving[0].y) < 20, `the exit starts from where the card was resting, not from the end of its travel (y=${leaving[0].y})`)
 
 // Easing is a class, and it is the difference between mechanical and produced.
 const overshoot = await styleOf('.ss-slide-up')

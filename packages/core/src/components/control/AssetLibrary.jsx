@@ -4,6 +4,7 @@ import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
 import { toAssetRef } from '../../velcro/assets'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
+import { Tooltip } from '../common/Tooltip'
 
 /**
  * Manage the studio's images: add, name, preview, remove.
@@ -268,15 +269,16 @@ export function AssetLibraryDialog({ open, onClose, ...rest }) {
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-slate-800 px-4 py-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Images</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close the image library"
-          title="Close"
-          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
-        >
-          <Icon name="close" />
-        </button>
+        <Tooltip label="Close" align="end" className="ml-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close the image library"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+          >
+            <Icon name="close" />
+          </button>
+        </Tooltip>
       </header>
       {/* min-h-0 is what lets this scroll: a flex child defaults to min-content
           height, which is tall enough for every tile and so never overflows. */}

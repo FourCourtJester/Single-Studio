@@ -1,4 +1,5 @@
 export { Break } from './Break'
+export { ColorPicker } from './ColorPicker'
 export { Countdown } from './Countdown'
 export { Cycle } from './Cycle'
 export { AssetLibrary, AssetLibraryDialog } from './AssetLibrary'

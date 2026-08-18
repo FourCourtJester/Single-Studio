@@ -4,6 +4,7 @@ import { useDraft } from '../../studio/DraftProvider'
 import * as Draft from '../../studio/draft'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
+import { Tooltip } from '../common/Tooltip'
 
 const isMac = () => typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
 
@@ -17,13 +18,14 @@ const isMac = () => typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.tes
  * Both buttons are icons, matched in size and weight, because this pair sits in the
  * board's header where space is scarce and it gets used on the clock. Amber commits,
  * red discards; colour and shape read at a glance from across a desk in a way two
- * words of similar length never did. The count of pending changes is gone with them -- the
- * dirty dots on the fields themselves say which, which is the useful half, and a
- * number that only ever meant "something" was costing a word to say nothing.
+ * words of similar length never did. The count of pending changes moves into the
+ * tooltip, where it costs no width at all -- the dirty dots on the fields say
+ * *which* edits are waiting, and the tooltip says how many.
  */
 export function SaveButton({ className, ...rest }) {
   const { draft, save, revert } = useDraft()
-  const pending = Draft.count(draft) > 0
+  const count = Draft.count(draft)
+  const pending = count > 0
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -48,28 +50,30 @@ export function SaveButton({ className, ...rest }) {
   return (
     <div className={cx('ss-save flex shrink-0 items-center gap-2', className)} {...rest}>
       {pending ? (
+        <Tooltip label="Discard unsaved changes" align="end">
+          <button
+            type="button"
+            onClick={() => revert()}
+            aria-label="Discard all unsaved changes"
+            className={cx(button, 'ss-discard bg-rose-600 text-white hover:bg-rose-500')}
+          >
+            <Icon name="close" />
+          </button>
+        </Tooltip>
+      ) : null}
+      <Tooltip label={pending ? `Save ${count} change${count === 1 ? '' : 's'} (${isMac() ? '⌘' : 'Ctrl'}+S)` : 'Saved'} align="end">
         <button
           type="button"
-          onClick={() => revert()}
-          aria-label="Discard all unsaved changes"
-          title="Discard all unsaved changes"
-          className={cx(button, 'ss-discard bg-rose-600 text-white hover:bg-rose-500')}
+          onClick={save}
+          disabled={!pending}
+          data-pending={pending ? 'true' : 'false'}
+          aria-label={pending ? `Save ${count} change${count === 1 ? '' : 's'}` : 'Saved'}
+          aria-keyshortcuts={isMac() ? 'Meta+S' : 'Control+S'}
+          className={cx(button, pending ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-700')}
         >
-          <Icon name="close" />
+          <Icon name="save" />
         </button>
-      ) : null}
-      <button
-        type="button"
-        onClick={save}
-        disabled={!pending}
-        data-pending={pending ? 'true' : 'false'}
-        aria-label={pending ? 'Save changes' : 'Saved'}
-        title={pending ? `Save changes (${isMac() ? '⌘' : 'Ctrl'}+S)` : 'Saved'}
-        aria-keyshortcuts={isMac() ? 'Meta+S' : 'Control+S'}
-        className={cx(button, pending ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-700')}
-      >
-        <Icon name="save" />
-      </button>
+      </Tooltip>
     </div>
   )
 }

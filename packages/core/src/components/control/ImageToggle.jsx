@@ -14,10 +14,16 @@ import { Thumb } from './Thumb'
  *
  * Immediate, like every other button. A picture is not a sentence; there is nothing
  * to finish typing, so there is nothing to stage.
+ *
+ * `from` points the face at a path instead of a fixed file, which is what a switch
+ * for something the operator also *chooses* wants: the sponsor toggle should show
+ * the sponsor they picked, not a placeholder that never changes. `image` stays as
+ * the fallback for before anything is chosen.
  */
-export function ImageToggle({ name, label, image, group, size = 'md', namespace = 'toggles', className, ...rest }) {
+export function ImageToggle({ name, label, image, from, group, size = 'md', namespace = 'toggles', className, ...rest }) {
   const path = `${namespace}.${name}`
   const active = Boolean(useVelcroValue(path, false))
+  const chosen = useVelcroValue(from, null)
   const mutate = useVelcroMutate()
 
   const onClick = () => {
@@ -45,7 +51,7 @@ export function ImageToggle({ name, label, image, group, size = 'md', namespace 
       {...rest}
     >
       <span className={cx('flex items-center justify-center overflow-hidden rounded', size === 'sm' ? 'h-10 w-10' : size === 'lg' ? 'h-20 w-20' : 'h-14 w-14')}>
-        <Thumb src={image} label={caption} />
+        <Thumb src={chosen || image} label={caption} />
       </span>
       {caption ? <span className={cx('max-w-[6rem] truncate text-[0.7rem]', active ? 'text-sky-200' : 'text-slate-400')}>{caption}</span> : null}
     </button>

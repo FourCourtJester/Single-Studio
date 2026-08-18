@@ -5,6 +5,7 @@ import { useDraftValue } from '../../studio/DraftProvider'
 import { assetKeyOf, isAssetRef, toAssetRef } from '../../velcro/assets'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
+import { Tooltip } from '../common/Tooltip'
 import { AssetLibraryDialog } from './AssetLibrary'
 
 /**
@@ -73,15 +74,16 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={() => setBrowsing(true)}
-              aria-label={`Browse images for ${label}`}
-              title="Browse the image library"
-              className="ss-browse -ml-px flex shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
-            >
-              <Icon name="search" />
-            </button>
+            <Tooltip label="Browse the image library" align="end">
+              <button
+                type="button"
+                onClick={() => setBrowsing(true)}
+                aria-label={`Browse images for ${label}`}
+                className="ss-browse -ml-px flex h-full shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
+              >
+                <Icon name="search" />
+              </button>
+            </Tooltip>
           </div>
 
           {orphaned ? (

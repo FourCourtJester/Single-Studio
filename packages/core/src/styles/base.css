@@ -141,24 +141,41 @@
   }
 
   /*
-   * The one keyframe variant: drops in and settles, twice, the way a physical
-   * lower third does. Transform belongs to the animation here, so the transition
-   * is narrowed to opacity to stop the two fighting over it.
+   * The one keyframe variant: drops in and settles, twice, the way a physical lower
+   * third does.
+   *
+   * Both directions are animations, and they have to be. An earlier cut animated
+   * only the entrance and left the exit to a transition -- but the entrance ends
+   * with `both`, so its final transform is filled in by the animation, and removing
+   * the animation on the way out drops the element straight back to the off-phase
+   * transform with nothing to interpolate from. The card teleported to the top of
+   * its travel and then faded in place: no exit motion at all, only visible as
+   * "it comes in nicely and leaves wrong".
+   *
+   * The transition duration is pinned to zero for the same reason the exit is short:
+   * the state machine takes the larger of transition and animation duration, so a
+   * studio setting --ss-duration for the bounce would otherwise hold the swap open
+   * for the full entrance length after a much quicker exit had finished.
    */
   .ss-bounce {
     --ss-drop: 2.5rem;
 
-    transition-property: opacity;
+    transition-duration: 0s;
   }
 
   .ss-bounce.ss-inactive,
-  .ss-bounce.ss-exiting,
   .ss-bounce.ss-entering {
     transform: translateY(calc(-1 * var(--ss-drop)));
   }
 
   .ss-bounce.ss-active {
     animation: ss-bounce-in var(--ss-duration, 300ms) both;
+  }
+
+  /* Leaving is quicker than arriving. An exit nobody is meant to watch that takes
+     as long as the entrance reads as the graphic being slow to let go. */
+  .ss-bounce.ss-exiting {
+    animation: ss-bounce-out calc(var(--ss-duration, 300ms) * 0.4) both;
   }
 
   /*
@@ -232,8 +249,19 @@
    * headings at three different heights, which reads as a broken layout rather than
    * as three controls of different sizes.
    */
-  .ss-panel-body > .ss-image-select {
+  .ss-panel-body > .ss-image-select,
+  .ss-panel-body > .ss-color-picker {
     align-self: flex-start;
+  }
+
+  /*
+   * A picture-faced switch sits at its natural size rather than growing to fill the
+   * row. Everything else on the board is a field or a full-width button, where
+   * growing is right; an image toggle stretched to twelve inches of empty box reads
+   * as a layout mistake, and the picture stays the same size either way.
+   */
+  .ss-panel-body > .ss-image-toggle {
+    flex: 0 0 auto;
   }
 
   /* Compound and structural children take a row to themselves. */
@@ -248,6 +276,13 @@
 @keyframes ss-bounce-in {
   0% {
     transform: translateY(calc(-1 * var(--ss-drop, 2.5rem)));
+    opacity: 0;
+  }
+  /* Opaque well before it lands. Fading across the whole animation left the card
+     still half-transparent at the moment it hit the floor, which reads as two
+     effects fighting rather than one object arriving. */
+  20% {
+    opacity: 1;
   }
   45% {
     transform: translateY(0);
@@ -265,6 +300,23 @@
   }
   100% {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* A short dip first: an object about to leave upward gathers itself downward. */
+@keyframes ss-bounce-out {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(calc(0.16 * var(--ss-drop, 2.5rem)));
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(-1 * var(--ss-drop, 2.5rem)));
+    opacity: 0;
   }
 }
 

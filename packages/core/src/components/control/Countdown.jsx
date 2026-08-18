@@ -60,7 +60,8 @@ export function Countdown({ name, label = 'Countdown', as = 'time', namespace = 
   return (
     <div className={cx('ss-countdown flex flex-col gap-1', className)} {...rest}>
       <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
-      <div className="flex items-stretch gap-2">
+      {/* Joined into one control, like every other entry-then-go pair on the board. */}
+      <div className="ss-input-group flex">
         <input
           ref={ref}
           type={as}
@@ -70,9 +71,13 @@ export function Countdown({ name, label = 'Countdown', as = 'time', namespace = 
             event.preventDefault()
             start()
           }}
-          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors focus:border-sky-500"
+          className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors focus:relative focus:border-sky-500"
         />
-        <button type="button" onClick={start} className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500">
+        <button
+          type="button"
+          onClick={start}
+          className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500 focus:relative"
+        >
           Start
         </button>
       </div>

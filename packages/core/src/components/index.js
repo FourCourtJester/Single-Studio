@@ -1,5 +1,6 @@
 export { Fit } from './common/Fit'
 export { Icon } from './common/Icon'
+export { Tooltip } from './common/Tooltip'
 export { Transition } from './common/Transition'
 export * from './control'
 export * from './source'

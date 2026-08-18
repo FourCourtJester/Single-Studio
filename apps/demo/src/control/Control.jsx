@@ -1,6 +1,7 @@
 import {
   AssetLibrary,
   Break,
+  ColorPicker,
   Countdown,
   Cycle,
   Field,
@@ -79,8 +80,10 @@ export default function Control() {
       <Draft side="away" title="Away" />
 
       <Panel title="Clocks">
-        {/* All three kinds, side by side. */}
-        <TimerButton name="round" label="round" duration="5:00" />
+        {/* All three kinds, side by side. The round timer takes a typed duration --
+            seconds or m:ss -- because five minutes is a guess about someone else's
+            show. Pass `duration` instead to make it a one-press preset. */}
+        <TimerButton name="round" label="Round" placeholder="5:00" />
         <Countdown name="showtime" label="Doors open" as="time" />
         <Stopwatch name="match" label="Show elapsed" />
       </Panel>
@@ -110,9 +113,12 @@ export default function Control() {
       <Panel title="Sponsor">
         <ImagePicker name="sponsor.url" label="Logo" />
         <Field name="sponsor.name" label="Sponsor name" placeholder="Acme" />
-        <Field name="sponsor.color" label="Accent" placeholder="#f59e0b" />
-        {/* An image-faced switch: the picture is the thing being turned on. */}
-        <ImageToggle name="sponsor" label="Sponsor" image="./logos/placeholder.svg" />
+        {/* The accent reaches the scene as a CSS custom property, so a colour the
+            operator picks drives anything the stylesheet can express. */}
+        <ColorPicker name="sponsor.color" label="Accent" fallback="#f59e0b" presets={['#f59e0b', '#0ea5e9', '#e11d48', '#22c55e', '#a855f7', '#f8fafc']} />
+        {/* An image-faced switch, showing the sponsor actually chosen rather than a
+            placeholder: `from` points the face at a path. */}
+        <ImageToggle name="sponsor" label="Sponsor" from="variables.sponsor.url" image="./logos/placeholder.svg" />
       </Panel>
 
       <Panel title="Ticker">

@@ -135,26 +135,27 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 
 **Control** — the operator's board:
 
-| Component      | Writes             | Notes                                                           |
-| -------------- | ------------------ | --------------------------------------------------------------- |
-| `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                    |
-| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.   |
-| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.          |
-| `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture on it. `group` for radio.         |
-| `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.              |
-| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved. |
-| `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.   |
-| `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                     |
-| `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                           |
-| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                        |
-| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.       |
-| `TimerButton`  | `timers.<name>`    | Start/stop a duration (`'5:00'`).                               |
-| `Countdown`    | `timers.<name>`    | Counts down to a wall-clock time, not a duration.               |
-| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                 |
-| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.        |
-| `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.         |
-| `Panel`        | —                  | Titled group. Children wrap in a flex row.                      |
-| `Break`        | —                  | Forces a line break inside a `Panel`.                           |
+| Component      | Writes             | Notes                                                            |
+| -------------- | ------------------ | ---------------------------------------------------------------- |
+| `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                     |
+| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.    |
+| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.           |
+| `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture. `from` reads the face off a path. |
+| `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.               |
+| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved.  |
+| `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.    |
+| `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.    |
+| `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                      |
+| `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                            |
+| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                         |
+| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.        |
+| `TimerButton`  | `timers.<name>`    | Duration countdown. Typed unless `duration` presets it.          |
+| `Countdown`    | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                |
+| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                  |
+| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.         |
+| `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.          |
+| `Panel`        | —                  | Titled group. Children wrap in a flex row.                       |
+| `Break`        | —                  | Forces a line break inside a `Panel`.                            |
 
 ## Clocks
 
@@ -167,10 +168,16 @@ Three of them, because a broadcast asks three different questions:
 | `Stopwatch`   | "how long have we been on?" | origin instant |
 
 ```jsx
-<TimerButton name="round" label="round" duration="5:00" />
+<TimerButton name="round" label="Round" />                 {/* operator types it */}
+<TimerButton name="break" label="break" duration="5:00" /> {/* a fixed preset */}
 <Countdown name="showtime" label="Doors open" as="time" />
 <Stopwatch name="match" label="Show elapsed" />
 ```
+
+`TimerButton` grows an input unless you hand it a `duration`, because a fixed five
+minutes is a guess about somebody else's show. The input takes whatever an operator
+would naturally type — `90`, `1:30`, `1:02:03` — rather than insisting on a format.
+Give it a `duration` when the length never varies and one press should start it.
 
 All three land at `timers.<name>` and all three are read by the same source
 component, which works out from the stored shape which kind it is:
@@ -294,9 +301,15 @@ reading nine words is slower than recognising nine images, and a draft does not 
 <ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
 <ImageSelect name="home.army" label="Army" options={UNITS} multiple max={5} />
 <ImageToggle name="sponsor" label="Sponsor" image="./logos/acme.svg" />
+<ImageToggle name="sponsor" label="Sponsor" from="variables.sponsor.url" image="./logos/placeholder.svg" />
 ```
 
-Each option is `{ value, label, image }`. The stored value is the plain one — a
+`ImageToggle`'s `from` points its face at a path rather than a fixed file, which is
+what a switch for something the operator also _chooses_ wants: the sponsor toggle
+should wear the sponsor they picked. `image` stays as the fallback for before
+anything is chosen.
+
+Each `ImageSelect` option is `{ value, label, image }`. The stored value is the plain one — a
 source reading `variables.home.faction` cannot tell which control wrote it — so the
 usual templating still applies:
 
@@ -347,6 +360,17 @@ does not have a component for — colours, offsets, widths, radii:
 A path holding nothing is left unset rather than blanked, so the `var()` fallback
 still applies.
 
+On the board, `ColorPicker` is what fills that path. A swatch to pick from, a hex
+field to paste a brand colour into, and an optional row of `presets` — because most
+shows have four colours, and nobody should have to know that amber is `#f59e0b`:
+
+```jsx
+<ColorPicker name="sponsor.color" label="Accent" fallback="#f59e0b" presets={['#f59e0b', '#0ea5e9', '#e11d48']} />
+```
+
+Both halves write the same path and stay in step, and it stages like any other
+field — typing `#f5` mid-hex would otherwise put a half-parsed colour on air.
+
 ## Transitions
 
 Broadcast graphics do not snap between values; they animate out, swap, and animate
@@ -365,17 +389,17 @@ That is the whole mechanism. The state machine sets `ss-exiting` / `ss-entering`
 a variant costs a rule rather than a code path, and your own variant is just another
 class you write and pass by name.
 
-| Motion        | What it does                                       |
-| ------------- | -------------------------------------------------- |
-| `fade`        | The default. Opacity only.                         |
-| `slide-up`    | Arrives travelling upward (starts below its place) |
-| `slide-down`  | Arrives travelling downward                        |
-| `slide-left`  | Arrives travelling leftward (starts to the right)  |
-| `slide-right` | Arrives travelling rightward                       |
-| `zoom`        | Scales up into place                               |
-| `flip`        | Rotates in about its top edge                      |
-| `wipe`        | Reveals left to right, clipped rather than faded   |
-| `bounce`      | Drops in and settles twice (keyframes)             |
+| Motion        | What it does                                               |
+| ------------- | ---------------------------------------------------------- |
+| `fade`        | The default. Opacity only.                                 |
+| `slide-up`    | Arrives travelling upward (starts below its place)         |
+| `slide-down`  | Arrives travelling downward                                |
+| `slide-left`  | Arrives travelling leftward (starts to the right)          |
+| `slide-right` | Arrives travelling rightward                               |
+| `zoom`        | Scales up into place                                       |
+| `flip`        | Rotates in about its top edge                              |
+| `wipe`        | Reveals left to right, clipped rather than faded           |
+| `bounce`      | Drops in and settles twice; dips and lifts out (keyframes) |
 
 | Modifier      | What it does                                      |
 | ------------- | ------------------------------------------------- |
@@ -410,6 +434,11 @@ Two more things worth knowing before you build a scene around this:
 - **Do not centre a transitioning element with a transform.** `-translate-x-1/2`
   and a variant that animates transform will fight, and the variant wins. Centre
   with a wrapper.
+- **A keyframe variant needs keyframes in both directions.** An entrance animation
+  ends with `both`, so the animation itself is holding the final transform; take it
+  away on the way out and the element drops straight to the off-phase value with
+  nothing to interpolate from. It teleports and then fades in place. `bounce` has an
+  `ss-bounce-out` for this reason, and a custom keyframe variant needs one too.
 
 Pick per element rather than per scene. In the demo's scoreboard a name flips over,
 a score slides up and overshoots, and the badge plainly fades — because a logo

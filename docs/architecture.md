@@ -219,6 +219,11 @@ the hard-won parts:
 - **`Fit`** — binary-searches the largest font size that keeps text on one line.
   The long-player-name problem: a lower third sized for "Kim" must also hold
   "Vandersteen-Rodriguez".
+- **`Tooltip`** — replaces the `title` attribute on controls that need one. A
+  native tooltip is drawn by the browser: it cannot be styled or aligned, it wraps
+  where it likes, and it waits about a second to appear — a long time to hold a
+  cursor still mid-show. Alignment is the part that matters most, since these sit on
+  icon buttons pinned to an edge, where a centred bubble runs off the dock.
 - **`Icon`** — the control surface's glyphs, drawn inline. Deliberately not a
   package: a font kit fetches from a CDN, which is dead weight in OBS and useless
   offline, and an icon library becomes a dependency every studio inherits whether or
