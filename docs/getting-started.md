@@ -138,7 +138,7 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | Component      | Writes             | Notes                                                           |
 | -------------- | ------------------ | --------------------------------------------------------------- |
 | `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                    |
-| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and Browse. Writes `asset:<key>`.        |
+| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.   |
 | `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.          |
 | `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture on it. `group` for radio.         |
 | `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.              |
@@ -147,7 +147,7 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                     |
 | `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                           |
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first.                        |
-| `ResetButton`  | any paths          | Unsets them. `confirm` asks first.                              |
+| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.       |
 | `TimerButton`  | `timers.<name>`    | Start/stop a duration (`'5:00'`).                               |
 | `Countdown`    | `timers.<name>`    | Counts down to a wall-clock time, not a duration.               |
 | `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                 |
@@ -188,6 +188,18 @@ destroys and rebuilds comes back showing the right time instead of restarting.
 A pause stores the elapsed time it held, and resuming backdates the origin by that
 much — so the clock picks up where it stopped without ever having counted anything
 itself.
+
+The screen still has to repaint, of course. The view samples each running clock four
+times a second and re-renders only when the whole second it displays actually
+changes. Sampling rather than scheduling is what keeps a tick landing on time:
+`setTimeout` fires late under load, so a timer that chases the next second lands
+wherever it lands, and the wander is visible on air even though every number it
+shows is correct. Nothing about the sampling is written anywhere, so a throttled tab
+renders late but never wrong.
+
+Counting up floors and counting down rounds up, each so the number on screen matches
+what an operator means by it: a countdown reads 00:01 until time is genuinely out,
+and a stopwatch reads 00:00 until a second has genuinely passed.
 
 ## Images
 
@@ -262,13 +274,14 @@ used.
 
 ```jsx
 <AssetLibrary />                                 {/* the manager, as a panel */}
-<ImagePicker name="guest.photo" label="Headshot" />  {/* choose, with Browse */}
+<ImagePicker name="guest.photo" label="Headshot" />  {/* choose one */}
 <Image name="guest.photo" />                     {/* on air */}
 ```
 
 `ImagePicker` gives a preview, a dropdown of the library's keys for a fast swap
-between segments, and **Browse** to open the library as a modal for adding,
-renaming and deleting. The same `AssetLibrary` component serves both.
+between segments, and a magnifier joined onto the dropdown that opens the library
+as a modal for adding, renaming and deleting. The same `AssetLibrary` component
+serves both.
 
 ### Picking by picture
 
@@ -448,7 +461,7 @@ be on screen.
 | **Ctrl/Cmd + S**        | Commit every staged edit  |
 | **Enter** (in a field)  | Commit every staged edit  |
 | **Escape** (in a field) | Abandon that field's edit |
-| **Discard**             | Abandon all staged edits  |
+| **Discard** (red ✕)     | Abandon all staged edits  |
 
 Buttons — `Stepper`, `ToggleButton`, `ImageToggle`, `ImageSelect`, `SwapButton`,
 `ResetButton`, `TimerButton`, `Countdown`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
@@ -456,6 +469,11 @@ half-finished state to protect.
 
 A save is one mutation, so every staged path lands in a single transaction and the
 whole board changes on air together.
+
+Save and Discard are icons — an amber floppy disk and a red ✕ — sized to match, and
+Discard only appears when there is something to discard. There is no count of
+pending changes: the dirty dot on each edited control says _which_, which is the
+half worth knowing.
 
 `ControlPage` renders a `SaveButton` in its header automatically. To put one
 somewhere else, or to read the pending count yourself:

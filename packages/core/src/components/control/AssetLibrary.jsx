@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
 import { toAssetRef } from '../../velcro/assets'
 import { cx } from '../../toolkits/cx'
+import { Icon } from '../common/Icon'
 
 /**
  * Manage the studio's images: add, name, preview, remove.
@@ -224,7 +225,28 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
   )
 }
 
-/** The library in a modal, for opening from a picker. */
+/**
+ * The library in a modal, for opening from a picker.
+ *
+ * Sized by insets rather than by a width: it takes everything the viewport has
+ * except a margin, which is the same gap the panels behind it sit in, so it reads
+ * as a layer over the board rather than a box dropped on top of it. Browsing
+ * images is the one job on this surface that wants area -- a fixed 44rem was
+ * showing three tiles a row on a monitor with room for twelve, and the grid was
+ * already built to fill whatever it is given.
+ *
+ * Two of these classes are load-bearing in ways that are easy to lose.
+ *
+ * `m-0`: a dialog is centred by `margin: auto` in the user-agent stylesheet, which
+ * fights the insets. Without it the box lands at its content size in the middle and
+ * the insets do nothing at all.
+ *
+ * `open:flex` rather than a bare `flex`: a closed dialog is hidden by
+ * `dialog:not([open]) { display: none }`, and *any* display declaration of ours
+ * beats it. A plain `flex` therefore leaves a full-screen invisible sheet over the
+ * board at all times, swallowing every click on the panels behind it -- which
+ * presents as the board going dead rather than as anything to do with a modal.
+ */
 export function AssetLibraryDialog({ open, onClose, ...rest }) {
   const dialog = useRef(null)
 
@@ -242,15 +264,23 @@ export function AssetLibraryDialog({ open, onClose, ...rest }) {
       ref={dialog}
       onClose={onClose}
       onCancel={onClose}
-      className="ss-asset-dialog w-[min(44rem,92vw)] rounded-lg border border-slate-800 bg-slate-900 p-0 text-slate-100 backdrop:bg-black/60"
+      className="ss-asset-dialog fixed inset-3 m-0 h-auto max-h-none w-auto max-w-none flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 p-0 text-slate-100 backdrop:bg-black/60 open:flex sm:inset-6"
     >
-      <header className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
+      <header className="flex shrink-0 items-center gap-2 border-b border-slate-800 px-4 py-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Images</h2>
-        <button type="button" onClick={onClose} className="ml-auto rounded-md px-2 py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-          Done
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close the image library"
+          title="Close"
+          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+        >
+          <Icon name="close" />
         </button>
       </header>
-      <div className="max-h-[70vh] overflow-y-auto p-4">
+      {/* min-h-0 is what lets this scroll: a flex child defaults to min-content
+          height, which is tall enough for every tile and so never overflows. */}
+      <div className="min-h-0 grow overflow-y-auto p-4">
         {/* Mounted only while open. Every ImagePicker renders one of these, so
             keeping the library alive behind a closed dialog meant N pickers ran N
             libraries -- all subscribing, all rendering tiles nobody could see. */}

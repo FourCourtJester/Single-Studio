@@ -1,4 +1,5 @@
 export { Fit } from './common/Fit'
+export { Icon } from './common/Icon'
 export { Transition } from './common/Transition'
 export * from './control'
 export * from './source'

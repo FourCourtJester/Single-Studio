@@ -7,10 +7,24 @@
 // looking connected while talking to nobody, or a transition that swaps its
 // content at the wrong moment.
 //
-// Usage: pnpm --filter @single-studio/demo build && pnpm --filter @single-studio/demo preview
-//        node apps/demo/e2e/smoke.mjs http://localhost:4173
+// Usage: pnpm demo:build && pnpm demo:preview   (one shell)
+//        pnpm e2e                                (another)
+//
+// Takes the base URL as an argument, defaulting to the preview server's.
+
+import { fileURLToPath } from 'node:url'
 
 import { chromium } from 'playwright'
+
+/**
+ * A file in the demo's public folder, as an absolute path.
+ *
+ * Anchored to this script rather than to the working directory. Relative paths
+ * worked only when the test happened to be run from the repository root, and failed
+ * under the `pnpm e2e` that the README tells you to use -- pnpm runs a package
+ * script from the package directory.
+ */
+const asset = (name) => fileURLToPath(new URL(`../public/${name}`, import.meta.url))
 
 const BASE = process.argv[2] ?? 'http://localhost:4173'
 let failed = 0
@@ -90,14 +104,18 @@ const scoreboardText = () =>
 await homeName.fill('Broncos')
 await control.waitForTimeout(700)
 check(!(await scoreboardText()).includes('broncos'), 'typing does not reach the graphic before a save')
-check((await saveButton.textContent()).includes('1 change'), 'the board reports one unsaved change')
+// Save and Discard are icons, so the state lives in an attribute rather than in
+// the label. A text assertion here would have to read a floppy disk.
+check((await saveButton.getAttribute('data-pending')) === 'true', 'the board reports an unsaved change')
+check(await control.locator('.ss-save .ss-discard').isVisible(), 'a discard appears alongside it')
 
 await save()
 check(await becomes(source, sceneHas, 'broncos'), 'Ctrl+S commits the edit to the graphic')
 check(
-  await becomes(control, () => /Saved/.test(document.querySelector('.ss-save button:last-of-type')?.textContent ?? '')),
+  await becomes(control, () => document.querySelector('.ss-save button:last-of-type')?.dataset.pending === 'false'),
   'the board reports itself saved again',
 )
+check(!(await control.locator('.ss-save .ss-discard').isVisible()), 'and the discard goes away with nothing left to discard')
 
 // Buttons stay immediate -- a stepper is one deliberate act with no half-typed state.
 await control.locator('button[aria-label="Increase Home score"]').click()
@@ -295,7 +313,7 @@ check(
   'a pasted URL becomes a named library entry',
 )
 
-await control.locator('.ss-asset-library input[type="file"]').setInputFiles('apps/demo/public/logos/vandals.svg')
+await control.locator('.ss-asset-library input[type="file"]').setInputFiles(asset('logos/vandals.svg'))
 check(
   await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals/.test(tile.textContent))),
   'a dropped file becomes a named library entry',
@@ -303,7 +321,7 @@ check(
 
 // Adding the same file again keeps both entries distinct rather than clobbering the
 // first -- the same photo can legitimately be filed under two names.
-await control.locator('.ss-asset-library input[type="file"]').setInputFiles('apps/demo/public/logos/vandals.svg')
+await control.locator('.ss-asset-library input[type="file"]').setInputFiles(asset('logos/vandals.svg'))
 check(
   await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals-2/.test(tile.textContent))),
   'a second copy gets its own key rather than colliding',
@@ -338,15 +356,32 @@ check(
 )
 
 // -- Uploads on air ----------------------------------------------------------
-// The podcast case: a guest headshot arrives minutes before air. Browse opens the
-// same library as a modal, so a picker is a chooser without leaving the board.
+// The podcast case: a guest headshot arrives minutes before air. The magnifier
+// opens the same library as a modal, so a picker is a chooser without leaving the
+// board.
 const guest = await context.newPage()
 await guest.goto(`${BASE}/#/source/guest`)
 await guest.waitForSelector('.ss-scene')
 
 const guestPicker = control.locator('.ss-image-picker').filter({ hasText: 'Headshot' })
-await guestPicker.locator('button:has-text("Browse")').click()
+await guestPicker.locator('.ss-browse').click()
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open === true), 'Browse opens the library as a modal')
+
+// Sized by insets, so it fills the viewport but never touches its edges. A dialog
+// is centred by `margin: auto` in the UA stylesheet, which quietly beats the insets
+// and leaves the box at its content size in the middle -- the failure looks like
+// nothing happened rather than like a broken rule.
+const modal = await control.evaluate(() => {
+  const box = document.querySelector('.ss-asset-dialog').getBoundingClientRect()
+
+  return { left: box.left, top: box.top, right: innerWidth - box.right, bottom: innerHeight - box.bottom, width: box.width, height: box.height }
+})
+
+check(
+  [modal.left, modal.top, modal.right, modal.bottom].every((gap) => gap > 4 && gap < 60),
+  `the modal keeps an even margin off every edge (${JSON.stringify(modal)})`,
+)
+check(modal.height > 400, 'and takes the height it is given rather than hugging its content')
 
 await control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first().click()
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open !== true), 'picking an entry closes the modal')
@@ -415,6 +450,12 @@ check(
   'removing a unit frees the slot again',
 )
 
+// A red button reading "draft" says it is dangerous but not what it does.
+check(
+  (await control.locator('.ss-reset').first().textContent()).trim() === 'Reset draft',
+  'a reset button names the thing it resets',
+)
+
 // -- Map ---------------------------------------------------------------------
 await control.locator('.ss-image-select').filter({ hasText: 'Map' }).locator('button[data-value="redline"]').click()
 await control.locator('button:has-text("Show map")').click()
@@ -429,8 +470,54 @@ check(await becomes(match, () => /0[45]:\d\d/.test(document.querySelector('.ss-s
 // Count-up. Nothing ticks in the store -- both pages derive the same number from
 // the same stored origin.
 await control.locator('.ss-stopwatch button:has-text("Start")').click()
+
+// Read immediately, inside the first second: counting up floors, so a stopwatch
+// that has just been pressed has not completed a second and must say so. Rounding
+// up -- right for a countdown -- shows 00:01 the instant it starts, which is a
+// whole second the show never had.
+const first = (await control.locator('.ss-stopwatch output').textContent()).trim()
+check(first === '00:00', `a stopwatch reads 00:00 for its first second (got ${first})`)
+
 await control.locator('button:has-text("Show elapsed")').click()
 check(await becomes(control, () => /00:0[1-9]/.test(document.querySelector('.ss-stopwatch output')?.textContent ?? '')), 'the count-up clock advances')
+
+// The complaint this fixes was about *when* the number changes, not what it says.
+// The old loop chased the next second with one setTimeout, and computed the delay
+// for a count-up as the time since the last boundary rather than until the next --
+// so the value was always right whenever it rendered, and it rendered at genuinely
+// arbitrary moments. Nothing that samples the text alone can see that. Watching the
+// element and timing the gaps between changes can.
+const gaps = await control.evaluate(async () => {
+  const output = document.querySelector('.ss-stopwatch output')
+  const changes = []
+  let last = output.textContent
+  const started = performance.now()
+
+  while (performance.now() - started < 6500) {
+    await new Promise((resolve) => setTimeout(resolve, 40))
+
+    if (output.textContent === last) continue
+
+    last = output.textContent
+    changes.push(performance.now())
+  }
+
+  return changes.slice(1).map((at, index) => Math.round(at - changes[index]))
+})
+
+// Bounds chosen from both implementations measured over this window. The old one
+// produced 805, 563, 1329, 1449, 967, 886; this one holds 966-1007. Note that the
+// *mean* cannot tell them apart -- the value changes once a second either way, so
+// the error is entirely in the spread. An average would have called the bug fine.
+const spread = Math.max(...gaps) - Math.min(...gaps)
+
+console.log(`  stopwatch tick gaps: ${gaps.join('ms, ')}ms (spread ${spread}ms)`)
+check(gaps.length >= 4, 'the clock ticked often enough to measure')
+check(
+  gaps.every((gap) => gap > 850 && gap < 1150),
+  'every tick lands about a second after the last, none stretched or bunched',
+)
+check(spread < 250, `ticks are evenly spaced rather than merely correct on average (spread ${spread}ms)`)
 check(
   await becomes(match, () => /elapsed\s+00:0\d/i.test(document.querySelector('.ss-scene')?.innerText ?? '')),
   'the count-up clock reads the same on the scene',

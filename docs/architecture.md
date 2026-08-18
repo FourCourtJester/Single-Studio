@@ -200,6 +200,14 @@ Three carry non-obvious decisions:
 - **`ResetButton`** uses `unset`, not empty strings. Removing the keys makes each
   source fall back to its own default; writing `''` would leave the paths present
   and holding blanks, which looks identical on the board and different on air.
+- **`useTimer`** samples rather than schedules. Clocks store instants, so any read
+  derives the right number — but the screen still has to repaint, and chasing the
+  next whole second with `setTimeout` inherits every bit of that timer's lateness.
+  Sampling four times a second and rendering only when the displayed second changes
+  bounds how late a tick can be and costs nothing, since the comparison never
+  reaches React. The distinction is invisible to any test that reads the clock's
+  text: the value is correct either way, and only the spacing between repaints is
+  wrong.
 
 Two pieces carried over from the old build unchanged in spirit, because they were
 the hard-won parts:
@@ -211,6 +219,10 @@ the hard-won parts:
 - **`Fit`** — binary-searches the largest font size that keeps text on one line.
   The long-player-name problem: a lower third sized for "Kim" must also hold
   "Vandersteen-Rodriguez".
+- **`Icon`** — the control surface's glyphs, drawn inline. Deliberately not a
+  package: a font kit fetches from a CDN, which is dead weight in OBS and useless
+  offline, and an icon library becomes a dependency every studio inherits whether or
+  not it renders one. Swapping the set out later is a change to that one file.
 
 ### Text edits are staged, not live
 

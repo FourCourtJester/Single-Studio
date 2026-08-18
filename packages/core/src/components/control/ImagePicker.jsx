@@ -4,15 +4,22 @@ import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { assetKeyOf, isAssetRef, toAssetRef } from '../../velcro/assets'
 import { cx } from '../../toolkits/cx'
+import { Icon } from '../common/Icon'
 import { AssetLibraryDialog } from './AssetLibrary'
 
 /**
  * Point a path at an image from the library.
  *
  * A preview of what is selected, a dropdown of the library's keys for a quick
- * swap, and Browse to open the library itself for adding, renaming and deleting.
- * The dropdown is the fast path -- an operator changing guests between segments
- * knows the name and does not need the grid.
+ * swap, and a magnifier that opens the library itself for adding, renaming and
+ * deleting. The dropdown is the fast path -- an operator changing guests between
+ * segments knows the name and does not need the grid.
+ *
+ * The two are joined into one control rather than sitting apart, which is what
+ * makes the magnifier legible without a word on it: butted against a dropdown of
+ * names, "search these" is the only thing it can mean. It also buys back the width
+ * a "Browse" button was spending, and in a narrow dock that width is the difference
+ * between the names being readable and being truncated.
  *
  * Selecting is *staged* like any other field, so nothing reaches air until save.
  * Adding to the library is not staged: a file arriving is not a broadcast change.
@@ -50,12 +57,14 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
         </div>
 
         <div className="flex min-w-0 grow flex-col gap-1.5">
-          <div className="flex gap-2">
+          {/* One control in two halves: the divider between them is the select's
+              own right border, so they read as joined rather than adjacent. */}
+          <div className="ss-input-group flex">
             <select
               value={known ? value : ''}
               onChange={(event) => onChange(event.target.value)}
               aria-label={`${label} selection`}
-              className="min-w-0 grow rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500"
+              className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500 focus:relative"
             >
               <option value="">— none —</option>
               {assets.map((entry) => (
@@ -67,9 +76,11 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
             <button
               type="button"
               onClick={() => setBrowsing(true)}
-              className="shrink-0 rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-200 transition-colors hover:border-slate-500"
+              aria-label={`Browse images for ${label}`}
+              title="Browse the image library"
+              className="ss-browse -ml-px flex shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
             >
-              Browse
+              <Icon name="search" />
             </button>
           </div>
 

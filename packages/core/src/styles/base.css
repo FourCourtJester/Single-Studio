@@ -222,6 +222,20 @@
     max-width: 100%;
   }
 
+  /*
+   * Tall controls hang from the top of their row instead of the bottom.
+   *
+   * flex-end above is right for a row of ordinary controls -- it lines their inputs
+   * up along one baseline no matter how tall each label wraps. It is wrong for a
+   * grid of tiles, where the height is the content: a one-row Faction picker, a
+   * two-row Commander picker and a three-row Army picker bottom-aligned put their
+   * headings at three different heights, which reads as a broken layout rather than
+   * as three controls of different sizes.
+   */
+  .ss-panel-body > .ss-image-select {
+    align-self: flex-start;
+  }
+
   /* Compound and structural children take a row to themselves. */
   .ss-panel-body > .ss-break,
   .ss-panel-body > .ss-leaderboard,
