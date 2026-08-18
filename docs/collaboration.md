@@ -288,19 +288,72 @@ to the show.
 recovering, without a reload. ✅ — covered by `apps/demo/e2e/relay.mjs`, which
 stops the relay mid-show and asserts the indicator changes and changes back.
 
-### Stage 4 — Access control
+### Stage 4 — Access control 🟡
 
-Rooms are `roomId` plus **per-operator tokens**, not one shared secret. Operators
-are hired; someone leaving must mean revoking a token, not rotating the room and
-re-onboarding everyone.
+**Tokens and revocation shipped. Payload encryption deliberately not — see below.**
 
-- Relay validates the token and its scope on connect.
-- Encrypt the document payload so the relay operator can't read a show.
-- Ship a revocation path from the control surface — kicking someone must not
-  require a redeploy.
+Rooms are `roomId` plus **per-operator tokens**. A production loses people: someone
+finishes a contract, someone is not on this show, someone's laptop goes missing an
+hour before doors. With one shared secret the only answer is to rotate it and
+re-tell everyone else, which is the sort of job that gets postponed until it is
+never done.
 
-**Done when:** a revoked token cannot reconnect and cannot decrypt subsequent
-updates.
+```bash
+pnpm relay -- --admin "$RELAY_ADMIN"   # without this the token API is off entirely
+```
+
+`<RelayAdmin />` puts invite and remove on the board — one click, mid-show, no
+redeploy. The admin secret lives in localStorage on the machine running the show,
+never in the build: an operator's token lets them edit a show, and this one lets
+them decide who can, so they are different powers with different keys.
+
+Decisions worth keeping:
+
+- **A room nobody has issued a token for is open.** That is the development case and
+  the single-operator case. Demanding a token before anyone has minted one means a
+  relay that does nothing until you read the manual. One live token and the room is
+  guarded.
+- **A stored list, not signed tokens.** Signing needs no state and is the usual
+  advice, but revoking a signed token needs a denylist — state again, only now with
+  expiry windows during which a removed operator is still admitted. A list one
+  person can read and delete from is simpler and more obviously correct at this
+  scale.
+- **Revocation hangs up immediately.** The moment this has to work is the moment
+  somebody is removed _during_ a show; waiting for a reconnect means they keep
+  editing until they happen to refresh.
+- **A secret is shown once.** A relay that can recite every operator's credential is
+  a relay worth stealing. Lost one? Issue another.
+- **No admin secret means the API is off, not open.** An unguarded mint endpoint is
+  a worse default than no endpoint.
+
+#### Why encryption is not here
+
+The original plan said "encrypt the document payload so the relay operator can't
+read a show". Building it revealed a trade the plan had not accounted for, and it
+is not ours to make quietly:
+
+**Encryption and server-side persistence are mutually exclusive.** The relay holds
+a replica so a late joiner gets the show without another peer being awake — that is
+stage 2's late-joiner guarantee and the reason an operator can open their board
+before the streamer has started OBS. A relay that cannot read updates cannot
+maintain that replica; it becomes a dumb rebroadcaster, and a late joiner needs
+somebody else already online to sync from.
+
+There is a second cost: revoking a token stops somebody connecting, but it cannot
+un-tell them a key they already have. Real revocation under encryption means
+rekeying the room and redistributing to everyone who remains — which is exactly the
+shared-secret rotation this stage exists to abolish.
+
+The threat it defends against is also narrower than it first appears. The relay is
+the user's own Cloudflare account. "The relay operator cannot read the show" is
+worth having when the relay is shared or hosted by someone else, and worth much
+less when the relay operator _is_ the streamer.
+
+So: not built, and not because it is hard. It should be a deliberate choice with
+its costs stated, and the person who runs the show should make it.
+
+**Done when:** a revoked token cannot reconnect ✅ and is disconnected on the spot
+✅. Encryption is deferred with the reasoning above.
 
 ### Stage 5 — Clock skew
 

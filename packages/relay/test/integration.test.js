@@ -33,7 +33,7 @@ let running = null
 let closers = []
 
 beforeEach(async () => {
-  relay = createRelay()
+  relay = createRelay({ admin: 'let-me-in' })
   // Port 0: the OS picks a free one, so these never collide with a dev relay.
   running = await relay.listen(0)
 })
@@ -47,9 +47,9 @@ afterEach(async () => {
 const url = () => `ws://127.0.0.1:${running.port}`
 
 /** A bare y-websocket client, the way any Yjs app would connect. */
-function client(room = 'show') {
+function client(room = 'show', token) {
   const doc = new Y.Doc()
-  const provider = new WebsocketProvider(url(), room, doc, { WebSocketPolyfill: WebSocket, disableBc: true })
+  const provider = new WebsocketProvider(url(), room, doc, { WebSocketPolyfill: WebSocket, disableBc: true, params: token ? { token } : {} })
 
   closers.push(async () => provider.destroy())
 
@@ -235,5 +235,110 @@ describe('two studios', () => {
 
     expect(await until(() => b.read('variables.home.name') === 'Vanguard')).toBe(true)
     expect(b.read('variables.period')).toBe('Game 2')
+  })
+})
+
+describe('access control', () => {
+  const api = (path, options = {}) =>
+    fetch(`http://127.0.0.1:${running.port}${path}`, { ...options, headers: { authorization: 'Bearer let-me-in', ...options.headers } })
+
+  it('leaves a room nobody has issued a token for open', async () => {
+    // The development case and the single-operator case. Demanding a token before
+    // anyone has minted one means a relay that does nothing until you read the
+    // manual.
+    const a = client('open')
+
+    expect(await a.connected()).toBe(true)
+  })
+
+  it('guards the room as soon as one token exists', async () => {
+    await api('/guarded/tokens', { method: 'POST', body: JSON.stringify({ name: 'Dez' }) })
+
+    const stranger = client('guarded')
+
+    // Refused before the upgrade, so the client never reports itself connected.
+    await wait(600)
+    expect(stranger.provider.wsconnected).toBe(false)
+  })
+
+  it('lets the operator it was issued to in', async () => {
+    const minted = await api('/mine/tokens', { method: 'POST', body: JSON.stringify({ name: 'Dez' }) }).then((r) => r.json())
+    const dez = client('mine', minted.token.secret)
+
+    expect(await dez.connected()).toBe(true)
+  })
+
+  it('hangs up on a revoked operator immediately, not at their next reconnect', async () => {
+    // The moment this has to work is the moment somebody is removed mid-show.
+    // Waiting for a reconnect means they keep editing until they happen to
+    // refresh, which is precisely when you needed it.
+    const minted = await api('/kick/tokens', { method: 'POST', body: JSON.stringify({ name: 'Sam' }) }).then((r) => r.json())
+    const sam = client('kick', minted.token.secret)
+
+    expect(await sam.connected()).toBe(true)
+
+    await api(`/kick/tokens/${minted.token.id}`, { method: 'DELETE' })
+
+    expect(await until(() => !sam.provider.wsconnected)).toBe(true)
+  })
+
+  it('leaves everyone else connected when one operator is removed', async () => {
+    const dez = await api('/crew/tokens', { method: 'POST', body: JSON.stringify({ name: 'Dez' }) }).then((r) => r.json())
+    const sam = await api('/crew/tokens', { method: 'POST', body: JSON.stringify({ name: 'Sam' }) }).then((r) => r.json())
+
+    const first = client('crew', dez.token.secret)
+
+    await first.connected()
+
+    const second = client('crew', sam.token.secret)
+
+    await second.connected()
+
+    await api(`/crew/tokens/${sam.token.id}`, { method: 'DELETE' })
+    await until(() => !second.provider.wsconnected)
+
+    // The whole point of per-operator tokens: removing one person is not an event
+    // for the other three.
+    expect(first.provider.wsconnected).toBe(true)
+
+    first.set('variables.home.name', 'Vanguard')
+    await wait(300)
+    expect(relay.rooms.get('crew').doc.getMap('state').get('variables.home.name')).toBe('Vanguard')
+  })
+
+  it('refuses the admin API without the admin secret', async () => {
+    const naked = await fetch(`http://127.0.0.1:${running.port}/friday/tokens`)
+
+    expect(naked.status).toBe(401)
+
+    const wrong = await fetch(`http://127.0.0.1:${running.port}/friday/tokens`, { headers: { authorization: 'Bearer nope' } })
+
+    expect(wrong.status).toBe(401)
+  })
+
+  it('never lists a secret, having handed it over once', async () => {
+    const minted = await api('/listing/tokens', { method: 'POST', body: JSON.stringify({ name: 'Dez' }) }).then((r) => r.json())
+
+    expect(minted.token.secret).toBeTypeOf('string')
+
+    const listed = await api('/listing/tokens').then((r) => r.json())
+
+    expect(listed.tokens[0]).not.toHaveProperty('secret')
+    expect(listed.tokens[0]).toMatchObject({ name: 'Dez' })
+  })
+})
+
+describe('a relay with no admin secret', () => {
+  it('turns the token API off rather than leaving it open', async () => {
+    // An unguarded mint endpoint is a worse default than no endpoint: anyone who
+    // can reach the port could issue themselves a way in.
+    const bare = createRelay()
+    const up = await bare.listen(0)
+
+    const response = await fetch(`http://127.0.0.1:${up.port}/friday/tokens`, { method: 'POST', body: '{}' })
+
+    expect(response.status).toBe(404)
+
+    await up.close()
   })
 })

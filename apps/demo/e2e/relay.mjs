@@ -51,7 +51,8 @@ const HOME_NAME = '.ss-field input[placeholder="Kestrel Corps"]'
 const SCORE = '.ss-stepper output'
 
 const storage = await mkdtemp(join(tmpdir(), 'ss-relay-'))
-let relay = createRelay({ storage })
+const ADMIN = 'let-me-in'
+let relay = createRelay({ storage, admin: ADMIN })
 let running = await relay.listen(PORT)
 
 console.log(`  relay on ws://127.0.0.1:${running.port}, storing in ${storage}`)
@@ -194,7 +195,7 @@ check(
 )
 
 // -- Getting it back ---------------------------------------------------------
-relay = createRelay({ storage })
+relay = createRelay({ storage, admin: ADMIN })
 running = await relay.listen(PORT)
 console.log('  relay restarted')
 
@@ -230,6 +231,43 @@ const [onHost, onOperator] = await Promise.all([settled(host), settled(operator)
 
 console.log(`  after reconnect: host "${onHost}", operator "${onOperator}"`)
 check(onHost === onOperator, 'and converge on one value rather than staying split')
+
+// -- Removing an operator ----------------------------------------------------
+// Productions lose people, and it has to be one click from the board, mid-show,
+// with no redeploy. The one moment this must work is the moment somebody is
+// removed *during* a show, so the socket goes immediately rather than at their
+// next reconnect -- otherwise they keep editing until they happen to refresh.
+await host.page.locator('.ss-relay-admin input[aria-label="Relay admin secret"]').fill(ADMIN)
+await host.page.locator('.ss-relay-admin input[aria-label="Relay admin secret"]').blur()
+
+// Waiting for the *invite* control specifically: the panel renders either a
+// secret prompt or the operator list, and asserting the panel exists would pass
+// in both. The relay is a different origin from the board, always -- without CORS
+// on the token API this fetch is blocked and the panel silently stays a prompt.
+check(
+  await becomes(host.page, () => !!document.querySelector('.ss-relay-admin input[aria-label="New operator name"]')),
+  'the board can reach the relay it is connected to',
+)
+
+await host.page.locator('.ss-relay-admin input[aria-label="New operator name"]').fill('Sam')
+await host.page.locator('.ss-relay-admin button:has-text("Invite")').click()
+
+const secret = await host.page.locator('.ss-minted').textContent()
+
+console.log(`  minted a token for Sam: ${secret.slice(0, 8)}…`)
+check(Boolean(secret?.trim()), 'inviting an operator produces a secret to send them')
+check(
+  await becomes(host.page, () => [...document.querySelectorAll('.ss-operator-token')].some((row) => row.textContent.includes('Sam'))),
+  'and they appear in the list',
+)
+
+host.page.on('dialog', (dialog) => dialog.accept())
+await host.page.locator('.ss-relay-admin button[aria-label^="Remove"]').first().click()
+
+check(
+  await becomes(host.page, () => [...document.querySelectorAll('.ss-operator-token')].some((row) => /removed/i.test(row.textContent))),
+  'removing them marks them removed rather than quietly forgetting them',
+)
 
 // -- A late joiner -----------------------------------------------------------
 // Straight from storage: the room outlived the process that was serving it.

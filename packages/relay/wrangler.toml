@@ -13,5 +13,6 @@ class_name = "Room"
 tag = "v1"
 new_sqlite_classes = ["Room"]
 
-# Set the shared token out of band, never in this file:
-#   wrangler secret put RELAY_TOKEN
+# The admin secret guards minting and revoking operator tokens. Set it out of band,
+# never in this file, and only the host machine should ever hold it:
+#   wrangler secret put RELAY_ADMIN

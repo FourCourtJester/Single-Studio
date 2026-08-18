@@ -297,6 +297,7 @@
   .ss-panel-body > .ss-break,
   .ss-panel-body > .ss-leaderboard,
   .ss-panel-body > .ss-image-picker,
+  .ss-panel-body > .ss-relay-admin,
   .ss-panel-body > .ss-asset-library {
     flex-basis: 100%;
   }

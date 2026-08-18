@@ -15,7 +15,7 @@ It speaks the standard y-websocket protocol, so a studio can point at this, at
 ```bash
 pnpm relay                              # ws://127.0.0.1:1234, memory only
 pnpm relay -- --storage ./rooms         # survives a restart
-pnpm relay -- --token hunter2           # clients must present ?token=
+pnpm relay -- --admin "$RELAY_ADMIN"    # enables the token API
 ```
 
 ## Deploy one
@@ -74,10 +74,32 @@ presence cleanup testable with no socket in sight.
 
 ## Tokens
 
-A single shared token is the floor, not the ceiling. Per-operator tokens, payload
-encryption and a revocation path are stage 4 in
-[collaboration.md](../../docs/collaboration.md): productions lose operators, and
-that must not mean rotating one secret everyone else has to be re-told.
+One token per operator, not one shared secret. Productions lose people, and that
+must not mean rotating a secret everyone else has to be re-told.
+
+A room nobody has issued a token for is **open** — the development case, and the
+single-operator case. Issue one and the room is guarded.
+
+```bash
+curl -XPOST  localhost:1234/friday/tokens      -H "authorization: Bearer $RELAY_ADMIN" -d '{"name":"Sam"}'
+curl         localhost:1234/friday/tokens      -H "authorization: Bearer $RELAY_ADMIN"
+curl -XDELETE localhost:1234/friday/tokens/ID  -H "authorization: Bearer $RELAY_ADMIN"
+```
+
+Or use `<RelayAdmin />` on the board, which is the same API with a list and a
+remove button. Revoking hangs up on the socket immediately rather than at the next
+reconnect — the moment it has to work is the moment somebody is removed mid-show.
+
+A secret is returned once, when it is minted, and never again. A relay that can
+recite every operator's credential is a relay worth stealing.
+
+Without `--admin` (or the `RELAY_ADMIN` secret on Cloudflare) the token API is off
+entirely rather than open: an unguarded mint endpoint is a worse default than no
+endpoint.
+
+**Payload encryption is not implemented**, deliberately — it is mutually exclusive
+with the relay holding a replica for late joiners. See
+[collaboration.md](../../docs/collaboration.md) for the full argument.
 
 ## One Yjs, always
 

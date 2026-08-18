@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useVelcro } from './useVelcro'
 
-const OFFLINE = { state: 'offline', room: null, detail: null }
+const OFFLINE = { state: 'offline', room: null, url: null, detail: null }
 
 /**
  * Whether this machine is reaching the room, and which room.

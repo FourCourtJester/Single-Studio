@@ -29,7 +29,7 @@ export class VelcroClient {
 
   #watchers = { sync: new Set(), presence: new Set() }
 
-  #last = { sync: { state: 'offline', room: null, detail: null }, presence: [] }
+  #last = { sync: { state: 'offline', room: null, url: null, detail: null }, presence: [] }
 
   constructor({ name, worker }) {
     if (typeof worker !== 'function') throw new TypeError('Velcro needs a `worker` factory: () => new SharedWorker(...)')
@@ -102,7 +102,7 @@ export class VelcroClient {
 
         this.#status = new BroadcastChannel(statusChannelFor(this.#name))
         this.#status.addEventListener('message', ({ data }) => {
-          if (data?.type === 'sync') this.#announce('sync', { state: data.state, room: data.room, detail: data.detail })
+          if (data?.type === 'sync') this.#announce('sync', { state: data.state, room: data.room, url: data.url, detail: data.detail })
           if (data?.type === 'presence') this.#announce('presence', data.peers ?? [])
         })
 
@@ -144,7 +144,7 @@ export class VelcroClient {
     // Answers to `sync:status`, which come back down the port because the page
     // asking may have opened after the last change was broadcast.
     if (data?.type === 'sync') {
-      this.#announce('sync', { state: data.state, room: data.room, detail: data.detail })
+      this.#announce('sync', { state: data.state, room: data.room, url: data.url, detail: data.detail })
       return
     }
 

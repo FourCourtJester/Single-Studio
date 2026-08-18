@@ -11,7 +11,7 @@ const { values } = parseArgs({
     port: { type: 'string', short: 'p', default: process.env.PORT ?? '1234' },
     host: { type: 'string', short: 'h', default: process.env.HOST ?? '127.0.0.1' },
     storage: { type: 'string', short: 's', default: process.env.RELAY_STORAGE },
-    token: { type: 'string', short: 't', default: process.env.RELAY_TOKEN },
+    admin: { type: 'string', short: 'a', default: process.env.RELAY_ADMIN },
     help: { type: 'boolean' },
   },
 })
@@ -23,24 +23,26 @@ if (values.help) {
     -p, --port     port to listen on           (default 1234, or $PORT)
     -h, --host     interface to bind           (default 127.0.0.1, or $HOST)
     -s, --storage  directory to persist rooms  (default: memory only, $RELAY_STORAGE)
-    -t, --token    shared token clients must present (default: none, $RELAY_TOKEN)
+    -a, --admin    secret for the token API     (default: off, $RELAY_ADMIN)
 
   Connect a studio to ws://<host>:<port> with any room name.
+
+  A room nobody has issued a token for is open. Issue one and it is guarded:
+
+    curl -XPOST localhost:1234/friday/tokens -H "authorization: Bearer $RELAY_ADMIN" \
+         -d '{"name":"Sam"}'
+    curl localhost:1234/friday/tokens -H "authorization: Bearer $RELAY_ADMIN"
+    curl -XDELETE localhost:1234/friday/tokens/<id> -H "authorization: Bearer $RELAY_ADMIN"
 `)
   process.exit(0)
 }
 
-// A shared token is the floor, not the ceiling. Per-operator tokens and a
-// revocation path are stage 4 in docs/collaboration.md -- someone leaving a
-// production should not mean rotating a secret everyone else has to be told.
-const authorize = values.token ? ({ token }) => token === values.token : null
-
-const relay = createRelay({ storage: values.storage, authorize })
+const relay = createRelay({ storage: values.storage, admin: values.admin })
 const { port, close } = await relay.listen(Number(values.port), values.host)
 
 console.log(`[relay] listening on ws://${values.host}:${port}`)
 console.log(`[relay] storage: ${values.storage ?? 'memory only — rooms are lost when this stops'}`)
-if (!values.token) console.log('[relay] no token set: anyone who can reach this port can join any room')
+console.log(values.admin ? '[relay] token API enabled at /<room>/tokens' : '[relay] no --admin secret: the token API is off, and rooms without tokens are open')
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {

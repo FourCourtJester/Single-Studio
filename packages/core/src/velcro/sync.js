@@ -50,7 +50,9 @@ export function createSync({ doc, name, status, config }) {
    */
   let generation = 0
 
-  const snapshot = () => ({ state, room, detail })
+  // `url` rides along because the token API lives on the same host as the socket,
+  // and a board that can show the room should not have to be told twice where it is.
+  const snapshot = () => ({ state, room, url, detail })
 
   function report(next, why = null) {
     if (state === next && detail === why) return

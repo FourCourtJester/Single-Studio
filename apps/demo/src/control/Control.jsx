@@ -10,6 +10,7 @@ import {
   Leaderboard,
   Operator,
   Panel,
+  RelayAdmin,
   ResetButton,
   Stepper,
   Stopwatch,
@@ -123,6 +124,9 @@ export default function Control() {
         {/* Presence needs a name to show. Local to the machine, not part of the
             show -- see the note in Operator. */}
         <Operator />
+        {/* Renders nothing unless a relay is configured. Invite, and remove --
+            removing somebody mid-show must not need a redeploy. */}
+        <RelayAdmin />
       </Panel>
 
       <Panel title="Ticker">
