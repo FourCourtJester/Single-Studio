@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
+import { usePageTitle } from '../hooks/usePageTitle'
 import { useStudio } from '../studio/context'
 import { NotFoundPage } from './NotFound'
 
@@ -16,6 +17,8 @@ export function SourcePage() {
   const [params] = useSearchParams()
   const [ready, setReady] = useState(false)
   const loader = studio.sources[name]
+
+  usePageTitle(name, studio.name)
 
   // Hold the whole graphic until the store is reachable.
   //

@@ -1,5 +1,6 @@
 import { Suspense, lazy, useMemo } from 'react'
 
+import { usePageTitle } from '../hooks/usePageTitle'
 import { useStudio } from '../studio/context'
 import { SaveButton } from '../components/control/SaveButton'
 import { SourceList } from '../components/control/SourceList'
@@ -11,6 +12,8 @@ import { SourceList } from '../components/control/SourceList'
  */
 export function ControlPage() {
   const { studio } = useStudio()
+
+  usePageTitle(studio.name)
 
   const View = useMemo(() => lazy(() => Promise.resolve(studio.control()).then((mod) => ({ default: mod.default ?? mod }))), [studio])
 

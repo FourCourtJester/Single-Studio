@@ -13,13 +13,13 @@ import { Transition } from '../common/Transition'
  *
  *   <Image name="home.name" src="/logos/:value:.svg" slug />   templated from a value
  *   <Image name="sponsor.logo" />                              the value *is* the URL
- *   <Image name="guest.photo" />                               ...or an `asset:` upload
+ *   <Image name="guest.photo" />                               ...or an `asset:<key>` entry
  *
  * The second is the default (`src` is `:value:`), so pasting a URL into a field
- * puts that image on air with no studio code at all. An `asset:<hash>` reference --
- * what ImagePicker writes when an operator drops a file in -- resolves through the
- * local asset store and then follows exactly the same path, so nothing downstream
- * needs to know where the bytes came from.
+ * puts that image on air with no studio code at all. An `asset:<key>` reference --
+ * what ImagePicker writes -- resolves through the library and then follows exactly
+ * the same path, so nothing downstream knows whether the bytes came from a bundled
+ * file, a remote host, or an operator's upload.
  *
  * What makes this different from an `<img>` tag is what happens between images.
  * A new URL is loaded and decoded off-screen first, and only swapped in once it is
