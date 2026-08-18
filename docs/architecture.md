@@ -281,16 +281,28 @@ belong in the repo. They are build-time inputs and need nothing from the store.
 too late to patch a repo, and it arrives as a file rather than a link. That is what
 `AssetStore` is for.
 
-Bytes go in their own IndexedDB database, content-addressed by SHA-256, and the
-document holds only an `asset:<hash>` reference. They are deliberately **not** in
+The library holds **named entries**, and an entry is either a URL or stored bytes.
+The document references the key — `asset:ada-okafor` — not a link or a hash. A key
+is what an operator recognises mid-show, and it means repointing a slot is a rename
+in one place rather than an edit to every path using it.
+
+Two object stores, because identity and content are separate questions:
+
+| Store     | Holds                                                                   |
+| --------- | ----------------------------------------------------------------------- |
+| `entries` | `key -> { kind, hash \| url, name, addedAt }` — what the operator named |
+| `blobs`   | `hash -> { blob, type, size }` — the bytes, deduplicated by SHA-256     |
+
+Splitting them means the same photo filed under two keys stores its bytes once, a
+rename never touches the bytes, and deleting one key leaves another pointing at the
+same file working. They are deliberately **not** in
 the Y.Doc: that document is persisted whole and structured-cloned to every tab on
 every change, so a few megabytes of JPEG would make each of those expensive, and a
 CRDT retains more history than you want for a large value that gets replaced.
 
 Content addressing costs nothing now and buys the property that matters later: when
-blobs replicate over the relay, a peer can tell from the reference alone whether it
-already holds the bytes. Re-uploading identical bytes is also a no-op rather than a
-duplicate.
+blobs replicate over the relay, a peer can tell from a hash alone whether it already
+holds the bytes.
 
 IndexedDB is per-origin, so the dock writes and every browser source reads the same
 database with no worker protocol between them.

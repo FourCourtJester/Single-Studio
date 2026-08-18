@@ -2,6 +2,7 @@ import {
   Break,
   Countdown,
   Cycle,
+  AssetLibrary,
   Field,
   ImagePicker,
   Leaderboard,
@@ -62,9 +63,13 @@ export default function Control() {
         <ToggleButton name="guest" label="guest" />
       </Panel>
 
+      <Panel title="Images">
+        {/* The manager, inline. The same component opens as a modal from any picker. */}
+        <AssetLibrary />
+      </Panel>
+
       <Panel title="Sponsor">
-        {/* The value is the URL -- no src template needed. */}
-        <Field name="sponsor.url" label="Image URL" placeholder="https://example.com/logo.png" className="basis-full" />
+        <ImagePicker name="sponsor.url" label="Logo" />
         <Field name="sponsor.name" label="Name" placeholder="Acme" />
         <Field name="sponsor.color" label="Accent" placeholder="#f59e0b" />
         <ToggleButton name="sponsor" label="sponsor" />

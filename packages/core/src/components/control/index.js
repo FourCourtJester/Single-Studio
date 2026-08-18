@@ -1,6 +1,7 @@
 export { Break } from './Break'
 export { Countdown } from './Countdown'
 export { Cycle } from './Cycle'
+export { AssetLibrary, AssetLibraryDialog } from './AssetLibrary'
 export { Field } from './Field'
 export { ImagePicker } from './ImagePicker'
 export { Leaderboard } from './Leaderboard'

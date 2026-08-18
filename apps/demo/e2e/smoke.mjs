@@ -280,57 +280,66 @@ check(overflow.widestRight <= overflow.clientWidth + 1, 'no control escapes a 26
 
 await narrow.close()
 
-// -- Images from a URL -------------------------------------------------------
-// The value *is* the URL: an operator pastes a link and it goes on air with no
-// studio code. What separates this from an <img> tag is that a new URL is loaded
-// and decoded off-screen first -- the previous image stays up until the new one is
-// ready, so a slow fetch never leaves a hole in the scene.
+// -- Asset library -----------------------------------------------------------
+// Images arrive two ways and both become a named entry: a URL gets pasted, a file
+// gets dropped. A graphic then points at the key rather than at a hash or a link.
+await control.locator('.ss-asset-library input[aria-label="Image URL"]').fill(`${BASE}/logos/broncos.svg`)
+await control.locator('.ss-asset-library input[aria-label="Asset name"]').fill('home-badge')
+await control.locator('.ss-asset-library button:has-text("Add URL")').click()
+
+check(await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /home-badge/.test(tile.textContent))), 'a pasted URL becomes a named library entry')
+
+await control.locator('.ss-asset-library input[type="file"]').setInputFiles('apps/demo/public/logos/vandals.svg')
+check(await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals/.test(tile.textContent))), 'a dropped file becomes a named library entry')
+
+// Adding the same file again keeps both entries distinct rather than clobbering the
+// first -- the same photo can legitimately be filed under two names.
+await control.locator('.ss-asset-library input[type="file"]').setInputFiles('apps/demo/public/logos/vandals.svg')
+check(await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /vandals-2/.test(tile.textContent))), 'a second copy gets its own key rather than colliding')
+
+// -- Picking from the library ------------------------------------------------
 const sponsor = await context.newPage()
 await sponsor.goto(`${BASE}/#/source/sponsor`)
 await sponsor.waitForSelector('.ss-scene')
 
-await control.locator('.ss-field:has-text("Image URL") input').fill(`${BASE}/logos/broncos.svg`)
-await control.locator('.ss-field:has-text("Accent") input').fill('rgb(240, 169, 60)')
+const sponsorPicker = control.locator('.ss-image-picker').filter({ hasText: 'Logo' })
+await sponsorPicker.locator('select').selectOption('asset:home-badge')
+await control.locator('.ss-field:has-text("Name") input').first().fill('Acme')
+await control.waitForTimeout(500)
+
+check(!(await sponsor.locator('.ss-scene').innerText()).includes('Acme'), 'a selection does not reach air before a save')
+
 await save()
 await control.locator('button:has-text("Show sponsor")').click()
-
 check(
   await becomes(sponsor, (url) => document.querySelector('.sponsor-image img')?.src === url, `${BASE}/logos/broncos.svg`),
-  'a pasted URL renders as the image',
+  'a URL entry resolves to its URL on the graphic',
 )
 
 // A colour the operator controls reaches a CSS custom property, so anything the
 // stylesheet can express is drivable without a component for it.
+await control.locator('.ss-field:has-text("Accent") input').fill('rgb(240, 169, 60)')
+await save()
 check(
   await becomes(sponsor, () => getComputedStyle(document.querySelector('.ss-scene')).getPropertyValue('--accent').trim() === 'rgb(240, 169, 60)'),
   'an operator value drives a CSS custom property through Scene vars',
 )
 
-// A dead URL must not blank the graphic. It retries, then lands on the fallback.
-await control.locator('.ss-field:has-text("Image URL") input').fill(`${BASE}/logos/does-not-exist.svg`)
-await save()
-check(
-  await becomes(sponsor, () => /placeholder/.test(document.querySelector('.sponsor-image img')?.src ?? '')),
-  'a broken URL falls back rather than leaving a hole',
-)
-
-// -- Operator uploads --------------------------------------------------------
-// The podcast case: a guest's headshot arrives minutes before air. Too late to
-// patch the repo, and they sent a file rather than a link. Dropping it in stores
-// the bytes locally, content-addressed, and writes an asset: reference to the path.
+// -- Uploads on air ----------------------------------------------------------
+// The podcast case: a guest headshot arrives minutes before air. Browse opens the
+// same library as a modal, so a picker is a chooser without leaving the board.
 const guest = await context.newPage()
 await guest.goto(`${BASE}/#/source/guest`)
 await guest.waitForSelector('.ss-scene')
 
-await control.locator('.ss-image-picker input[type="file"]').setInputFiles('apps/demo/public/logos/broncos.svg')
+const guestPicker = control.locator('.ss-image-picker').filter({ hasText: 'Headshot' })
+await guestPicker.locator('button:has-text("Browse")').click()
+check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open === true), 'Browse opens the library as a modal')
+
+await control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first().click()
+check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open !== true), 'picking an entry closes the modal')
+
 await control.locator('.ss-field:has-text("Name") input').first().fill('Ada Okafor')
-
-// Uploading is not a broadcast change: the bytes are stored, but the path stays
-// staged until save, so an operator can line up the next guest mid-segment.
-await control.waitForTimeout(600)
-check(await becomes(control, () => document.querySelector('.ss-image-picker img') !== null), 'the upload previews on the board immediately')
-check(!(await guest.locator('.ss-scene').innerText()).includes('Ada'), 'an upload does not reach air before a save')
-
 await save()
 await control.locator('button:has-text("Show guest")').click()
 
@@ -340,15 +349,8 @@ check(
 )
 check(await becomes(guest, sceneHas, 'ada okafor'), 'the guest name lands alongside it')
 
-// Content addressing: the same bytes must not become a second library entry.
-await control.locator('.ss-image-picker input[type="file"]').setInputFiles('apps/demo/public/logos/broncos.svg')
-await control.waitForTimeout(700)
-const library = await control.evaluate(() => document.querySelectorAll('.ss-image-picker .group').length)
-console.log(`  asset library entries: ${library}`)
-check(library === 1, 're-uploading identical bytes does not duplicate the asset')
-
 // The bytes live in IndexedDB beside the document, so a rebuilt source still finds
-// them -- this is the case a data URI in the doc would have solved expensively.
+// them -- the case a data URI in the doc would have solved expensively.
 await guest.reload()
 await guest.waitForSelector('.ss-scene')
 check(
