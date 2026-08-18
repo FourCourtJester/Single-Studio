@@ -299,6 +299,147 @@ describe('detaching', () => {
   })
 })
 
+describe('presence', () => {
+  /** A provider that carries an awareness, the way a real one does. */
+  const withAwareness = () => {
+    const listeners = new Set()
+    const states = new Map()
+
+    return {
+      clientID: 1,
+      getStates: () => states,
+      states,
+      setLocalState(state) {
+        if (state === null) states.delete(1)
+        else states.set(1, state)
+        this.fire()
+      },
+      on: (_event, fn) => listeners.add(fn),
+      off: (_event, fn) => listeners.delete(fn),
+      fire: () => listeners.forEach((fn) => fn()),
+    }
+  }
+
+  it('reports the operator at this board even with nothing attached', async () => {
+    // A studio with no relay still has somebody sitting at it. Presence is not
+    // only a network feature -- a board should be able to say "you" regardless.
+    const made = host({ name: `alone-${Math.random()}` })
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+
+    expect(made.sync.peers()).toEqual([{ id: 'local', self: true, name: 'Dez' }])
+  })
+
+  it('says nothing at all when nobody has introduced themselves', async () => {
+    const made = host({ name: `anon-${Math.random()}` })
+
+    await made.started
+
+    expect(made.sync.peers()).toEqual([])
+  })
+
+  it('hands the provider whatever was set before it connected', async () => {
+    // The ordering that matters: an operator types their name while the relay is
+    // still coming up. Losing it to the connection would be a small bug with an
+    // irritating shape -- their name appears to everyone except at the moment they
+    // set it.
+    const awareness = withAwareness()
+    const made = host({
+      name: `early-${Math.random()}`,
+      sync: { autoConnect: false, connect: () => ({ awareness, destroy() {} }) },
+    })
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    await made.sync.attach()
+
+    expect(awareness.states.get(1)).toEqual({ name: 'Dez' })
+  })
+
+  it('re-applies it after a reconnect', async () => {
+    const first = withAwareness()
+    const second = withAwareness()
+    let next = first
+    const made = host({
+      name: `again-${Math.random()}`,
+      sync: { autoConnect: false, connect: () => ({ awareness: next, destroy() {} }) },
+    })
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    await made.sync.attach()
+
+    next = second
+    await made.sync.attach()
+
+    expect(second.states.get(1)).toEqual({ name: 'Dez' })
+  })
+
+  it('merges patches rather than replacing the whole state', async () => {
+    // Two callers own different halves: the operator control sets a name, the draft
+    // sets which paths are open. Neither should be able to erase the other.
+    const made = host({ name: `merge-${Math.random()}` })
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    made.sync.present({ editing: ['variables.home.name'] })
+
+    expect(made.sync.peers()[0]).toMatchObject({ name: 'Dez', editing: ['variables.home.name'] })
+  })
+
+  it('drops a field set back to undefined', async () => {
+    const made = host({ name: `drop-${Math.random()}` })
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    made.sync.present({ name: undefined })
+
+    expect(made.sync.peers()).toEqual([])
+  })
+
+  it('tells watchers, and stops when they leave', async () => {
+    const made = host({ name: `watched-${Math.random()}` })
+    const seen = []
+
+    await made.started
+
+    const stop = made.sync.watch((peers) => seen.push(peers.length))
+
+    made.sync.present({ name: 'Dez' })
+    stop()
+    made.sync.present({ name: 'Sam' })
+
+    expect(seen).toEqual([0, 1])
+  })
+
+  it('reaches a client over the status channel', async () => {
+    const name = `broadcast-${Math.random()}`
+    const seen = watch(name)
+    const made = host({ name })
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    await settle()
+
+    expect(seen.find((message) => message.type === 'presence')?.peers).toEqual([{ id: 'local', self: true, name: 'Dez' }])
+  })
+
+  it('answers a port that asks, for a board opened after the fact', async () => {
+    const made = host({ name: `late-${Math.random()}` })
+    const { port, seen } = client(made)
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    await settle()
+
+    port.postMessage({ type: 'sync:status' })
+    await settle()
+
+    expect(seen.find((message) => message.type === 'presence')?.peers).toEqual([{ id: 'local', self: true, name: 'Dez' }])
+  })
+})
+
 describe('re-attaching', () => {
   it('replaces the old provider rather than stacking a second one', async () => {
     const destroy = vi.fn()

@@ -246,24 +246,47 @@ if Yjs ever gets bundled again.
 
 **Done.**
 
-### Stage 3 — Status and presence
+### Stage 3 — Status and presence ✅
 
-Wire Yjs awareness into the existing status channel (`velcro:<id>:#status`, which
-already exists and is currently only used for `ready`).
+**Shipped.** Yjs awareness, carried on the status channel that already existed.
 
-Surface two things, because with _hired_ operators they aren't cosmetic:
+```jsx
+<SyncStatus />   {/* ControlPage renders one in its header automatically */}
+<Operator />     {/* who is at this board */}
+```
 
-- **Connection state** on the control surface — connected, reconnecting, offline
-  and local-only. An operator must never be unsure whether their edits are landing.
-- **Field-level presence** — who is editing what. Two operators fighting over one
-  player-name field is the most likely day-one annoyance. The staged-edit model
-  already gives this most of its foundation: an edit is local until saved, and a
-  dirty field's staged value wins over the store, so presence is a matter of
-  broadcasting _which paths someone has staged_ rather than inventing a locking
-  scheme.
+| Hook                    | Gives you                                              |
+| ----------------------- | ------------------------------------------------------ |
+| `useSyncStatus()`       | `state`, `room`, `connected`, `degraded`, `configured` |
+| `usePresence()`         | Everyone in the room, `self` flagged                   |
+| `usePathPresence(path)` | Who else has that path open                            |
+| `usePresent()`          | Say something about this board                         |
+
+**A studio with no relay renders no indicator at all.** Collaboration being absent
+is not a state to report — it is how a one-operator show works, and a permanent
+"offline" badge on a board that was never meant to be online is noise that teaches
+operators to ignore the one piece of interface they most need to trust.
+
+Connection state is the important half. An operator working a show from another
+building has to know, without asking, whether what they are typing is going
+anywhere. Ambiguity is worse than being plainly disconnected: someone who knows
+they are offline fixes it, and someone who does not spends a segment wondering why
+nobody is reacting.
+
+Field presence came almost free, and the staged-edit model is why: an edit is
+already local until saved and a dirty field already wins over the store, so warning
+two operators that they are in the same field costs one list of path names. It is a
+**warning, not a lock** — two people in one field is a conversation to have, and a
+lock is something that can strand a board when a laptop closes with a field open.
+
+One entry per _machine_, not per tab: a dock and a dozen browser sources share a
+worker, so they share one identity in the room. The operator's name lives in
+localStorage rather than in the document, because it belongs to the machine and not
+to the show.
 
 **Done when:** an operator's board visibly shows the host going offline and
-recovering, without a reload.
+recovering, without a reload. ✅ — covered by `apps/demo/e2e/relay.mjs`, which
+stops the relay mid-show and asserts the indicator changes and changes back.
 
 ### Stage 4 — Access control
 

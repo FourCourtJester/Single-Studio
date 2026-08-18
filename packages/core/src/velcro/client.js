@@ -1,4 +1,4 @@
-import { channelFor } from './channels'
+import { channelFor, statusChannelFor } from './channels'
 import { normalize } from './paths'
 
 // Main-thread handle on the host. One per page.
@@ -23,6 +23,13 @@ export class VelcroClient {
   #subs = new Map()
 
   #pending = new Map()
+
+  /** The host's status channel, opened lazily by the first watcher. */
+  #status = null
+
+  #watchers = { sync: new Set(), presence: new Set() }
+
+  #last = { sync: { state: 'offline', room: null, detail: null }, presence: [] }
 
   constructor({ name, worker }) {
     if (typeof worker !== 'function') throw new TypeError('Velcro needs a `worker` factory: () => new SharedWorker(...)')
@@ -71,11 +78,78 @@ export class VelcroClient {
     return this.#name
   }
 
+  /**
+   * Watch the collaboration status, or who else is here.
+   *
+   * Both ride the host's status channel, which already carries `ready`. An
+   * operator has to be able to see at a glance whether their edits are landing --
+   * on a board driving a live show that is not decoration, it is the difference
+   * between fixing a problem and not knowing there is one.
+   *
+   * The current value is delivered immediately, and asking the host to repeat
+   * itself covers the case where the interesting change happened before this page
+   * was open.
+   */
+  #watch(kind, listener) {
+    const set = this.#watchers[kind]
+
+    set.add(listener)
+    listener(this.#last[kind])
+
+    if (!this.#status) {
+      this.ready().then(() => {
+        if (this.#status) return
+
+        this.#status = new BroadcastChannel(statusChannelFor(this.#name))
+        this.#status.addEventListener('message', ({ data }) => {
+          if (data?.type === 'sync') this.#announce('sync', { state: data.state, room: data.room, detail: data.detail })
+          if (data?.type === 'presence') this.#announce('presence', data.peers ?? [])
+        })
+
+        this.#port.postMessage({ type: 'sync:status' })
+      })
+    }
+
+    return () => set.delete(listener)
+  }
+
+  #announce(kind, value) {
+    this.#last[kind] = value
+
+    for (const listener of this.#watchers[kind]) listener(value)
+  }
+
+  onSyncStatus(listener) {
+    return this.#watch('sync', listener)
+  }
+
+  onPresence(listener) {
+    return this.#watch('presence', listener)
+  }
+
+  /** Tell the room about this machine. Merged, so callers can set one field. */
+  present(state) {
+    this.ready().then(() => this.#port.postMessage({ type: 'presence', state }))
+    return this
+  }
+
   #receive(data) {
     // The opening value for a subscription comes back down the port rather than
     // over the channel -- see the note in host.js subscribe().
     if (data?.type === 'value') {
       this.#deliver(data.path, data.value)
+      return
+    }
+
+    // Answers to `sync:status`, which come back down the port because the page
+    // asking may have opened after the last change was broadcast.
+    if (data?.type === 'sync') {
+      this.#announce('sync', { state: data.state, room: data.room, detail: data.detail })
+      return
+    }
+
+    if (data?.type === 'presence') {
+      this.#announce('presence', data.peers ?? [])
       return
     }
 

@@ -24,6 +24,17 @@ export const ERROR = 'error'
 export function createSync({ doc, name, status, config }) {
   const { connect, room = name, url, token, autoConnect = true } = config ?? {}
 
+  /**
+   * What this machine tells the room about itself.
+   *
+   * Kept here rather than on the provider because it has to survive one: an
+   * operator who set their name before the relay came up, or who is mid-edit when
+   * it drops, must not lose their identity to a reconnect. Every attach re-applies
+   * whatever this holds.
+   */
+  let local = {}
+  const watchers = new Set()
+
   let provider = null
   let state = OFFLINE
   let detail = null
@@ -52,10 +63,65 @@ export function createSync({ doc, name, status, config }) {
     status.postMessage({ type: 'sync', name, ...snapshot() })
   }
 
+  /** The awareness the current provider exposes, if it has one. */
+  const awarenessOf = () => provider?.awareness ?? null
+
+  /**
+   * Everyone in the room, this machine included.
+   *
+   * A machine is one peer, not one tab: the dock and a dozen browser sources share
+   * a worker, so they share an identity in the room. Marking which entry is ours
+   * lets a board say "you" instead of showing the operator to themselves as a
+   * stranger.
+   */
+  function peers() {
+    const awareness = awarenessOf()
+
+    if (!awareness) return Object.keys(local).length ? [{ id: 'local', self: true, ...local }] : []
+
+    return [...awareness.getStates().entries()]
+      .filter(([, state]) => state && Object.keys(state).length)
+      .map(([id, state]) => ({ id, self: id === awareness.clientID, ...state }))
+  }
+
+  const announce = () => {
+    const list = peers()
+
+    for (const watcher of watchers) watcher(list)
+  }
+
+  /** Merge into what we tell the room. Survives reconnects; see `local`. */
+  function present(patch) {
+    local = { ...local, ...patch }
+
+    for (const [key, value] of Object.entries(local)) {
+      if (value === undefined) delete local[key]
+    }
+
+    awarenessOf()?.setLocalState(local)
+
+    // Awareness only notifies on a real change, and an offline studio has no
+    // awareness at all, so the local view is announced either way.
+    announce()
+  }
+
+  function bindAwareness() {
+    const awareness = awarenessOf()
+
+    if (!awareness) return
+
+    // Re-apply after a reconnect: a fresh provider starts with an empty slot.
+    if (Object.keys(local).length) awareness.setLocalState(local)
+
+    awareness.on('change', announce)
+    announce()
+  }
+
   /** Destroy whatever is attached. Does not touch generation or state. */
   async function teardown() {
     const going = provider
 
+    going?.awareness?.off?.('change', announce)
     provider = null
 
     if (!going) return
@@ -108,6 +174,8 @@ export function createSync({ doc, name, status, config }) {
 
       provider = built
 
+      bindAwareness()
+
       // A provider that never reported anything is assumed connected once it has
       // been built, which covers the simple case of a transport with no events.
       if (!spoke) report(CONNECTED)
@@ -134,11 +202,32 @@ export function createSync({ doc, name, status, config }) {
     // Unconditional: detaching means "be offline", whether or not anything was
     // attached. `report` swallows the no-op, so an unconfigured host stays silent.
     report(OFFLINE)
+    announce()
   }
 
   return {
     attach,
     detach,
+    present,
+    peers,
+
+    /**
+     * Returns an unsubscribe. Called with the full peer list on every change.
+     *
+     * `immediate: false` for the host, which broadcasts changes rather than state:
+     * an offline studio announcing an empty room on startup would be traffic that
+     * never existed before, and "identical when off" is the property that makes
+     * this whole seam safe to have landed early. A page that opens later asks for
+     * the current list over its port instead.
+     */
+    watch(fn, { immediate = true } = {}) {
+      watchers.add(fn)
+
+      if (immediate) fn(peers())
+
+      return () => watchers.delete(fn)
+    },
+
     /** Whether a studio configured sync at all, regardless of connection state. */
     get configured() {
       return Boolean(connect)

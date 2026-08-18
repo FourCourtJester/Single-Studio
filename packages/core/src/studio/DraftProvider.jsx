@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useVelcroMutate } from '../hooks/useVelcroMutate'
 import { useVelcroValue } from '../hooks/useVelcroValue'
+import { usePresent } from '../hooks/useSync'
 import * as Draft from './draft'
 
 const DraftContext = createContext(null)
@@ -30,6 +31,22 @@ export function DraftProvider({ children }) {
     pending.current = next
     setDraft(next)
   }, [])
+
+  /**
+   * Tell the room which paths this board has open.
+   *
+   * The staged-edit model does all the work here. An edit is already local until
+   * saved, and a dirty field's staged value already wins over the store, so
+   * warning two operators that they are in the same field costs one list of path
+   * names -- no locking scheme, and nothing that can wedge a board mid-show if
+   * somebody closes their laptop with a field open.
+   */
+  const present = usePresent()
+  const staged = Draft.paths(draft).join('\u0000')
+
+  useEffect(() => {
+    present({ editing: staged ? staged.split('\u0000') : [] })
+  }, [present, staged])
 
   const api = useMemo(
     () => ({

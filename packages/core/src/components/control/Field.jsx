@@ -1,7 +1,9 @@
 import { useId } from 'react'
 
+import { usePathPresence } from '../../hooks/useSync'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
+import { Tooltip } from '../common/Tooltip'
 
 /**
  * Text input bound to a path, staged until saved.
@@ -19,6 +21,7 @@ import { cx } from '../../toolkits/cx'
 export function Field({ name, label, placeholder, as = 'input', rows = 3, namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
+  const busy = usePathPresence(path)
   const id = useId()
   const Tag = as === 'textarea' ? 'textarea' : 'input'
 
@@ -30,6 +33,25 @@ export function Field({ name, label, placeholder, as = 'input', rows = 3, namesp
           {/* Unsaved marker. An operator has to be able to see at a glance that
               what is on their screen is not what is on air. */}
           {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+          {/* Somebody else has this field open. A warning rather than a lock: two
+              operators in one field is a conversation to have, not a state to
+              forbid, and a lock is something that can strand a board when a laptop
+              closes. */}
+          {busy.length ? (
+            <Tooltip
+              label={`${
+                busy
+                  .map((peer) => peer.name)
+                  .filter(Boolean)
+                  .join(', ') || 'Someone else'
+              } is editing this`}
+            >
+              <span className="ss-field-busy flex items-center gap-1 rounded bg-sky-500/15 px-1 text-[0.6rem] font-medium normal-case tracking-normal text-sky-300">
+                <span className="h-1 w-1 rounded-full bg-sky-400" />
+                {busy.map((peer) => peer.name).filter(Boolean)[0] ?? 'in use'}
+              </span>
+            </Tooltip>
+          ) : null}
         </span>
       ) : null}
       <Tag

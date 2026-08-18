@@ -8,6 +8,7 @@ import {
   ImagePicker,
   ImageSelect,
   Leaderboard,
+  Operator,
   Panel,
   ResetButton,
   Stepper,
@@ -116,6 +117,12 @@ export default function Control() {
             operator picks drives anything the stylesheet can express. */}
         <ColorPicker name="sponsor.color" label="Accent" fallback="#f59e0b" presets={['#f59e0b', '#0ea5e9', '#e11d48', '#22c55e', '#a855f7', '#f8fafc']} />
         <ToggleButton name="sponsor" label="sponsor" />
+      </Panel>
+
+      <Panel title="Operators">
+        {/* Presence needs a name to show. Local to the machine, not part of the
+            show -- see the note in Operator. */}
+        <Operator />
       </Panel>
 
       <Panel title="Ticker">

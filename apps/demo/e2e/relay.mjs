@@ -122,6 +122,40 @@ const landed = async (machine) => becomes(machine.page, (want) => document.query
 check(await landed(host), `concurrent increments add up on the host (expected ${expected})`)
 check(await landed(operator), 'and to the same number on the operator')
 
+// -- Status and presence -----------------------------------------------------
+// An operator working a show from another building has to know, without asking,
+// whether what they are typing is going anywhere. Ambiguity is worse than being
+// plainly disconnected: someone who knows they are offline fixes it, and someone
+// who does not spends a segment wondering why nobody is reacting.
+const indicator = (machine) => machine.page.locator('.ss-sync-status')
+
+check(await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected'), 'the board says it is connected')
+
+await host.page.locator('.ss-operator input').fill('Dez')
+await operator.page.locator('.ss-operator input').fill('Sam')
+
+check(
+  await becomes(host.page, () => /2/.test(document.querySelector('.ss-sync-peers')?.textContent ?? '')),
+  'and counts the other operator once they name themselves',
+)
+
+// Field-level presence: the staged-edit model already makes an edit local until
+// saved, so this is a warning rather than a lock. A lock is something that can
+// strand a board when somebody closes a laptop with a field open.
+await nameField(operator).fill('Ashfall')
+
+check(
+  await becomes(host.page, () => document.querySelector('.ss-field-busy')?.textContent.includes('Sam')),
+  'a field being edited elsewhere says who has it',
+)
+
+await save(operator)
+
+check(
+  await becomes(host.page, () => !document.querySelector('.ss-field-busy')),
+  'and stops saying so once they save',
+)
+
 // -- Losing the relay --------------------------------------------------------
 // The local-first promise. A relay dying mid-show costs collaboration, never the
 // broadcast: the host keeps rendering, edits queue, and everything converges when
@@ -135,6 +169,13 @@ await graphic.waitForTimeout(800)
 await running.close()
 console.log('  relay stopped')
 
+// The claim stage 3 exists for: an operator sees the room go away, without a
+// reload and without having to wonder.
+check(
+  await becomes(host.page, () => ['error', 'connecting'].includes(document.querySelector('.ss-sync-status')?.dataset.state), null, 20000),
+  'the board notices the relay going away, with no reload',
+)
+
 await nameField(host).fill('Freeholders')
 await save(host)
 
@@ -143,7 +184,7 @@ check(
   'the graphic keeps working with the relay gone',
 )
 
-await nameField(operator).fill('Ashfall')
+await nameField(operator).fill('Dry Harbour')
 await save(operator)
 await operator.page.waitForTimeout(500)
 
@@ -167,7 +208,7 @@ check(
     (at) => {
       const mine = document.querySelector(at)?.value
 
-      return mine === 'Ashfall' || mine === 'Freeholders'
+      return mine === 'Dry Harbour' || mine === 'Freeholders'
     },
     HOME_NAME,
     30000,
@@ -176,6 +217,13 @@ check(
 )
 
 await host.page.waitForTimeout(2000)
+
+check(
+  await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 30000),
+  'and notices it coming back',
+)
+
+check((await indicator(host).count()) === 1, 'the indicator is one control, not one per state')
 
 const settled = async (machine) => (await nameField(machine).inputValue()).trim()
 const [onHost, onOperator] = await Promise.all([settled(host), settled(operator)])

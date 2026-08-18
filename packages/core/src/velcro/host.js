@@ -42,6 +42,11 @@ export function createVelcroHost(config = {}) {
 
   const sync = createSync({ doc, name, status, config: syncConfig })
 
+  // Presence rides the status channel, which already exists and already carries
+  // `ready`. A board is the only page that cares, and it is one message per change
+  // rather than one per path -- there is no reason to give it a channel of its own.
+  sync.watch((peers) => status.postMessage({ type: 'presence', name, peers }), { immediate: false })
+
   let persistence = null
   let ready = false
   let nextPortId = 1
@@ -201,6 +206,14 @@ export function createVelcroHost(config = {}) {
 
       case 'sync:status':
         port.postMessage({ type: 'sync', name, ...sync.snapshot })
+        port.postMessage({ type: 'presence', name, peers: sync.peers() })
+        break
+
+      // What this machine tells the room about itself: who is at the board, and
+      // which paths they have open. One machine is one peer, so the dock speaks for
+      // the browser sources sharing its worker.
+      case 'presence':
+        sync.present(message.state)
         break
 
       case 'bye':
