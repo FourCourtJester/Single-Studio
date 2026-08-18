@@ -31,10 +31,26 @@ npx wrangler deploy
 
 Then point a studio at `wss://<your-worker>.workers.dev`.
 
+## What an operator does
+
+Paste a link into an OBS custom browser dock:
+
+```
+https://your-studio.github.io/?relay=wss://relay.example.com&room=friday&key=…#/
+```
+
+That is their whole setup. They never see the word "token", and OBS remembers a
+dock's URL so it is a once-ever step. `<RelayAdmin />` on the board mints those
+links; `<RelayConnect />` is where whoever runs the show points their own machine
+at the relay, once.
+
+The address is read at runtime, so a studio deployed to GitHub Pages never needs
+rebuilding to change relays.
+
 ## Connect a studio
 
-Core imports no transport. The studio builds the provider, which is what keeps a
-deployment static — the relay's URL is runtime configuration, never baked in.
+Core imports no transport. The studio builds the provider and never hard-codes an
+address; `useRelay` supplies one at runtime from the page's URL.
 
 ```js
 import { createVelcroHost } from '@single-studio/core/worker'

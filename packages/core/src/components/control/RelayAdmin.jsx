@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { relayLink, useRelay } from '../../hooks/useRelay'
 import { useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
@@ -19,9 +20,14 @@ import { Tooltip } from '../common/Tooltip'
  * you edit a show, the other lets you decide who can -- and it should live in
  * exactly one place.
  *
+ * What it hands over is a **link**, not a token. An operator's whole setup is
+ * pasting a URL into an OBS dock -- OBS remembers it, so that is a once-ever step,
+ * and they never see the word "token" or open a settings screen. The secret is in
+ * the link the way it is in every share link anyone has used.
+ *
  * A minted secret is shown once. It is not readable afterwards, because a relay
  * that can recite every operator's credential is a relay worth stealing; if
- * somebody loses theirs, issue another.
+ * somebody loses theirs, issue another link.
  */
 const KEY = 'single-studio:relay-admin'
 
@@ -45,6 +51,9 @@ const apiFor = (url, room) => {
 
 export function RelayAdmin({ label = 'Operators', className, ...rest }) {
   const { room, configured, url } = useSyncStatus()
+  // Read-only here: StudioApp owns the joining, and three components racing to
+  // attach would each tear down the last one's provider.
+  const { config } = useRelay({ auto: false })
   const [secret, setSecret] = useState(stored)
   const [tokens, setTokens] = useState(null)
   const [minted, setMinted] = useState(null)
@@ -150,8 +159,13 @@ export function RelayAdmin({ label = 'Operators', className, ...rest }) {
 
           {minted ? (
             <div className="flex flex-col gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 p-2">
-              <span className="text-xs text-amber-200">Send this to {minted.name || 'them'} now &mdash; it cannot be read again.</span>
-              <code className="ss-minted select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">{minted.secret}</code>
+              <span className="text-xs text-amber-200">
+                Send this link to {minted.name || 'them'} now &mdash; it cannot be shown again. They paste it into an OBS custom browser dock, and that is their
+                whole setup.
+              </span>
+              <code className="ss-minted select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
+                {relayLink({ url: config?.url ?? url, room, token: minted.secret })}
+              </code>
               <button type="button" onClick={() => setMinted(null)} className="self-start text-xs text-amber-300/80 hover:text-amber-200">
                 Done
               </button>

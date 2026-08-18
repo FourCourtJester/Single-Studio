@@ -1,5 +1,6 @@
 import { createHashRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 
+import { useRelay } from '../hooks/useRelay'
 import { ControlPage } from '../pages/Control'
 import { NotFoundPage } from '../pages/NotFound'
 import { SourcePage } from '../pages/Source'
@@ -38,7 +39,22 @@ export function createStudioRouter(studio) {
 export function StudioApp({ studio, fallback }) {
   return (
     <StudioProvider studio={studio} fallback={fallback}>
+      <Room />
       <RouterProvider router={createStudioRouter(studio)} />
     </StudioProvider>
   )
+}
+
+/**
+ * Joins whatever room this machine was pointed at.
+ *
+ * Rendered above the router rather than on the board, because it is the *machine*
+ * that joins a room, not a page: a graphic opened on its own must reach the show
+ * as surely as a dock does, and on the host's machine they all share one worker
+ * anyway. Renders nothing.
+ */
+function Room() {
+  useRelay()
+
+  return null
 }

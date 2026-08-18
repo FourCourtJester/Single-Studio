@@ -133,6 +133,24 @@ export class VelcroClient {
     return this
   }
 
+  /**
+   * Join a room now, rather than at build time.
+   *
+   * A studio deploys as static files -- GitHub Pages, an object store, a folder --
+   * so a relay baked into the build is one that cannot be changed without a
+   * rebuild. The SharedWorker cannot read the page's URL to find one, but the page
+   * can, which makes this the only place the decision can live.
+   */
+  connectSync({ url, room, token } = {}) {
+    this.ready().then(() => this.#port.postMessage({ type: 'sync:attach', url, room, token }))
+    return this
+  }
+
+  disconnectSync() {
+    this.ready().then(() => this.#port.postMessage({ type: 'sync:detach' }))
+    return this
+  }
+
   #receive(data) {
     // The opening value for a subscription comes back down the port rather than
     // over the channel -- see the note in host.js subscribe().

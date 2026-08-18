@@ -302,6 +302,33 @@ never done.
 pnpm relay -- --admin "$RELAY_ADMIN"   # without this the token API is off entirely
 ```
 
+#### What an operator actually does
+
+Paste a link into an OBS custom browser dock. That is the whole of it.
+
+```
+https://your-studio.github.io/?relay=wss://relay.example.com&room=friday&key=…#/
+```
+
+They never see the word "token" and never open a settings screen; OBS remembers a
+dock's URL, so it is a once-ever step. The secret rides in the link the way it does
+in every share link anyone has used.
+
+**The relay address is runtime, not build time.** A studio deploys as static files,
+so an address baked into a build is one that cannot be changed without a rebuild
+and a redeploy — a poor thing to discover an hour before doors. The SharedWorker
+cannot read the page's URL, but the page can, and hands it down. `useRelay` reads
+it, remembers it locally, and reconnects on later visits; `<RelayConnect />` is
+where whoever runs the show sets it once, since they are the one person with no
+link to arrive on.
+
+**Somebody still has to run a relay**, and no amount of design removes that. Two
+browsers cannot sync directly: WebRTC is main-thread only, needs a signalling
+server anyway, and needs TURN for a fifth to a fifth of real connections — which is
+a relay by definition. What can be removed is the _maintenance_: a Durable Object
+is one `wrangler deploy`, costs nothing at this scale, and the studio itself stays
+static on Pages.
+
 `<RelayAdmin />` puts invite and remove on the board — one click, mid-show, no
 redeploy. The admin secret lives in localStorage on the machine running the show,
 never in the build: an operator's token lets them edit a show, and this one lets

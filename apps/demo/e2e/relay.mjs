@@ -5,14 +5,12 @@
 // own storage partition, so each gets its own SharedWorker and its own IndexedDB,
 // which is exactly the boundary a second operator's laptop sits behind.
 //
-// Run against a build made with a relay URL, since the SharedWorker cannot read
-// the page's URL and takes it as a build-time constant:
+// Runs against the ordinary build. No relay is baked in: the host is pointed at
+// one by hand, the way whoever runs the show would, and the second machine arrives
+// on an invite link with nothing configured at all.
 //
-//   VITE_RELAY_URL=ws://127.0.0.1:1234 pnpm demo:build
-//   pnpm demo:preview
+//   pnpm demo:build && pnpm demo:preview
 //   node apps/demo/e2e/relay.mjs
-//
-// `pnpm e2e:relay` does all of that.
 
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -23,7 +21,7 @@ import { chromium } from 'playwright'
 import { createRelay } from '../../../packages/relay/src/node.js'
 
 const BASE = process.argv[2] ?? 'http://localhost:4173'
-const PORT = Number(process.env.RELAY_PORT ?? 1234)
+const PORT = Number(process.env.RELAY_PORT ?? 0)
 
 let failed = 0
 const check = (ok, message) => {
@@ -54,18 +52,21 @@ const storage = await mkdtemp(join(tmpdir(), 'ss-relay-'))
 const ADMIN = 'let-me-in'
 let relay = createRelay({ storage, admin: ADMIN })
 let running = await relay.listen(PORT)
+// Pinned after the first listen: a restart has to come back on the same port, or
+// the peers reconnecting is not the thing being tested.
+const port = running.port
 
-console.log(`  relay on ws://127.0.0.1:${running.port}, storing in ${storage}`)
+console.log(`  relay on ws://127.0.0.1:${port}, storing in ${storage}`)
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined })
 
 /** A separate profile: its own IndexedDB, its own SharedWorker. A second laptop. */
-const machine = async (label) => {
+const machine = async (label, at = `${BASE}/#/`) => {
   const context = await browser.newContext({ reducedMotion: 'no-preference' })
   const page = await context.newPage()
 
   page.on('pageerror', (error) => console.log(`[${label} pageerror]`, error.message))
-  await page.goto(`${BASE}/#/`)
+  await page.goto(at)
   await page.waitForSelector('.ss-panel')
 
   return { context, page, label }
@@ -88,10 +89,30 @@ const nameField = (machine) => machine.page.locator(HOME_NAME).first()
 const scoreOf = (machine) => machine.page.locator(SCORE).first()
 
 const host = await machine('host')
-const operator = await machine('operator')
 
-// Both boards have to be attached before anything is asserted about convergence.
-await host.page.waitForTimeout(2000)
+// The one person with no link to arrive on: whoever runs the show points their own
+// machine at a relay, once. Runtime, not build time -- a studio deploys as static
+// files, and an address baked into the build cannot be changed without a redeploy.
+await host.page.locator('.ss-relay-connect input[aria-label="Relay address"]').fill(`ws://127.0.0.1:${port}`)
+await host.page.locator('.ss-relay-connect input[aria-label="Room name"]').fill('friday')
+await host.page.locator('.ss-relay-connect button:has-text("Join")').click()
+
+check(
+  await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 15000),
+  'a board can be pointed at a relay without rebuilding anything',
+)
+
+// And everyone else: paste a link into an OBS dock. That is the whole of it --
+// no token typed, no settings screen, and OBS remembers the URL.
+const invite = `${BASE}/?relay=${encodeURIComponent(`ws://127.0.0.1:${port}`)}&room=friday#/`
+const operator = await machine('operator', invite)
+
+check(
+  await becomes(operator.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 15000),
+  'and an operator joins by opening a link, with nothing configured',
+)
+
+await host.page.waitForTimeout(1500)
 
 // -- The basic claim ---------------------------------------------------------
 await nameField(host).fill('Vanguard')
@@ -196,7 +217,7 @@ check(
 
 // -- Getting it back ---------------------------------------------------------
 relay = createRelay({ storage, admin: ADMIN })
-running = await relay.listen(PORT)
+running = await relay.listen(port)
 console.log('  relay restarted')
 
 // y-websocket backs off, so this is the slowest wait in the file by design.
@@ -252,10 +273,26 @@ check(
 await host.page.locator('.ss-relay-admin input[aria-label="New operator name"]').fill('Sam')
 await host.page.locator('.ss-relay-admin button:has-text("Invite")').click()
 
-const secret = await host.page.locator('.ss-minted').textContent()
+const link = (await host.page.locator('.ss-minted').textContent()).trim()
 
-console.log(`  minted a token for Sam: ${secret.slice(0, 8)}…`)
-check(Boolean(secret?.trim()), 'inviting an operator produces a secret to send them')
+console.log(`  invite: ${link.replace(/key=[^&#]+/, 'key=…')}`)
+
+// A link, not a token. What an operator receives is the thing they were going to
+// need anyway -- the board -- with the room on it, so their whole setup is pasting
+// it into an OBS dock.
+check(link.startsWith(BASE), 'inviting an operator produces a link to the studio')
+check(/[?&]relay=/.test(link) && /[?&]room=/.test(link) && /[?&]key=/.test(link), 'carrying the relay, the room and their key')
+
+const invited = await machine('invited', link)
+
+check(
+  await becomes(invited.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 15000),
+  'and opening it is the whole of their setup',
+)
+check(
+  await becomes(invited.page, (at) => (document.querySelector(at)?.value ?? '') !== '', HOME_NAME),
+  'they arrive with the show already on their board',
+)
 check(
   await becomes(host.page, () => [...document.querySelectorAll('.ss-operator-token')].some((row) => row.textContent.includes('Sam'))),
   'and they appear in the list',
@@ -271,7 +308,7 @@ check(
 
 // -- A late joiner -----------------------------------------------------------
 // Straight from storage: the room outlived the process that was serving it.
-const latecomer = await machine('latecomer')
+const latecomer = await machine('latecomer', invite)
 
 check(
   await becomes(latecomer.page, (want) => document.querySelector('.ss-field input[placeholder="Kestrel Corps"]')?.value === want, onHost, 30000),

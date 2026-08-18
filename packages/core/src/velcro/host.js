@@ -216,6 +216,20 @@ export function createVelcroHost(config = {}) {
         sync.present(message.state)
         break
 
+      // Joining a room at runtime rather than at build time.
+      //
+      // A studio deploys as static files, so anything baked into the build is
+      // something the operator would have to rebuild and redeploy to change. The
+      // worker cannot read the page's URL to find a relay, but a page can, and it
+      // can hand it down this port.
+      case 'sync:attach':
+        sync.attach({ url: message.url, room: message.room, token: message.token })
+        break
+
+      case 'sync:detach':
+        sync.detach()
+        break
+
       case 'bye':
         dropPort(portId)
         break

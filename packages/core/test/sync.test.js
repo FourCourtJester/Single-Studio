@@ -455,6 +455,30 @@ describe('re-attaching', () => {
     expect(made.sync.state).toBe(CONNECTED)
   })
 
+  it('does not carry a token to a different relay', async () => {
+    // A credential for one room is not a credential for another, and sending it to
+    // a different host is handing it to a stranger.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `elsewhere-${Math.random()}`, sync: { connect: build, url: 'wss://one.test', token: 'secret' } })
+
+    await made.started
+    await settle()
+    await made.sync.attach({ url: 'wss://two.test' })
+
+    expect(build.mock.calls.at(-1)[0]).toMatchObject({ url: 'wss://two.test', token: undefined })
+  })
+
+  it('keeps the token when only the room changes', async () => {
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `same-${Math.random()}`, sync: { connect: build, url: 'wss://one.test', token: 'secret' } })
+
+    await made.started
+    await settle()
+    await made.sync.attach({ room: 'saturday' })
+
+    expect(build.mock.calls.at(-1)[0]).toMatchObject({ room: 'saturday', token: 'secret' })
+  })
+
   it('can be pointed at a different room mid-session', async () => {
     const build = vi.fn(() => ({ destroy() {} }))
     const made = host({ name: `moved-${Math.random()}`, sync: { connect: build, room: 'first' } })
@@ -464,7 +488,12 @@ describe('re-attaching', () => {
     await made.sync.attach({ room: 'second' })
 
     expect(build.mock.calls.at(-1)[0]).toMatchObject({ room: 'second' })
-    expect(made.sync.snapshot.room).toBe('first')
+
+    // The snapshot reports the room we are *in*, not the one the build named. A
+    // board joins rooms it was never configured for -- that is the whole point of
+    // an invite link -- and the indicator, the token API's address and the links
+    // the board hands out all read this.
+    expect(made.sync.snapshot.room).toBe('second')
   })
 
   it('does not install a connection over a detach that landed while the old one was closing', async () => {

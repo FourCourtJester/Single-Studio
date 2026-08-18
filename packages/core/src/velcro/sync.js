@@ -35,6 +35,16 @@ export function createSync({ doc, name, status, config }) {
   let local = {}
   const watchers = new Set()
 
+  /**
+   * Where we actually are, which is not always where the config said.
+   *
+   * `attach` takes overrides so a board can join a room the build knew nothing
+   * about, and everything downstream -- the status indicator, the token API's
+   * address, the invite links a board hands out -- has to be told the room it is
+   * in rather than the room it was configured for.
+   */
+  let active = { url, room, token }
+
   let provider = null
   let state = OFFLINE
   let detail = null
@@ -52,7 +62,7 @@ export function createSync({ doc, name, status, config }) {
 
   // `url` rides along because the token API lives on the same host as the socket,
   // and a board that can show the room should not have to be told twice where it is.
-  const snapshot = () => ({ state, room, url, detail })
+  const snapshot = () => ({ state, room: active.room, url: active.url, detail })
 
   function report(next, why = null) {
     if (state === next && detail === why) return
@@ -149,6 +159,18 @@ export function createSync({ doc, name, status, config }) {
     // Superseded while the old provider was shutting down.
     if (mine !== generation) return null
 
+    // A link may carry only an address, so a studio that names its own room keeps
+    // it. A token does not carry across relays, though: a credential for one room
+    // is not a credential for another, and sending it to a different host would be
+    // handing it to a stranger.
+    const moving = Boolean(override?.url) && override.url !== url
+
+    active = {
+      url: override?.url ?? url,
+      room: override?.room ?? room,
+      token: override?.token ?? (moving ? undefined : token),
+    }
+
     report(CONNECTING)
 
     // A provider that knows its own connection state must win over the seam
@@ -164,7 +186,7 @@ export function createSync({ doc, name, status, config }) {
     }
 
     try {
-      const built = await build({ doc, name, room: override?.room ?? room, url: override?.url ?? url, token: override?.token ?? token, report: speak })
+      const built = await build({ doc, name, ...active, report: speak })
 
       // Detached, or attached somewhere else, while we were connecting. Throw the
       // connection away rather than leaving one live that nobody is holding, and

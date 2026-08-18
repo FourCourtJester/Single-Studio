@@ -10,30 +10,36 @@ import { mutations } from './mutations'
 //
 // React is deliberately absent from this module -- it is a separate bundle.
 
-// Collaboration is off unless a relay was configured at build time, so the default
-// build is exactly the offline studio it was before. The URL is a build-time
-// constant here only because a SharedWorker cannot see the page's URL; a studio
-// that wants to switch rooms at runtime can call `sync.attach({ room })` instead.
-const relay = import.meta.env.VITE_RELAY_URL
+// The studio always knows *how* to join a room and never where, unless a build
+// says so. A studio deploys as static files, so a relay baked into the build is one
+// that cannot be changed without a rebuild -- the board reads the address from its
+// own URL and hands it down instead, which is what makes an invite link the whole
+// of an operator's setup. See useRelay.
+//
+// VITE_RELAY_URL still works, for a studio that would rather pin it.
+const preset = import.meta.env.VITE_RELAY_URL
 
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
-  sync: relay
-    ? {
-        url: relay,
-        room: import.meta.env.VITE_RELAY_ROOM ?? STUDIO_ID,
-        token: import.meta.env.VITE_RELAY_TOKEN,
-        connect: ({ doc, url, room, token, report }) => {
-          const provider = new WebsocketProvider(url, room, doc, { params: token ? { token } : {} })
+  sync: {
+    url: preset,
+    room: import.meta.env.VITE_RELAY_ROOM ?? STUDIO_ID,
+    token: import.meta.env.VITE_RELAY_TOKEN,
 
-          // The provider knows when it is genuinely connected; the seam only
-          // guesses when nothing tells it otherwise.
-          provider.on('status', ({ status }) => report(status === 'connected' ? 'connected' : 'connecting'))
-          provider.on('connection-error', (event) => report('error', event?.message ?? 'relay unreachable'))
+    // Nothing happens until somebody says where. With a build-time address that is
+    // immediately; otherwise it is whenever a link arrives.
+    autoConnect: Boolean(preset),
 
-          return provider
-        },
-      }
-    : undefined,
+    connect: ({ doc, url, room, token, report }) => {
+      const provider = new WebsocketProvider(url, room, doc, { params: token ? { token } : {} })
+
+      // The provider knows when it is genuinely connected; the seam only guesses
+      // when nothing tells it otherwise.
+      provider.on('status', ({ status }) => report(status === 'connected' ? 'connected' : 'connecting'))
+      provider.on('connection-error', (event) => report('error', event?.message ?? 'relay unreachable'))
+
+      return provider
+    },
+  },
 })
