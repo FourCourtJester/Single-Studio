@@ -169,6 +169,57 @@ describe('two roads, one order', () => {
   })
 })
 
+describe('answering a page that asks', () => {
+  // A page can ask for the status as well as be told it, and the answer is not
+  // news: it describes the state as of when the question was handled. That matters
+  // because the two roads drain at different speeds. Caught in the browser as a
+  // reply queued behind a backlog on the port, arriving after the channel had
+  // already delivered something newer, and -- carrying no version at all -- winning.
+  // The board it landed on stayed wrong for the rest of the show, because nothing
+  // asks twice.
+
+  it('stamps the answer with the version of the state, not the moment of asking', async () => {
+    const made = host({ name: `asked-${Math.random()}`, sync: { url: 'memory://relay', connect: () => ({ destroy() {} }) } })
+    const { port, seen } = page(made)
+
+    await made.started
+    await settle()
+
+    const pushed = seen.filter((message) => message?.type === 'sync')
+    const newest = Math.max(...pushed.map((message) => message.seq))
+
+    port.postMessage({ type: 'sync:status' })
+    await settle()
+
+    const answer = seen.filter((message) => message?.type === 'sync').at(-1)
+
+    // Present, or the receiving side has nothing to rank it against and it wins by
+    // default -- which is the bug exactly.
+    expect(typeof answer.seq).toBe('number')
+
+    // And not a fresh number, which would make an overtaken answer look like the
+    // latest word. It describes state that was already announced, so it carries
+    // that announcement's version.
+    expect(answer.seq).toBe(newest)
+  })
+
+  it('answers presence the same way', async () => {
+    const made = host({ name: `asked-p-${Math.random()}`, sync: { url: 'memory://relay', connect: () => ({ destroy() {} }) } })
+    const { port, seen } = page(made)
+
+    await made.started
+    made.sync.present({ name: 'Dez' })
+    await settle()
+
+    const newest = Math.max(...seen.filter((message) => message?.type === 'presence').map((message) => message.seq))
+
+    port.postMessage({ type: 'sync:status' })
+    await settle()
+
+    expect(seen.filter((message) => message?.type === 'presence').at(-1).seq).toBe(newest)
+  })
+})
+
 describe('status reaching a page', () => {
   it('arrives down the port as well as the channel', async () => {
     // `ready` is the one every page waits on, and the one whose loss is hardest to

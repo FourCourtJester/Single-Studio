@@ -736,6 +736,51 @@ consecutive collaboration runs passed against a baseline that had been failing a
 one in three — and then the ninth failed the same way. Call it one in eight rather
 than one in three: a real improvement, and not a fix.
 
+### Found: an answer with no version on it
+
+A page can be *told* the status and can also *ask* for it. The telling was stamped;
+the answering was not. That is the whole bug.
+
+An answer is not news. It describes the state as of when the question was handled,
+and it travels down the port -- which, with a backlog, drains slower than the
+channel. So this happens, taken verbatim from a traced failure:
+
+```
+channel-sync  delegated=true   seq=43   <- the truth, applied
+port-sync     delegated=false  seq=-    <- the answer, overtaken, unstamped
+announce      delegated=false           <- accepted, because nothing could rank it
+```
+
+Every message arrives. Nothing is lost and nothing is late. The page ends up wrong
+because the *oldest* one spoke last and carried no version, so the ordering guard --
+which in that same trace had just rejected three genuinely stale pushes on `seq` --
+had no grounds to reject this one. And nothing asks twice, so the board stays wrong
+for the rest of the show.
+
+The fix is that an answer carries the version of the state it describes, not the
+moment it was sent. Stamping it freshly would be wrong in a subtler way: it would
+make an overtaken answer look like the latest word, which is what carrying no stamp
+already amounted to.
+
+Measured against the same build that produced the trace: **4 failures in 8 runs
+before, 0 in 8 after.** The tracing itself widened the race, which is why those
+numbers are starker than the one-in-six seen without it -- a useful accident, and
+worth remembering as a technique.
+
+#### Why it took so long to see
+
+Three things kept pointing away from it:
+
+- **The worker was always right.** Every measurement said so, which framed it as a
+  delivery problem. It was, but not a *lost* delivery -- an unrankable one.
+- **Adding a second road helped.** One-in-three to one-in-six looked like progress
+  toward a single cause. It was really the redundancy making the truth more likely
+  to arrive first, which only changed how often the stale answer had something
+  newer to overwrite.
+- **A settled host made no difference**, which correctly ruled out a startup race
+  and left no obvious suspect. It could not have helped: the backlog is on the
+  joining page and has nothing to do with how long the host has been up.
+
 ### It is not a startup race, which was the comfortable answer
 
 The obvious hope was that the fault needs a joiner arriving inside the host's own
@@ -793,6 +838,6 @@ straggler win, which is how it was checked.
 | Remote operators on non-Chromium browsers              | Not a real constraint: module `SharedWorker` is Chrome 83+, Firefox 114+, Safari 16+. Ship a minimum-version note rather than a fallback. See [getting-started](./getting-started.md#browser-requirements). |
 | Relay is a single point of failure for _collaboration_ | Accepted. It is never a single point of failure for the _broadcast_ — that's what local-first buys.                                                                                                         |
 | Counter delta growth                                   | Bounded by distinct clientIDs that have ever incremented a path. A long-lived doc across many sessions accumulates keys; add compaction on load if it ever shows up in practice.                            |
-| A peer intermittently not learning what the room already knows | **Improved, still open, and reachable in the ordinary flow.** A lost `BroadcastChannel` post was one cause and is closed — see [Two roads to a page](#two-roads-to-a-page-) — taking it from roughly one run in three to about one in eight. It is *not* a startup race: 2 failures in 12 runs with a ten-second gap between the host settling and the operator joining, against 1 in 9 without, so a settled host is no protection. A board that lands stale is wrong from the moment it opens rather than degrading mid-show, and a reload clears it. Worth remembering for the shape rather than the fix: it looked like a relay fault for a long time, and what cornered the first cause was reloading the page at the moment of failure and finding the worker had known all along. That measurement is the one to repeat on the remainder. |
+| A peer intermittently not learning what the room already knows | **Fixed.** Two causes, found in that order: a `BroadcastChannel` post that could go missing with no way to ask again, and -- the one that actually held it open -- a reply to `sync:status` carrying no version, so an answer overtaken in the queue overwrote the newer truth that had passed it. 4 failures in 8 runs before, 0 in 8 after, on the build whose tracing had widened the race. See [Two roads to a page](#two-roads-to-a-page-). |
 | A test that waits for the wrong thing | Not a product risk, but it cost real time twice. A folder upload adds files one at a time, and a check that waited for the *group* to exist read a half-filled list and reported a lost file — which looks exactly like the deduplication racing itself, a considerably more alarming thing to go hunting for. Wait on the count. |
 | Two operators editing one text field                   | Presence (stage 3). Character-level merging is available if needed, but a field is not a document and last-write-wins is usually what an operator expects.                                                  |

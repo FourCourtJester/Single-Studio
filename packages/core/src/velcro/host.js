@@ -47,8 +47,23 @@ export function createVelcroHost(config = {}) {
    * makes the second copy identifiable as old rather than merely identical.
    */
   let tick = 0
+
+  /**
+   * The stamp on the newest status of each kind, which is the *version* of that
+   * state rather than the moment it was last mentioned.
+   *
+   * Needed because a page can also *ask* for the status, and an answer is not news:
+   * it describes the state as of when the question was handled. Stamping the answer
+   * with a fresh number would make an old answer look like the latest word, and a
+   * port with a backlog delivers exactly that -- the reply draining out behind
+   * messages the channel had already delivered, and overwriting them.
+   */
+  const version = { sync: 0, presence: 0 }
+
   const stamped = (message) => {
     tick += 1
+
+    if (message.type in version) version[message.type] = tick
 
     return { ...message, seq: tick }
   }
@@ -303,9 +318,13 @@ export function createVelcroHost(config = {}) {
         port.postMessage({ type: 'snapshot:result', id: message.id, value: Doc.snapshot(doc) })
         break
 
+      // Answered with the version of the state, not a fresh one. An answer that
+      // has been overtaken while it was in the queue must lose to what overtook it;
+      // unstamped, it won instead, and the board it landed on stayed wrong for the
+      // rest of the show because nothing asks twice.
       case 'sync:status':
-        port.postMessage({ type: 'sync', name, ...sync.snapshot })
-        port.postMessage({ type: 'presence', name, peers: sync.peers() })
+        port.postMessage({ type: 'sync', name, ...sync.snapshot, seq: version.sync })
+        port.postMessage({ type: 'presence', name, peers: sync.peers(), seq: version.presence })
         break
 
       // What this machine tells the room about itself: who is at the board, and
