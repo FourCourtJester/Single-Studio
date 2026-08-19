@@ -22,7 +22,7 @@ import { cx } from '../../toolkits/cx'
  */
 export function TimerButton({ name, label, duration, placeholder = '5:00', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`
-  const { active, finished, text, input } = useTimer(path)
+  const { active, running, text, input } = useTimer(path)
   const mutate = useVelcroMutate()
   const ref = useRef(null)
 
@@ -47,20 +47,20 @@ export function TimerButton({ name, label, duration, placeholder = '5:00', names
    * the whole show, because the control went back to offering a fresh duration and
    * quietly stopped mentioning the clock that was on screen.
    */
-  if (active || finished) {
+  if (active) {
     return (
       <button
         type="button"
         onClick={stop}
-        aria-label={`${active ? 'Stop' : 'Clear'} ${label ?? name}`}
+        aria-label={`${running ? 'Stop' : 'Clear'} ${label ?? name}`}
         className={cx(
           'ss-timer-button rounded-md px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors',
-          active ? 'bg-rose-600 hover:bg-rose-500' : 'bg-slate-700 hover:bg-slate-600',
+          running ? 'bg-rose-600 hover:bg-rose-500' : 'bg-slate-700 hover:bg-slate-600',
           className,
         )}
         {...rest}
       >
-        {active ? 'Stop' : 'Clear'} {text}
+        {running ? 'Stop' : 'Clear'} {text}
       </button>
     )
   }

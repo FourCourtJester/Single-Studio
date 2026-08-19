@@ -98,11 +98,21 @@ export function useTimer(path) {
       loaded,
       mode: target ? 'down' : 'idle',
       running: remaining > 0,
-      active: remaining > 0,
-      // A countdown that exists and has run out, which is a different state from
-      // "there is no countdown" and has to be tellable apart from it: one of them
-      // wants 00:00 on screen and the other wants nothing at all.
-      finished: Boolean(target) && remaining <= 0,
+      /**
+       * There *is* a countdown, which is not the same as one with time left on it.
+       *
+       * This used to be `remaining > 0` -- an alias for `running` -- and that is
+       * the whole of why a finished countdown vanished from air instead of resting
+       * on the zero it was counting towards. The distinction already existed for
+       * the other direction, where `active` is a stopwatch that has been started
+       * and `running` is one that is not paused; countdowns just were not told.
+       *
+       * It cannot be `remaining >= 0`, tempting as that looks. `remaining` is 0
+       * both for a countdown that has finished and for a path holding no countdown
+       * at all, so that reads as "always" and puts 00:00 on a board that never
+       * started one. What separates them is whether there is a target.
+       */
+      active: Boolean(target),
       elapsed: 0,
       remaining,
       duration: timer?.duration ?? 0,

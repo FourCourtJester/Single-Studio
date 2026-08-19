@@ -201,7 +201,7 @@ const mutate = useVelcroMutate()
 | `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
 | `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
 | `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                        |
-| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Rests on 00:00 (`hold`). `onComplete` fires once it lands. |
+| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Rests on 00:00 until cleared. `onComplete` fires once it lands. |
 | `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.            |
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                       |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
@@ -299,14 +299,14 @@ countdown therefore holds for a full second, and a five-second timer opens on 00
 vanish the instant it ran out, which meant the number the whole thing exists to
 reach was the one frame nobody ever saw — 00:01, then the graphic animating away.
 A break clock sitting on 00:00 is a graphic saying "we are back", and it stays until
-somebody clears it: `TimerButton` offers **Clear 00:00** for exactly that. `hold`
-sets how long the rest lasts — `hold={3000}` for three seconds and then the old
-exit, `hold={0}` for the old behaviour.
+somebody clears it: `TimerButton` and `Countdown` offer **Clear** for exactly that.
 
-The rest is owed to a countdown somebody watched, not to a timestamp that happens to
-be in the past, so a `Timer` that mounts onto an already-finished clock shows its
-fallback. Otherwise a stale timer left in the document from last week would put
-00:00 on air at startup.
+That is one distinction, not a feature. `active` means *there is a clock* and
+`running` means *it is moving* — which is what they already meant for a stopwatch,
+where `active` covers a paused one. Countdowns had `active` aliased to `running`,
+and that alias was the whole bug. It cannot be widened to "remaining is zero or
+more" instead: `remaining` is 0 both for a countdown that finished and for a path
+holding no countdown at all, so what separates them is whether there is a target.
 
 ## Images
 
