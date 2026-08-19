@@ -90,6 +90,12 @@ const save = async (machine) => {
   await machine.page.waitForSelector('.ss-save button[data-pending="false"]')
 }
 
+/** Setup lives behind the header menu now, so reaching any of it is two clicks. */
+const openMenu = async (machine, what) => {
+  await machine.page.locator('.ss-menu-open').click()
+  await machine.page.locator(`.ss-menu-${what}`).click()
+}
+
 const nameField = (machine) => machine.page.locator(HOME_NAME).first()
 const scoreOf = (machine) => machine.page.locator(SCORE).first()
 
@@ -99,7 +105,7 @@ const host = await machine('host')
 // dialog a streamer half an hour before doors would actually find. Runtime, not
 // build time -- a studio deploys as static files, and an address baked into the
 // build cannot be changed without a redeploy.
-await host.page.locator('.ss-collaborate-open').click()
+await openMenu(host, 'collaborate')
 await host.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill(`ws://127.0.0.1:${port}`)
 await host.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('friday')
 await host.page.locator('.ss-collaborate-dialog .ss-collaborate-go').click()
@@ -147,7 +153,7 @@ check(
 check(!/[?&]clock=/.test(dockUrl), 'the clock role stays off the dock URL, so an invite cannot hand it out')
 
 const clockBox = async (machine) => {
-  await machine.page.locator('.ss-collaborate button, .ss-collaborate-open').first().click()
+  await openMenu(machine, 'collaborate')
 
   const checked = await machine.page.locator('.ss-clock-role input[type="checkbox"]').isChecked()
 
@@ -479,7 +485,7 @@ check(
 // real cipher in the provider's own tests.
 const sealing = await machine('sealing')
 
-await sealing.page.locator('.ss-collaborate-open').click()
+await openMenu(sealing, 'collaborate')
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill('https://abcdefgh.supabase.co')
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Anon key"]').fill('eyJhbGciOi.test')
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('sealed-show')
@@ -501,12 +507,9 @@ check(!/k=/.test(beforeHash), 'and never in the query, which would already have 
 
 // It also has to survive the trip, or the link is a very private way of showing
 // nobody anything.
-check(
-  await becomes(sealing.page, () => document.querySelector('.ss-collaborate button, .ss-collaborate-open') !== null),
-  'and the board comes back up on it',
-)
+check(await becomes(sealing.page, () => document.querySelector('.ss-menu-open') !== null), 'and the board comes back up on it')
 
-await sealing.page.locator('.ss-collaborate button, .ss-collaborate-open').first().click()
+await openMenu(sealing, 'collaborate')
 
 check(
   await sealing.page.locator('.ss-seal input[type="checkbox"]').isChecked(),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseBoard, serializeBoard, sizeBoard } from '../src/toolkits/board'
-import { slugify } from '../src/toolkits/slug'
+import { slugify, titleize } from '../src/toolkits/slug'
 
 const TAB = '\t'
 
@@ -104,5 +104,43 @@ describe('slugify', () => {
     expect(slugify(undefined)).toBe('')
     expect(slugify('')).toBe('')
     expect(slugify('!!!')).toBe('')
+  })
+})
+
+describe('titleize', () => {
+  // A source is registered under a key that has to survive a URL, so it is written
+  // the way a URL wants it. What OBS shows in a scene list, and what an operator
+  // reads on the board, is derived from that key rather than declared beside it --
+  // one name to keep in step instead of two.
+
+  it('turns a hyphenated key into words', () => {
+    expect(titleize('lower-third')).toBe('Lower Third')
+  })
+
+  it('leaves a single word alone but for its capital', () => {
+    expect(titleize('scoreboard')).toBe('Scoreboard')
+  })
+
+  it('treats underscores as breaks too', () => {
+    expect(titleize('ticker_bar')).toBe('Ticker Bar')
+  })
+
+  it('keeps digits attached to the word they follow', () => {
+    expect(titleize('week-1')).toBe('Week 1')
+  })
+
+  it('collapses whatever spacing it is handed', () => {
+    expect(titleize('  spaced  out ')).toBe('Spaced Out')
+  })
+
+  it('has an answer for nothing at all', () => {
+    expect(titleize('')).toBe('')
+    expect(titleize(undefined)).toBe('')
+    expect(titleize(null)).toBe('')
+  })
+
+  it('round-trips a slug it was given', () => {
+    // The pair has to agree, or a key written by one is unreadable to the other.
+    expect(slugify(titleize('lower-third'))).toBe('lower-third')
   })
 })

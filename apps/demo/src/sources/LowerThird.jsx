@@ -1,7 +1,7 @@
 import { Scene, Toggle, Variable } from '@single-studio/core'
 
 /**
- * Add to OBS as a Browser source pointed at #/source/lowerthird
+ * Add to OBS as a Browser source pointed at #/source/lower-third
  *
  * Slides in from the left and overshoots slightly before settling -- the move a
  * lower third has made since caption generators were hardware. `--ss-shift` is how

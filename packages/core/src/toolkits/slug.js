@@ -14,3 +14,26 @@ export function slugify(value) {
       .replace(/^-+|-+$/g, '')
   )
 }
+
+/**
+ * The other direction: `lower-third` -> `Lower Third`.
+ *
+ * A source is registered under a key that has to survive a URL, so it is written
+ * the way a URL wants it -- lowercase and hyphenated. That is not what an operator
+ * should be reading in a list, or what OBS should be showing in a scene, so the
+ * display name is derived rather than declared. One name to keep in step instead of
+ * two, and a studio that adds a source gets a readable label without doing anything.
+ *
+ * Hyphens and underscores are word breaks; a run of digits stays attached to the
+ * word it follows, so `week-1` is "Week 1" rather than "Week 1" with a stray break.
+ */
+export function titleize(value) {
+  return String(value ?? '')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}

@@ -27,33 +27,44 @@ import { SyncStatus } from './SyncStatus'
  * with none of this; a modal demanding setup on first run would be asking most
  * people to dismiss something they will never need.
  */
-export function Collaborate({ className, ...rest }) {
+/**
+ * The connection light, and a shortcut to the settings behind it.
+ *
+ * Stays in the header rather than moving into the menu with everything else, and
+ * that is deliberate: an operator has to be able to see at a glance whether their
+ * edits are reaching anybody. On a board driving a live show that is the difference
+ * between fixing a problem and not knowing there is one, and a state you have to
+ * open a menu to read is a state nobody reads.
+ *
+ * Renders nothing at all until a studio has joined a room. A single-operator board
+ * is the common case, works with none of this, and should not carry a light that
+ * has nothing to report.
+ */
+export function Collaborate({ onOpen, className, ...rest }) {
   const status = useSyncStatus()
-  const { config, join, reference } = useRelay({ auto: false })
-  const [open, setOpen] = useState(false)
+
+  if (!status.configured) return null
 
   return (
-    <span className={cx('ss-collaborate flex items-center gap-2', className)} {...rest}>
-      {status.configured ? (
-        <button type="button" onClick={() => setOpen(true)} aria-label="Collaboration settings" className="rounded-md transition-colors hover:bg-slate-800">
-          <SyncStatus />
-        </button>
-      ) : (
-        <Tooltip label="Bring other operators into this show" align="end">
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="ss-collaborate-open flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
-          >
-            <Icon name="people" className="h-3.5 w-3.5" />
-            Collaborate
-          </button>
-        </Tooltip>
-      )}
-
-      <SetupDialog open={open} onClose={() => setOpen(false)} config={config} join={join} room={status.room} reference={reference} offset={status.offset} />
-    </span>
+    <Tooltip label="Collaboration settings" align="end" className={className} {...rest}>
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label="Collaboration settings"
+        className="ss-collaborate flex items-center rounded-md transition-colors hover:bg-slate-800"
+      >
+        <SyncStatus />
+      </button>
+    </Tooltip>
   )
+}
+
+/** The settings themselves, opened from the menu. */
+export function CollaborateDialog({ open, onClose }) {
+  const status = useSyncStatus()
+  const { config, join, reference } = useRelay({ auto: false })
+
+  return <SetupDialog open={open} onClose={onClose} config={config} join={join} room={status.room} reference={reference} offset={status.offset} />
 }
 
 /**
@@ -207,7 +218,16 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
         {help ? (
           <ol className="ss-collaborate-help flex list-decimal flex-col gap-1 rounded-md border border-slate-800 bg-slate-950/60 p-3 pl-7 text-xs text-slate-400">
             <li>
-              Go to <span className="font-mono text-slate-300">supabase.com</span> and sign in. The free tier is enough, and it does not ask for a card.
+              Go to{' '}
+              <a
+                href="https://supabase.com"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="ss-supabase-link font-mono text-sky-400 underline-offset-2 hover:underline"
+              >
+                supabase.com
+              </a>{' '}
+              and sign in. The free tier is enough, and it does not ask for a card.
             </li>
             <li>
               Press <span className="text-slate-300">New project</span>. Any name, any region near you, any database password &mdash; you will not need it.

@@ -27,8 +27,14 @@ rm -rf node_modules packages/*/node_modules apps/*/node_modules package-lock.jso
 pnpm install
 ```
 
-Open the printed URL. That is the control surface; it lists every graphic's
-browser-source URL with a copy button.
+Open the printed URL. That is the control surface. The header's menu holds the
+setup a board needs and a show does not: **Browser sources** lists every graphic's
+URL with a copy button, alongside the image store and the collaboration settings.
+
+Each copied URL carries `?layer-name=SS - <studio> - <Source>`, which is the name
+OBS gives the browser source. The display name is title-cased from the source's
+key, so a key written for a URL (`lower-third`) reads as English in a scene list
+(`Lower Third`) without anybody maintaining a second copy of it.
 
 `pnpm demo` builds `@single-studio/core` first. The demo consumes the framework
 through its published entrypoints rather than reaching into its source — which is

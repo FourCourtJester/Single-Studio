@@ -157,7 +157,7 @@ check(seen('active', 'Vandals'), 'the new value ends up active')
 
 // -- Other graphics ----------------------------------------------------------
 const lower = await context.newPage()
-await lower.goto(`${BASE}/#/source/lowerthird`)
+await lower.goto(`${BASE}/#/source/lower-third`)
 await lower.waitForSelector('.ss-scene')
 await control.locator('.ss-field:has-text("Title") input').first().fill('Jane Doe')
 await save()
@@ -831,8 +831,15 @@ check(wiped.opacity === '1', 'a wipe stays fully opaque throughout')
 //
 // Shown and linked are deliberately different: the encoded parameter roughly
 // doubles every line for something nobody reads off the screen.
+// Behind the header menu now, with the room and the image store. Wiring OBS is a
+// once-ever job, and a panel for it was spending every show after that taking up
+// the space under the controls an operator actually uses.
+await control.locator('.ss-menu-open').click()
+await control.locator('.ss-menu-sources').click()
+await control.waitForSelector('.ss-sources-dialog a[href*="/source/"]')
+
 const listed = await control.evaluate(() =>
-  [...document.querySelectorAll('section:has(> h2) a[href*="/source/"]')].map((link) => ({ shown: link.textContent.trim(), href: link.href })),
+  [...document.querySelectorAll('.ss-sources-dialog a[href*="/source/"]')].map((link) => ({ shown: link.textContent.trim(), href: link.href })),
 )
 
 console.log(`  source urls: ${listed.length} listed, first ${listed[0]?.href}`)
@@ -849,18 +856,44 @@ check(new Set(listed.map((row) => row.href.split('#')[0])).size === listed.lengt
 
 // Copy has to carry the parameter even though the text does not -- the clipboard is
 // how the URL actually reaches OBS.
-await control.locator('section:has(> h2) li:has-text("scoreboard") button:has-text("Copy")').first().click()
+await control.locator('.ss-sources-dialog li:has-text("Scoreboard") button:has-text("Copy")').first().click()
 const copiedUrl = await control.evaluate(() => navigator.clipboard.readText())
 
 console.log(`  copied: ${copiedUrl}`)
-check(copiedUrl.includes('layer-name=Demo%20scoreboard'), 'Copy puts the named URL on the clipboard, not the bare one')
+check(copiedUrl.includes(`layer-name=${encodeURIComponent('SS - Demo - Scoreboard')}`), 'Copy puts the named URL on the clipboard, not the bare one')
 
 // The page has to actually honour it, or the parameter is decoration.
 const titled = await context.newPage()
 await titled.goto(listed.find((row) => row.href.includes('scoreboard')).href)
 await titled.waitForSelector('.ss-scene')
-check(await becomes(titled, () => document.title === 'Demo scoreboard'), `the source names itself from the URL (got "${await titled.title()}")`)
+check(await becomes(titled, () => document.title === 'SS - Demo - Scoreboard'), `the source names itself from the URL (got "${await titled.title()}")`)
+
+// The name OBS shows is derived from the key rather than declared beside it, so a
+// key written for a URL still reads as English in a scene list.
+const derived = listed.find((row) => row.href.includes('/source/lower-third'))
+
+check(Boolean(derived), 'a source key can carry hyphens for the words it contains')
+check(
+  decodeURIComponent(derived?.href ?? '').includes('SS - Demo - Lower Third'),
+  'and its OBS name is title-cased from that key, not a second copy of it',
+)
+check(derived?.shown.includes('lower-third'), 'while the URL keeps the key as written')
 await titled.close()
+
+// The tooltip on a dialog's close button used to appear the moment the dialog did:
+// `showModal()` moves focus to the first focusable thing it finds, and a plain
+// focus rule fired on that. Focus-visible is the distinction -- a keyboard user
+// still gets the label, somebody who clicked a menu item does not.
+check(
+  await control.evaluate(() => {
+    const bubble = document.querySelector('.ss-sources-dialog .ss-tooltip-bubble')
+
+    return bubble ? getComputedStyle(bubble).opacity === '0' : false
+  }),
+  'opening a dialog does not pop the tooltip on its close button',
+)
+
+await control.locator('.ss-sources-dialog button[aria-label="Close the source list"]').click()
 
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces

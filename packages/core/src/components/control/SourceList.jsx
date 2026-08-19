@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useStudio } from '../../studio/context'
 import { cx } from '../../toolkits/cx'
+import { Icon } from '../common/Icon'
 import { LAYER_NAME } from '../../toolkits/url'
+import { Tooltip } from '../common/Tooltip'
+import { titleize } from '../../toolkits/slug'
 
 /**
  * Every source's browser-source URL, ready to paste into OBS.
@@ -19,11 +22,25 @@ import { LAYER_NAME } from '../../toolkits/url'
  * of "localhost", "localhost (2)", "localhost (3)". The parameter sits ahead of the
  * hash because that is where OBS looks.
  *
+ * The name it carries is `SS - <studio> - <Source>`, which is built for a scene list
+ * rather than for reading here. The prefix groups every source this framework
+ * produced together in an alphabetical list, the studio name separates two shows
+ * living in one OBS profile, and the source name is title-cased from its key so
+ * nobody has to maintain a second copy of it.
+ *
  * What is *shown* is the bare URL. The encoded parameter roughly doubles the length
  * of every line for something nobody reads off the screen -- it only has to survive
  * the clipboard.
  */
-export function SourceList({ className }) {
+/**
+ * Marks a scene entry as this framework's.
+ *
+ * One line to change, and deliberately short: it is repeated on every source in a
+ * scene list that is often only a couple of dozen characters wide.
+ */
+const PREFIX = 'SS'
+
+export function SourceList({ bare = false, className }) {
   const { studio } = useStudio()
   const [copied, setCopied] = useState(null)
   const names = Object.keys(studio.sources)
@@ -33,8 +50,11 @@ export function SourceList({ className }) {
   /** What is shown: readable, and what you would type. */
   const urlFor = (name) => `${base()}#/source/${name}`
 
+  /** What OBS will call the source. See the note above for why it is shaped so. */
+  const layerNameFor = (name) => `${PREFIX} - ${studio.name} - ${titleize(name)}`
+
   /** What is copied and linked: the same page, named for OBS. */
-  const obsUrlFor = (name) => `${base()}?${LAYER_NAME}=${encodeURIComponent(`${studio.name} ${name}`)}#/source/${name}`
+  const obsUrlFor = (name) => `${base()}?${LAYER_NAME}=${encodeURIComponent(layerNameFor(name))}#/source/${name}`
 
   const copy = async (name) => {
     try {
@@ -55,12 +75,13 @@ export function SourceList({ className }) {
   }
 
   return (
-    <section className={cx('rounded-lg border border-slate-800 bg-slate-900/40 p-4', className)}>
-      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">Browser sources</h2>
+    <section className={cx(bare ? '' : 'rounded-lg border border-slate-800 bg-slate-900/40 p-4', className)}>
+      {bare ? null : <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">Browser sources</h2>}
       <p className="mb-3 text-xs text-slate-500">
         Add each of these to OBS as a Browser source. Leave &ldquo;Shutdown source when not visible&rdquo; unchecked so state stays warm. Use Copy rather than
-        retyping: it adds <code className="text-slate-400">?{LAYER_NAME}=</code>, which is what OBS names the source from. Without it a scene of these comes
-        back as a list of identical entries.
+        retyping: it adds <code className="text-slate-400">?{LAYER_NAME}=</code>, which is what OBS names the source from &mdash; each one arrives as{' '}
+        <code className="text-slate-400">{`${PREFIX} - ${studio.name} - …`}</code>{' '}
+        rather than as another &ldquo;localhost&rdquo;.
       </p>
       <ul className="flex flex-col gap-2">
         {names.map((name) => (
@@ -72,7 +93,7 @@ export function SourceList({ className }) {
             >
               {copied === name ? 'Copied' : 'Copy'}
             </button>
-            <span className="text-sm font-medium text-slate-200">{name}</span>
+            <span className="ss-source-name text-sm font-medium text-slate-200">{titleize(name)}</span>
             <a
               href={obsUrlFor(name)}
               target="_blank"
@@ -86,5 +107,49 @@ export function SourceList({ className }) {
         ))}
       </ul>
     </section>
+  )
+}
+
+/**
+ * The same list as a modal, for the menu.
+ *
+ * It used to sit permanently at the bottom of the board, which is the wrong shape
+ * for what it is: wiring OBS is a once-ever job, and the panel spent every show
+ * after that taking up the space under the controls an operator actually uses.
+ */
+export function SourceListDialog({ open, onClose }) {
+  const dialog = useRef(null)
+
+  useEffect(() => {
+    const element = dialog.current
+
+    if (!element) return
+
+    if (open && !element.open) element.showModal()
+    if (!open && element.open) element.close()
+  }, [open])
+
+  return (
+    <dialog
+      ref={dialog}
+      onClose={onClose}
+      onCancel={onClose}
+      className="ss-sources-dialog m-auto w-[min(46rem,94vw)] max-h-[86vh] rounded-lg border border-slate-800 bg-slate-900 p-0 text-slate-100 backdrop:bg-black/60 open:flex open:flex-col"
+    >
+      <header className="flex shrink-0 items-center gap-2 border-b border-slate-800 px-4 py-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Browser sources</h2>
+        <Tooltip label="Close" align="end" className="ml-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close the source list"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+          >
+            <Icon name="close" />
+          </button>
+        </Tooltip>
+      </header>
+      <div className="min-h-0 grow overflow-y-auto p-4">{open ? <SourceList bare /> : null}</div>
+    </dialog>
   )
 }

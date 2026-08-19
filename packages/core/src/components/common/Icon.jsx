@@ -10,6 +10,9 @@ import { cx } from '../../toolkits/cx'
  * renders a single icon. Six paths in one file cost nothing and cannot fail to
  * load.
  *
+ * (There are more than six now. The argument holds until the day a studio wants a
+ * glyph this file does not have, which is the day to reach for a package.)
+ *
  * They are stroked with `currentColor` at a uniform weight, so an icon inherits the
  * colour of whatever button it sits in and needs no per-use styling. Size with a
  * utility class -- the default matches the text beside it.
@@ -24,6 +27,29 @@ const shapes = {
       <path d="M4.5 4h10l5 5v11h-15z" />
       <path d="M8.5 4v4.5h6V4" />
       <path d="M7.5 20v-6h9v6" />
+    </>
+  ),
+  menu: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </>
+  ),
+  /* A picture: frame, sun, and the hill a photo icon always has. */
+  image: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.75" />
+      <path d="M4 17l4.5-4.5 3.5 3.5 3-2.5 5 4" />
+    </>
+  ),
+  /* A monitor: what a browser source ends up being, in a scene. */
+  screen: (
+    <>
+      <rect x="3" y="4.5" width="18" height="12" rx="2" />
+      <path d="M9 20h6" />
+      <path d="M12 16.5V20" />
     </>
   ),
   close: (
