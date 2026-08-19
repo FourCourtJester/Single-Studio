@@ -38,6 +38,59 @@ function room() {
   return { join, peers, greet: () => peers.forEach((peer) => peer.mesh.greet()) }
 }
 
+describe('a peer that leaves', () => {
+  // Awareness drops a stale state after thirty seconds, which is a backstop for a
+  // peer that vanished, not a way to notice one that left. A mesh has no server to
+  // see a closed socket, so an operator count climbed on every reload and took half
+  // a minute to come back down -- the room being visibly wrong about who is in it.
+
+  it('goes from the room at once, not in thirty seconds', () => {
+    const show = room()
+    const host = show.join('host')
+    const guest = show.join('guest')
+
+    host.mesh.connected()
+    guest.mesh.connected()
+    host.mesh.awareness.setLocalState({ name: 'Dez' })
+    guest.mesh.awareness.setLocalState({ name: 'Sam' })
+
+    expect(host.mesh.awareness.getStates().size).toBe(2)
+
+    // What the transport hands back is the departing peer's own client id.
+    host.mesh.forget([guest.doc.clientID])
+
+    expect(host.mesh.awareness.getStates().size).toBe(1)
+    expect([...host.mesh.awareness.getStates().values()].map((state) => state.name)).toEqual(['Dez'])
+  })
+
+  it('takes the string a transport actually hands over', () => {
+    // Supabase presence keys are strings; the client ids they stand for are not.
+    const show = room()
+    const host = show.join('host')
+    const guest = show.join('guest')
+
+    host.mesh.connected()
+    guest.mesh.connected()
+    host.mesh.awareness.setLocalState({ name: 'Dez' })
+    guest.mesh.awareness.setLocalState({ name: 'Sam' })
+
+    host.mesh.forget([String(guest.doc.clientID)])
+
+    expect(host.mesh.awareness.getStates().size).toBe(1)
+  })
+
+  it('never forgets itself, whatever it is told', () => {
+    const show = room()
+    const host = show.join('host')
+
+    host.mesh.connected()
+    host.mesh.awareness.setLocalState({ name: 'Dez' })
+    host.mesh.forget([host.doc.clientID, 'nonsense', undefined, null])
+
+    expect(host.mesh.awareness.getStates().get(host.doc.clientID)).toEqual({ name: 'Dez' })
+  })
+})
+
 describe('a transport that will not take a message', () => {
   // Supabase answers a broadcast with a status rather than throwing, so a refused
   // send resolves like a successful one and a `try` around it catches nothing. The

@@ -120,7 +120,8 @@ check(
 const dockUrl = await host.page.evaluate(() => location.href)
 
 console.log(`  dock URL after setup: ${dockUrl}`)
-check(/[?&]relay=/.test(dockUrl) && /[?&]room=friday/.test(dockUrl), 'and the room ends up in the dock URL, where OBS will remember it')
+check(/#\/\?j=[^&]*friday/.test(dockUrl), 'and the room ends up in the dock URL, where OBS will remember it')
+check(!dockUrl.split('#')[0].includes('?'), 'with nothing before the hash, so none of it is sent to whoever serves the page')
 
 /**
  * Zero by default, and that is the point: this joins as fast as a machine can.
@@ -139,7 +140,7 @@ await host.page.waitForTimeout(Number(process.env.SETTLE ?? 0))
 
 // And everyone else: paste a link into an OBS dock. That is the whole of it --
 // no token typed, no settings screen, and OBS remembers the URL.
-const invite = `${BASE}/?relay=${encodeURIComponent(`ws://127.0.0.1:${port}`)}&room=friday#/`
+const invite = `${BASE}/#/?j=${[`ws://127.0.0.1:${port}`, 'friday'].map(encodeURIComponent).join(',')}`
 const operator = await machine('operator', invite)
 
 check(
@@ -455,7 +456,8 @@ console.log(`  invite: ${link.replace(/key=[^&#]+/, 'key=…')}`)
 // need anyway -- the board -- with the room on it, so their whole setup is pasting
 // it into an OBS dock.
 check(link.startsWith(BASE), 'inviting an operator produces a link to the studio')
-check(/[?&]relay=/.test(link) && /[?&]room=/.test(link) && /[?&]key=/.test(link), 'carrying the relay, the room and their key')
+check(/#\/\?j=/.test(link), 'carrying the relay, the room and their key as one value')
+check(link.split('#')[1].includes('%2F%2F127.0.0.1') || link.split('#')[1].includes('127.0.0.1'), 'and that value really does hold the relay')
 
 const invited = await machine('invited', link)
 
@@ -515,10 +517,13 @@ const sealedUrl = await sealing.page.evaluate(() => location.href)
 const [beforeHash, afterHash] = sealedUrl.split('#')
 
 console.log(`  sealed dock URL: ${sealedUrl.replace(/k=[^&]+/, 'k=…')}`)
-check(/[?&]k=[A-Za-z0-9_-]{43}/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
+check(/,[A-Za-z0-9_-]{43}$/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
+check(!beforeHash.includes('?'), 'and so does everything else -- nothing at all is sent to the page host')
+// The token keeps the *reference*, which is most of the length saved, and expands
+// it on the way back in. So the proof is the round trip, not the string.
 check(
-  decodeURIComponent(beforeHash).includes('relay=https://abcdefghijklmnopqrst.supabase.co'),
-  'and a project reference has become the address it stands for',
+  (afterHash ?? '').includes('abcdefghijklmnopqrst') && !(afterHash ?? '').includes('supabase.co'),
+  'the link carries the project reference rather than spelling out its address',
 )
 check(!/k=/.test(beforeHash), 'and never in the query, which would already have been sent to one')
 
@@ -531,6 +536,11 @@ await openMenu(sealing, 'collaborate')
 check(
   await sealing.page.locator('.ss-seal input[type="checkbox"]').isChecked(),
   'and reads its own link back as an encrypted show',
+)
+
+check(
+  (await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').inputValue()) === 'https://abcdefghijklmnopqrst.supabase.co',
+  'and the reference has become the address it stands for',
 )
 
 // A relay of its own is the one place this is not offered: it holds a copy of the

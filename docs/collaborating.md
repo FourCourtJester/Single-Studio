@@ -75,8 +75,8 @@ Nothing else. In particular:
 What keeps strangers out of the show is the room key, which travels in the invite
 link and never reaches Supabase at all.
 
-The page reloads and you are connected. That is it — no tables to create, no
-policies to configure, no code.
+You are connected. That is it — no tables to create, no policies to configure, no
+code.
 
 ### "This machine runs OBS"
 
@@ -137,12 +137,17 @@ On a relay, **the room name is what keeps a show private**, together with the
 per-operator keys the relay issues. Use something nobody would guess —
 `friday-night` is a bad room name, `friday-night-7x2k9` is a fine one.
 
-### Why the page reloads
+### Why the URL changes
 
 Because a dock's URL is the only thing OBS remembers. Once the room is in the URL,
 your dock is self-contained: it survives a reload, moves to another machine, and is
 already the shape of an invite link. Storing it only in the browser would mean
 losing it the next time somebody re-added the dock.
+
+It is one value after the `#`, rather than a row of parameters, for two reasons.
+It is shorter and there is only one thing to copy — and nothing after a `#` is ever
+sent to a server, so your room name and project key stay on your machines along
+with the room key.
 
 ---
 

@@ -113,6 +113,75 @@ export function resolveRelay(value) {
   return given
 }
 
+/**
+ * The whole room as one value, after the `#`.
+ *
+ * Four parameters was four things to get wrong and a URL nobody could read:
+ * `?relay=https%3A%2F%2F…supabase.co&room=friday&key=sb_publishable_…#/?k=…`, most
+ * of it percent-encoding and parameter names. One opaque token is shorter, and it
+ * is one thing to copy.
+ *
+ * Not a hash -- a hash cannot be read back, and the board has to be able to. This
+ * is an encoding: a compact array, base64url, no padding.
+ *
+ * Putting *everything* after the `#` is the part worth having. The fragment is
+ * never sent to a server, so the room name and the project key stop travelling to
+ * whoever hosts the page, alongside the key that was already kept out of their
+ * reach. And a Supabase address collapses back to the reference it was built from,
+ * which is most of the length gone.
+ */
+const TOKEN = 'j'
+const SUPABASE = /^https:\/\/([a-z0-9]{16,40})\.supabase\.co$/i
+
+/**
+ * Joined, not encoded. Base64 was tried and was worse.
+ *
+ * Wrapping the four values in JSON and base64 made one opaque token that was
+ * *longer* than the parameters it replaced -- base64 costs a third on top, and the
+ * quotes and brackets cost more than the parameter names they saved. Measured: 177
+ * characters against 165.
+ *
+ * A separator costs one character each. The parts are percent-encoded so a room
+ * name containing one cannot break the split, which for the alphanumeric names
+ * anybody actually types is free.
+ *
+ * A comma, specifically, because `encodeURIComponent` escapes it. The obvious
+ * choice was `~` and it is silently wrong: `~` is an unreserved mark, so it comes
+ * back through the encoder untouched, and a room called "friday ~ night" would
+ * split into pieces. The separator has to be a character the encoder takes away.
+ */
+const JOIN = ','
+
+/** Everything a board needs to join, as one string. */
+export function packRoom({ url, room, token, secret } = {}) {
+  const address = SUPABASE.exec(String(url ?? '').trim())
+  const parts = [address ? address[1] : (url ?? ''), room ?? '', token ?? '', secret ?? ''].map((part) => String(part ?? ''))
+
+  // Trailing empties carry no information and cost characters.
+  while (parts.length && !parts.at(-1)) parts.pop()
+
+  return parts.length ? parts.map(encodeURIComponent).join(JOIN) : ''
+}
+
+export function unpackRoom(value) {
+  if (!value) return null
+
+  try {
+    const parts = String(value).split(JOIN).map(decodeURIComponent)
+    const url = resolveRelay(parts[0])
+
+    // Must resolve to something with a scheme, or it is not an address. A mistyped
+    // token would otherwise become a room pointing confidently at nonsense, which
+    // is worse than a link that plainly does not work: the board would sit there
+    // failing to reach a relay nobody ever had.
+    if (!/^[a-z]+:\/\//i.test(url)) return null
+
+    return { url, room: parts[1] || undefined, token: parts[2] || undefined, secret: parts[3] || undefined }
+  } catch {
+    return null
+  }
+}
+
 /** Read a room out of a URL. Both the real query and the hash query are checked. */
 export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.location.href) {
   if (!href) return null
@@ -122,6 +191,13 @@ export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.
     const hash = url.hash.indexOf('?')
     const inHash = hash === -1 ? new URLSearchParams() : new URLSearchParams(url.hash.slice(hash + 1))
     const read = (name) => url.searchParams.get(name) ?? inHash.get(name)
+
+    // The token if there is one; the four separate parameters if this is an older
+    // link. Docks that were set up before this change keep working, and OBS
+    // remembers a dock's URL for as long as the dock exists.
+    const packed = unpackRoom(inHash.get(TOKEN))
+
+    if (packed) return packed
 
     const found = { url: read(PARAMS.url), room: read(PARAMS.room), token: read(PARAMS.token) }
 
@@ -149,15 +225,12 @@ export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.
  */
 export function relayLink({ url, room, token, secret, base = typeof window === 'undefined' ? '' : window.location.href } = {}) {
   const link = new URL(base)
-  const params = new URLSearchParams()
+  const packed = packRoom({ url, room, token, secret })
 
-  if (url) params.set(PARAMS.url, url)
-  if (room) params.set(PARAMS.room, room)
-  if (token) params.set(PARAMS.token, token)
-
-  link.search = params.toString()
-  // After the `#`, so it is never sent to a server. See SECRET.
-  link.hash = secret ? `#/?${SECRET}=${encodeURIComponent(secret)}` : '#/'
+  // Nothing before the `#`. See TOKEN: one value to copy, and none of it sent to
+  // whoever serves the page.
+  link.search = ''
+  link.hash = packed ? `#/?${TOKEN}=${packed}` : '#/'
 
   return link.toString()
 }

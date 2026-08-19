@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { relayFromUrl, relayLink, resolveRelay } from '../src/hooks/useRelay'
+import { packRoom, relayFromUrl, relayLink, resolveRelay, unpackRoom } from '../src/hooks/useRelay'
 import { nextRoom } from '../src/components/control/Collaborate'
 
 // An operator's whole setup is pasting a link into an OBS dock. Nobody types a
@@ -83,18 +83,13 @@ describe('the room key in a link', () => {
   })
 
   it('goes into the fragment when a link is built, never the query', () => {
-    const link = relayLink({
-      url: 'https://x.supabase.co',
-      room: 'friday',
-      token: 'anon',
-      secret: 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk',
-      base: 'https://studio.example.com/',
-    })
-
+    const secret = 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk'
+    const link = relayLink({ url: 'https://x.supabase.co', room: 'friday', token: 'anon', secret, base: 'https://studio.example.com/' })
     const [before, after] = link.split('#')
 
-    expect(after).toContain('Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk')
-    expect(before).not.toContain('Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk')
+    expect(relayFromUrl(link)?.secret).toBe(secret)
+    expect(after).toContain(secret)
+    expect(before).not.toContain(secret)
   })
 
   it('round-trips, so a link this builds is a link this reads', () => {
@@ -118,7 +113,8 @@ describe('building a link to send somebody', () => {
   it('lands on the board rather than wherever the link was built from', () => {
     const link = relayLink({ url: 'wss://r.example.com', room: 'friday', base: 'https://studio.example.com/#/source/ticker' })
 
-    expect(link.endsWith('#/')).toBe(true)
+    expect(link).toContain('#/?')
+    expect(link).not.toContain('/source/ticker')
   })
 
   it('leaves out what it was not given', () => {
@@ -194,5 +190,88 @@ describe('what an operator actually has to hand', () => {
 
   it('expands a reference found in a link, so an invite can carry either', () => {
     expect(relayFromUrl('https://studio.example.com/?relay=abcdefghijklmnopqrst&room=friday#/')?.url).toBe('https://abcdefghijklmnopqrst.supabase.co')
+  })
+})
+
+describe('the whole room as one value', () => {
+  // Four parameters was four things to get wrong and a URL nobody could read. One
+  // token is shorter and is one thing to copy -- and putting it after the `#` keeps
+  // the room name and the project key away from whoever serves the page, which the
+  // room key already was.
+
+  const room = {
+    url: 'https://abcdefghijklmnopqrst.supabase.co',
+    room: 'friday-night-7x2k9',
+    token: 'sb_publishable_0123456789abcdefghij',
+    secret: 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk',
+  }
+
+  it('round-trips everything it was given', () => {
+    expect(unpackRoom(packRoom(room))).toEqual(room)
+  })
+
+  it('is url-safe, since its whole job is to live in a link', () => {
+    // `,` separates, and `%` is there for the parts that needed escaping -- a room
+    // name with a space in it, say.
+    expect(packRoom(room)).toMatch(/^[A-Za-z0-9_.~%,-]+$/)
+  })
+
+  it('survives a room name with the separator in it', () => {
+    // The reason the separator is a comma: `encodeURIComponent` escapes one, and
+    // leaves `~` alone. With `~` this room split into pieces.
+    const awkward = { ...room, room: 'friday, night ~ late' }
+
+    expect(unpackRoom(packRoom(awkward))).toEqual(awkward)
+  })
+
+  it('is shorter than the parameters it replaces', () => {
+    // Not decoration: most of the old length was percent-encoding and parameter
+    // names, and a Supabase address collapses to the reference it was built from.
+    const before = `?relay=${encodeURIComponent(room.url)}&room=${room.room}&key=${room.token}#/?k=${room.secret}`
+    const after = `#/?j=${packRoom(room)}`
+
+    expect(after.length).toBeLessThan(before.length)
+  })
+
+  it('puts the whole thing after the hash, and nothing before it', () => {
+    const [before, after] = relayLink({ ...room, base: 'https://studio.example.com/' }).split('#')
+
+    expect(before).toBe('https://studio.example.com/')
+    expect(after).toContain('j=')
+    // The things that used to travel to the page's host, now not travelling.
+    expect(before).not.toContain(room.room)
+    expect(before).not.toContain(room.token)
+  })
+
+  it('round-trips through a built link', () => {
+    expect(relayFromUrl(relayLink({ ...room, base: 'https://studio.example.com/' }))).toEqual(room)
+  })
+
+  it('still reads a link written the old way', () => {
+    // OBS remembers a dock's URL for as long as the dock exists, so an operator set
+    // up before this change must not have to be set up again.
+    expect(
+      relayFromUrl('https://studio.example.com/?relay=https://x.supabase.co&room=friday&key=anon#/?k=Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk'),
+    ).toEqual({
+      url: 'https://x.supabase.co',
+      room: 'friday',
+      token: 'anon',
+      secret: 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk',
+    })
+  })
+
+  it('manages a room with no key and no token', () => {
+    const bare = { url: 'wss://relay.example.com', room: 'friday' }
+
+    expect(unpackRoom(packRoom(bare))).toEqual({ url: 'wss://relay.example.com', room: 'friday', token: undefined, secret: undefined })
+  })
+
+  it('refuses nonsense rather than inventing a room', () => {
+    // A mistyped token becoming a room that points confidently at nothing is worse
+    // than a link that plainly does not work.
+    expect(unpackRoom('')).toBeNull()
+    expect(unpackRoom('rubbish')).toBeNull()
+    expect(unpackRoom('not a url,friday')).toBeNull()
+    expect(relayFromUrl('https://studio.example.com/#/?j=rubbish')).toBeNull()
   })
 })

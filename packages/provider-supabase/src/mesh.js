@@ -155,6 +155,25 @@ export function createMeshProvider({ doc, send, report, name = 'mesh' }) {
     },
 
     /**
+     * Peers the transport says have gone.
+     *
+     * Without this they linger for thirty seconds. Awareness has its own sweep --
+     * y-protocols drops a state nobody has refreshed for `outdatedTimeout` -- but
+     * that is a backstop for a peer that vanished without warning, not a way to
+     * notice one that left. A mesh has no server to spot a closed socket, so if the
+     * transport knows who left, it has to say so.
+     *
+     * The visible cost of not saying so is an operator count that climbs every time
+     * somebody reloads their board and takes half a minute to come back down, which
+     * reads as the room being wrong about who is in it.
+     */
+    forget(ids) {
+      const gone = [...new Set(ids.map(Number))].filter((id) => Number.isFinite(id) && id !== doc.clientID && awareness.getStates().has(id))
+
+      if (gone.length) awarenessProtocol.removeAwarenessStates(awareness, gone, name)
+    },
+
+    /**
      * A new peer appeared. Offers the show rather than asking for it.
      *
      * The distinction matters and is easy to get backwards. A syncStep1 asks "what

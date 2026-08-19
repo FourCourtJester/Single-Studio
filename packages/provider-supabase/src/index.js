@@ -91,6 +91,13 @@ export function connectSupabase({ doc, url, room, token, report, seal, open, isS
   // -- and covers the case where their own hello landed before we were listening.
   channel.on('presence', { event: 'join' }, () => mesh.greet())
 
+  // And somebody left. The presence key is the peer's own client id -- see the
+  // channel config above -- so this is the transport telling us exactly whose
+  // presence to drop, thirty seconds before awareness would have worked it out.
+  channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) =>
+    mesh.forget([key, ...(leftPresences ?? []).map((left) => left?.key)].filter(Boolean)),
+  )
+
   report?.('connecting')
 
   channel.subscribe((status, error) => {

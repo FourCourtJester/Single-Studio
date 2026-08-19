@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { relayLink, resolveRelay, useRelay } from '../../hooks/useRelay'
 import { newSecret } from '../../velcro/crypto'
-import { useSyncStatus } from '../../hooks/useSync'
+import { usePresence, useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
@@ -18,12 +18,17 @@ import { SyncStatus } from './SyncStatus'
  * quiet button when nothing is connected, and a form that says what to paste and
  * where to find it.
  *
- * **Pressing Go rewrites the page's URL and reloads.** That looks heavy-handed and
- * is the most useful thing here. A dock's URL is the only thing OBS remembers; put
- * the room in local storage alone and re-adding the dock -- or moving to a second
- * machine -- loses it silently. In the URL it is portable, inspectable, and it is
- * already the format an invite link uses, so the streamer's own dock URL *is* an
- * invite they can send.
+ * **Pressing Go rewrites the page's URL.** A dock's URL is the only thing OBS
+ * remembers; put the room in local storage alone and re-adding the dock -- or
+ * moving to a second machine -- loses it silently. In the URL it is portable,
+ * inspectable, and it is already the format an invite link uses, so the streamer's
+ * own dock URL *is* an invite they can send.
+ *
+ * It no longer reloads, and that is a consequence rather than a decision: the whole
+ * room moved into the fragment, and a navigation that changes only the fragment is
+ * a same-document one. Which turns out to be better -- joining is a message to the
+ * worker, not a restart, so there is no flash and no cold store -- but it does mean
+ * the dialog has to close itself, where before the reload took it away.
  *
  * It never opens itself. A studio with one operator is the common case and works
  * with none of this; a modal demanding setup on first run would be asking most
@@ -47,17 +52,46 @@ export function Collaborate({ onOpen, className, ...rest }) {
 
   if (!status.configured) return null
 
+  // No Tooltip here: SyncStatus carries its own, naming the room and who is in it,
+  // and wrapping it in a second one stacked two bubbles under the same button.
+  // The button keeps an aria-label, which is what a screen reader needs and what a
+  // tooltip is not.
   return (
-    <Tooltip label="Collaboration settings" align="end" className={className} {...rest}>
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label="Collaboration settings"
-        className="ss-collaborate flex items-center rounded-md transition-colors hover:bg-slate-800"
-      >
-        <SyncStatus />
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Collaboration settings"
+      className={cx('ss-collaborate flex items-center rounded-md transition-colors hover:bg-slate-800', className)}
+      {...rest}
+    >
+      <SyncStatus />
+    </button>
+  )
+}
+
+/**
+ * Who else is in the room, by name.
+ *
+ * The count in the header answers "is anybody there"; this answers "who", which is
+ * the question that comes next and the one an operator asks out loud. Cheap now
+ * that every machine has a name to give -- a list of blanks would have been worse
+ * than the number it replaced.
+ */
+function Roster() {
+  const peers = usePresence()
+  const others = peers.filter((peer) => !peer.self)
+
+  if (!others.length) return <span className="ss-roster text-xs text-slate-600">Nobody else is here yet.</span>
+
+  return (
+    <ul className="ss-roster flex flex-wrap gap-1.5">
+      {others.map((peer) => (
+        <li key={peer.id} className="ss-roster-name flex items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-200">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+          {peer.name || 'Unnamed'}
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -139,14 +173,16 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
 
     join(next)
 
-    // Into the URL, then reload. The dock URL becomes the whole configuration --
-    // portable to another machine, and already the shape of an invite link.
+    // Into the URL. The dock URL becomes the whole configuration -- portable to
+    // another machine, and already the shape of an invite link.
     window.location.replace(relayLink(next))
+    onClose()
   }
 
   const leave = () => {
     join({ reference: false })
     window.location.replace(relayLink({}))
+    onClose()
   }
 
   return (
@@ -175,28 +211,13 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
           <section className="flex flex-col gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3">
             <span className="text-xs font-medium uppercase tracking-wide text-emerald-200">Invite someone</span>
             <span className="text-xs text-emerald-100/70">
-              Send them this. They paste it into an OBS custom browser dock, and that is their whole setup.
+              Send them this. Opening it is their whole setup &mdash; in a browser, or in an OBS dock if they are running one.
               {config.secret ? ' It contains the key to this show, so send it the way you would send a password.' : null}
             </span>
             <code className="ss-invite-link select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
               {relayLink({ url: config.url, room: config.room, token: config.token, secret: config.secret })}
             </code>
 
-            {/* The only revocation there is, and it is worth saying why rather than
-                hiding it behind a word like "rotate". Nobody can be un-told a key
-                they already have, so shutting somebody out means a room they have no
-                key to. Your own machine carries the show into it, so nothing is lost
-                but the people you meant to leave behind. */}
-            <button
-              type="button"
-              onClick={() => {
-                setName(nextRoom(config.room ?? room))
-                setSecret(newSecret())
-              }}
-              className="ss-rekey self-start text-xs text-emerald-300/80 underline-offset-2 transition-colors hover:text-emerald-200 hover:underline"
-            >
-              Shut somebody out &mdash; start a fresh room
-            </button>
           </section>
         ) : null}
 
@@ -291,6 +312,7 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
         <div className="ss-collaborate-you flex flex-col gap-3 rounded-md border border-slate-800 bg-slate-950/60 p-3">
           <Operator label="You are" placeholder="Your name" />
           <span className="text-xs text-slate-600">Shown to the other operators, and beside any field you have open. Only ever stored on this machine.</span>
+          <Roster />
           {/* Only for a relay of your own: a hosted project has no token API. */}
           <RelayAdmin />
         </div>
@@ -299,7 +321,13 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
           <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Room</span>
           <input
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value)
+              // A new room needs a new key: the old one does not travel to it, and a
+              // box still holding the key for the room being left behind is how
+              // somebody sends an invite that opens nothing.
+              if (canSeal && secret && event.target.value.trim() !== (config?.room ?? '')) setSecret(newSecret())
+            }}
             placeholder="friday-night"
             aria-label="Room name"
             className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-500"

@@ -51,12 +51,15 @@ export function Operator({ label = 'You are', placeholder = 'Your name', classNa
   const [name, setName] = useState(null)
 
   useEffect(() => {
-    const held = stored().name
-
-    // Only when nothing has ever been set. Somebody who cleared the field on
-    // purpose has said something, and having a name reappear under the cursor
-    // would be the board arguing with them.
-    setName(held ?? suggestName())
+    // An empty stored name counts as unnamed, not as a decision.
+    //
+    // The tempting rule was "only when nothing has ever been set", on the grounds
+    // that somebody who cleared the field meant it. But an empty string is what a
+    // board written before this existed left behind, and it is indistinguishable
+    // from a deliberate blank -- so that rule left exactly the machines that had
+    // been running longest as the ones with no name. Presence with no name answers
+    // none of the question it exists for.
+    setName(stored().name?.trim() || suggestName())
   }, [])
 
   useEffect(() => {
