@@ -25,12 +25,14 @@ clock.
 
 ## Layout
 
-| Path               | What                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`    | `@single-studio/core` — the framework                                                                                           |
-| `templates/studio` | Starting point for a new studio                                                                                                 |
-| `apps/demo`        | A working studio, and the integration test for the package boundary                                                             |
-| `docs/`            | [Architecture](docs/architecture.md) · [Getting started](docs/getting-started.md) · [Collaboration plan](docs/collaboration.md) |
+| Path                         | What                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`              | `@single-studio/core` — the framework                                                                                           |
+| `packages/provider-supabase` | Collaboration over a Supabase project. Nothing to deploy                                                                        |
+| `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                        |
+| `templates/studio`           | Starting point for a new studio                                                                                                 |
+| `apps/demo`                  | A working studio, and the integration test for the package boundary                                                             |
+| `docs/`                      | [Architecture](docs/architecture.md) · [Getting started](docs/getting-started.md) · [Collaboration plan](docs/collaboration.md) |
 
 A studio is its own repo that depends on `@single-studio/core`, with its own build
 and its own Pages deployment. Framework upgrades are a version bump, not a merge.

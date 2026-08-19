@@ -72,11 +72,26 @@ its URL is runtime configuration — never baked into a build.
 
 ### Relay choice
 
-Ship a **Cloudflare Durable Object** template in `packages/relay`. One object per
-room, holding the document and rebroadcasting updates. Free tier covers a small
-streamer comfortably, users deploy their own with one command, and we host
-nothing. Advanced users can point at `y-websocket`, Hocuspocus, or y-sweet
-instead — the endpoint is just a URL.
+Two rungs, because they suit different people, and the framework holds no keys for
+either.
+
+**Bring your own service** — `@single-studio/provider-supabase`. Supabase Realtime
+broadcast works from the browser with a project's anon key, so there is nothing to
+deploy: a free project, two copied values, done. This is the default recommendation
+for someone who does not want to operate anything.
+
+**Bring your own relay** — `packages/relay`, a Cloudflare Durable Object. One
+command, nothing to keep running, and it holds the document so a late joiner is
+served even when every other machine is off. For anyone who wants that guarantee,
+or who would rather not depend on a third party at all.
+
+Ruled out along the way: **Pusher** (client-to-client needs private channels, which
+need an auth endpoint — a backend), and **Trystero** (genuinely zero setup, but
+WebRTC cannot be created in a `SharedWorker`, and the whole store lives in one; it
+would need a main-thread socket bridged into the worker plus a rule for which tab
+owns it — worth revisiting, not the first rung).
+
+The seam takes any of them. The endpoint is just an address.
 
 ### What reliability actually means here
 

@@ -1,0 +1,30 @@
+{
+  "name": "@single-studio/provider-supabase",
+  "version": "0.1.0",
+  "description": "Collaboration for Single Studio over Supabase Realtime: bring your own key, no backend to deploy.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./mesh": "./src/mesh.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "yjs": "^13.6.20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "lib0": "^0.2.117",
+    "y-protocols": "^1.0.7"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "yjs": "^13.6.20"
+  }
+}

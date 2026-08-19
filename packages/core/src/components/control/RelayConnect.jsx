@@ -17,13 +17,14 @@ import { cx } from '../../toolkits/cx'
  * changed without a rebuild and a redeploy, which is a poor thing to discover an
  * hour before doors. Kept in localStorage, so it is set once per machine.
  */
-export function RelayConnect({ label = 'Relay', placeholder = 'wss://relay.example.com', className, ...rest }) {
+export function RelayConnect({ label = 'Relay', placeholder = 'https://your-project.supabase.co', className, ...rest }) {
   // Read-only until somebody presses Join: StudioApp owns the automatic case.
   const { config, join } = useRelay({ auto: false })
   const status = useSyncStatus()
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState(config?.url ?? '')
   const [room, setRoom] = useState(config?.room ?? '')
+  const [token, setToken] = useState(config?.token ?? '')
 
   const joined = Boolean(config?.url)
 
@@ -50,13 +51,24 @@ export function RelayConnect({ label = 'Relay', placeholder = 'wss://relay.examp
   return (
     <section className={cx('ss-relay-connect flex flex-col gap-1', className)} {...rest}>
       <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
-      <span className="text-xs text-slate-500">Where the other operators connect. Set once on the machine running the show.</span>
+      <span className="text-xs text-slate-500">
+        Where the other operators connect. Set once on the machine running the show &mdash; a Supabase project URL, or your own relay.
+      </span>
       <input
         value={url}
         onChange={(event) => setUrl(event.target.value)}
         placeholder={placeholder}
         aria-label="Relay address"
         className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-500"
+      />
+      {/* Only a hosted service needs one, and a relay of your own does not, so it
+          asks rather than insisting. */}
+      <input
+        value={token}
+        onChange={(event) => setToken(event.target.value)}
+        placeholder="anon key (Supabase only)"
+        aria-label="Project key"
+        className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-100 outline-none placeholder:font-sans placeholder:text-slate-600 focus:border-sky-500"
       />
       <div className="ss-input-group flex">
         <input
@@ -69,7 +81,7 @@ export function RelayConnect({ label = 'Relay', placeholder = 'wss://relay.examp
         <button
           type="button"
           onClick={() => {
-            join({ url: url.trim(), room: room.trim() })
+            join({ url: url.trim(), room: room.trim(), token: token.trim() })
             setOpen(false)
           }}
           className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500"
