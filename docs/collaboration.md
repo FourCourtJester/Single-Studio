@@ -729,8 +729,19 @@ path.
 
 So the host now says everything **down the port as well**. It already tracks which
 ports subscribed to which path, so the direct answer is the more precise of the two
-roads rather than a fan-out being simulated. Six consecutive browser runs against a
-baseline that was failing one in three.
+roads rather than a fan-out being simulated.
+
+**This helped and did not finish the job, and the distinction matters.** Six
+consecutive collaboration runs passed against a baseline that had been failing about
+one in three — and then the ninth failed the same way. Call it one in eight rather
+than one in three: a real improvement, and not a fix.
+
+So a lost broadcast was *a* cause and evidently not the only one. What still holds
+from the investigation: the worker knows and the page does not, the wire protocol
+and the relay's join handshake are exonerated by stable Node runs, and the gap is
+2--14ms when it works and never when it does not. What is now also true is that
+closing the most obvious way a page can miss a message did not close all of them.
+The remaining path is still somewhere between the worker and the page.
 
 ### The hazard that introduces, and the stamp that closes it
 
@@ -751,6 +762,6 @@ straggler win, which is how it was checked.
 | Remote operators on non-Chromium browsers              | Not a real constraint: module `SharedWorker` is Chrome 83+, Firefox 114+, Safari 16+. Ship a minimum-version note rather than a fallback. See [getting-started](./getting-started.md#browser-requirements). |
 | Relay is a single point of failure for _collaboration_ | Accepted. It is never a single point of failure for the _broadcast_ — that's what local-first buys.                                                                                                         |
 | Counter delta growth                                   | Bounded by distinct clientIDs that have ever incremented a path. A long-lived doc across many sessions accumulates keys; add compaction on load if it ever shows up in practice.                            |
-| A peer intermittently not learning what the room already knows | **Fixed.** Root cause was a `BroadcastChannel` post from the worker going missing with no recovery path — see [Two roads to a page](#two-roads-to-a-page-). Worth remembering for the shape rather than the fix: it looked like a relay fault for a long time, and the thing that cornered it was reloading the page at the moment of failure and finding the worker had known all along. |
+| A peer intermittently not learning what the room already knows | **Improved, still open.** A lost `BroadcastChannel` post was one cause and is closed — see [Two roads to a page](#two-roads-to-a-page-) — which took it from roughly one run in three to about one in eight. Something else can still lose a message between the worker and the page. Worth remembering for the shape rather than the fix: it looked like a relay fault for a long time, and what cornered the first cause was reloading the page at the moment of failure and finding the worker had known all along. That measurement is the one to repeat on the remainder. |
 | A test that waits for the wrong thing | Not a product risk, but it cost real time twice. A folder upload adds files one at a time, and a check that waited for the *group* to exist read a half-filled list and reported a lost file — which looks exactly like the deduplication racing itself, a considerably more alarming thing to go hunting for. Wait on the count. |
 | Two operators editing one text field                   | Presence (stage 3). Character-level merging is available if needed, but a field is not a document and last-write-wins is usually what an operator expects.                                                  |
