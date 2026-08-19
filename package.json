@@ -10,6 +10,7 @@
   },
   "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "preinstall": "node scripts/only-pnpm.mjs",
     "build": "pnpm -r --filter \"./packages/*\" build",
     "demo": "pnpm build && pnpm --filter @single-studio/demo dev",
     "demo:build": "pnpm build && pnpm --filter @single-studio/demo build",

@@ -7,6 +7,26 @@ pnpm install
 pnpm demo
 ```
 
+**pnpm, not npm.** The packages depend on each other through the `workspace:*`
+protocol, which npm does not implement, and Vite resolves framework imports through
+pnpm's symlink tree. `npm install` cannot work here, and it does not fail cleanly —
+it gets far enough to start rearranging `node_modules` first, and what it leaves
+behind looks like a broken build rather than a wrong package manager:
+
+```
+Error: The following dependencies are imported but could not be resolved:
+  yjs (imported by packages/core/dist/mutations-*.js)
+```
+
+That is `packages/core/node_modules/yjs`, a symlink pnpm made and npm removed. A
+`preinstall` guard now stops this before it starts; if you hit it on an older
+checkout, clear the wreckage and reinstall:
+
+```bash
+rm -rf node_modules packages/*/node_modules apps/*/node_modules package-lock.json
+pnpm install
+```
+
 Open the printed URL. That is the control surface; it lists every graphic's
 browser-source URL with a copy button.
 
