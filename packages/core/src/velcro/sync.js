@@ -76,6 +76,20 @@ export function createSync({ doc, name, status, config }) {
    */
   let offset = 0
 
+  /**
+   * Whether another machine in the room has claimed the OBS role.
+   *
+   * The clock is not the only thing that role decides. It is also the machine that
+   * has to *display* the show, which makes it the only one that can usefully hold a
+   * dropped image file, and the only one that should be polling anybody's API. When
+   * somebody else is holding it, this machine defers -- see `owner` in useSync.
+   *
+   * Live rather than sticky, unlike the clock offset: a machine that has left the
+   * room is not claiming anything, and the alternative would be a board locked out
+   * of its own library because a peer that has long since gone once ticked a box.
+   */
+  let delegated = false
+
   /** clientId of the reference being followed, and the last `at` seen from each. */
   let following = null
   const seen = new Map()
@@ -109,7 +123,7 @@ export function createSync({ doc, name, status, config }) {
 
   // `url` rides along because the token API lives on the same host as the socket,
   // and a board that can show the room should not have to be told twice where it is.
-  const snapshot = () => ({ state, room: active.room, url: active.url, detail, offset, reference: Boolean(beacon.reference) })
+  const snapshot = () => ({ state, room: active.room, url: active.url, detail, offset, reference: Boolean(beacon.reference), delegated })
 
   // Only ever sent once a studio has opted in. An offline studio posting "offline"
   // would be a message that never existed before.
@@ -270,10 +284,32 @@ export function createSync({ doc, name, status, config }) {
     if (arrived) beat()
   }
 
+  function defer(next) {
+    if (next === delegated) return
+
+    delegated = next
+    announceStatus()
+  }
+
   function readClock() {
     const awareness = awarenessOf()
 
     if (!awareness) return
+
+    const states = awareness.getStates()
+
+    // Two machines both told they run OBS is a misconfiguration, not a crash. The
+    // lowest client id wins, which every peer works out identically, so nobody ends
+    // up following a different clock from everybody else.
+    const claims = [...states.entries()]
+      .filter(([id, state]) => id !== awareness.clientID && state?.reference)
+      .map(([id]) => id)
+      .sort((a, b) => a - b)
+
+    // Deferring does not wait for a beat. A machine that has said it runs OBS owns
+    // the library and the ingress from that moment; only its *clock* needs a
+    // measurable timestamp before anyone can use it.
+    defer(!beacon.reference && claims.length > 0)
 
     // The reference does not correct itself: it is what everyone else corrects
     // against, so its own offset is zero by definition.
@@ -283,21 +319,11 @@ export function createSync({ doc, name, status, config }) {
       return
     }
 
-    const states = awareness.getStates()
-
     // Forget a machine that left, so if it comes back its first value is treated as
     // the unknown-age thing it is rather than measured against one from before.
     for (const id of [...seen.keys()]) if (!states.has(id)) seen.delete(id)
 
-    // Two machines both told they run OBS is a misconfiguration, not a crash. The
-    // lowest client id wins, which every peer works out identically, so nobody ends
-    // up following a different clock from everybody else.
-    const chosen =
-      [...states.entries()]
-        .filter(([id, state]) => id !== awareness.clientID && state?.reference && Number.isFinite(state.at))
-        .map(([id]) => id)
-        .sort((a, b) => a - b)
-        .at(0) ?? null
+    const chosen = claims.filter((id) => Number.isFinite(states.get(id).at)).at(0) ?? null
 
     following = chosen
 
@@ -458,6 +484,11 @@ export function createSync({ doc, name, status, config }) {
 
     await teardown()
 
+    // Alone again, and a machine on its own is always its own owner. Leaving this
+    // set would lock a board out of its own image library the moment it dropped off
+    // a room, which is the exact opposite of what local-first is for.
+    defer(false)
+
     // Unconditional: detaching means "be offline", whether or not anything was
     // attached. `report` swallows the no-op, so an unconfigured host stays silent.
     report(OFFLINE)
@@ -514,6 +545,10 @@ export function createSync({ doc, name, status, config }) {
     /** The peer whose clock this machine is following, if any. */
     get following() {
       return following
+    },
+    /** Whether somebody else in the room holds the OBS role. */
+    get delegated() {
+      return delegated
     },
     get snapshot() {
       return snapshot()

@@ -144,6 +144,65 @@ describe('two y-websocket clients', () => {
   })
 })
 
+describe('the OBS role across the relay', () => {
+  // The e2e for this is intermittent, so here is the same scenario with no browser
+  // in it: two studios, one says it runs OBS, and the other has to find out. The
+  // claim rides awareness, which is a different path from the document -- a peer
+  // can be converged on state and still never have been told who holds the room.
+
+  it('reaches a studio that was already in the room', async () => {
+    const a = studio()
+
+    await a.ready()
+
+    const b = studio()
+
+    await b.ready()
+
+    a.host.sync.clock(true)
+
+    expect(await until(() => b.host.sync.delegated)).toBe(true)
+    expect(a.host.sync.delegated).toBe(false)
+  })
+
+  it('reaches a studio that joins afterwards', async () => {
+    // The harder direction. The claim was published before this peer existed, so
+    // nothing about it is *new* by the time they arrive -- they only ever see it if
+    // the room hands over the awareness it is already holding.
+    const a = studio()
+
+    await a.ready()
+
+    a.host.sync.clock(true)
+
+    await wait(300)
+
+    const b = studio()
+
+    await b.ready()
+
+    expect(await until(() => b.host.sync.delegated)).toBe(true)
+  })
+
+  it('gives it back when the OBS machine leaves', async () => {
+    const a = studio()
+
+    await a.ready()
+
+    const b = studio()
+
+    await b.ready()
+
+    a.host.sync.clock(true)
+
+    expect(await until(() => b.host.sync.delegated)).toBe(true)
+
+    await a.host.sync.detach()
+
+    expect(await until(() => !b.host.sync.delegated)).toBe(true)
+  })
+})
+
 describe('two studios', () => {
   it('converge through the relay, host to host', async () => {
     // The stage-2 claim, minus the browser: two SharedWorker hosts, each with its

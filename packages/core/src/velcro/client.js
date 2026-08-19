@@ -18,6 +18,7 @@ const syncOf = (data) => ({
   detail: data.detail,
   offset: data.offset ?? 0,
   reference: Boolean(data.reference),
+  delegated: Boolean(data.delegated),
 })
 
 export class VelcroClient {
@@ -39,7 +40,7 @@ export class VelcroClient {
 
   #watchers = { sync: new Set(), presence: new Set() }
 
-  #last = { sync: { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false }, presence: [] }
+  #last = { sync: { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false, delegated: false }, presence: [] }
 
   constructor({ name, worker }) {
     if (typeof worker !== 'function') throw new TypeError('Velcro needs a `worker` factory: () => new SharedWorker(...)')
@@ -86,6 +87,18 @@ export class VelcroClient {
 
   get name() {
     return this.#name
+  }
+
+  /**
+   * Whether another machine in the room holds the OBS role.
+   *
+   * Synchronous, and last-known rather than live, which is what a predicate handed
+   * to a service wants: `owner: () => !velcro.delegated`. False until the host has
+   * said otherwise, so a studio that never joins a room owns everything -- see
+   * useOwner for why that default is the load-bearing one.
+   */
+  get delegated() {
+    return Boolean(this.#last.sync.delegated)
   }
 
   /**

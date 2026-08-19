@@ -126,18 +126,25 @@ holds the document, and the Collaborate dialog takes its address the same way.
 
 ## Images
 
-The library's _names_ are shared; the _files_ are not.
+**Links can be added by anyone. Files are added on the machine running OBS.**
 
-An image somebody pastes in as a URL works everywhere — the file is wherever it
-always was. An image somebody drops in from their desktop lives on their machine,
-and everyone else sees it in the list marked **elsewhere**, greyed out.
+That is not a rule about who is trusted — it is about where the picture actually is.
+A file you drag in from your desktop exists on your computer and nowhere else, so
+the machine going to air has nothing to draw. A link is just an address: every
+machine fetches it for itself, so it works from anywhere.
 
-That marking is the point. Choose an image the machine running OBS does not have
-and the graphic goes out blank — so the board says which ones those are rather than
-letting you find out on air.
+So on a machine that is not running OBS, the library offers the URL box and not the
+file buttons, and says so. Paste a link and it appears on every board in the show,
+ready to use.
 
-**Put images that matter on the machine running OBS**, or paste them as URLs. Either
-works everywhere.
+Files added on the OBS machine still show up in everyone's list, by name, so a
+remote operator can see what is available — but marked **elsewhere** and greyed out,
+because their own screen cannot draw them either. Choosing one would put a blank on
+air, so the board says which ones those are rather than letting you find out live.
+
+If you need a picture from a remote operator's desktop in the show, the quickest
+route is to put it somewhere with a link — any image host, a shared drive with
+public link sharing — and paste that.
 
 ## Who is here, and who is editing what
 

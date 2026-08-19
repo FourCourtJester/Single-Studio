@@ -418,6 +418,17 @@ A clock reference is not a state authority. It does not decide what is true —
 state stays a CRDT and the reference machine has no more say in it than anyone
 else. It only lends the room a shared idea of "now".
 
+The same tick now decides three things, all for the same reason — the machine that
+has to *display* the show is the one with the answer:
+
+| | |
+| --- | --- |
+| **The clock** | Timers are written and read in its frame, so a five-minute break is five minutes on air. |
+| **Image files** | Only it can add them, because only bytes on that machine can be drawn by it. URLs stay open to everyone. |
+| **Ingress** | Only it polls an API, so four operators are not four times the quota with four writers racing. |
+
+One box, because it is one fact about the room. See [operator-supplied files](#the-rule-that-removes-most-of-the-problem-) and [ingress ownership](#ingress-ownership).
+
 #### Measuring it
 
 The reference publishes `at: Date.now()` in its awareness state every five
@@ -486,15 +497,24 @@ A service like Google Sheets polls and writes into the store. If five operators
 each run it, that's five times the API quota and five writers racing on the same
 paths. Rocket League telemetry only exists on the gaming machine at all.
 
-So every service declares an owner. `Service` already carries this:
+So every service declares an owner, and it is the same machine for the same reason:
+the one that has to display the show is the one that should be talking to anybody's
+API. `Service` carries this, and `owner` may be a live predicate rather than a fixed
+boolean, so it follows the box the streamer already ticked:
 
 ```js
-new SheetsService({ mutate, owner: false }) // consumes the replicated result
+const service = new SheetsService({ mutate, owner: () => !velcro.delegated })
+
+velcro.onSyncStatus(() => service.recheck())
 ```
 
-Non-owners stay in `delegated` status and never open a connection. Ownership is
-explicit configuration, not an election — the host machine is known in advance,
-and an election would be complexity bought for nothing.
+Non-owners stay in `delegated` status and never open a connection. The predicate is
+read afresh every time rather than captured at construction — a service is built
+when the page loads and the room is joined a moment later, so a value read once
+would be answering a question nobody had asked yet.
+
+Ownership is still explicit configuration, not an election. The machine running OBS
+is known in advance, and an election would be complexity bought for nothing.
 
 ## Why there are no commands yet
 
@@ -518,7 +538,45 @@ That is what ships today, and it covers the sponsor card, the guest headshot, th
 externally generated chart.
 
 A **file** an operator drops in is a different problem, because the bytes have to
-get to every machine that renders it. Three places they could live:
+get to every machine that renders it.
+
+### The rule that removes most of the problem ✅
+
+**Files are added on the machine running OBS. URLs are added by anybody.**
+
+Not a permission model — a statement about where the bytes are. A file dropped on a
+producer's laptop exists only on that laptop, so the machine going to air cannot
+draw it. A URL is a reference: it replicates as a string and every machine fetches
+it independently, so it works from anywhere and needs no transfer at all.
+
+That asymmetry is why this can be a rule instead of a protocol. The common case on a
+board — a sponsor logo, a chart, a headshot that lives somewhere already — is a
+URL, and it stays open to everyone. The case that needs bytes moved is also the case
+where somebody is sitting at the machine that needs them.
+
+So the library shows the file buttons only where they can work, and says why where
+they cannot, as a fact about the file rather than a permission withheld. The drop
+handler refuses independently of the UI, because a drop target is not a button and
+this is the one path where letting something through produces a graphic that is
+blank on air and correct on the screen of whoever added it.
+
+`useOwner()` is the predicate, and it errs open: true alone, true in a room where
+nobody has claimed the OBS role, true on the machine that has claimed it. False only
+where another machine is definitely holding it. A studio that has never heard of any
+of this owns everything, and nothing here can lock somebody out of their own board.
+
+It is also live rather than sticky. If the OBS machine leaves the room, the
+remaining boards take ownership back — a board locked out of its own library because
+a peer that has long since gone once ticked a box would be a worse failure than the
+one this prevents.
+
+**What it does not do:** it does not make a file added on the OBS machine visible on
+anyone else's. The index still replicates without the bytes, so a remote operator
+sees the entry marked *(elsewhere)* and knows not to pick it. Blob transfer is still
+the thing that would close that, and is still unbuilt — but it is now the smaller
+half of the problem rather than the whole of it.
+
+Three places the bytes could live, if it is ever built:
 
 | Where                                            | Verdict                                                                                                                                                                                            |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -589,4 +647,5 @@ shape is already the one the full version needs.
 | Remote operators on non-Chromium browsers              | Not a real constraint: module `SharedWorker` is Chrome 83+, Firefox 114+, Safari 16+. Ship a minimum-version note rather than a fallback. See [getting-started](./getting-started.md#browser-requirements). |
 | Relay is a single point of failure for _collaboration_ | Accepted. It is never a single point of failure for the _broadcast_ — that's what local-first buys.                                                                                                         |
 | Counter delta growth                                   | Bounded by distinct clientIDs that have ever incremented a path. A long-lived doc across many sessions accumulates keys; add compaction on load if it ever shows up in practice.                            |
+| **A peer intermittently not learning what the room already knows** | **Open, not root-caused, and it predates this work.** Two symptoms in `apps/demo/e2e/relay.mjs`, both roughly one run in three or four: a third machine opening an invite link connects and stays on an empty board (this one reproduces on `main` with none of the ownership work applied), and an operator connects but never learns another machine holds the OBS role. Both are "connected, and never told". What is ruled out: the wire protocol and the room's join handshake, because the same two scenarios in Node against a real socket -- `packages/relay/test/integration.test.js`, including studios joining before and after the claim -- are stable across repeated runs, as are the seam's own unit tests. That leaves something browser-side: the `SharedWorker` lifecycle around the host's post-setup reload, or the worker-to-page status channel. Timing is not the cause: the measured time-to-know is 2--14ms when it works and never when it does not, so it is a missed edge rather than a slow one. |
 | Two operators editing one text field                   | Presence (stage 3). Character-level merging is available if needed, but a field is not a document and last-write-wins is usually what an operator expects.                                                  |

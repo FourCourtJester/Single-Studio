@@ -12,6 +12,18 @@
 //      times over and has five writers racing on the same paths. A service
 //      declares which machine runs it; everyone else consumes the result from
 //      the replicated document.
+//
+// `owner` may be a live predicate rather than a fixed boolean, which is how it
+// stops being one more thing to configure. The room already knows which machine
+// runs OBS -- it is the box the streamer ticked in the Collaborate dialog -- and
+// that is the same machine for the same reason: the one that has to display the
+// show is the one that should be talking to anybody's API.
+//
+//   const service = new SheetsService({ mutate, owner: () => !velcro.delegated })
+//
+//   velcro.onSyncStatus(() => service.recheck())
+//
+// Two lines, explicit, and no election. The host machine is known in advance.
 
 const BACKOFF = { initial: 500, max: 30_000, factor: 2 }
 
@@ -27,7 +39,7 @@ export class Service {
   /**
    * @param {object} options
    * @param {(name: string, payload: unknown) => void} options.mutate dispatch into Velcro
-   * @param {boolean} [options.owner] false on machines that only consume this service's output
+   * @param {boolean | (() => boolean)} [options.owner] false, or a predicate, on machines that only consume this service's output
    */
   constructor({ mutate, owner = true, ...config } = {}) {
     if (typeof mutate !== 'function') throw new TypeError('Service requires a `mutate` function')
@@ -42,6 +54,34 @@ export class Service {
     return this.constructor.serviceName
   }
 
+  /**
+   * Whether this machine runs this service right now.
+   *
+   * Read afresh every time rather than captured at construction: a service is built
+   * when the page loads and the room is joined a moment later, so a value read once
+   * would be answering a question nobody had asked yet.
+   */
+  get owns() {
+    return typeof this.owner === 'function' ? Boolean(this.owner()) : Boolean(this.owner)
+  }
+
+  /**
+   * Start or stop to match the current answer. Idempotent, and safe to call on
+   * every status change -- which is exactly how a studio should wire it.
+   */
+  async recheck() {
+    if (this.owns) {
+      if (this.status === 'delegated' || this.status === 'idle') await this.start()
+      return this
+    }
+
+    if (this.status !== 'delegated' && this.status !== 'idle') await this.stop()
+
+    this.status = 'delegated'
+
+    return this
+  }
+
   /** Subclasses implement this. Resolve on connect, reject to trigger backoff. */
   async open() {
     throw new Error('Service.open() must be implemented')
@@ -51,7 +91,7 @@ export class Service {
   async close() {}
 
   async start() {
-    if (!this.owner) {
+    if (!this.owns) {
       this.status = 'delegated'
       return this
     }
@@ -93,6 +133,11 @@ export class Service {
     console.warn(`[${this.name}] retrying in ${delay}ms`, err?.message ?? err)
 
     clearTimeout(this.#timer)
+    // Straight back through `start`, which re-asks who owns the role. A service
+    // that lost it while it was backing off therefore stands down at the retry
+    // rather than waking up half an hour later and writing over the machine that
+    // took over -- the check at the top of `start` is doing that work, and a second
+    // one here would only look like it was.
     this.#timer = setTimeout(() => this.start(), delay)
   }
 }

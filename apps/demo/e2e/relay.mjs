@@ -215,6 +215,53 @@ check(
 // lands on air: an operator picks a headshot from their own library, the reference
 // replicates fine, the machine running OBS has no bytes for it, and the graphic
 // goes out showing its fallback while the operator's screen shows the photo.
+//
+// The rule that removes it: files are added on the machine running OBS, URLs by
+// anybody. A file's bytes exist only where they were dropped; a URL is a reference
+// every machine fetches for itself.
+check(
+  (await host.page.locator('.ss-asset-library input[aria-label="Add image files"]').count()) === 1,
+  'the machine running OBS is offered a file input',
+)
+
+// Polled rather than read once: the operator learns the role from the host's
+// awareness state, so there is a moment after joining where it does not yet know
+// anybody has claimed it. Erring open during that moment is the right default --
+// see useOwner -- which is exactly why the test has to wait for the answer instead
+// of catching the board mid-question.
+// Polled rather than read once: the operator learns the role from the host's
+// awareness state, so there is a moment after joining where it does not yet know
+// anybody has claimed it. Erring open during that moment is the right default --
+// see useOwner -- which is exactly why the test has to wait for the answer instead
+// of catching the board mid-question.
+check(
+  await becomes(operator.page, () => !document.querySelector('.ss-asset-library input[aria-label="Add image files"]'), null, 15000),
+  'and a machine that cannot display the bytes is not offered one at all',
+)
+
+check(
+  await becomes(operator.page, () => Boolean(document.querySelector('.ss-files-elsewhere'))),
+  'and is told why, as a fact about where the file is rather than a permission withheld',
+)
+
+// The half that must stay open. Pasting a link is the common case on a board, and
+// there is nothing about it a remote operator cannot do correctly.
+await operator.page.locator('.ss-asset-library input[aria-label="Image URL"]').fill(`${BASE}/logos/vandals.svg`)
+await operator.page.locator('.ss-asset-library input[aria-label="Asset name"]').fill('operator-added')
+
+check(await operator.page.locator('.ss-asset-library button:has-text("Add URL")').isEnabled(), 'but can still add a URL, which needs no bytes to travel')
+
+await operator.page.locator('.ss-asset-library button:has-text("Add URL")').click()
+
+check(
+  await becomes(host.page, () => {
+    const tile = [...document.querySelectorAll('.ss-asset-tile')].find((it) => /operator-added/.test(it.textContent))
+
+    return Boolean(tile) && !tile.classList.contains('ss-elsewhere')
+  }),
+  'and it lands on the machine going to air ready to draw, not marked as missing',
+)
+
 await host.page.locator('.ss-asset-library input[aria-label="Image URL"]').fill(`${BASE}/logos/broncos.svg`)
 await host.page.locator('.ss-asset-library input[aria-label="Asset name"]').fill('sponsor-logo')
 await host.page.locator('.ss-asset-library button:has-text("Add URL")').click()
@@ -235,7 +282,9 @@ check(
   'and a pasted URL is usable there too, because its bytes never moved',
 )
 
-// A file is different: its bytes live on the machine it was added to.
+// A file is different: its bytes live on the machine it was added to. Which is why
+// only this machine can add one -- and why, even here, the other end has to be told
+// it cannot draw it.
 await host.page.locator('.ss-asset-library input[aria-label="Add image files"]').setInputFiles(asset('logos/vandals.svg'))
 
 check(
@@ -244,7 +293,7 @@ check(
 
     return Boolean(tile)
   }),
-  'a dropped file is known about on the other machine',
+  'a file added on the OBS machine is known about on the other',
 )
 
 check(

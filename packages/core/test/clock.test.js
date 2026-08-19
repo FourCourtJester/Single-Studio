@@ -260,6 +260,141 @@ describe('finding the room clock', () => {
   })
 })
 
+describe('who acts for the show', () => {
+  // The rule: the machine that has to *display* a thing is the one that gets to
+  // add it. A file's bytes exist only where they were dropped, and an API polled by
+  // four operators is four times the quota with four writers racing. Both are the
+  // same mistake and both are avoided by asking who owns the room.
+
+  it('owns everything when there is no room at all', async () => {
+    const made = host({ name: `solo-${Math.random()}` })
+
+    await made.started
+
+    expect(made.sync.delegated).toBe(false)
+  })
+
+  it('owns everything in a room where nobody has claimed OBS', async () => {
+    // The default has to be permissive. A studio that has never heard of any of
+    // this must not find itself locked out of its own image library.
+    const awareness = withAwareness()
+    const made = connected(awareness)
+
+    await made.started
+    await settle()
+
+    awareness.remote(2, { name: 'Dez' })
+
+    expect(made.sync.delegated).toBe(false)
+  })
+
+  it('defers the moment another machine says it runs OBS', async () => {
+    const awareness = withAwareness()
+    const made = connected(awareness)
+
+    await made.started
+    await settle()
+
+    // No beat yet, deliberately: the role is claimed the instant it is announced.
+    // Only the *clock* needs a measurable timestamp before anyone can use it.
+    awareness.remote(2, { reference: true })
+
+    expect(made.sync.delegated).toBe(true)
+  })
+
+  it('keeps ownership when it is the machine running OBS', async () => {
+    const awareness = withAwareness()
+    const made = connected(awareness)
+
+    await made.started
+    made.sync.clock(true)
+    await settle()
+
+    beat(awareness, 2, 7000)
+
+    expect(made.sync.delegated).toBe(false)
+  })
+
+  it('takes ownership back when the OBS machine leaves the room', async () => {
+    // Live rather than sticky, unlike the clock offset. A board locked out of its
+    // own library because a peer that has long since gone once ticked a box would
+    // be a worse failure than the one this rule exists to prevent.
+    const awareness = withAwareness()
+    const made = connected(awareness)
+
+    await made.started
+    await settle()
+
+    awareness.remote(2, { reference: true })
+
+    expect(made.sync.delegated).toBe(true)
+
+    awareness.drop(2)
+
+    expect(made.sync.delegated).toBe(false)
+  })
+
+  it('owns everything again once it has left the room', async () => {
+    const awareness = withAwareness()
+    const made = connected(awareness)
+
+    await made.started
+    await settle()
+
+    awareness.remote(2, { reference: true })
+
+    expect(made.sync.delegated).toBe(true)
+
+    await made.sync.detach()
+
+    expect(made.sync.delegated).toBe(false)
+  })
+
+  it('tells a page that opened after the room already had an OBS machine', async () => {
+    // The ordering that would make this stick: the worker works the role out while
+    // no page is listening, and `defer` only announces on a *change*, so there is no
+    // second broadcast to catch. A board opened a moment later -- an OBS browser
+    // source, a reloaded dock -- must not sit there believing it owns a library it
+    // does not.
+    const awareness = withAwareness()
+    const made = connected(awareness)
+
+    await made.started
+    await settle()
+
+    awareness.remote(2, { reference: true })
+
+    await settle()
+
+    const { port, seen } = client(made)
+
+    await settle()
+
+    port.postMessage({ type: 'sync:status' })
+
+    await settle()
+
+    expect(seen.findLast((message) => message.type === 'sync').delegated).toBe(true)
+  })
+
+  it('tells the pages, so the library knows whether to offer a file input', async () => {
+    const awareness = withAwareness()
+    const made = connected(awareness)
+    const { port, seen } = client(made)
+
+    await made.started
+    await settle()
+
+    awareness.remote(2, { reference: true })
+
+    port.postMessage({ type: 'sync:status' })
+
+    await settle()
+
+    expect(seen.findLast((message) => message.type === 'sync').delegated).toBe(true)
+  })
+})
+
 describe("writing a clock in the room's frame", () => {
   it('starts a countdown that is the right length on the machine going to air', async () => {
     // The headline. This board's clock is seven seconds ahead of the studio's; an

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useVelcro } from './useVelcro'
 
-const OFFLINE = { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false }
+const OFFLINE = { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false, delegated: false }
 
 /**
  * Whether this machine is reaching the room, and which room.
@@ -53,6 +53,36 @@ export function useClockOffset() {
   useEffect(() => velcro.onSyncStatus((status) => setOffset(status.offset ?? 0)), [velcro])
 
   return offset
+}
+
+/**
+ * Whether this machine may act for the show, rather than defer to another.
+ *
+ * True alone, true in a room where nobody has claimed the OBS role, and true on the
+ * machine that has claimed it. False only on a machine that knows somebody else is
+ * holding it -- which is the state a producer's laptop is in during a show.
+ *
+ * The rule it enforces: *the machine that has to display a thing is the one that
+ * gets to add it.* A file dropped on a producer's laptop has bytes that live only
+ * there, so choosing it puts a blank on air while their own screen looks correct.
+ * An API polled by four operators is four times the quota and four writers racing.
+ * Both are the same mistake, and both are avoided by asking this first.
+ *
+ * A URL is deliberately not covered. It is a reference, not bytes: it replicates as
+ * a string and every machine fetches it independently, so anybody can add one and
+ * it works everywhere. That asymmetry is the whole reason this can be a rule rather
+ * than a transfer protocol.
+ *
+ * Defaulting to true is the important half. A studio that has never heard of any of
+ * this is its own owner, so nothing here can lock somebody out of their own board.
+ */
+export function useOwner() {
+  const velcro = useVelcro()
+  const [delegated, setDelegated] = useState(false)
+
+  useEffect(() => velcro.onSyncStatus((status) => setDelegated(Boolean(status.delegated))), [velcro])
+
+  return !delegated
 }
 
 /** Tell the worker whether this machine is the one everyone sets their watch by. */

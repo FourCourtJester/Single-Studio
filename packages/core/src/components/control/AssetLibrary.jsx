@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
+import { useOwner } from '../../hooks/useSync'
 import { groupOf, leafOf, toAssetRef } from '../../velcro/assets'
 import { filesFromDrop } from '../../toolkits/entries'
 import { cx } from '../../toolkits/cx'
@@ -26,11 +27,21 @@ import { Tooltip } from '../common/Tooltip'
  * Dropping or picking a folder files its contents under the folder's name, which
  * is how a hundred images arrive in one motion and come out organised.
  *
+ * **Files are added on the machine running OBS; URLs are added by anybody.** Not a
+ * permission model -- a physical fact. A file's bytes exist only where it was
+ * dropped, so a headshot added on a producer's laptop cannot be drawn by the
+ * machine going to air: the graphic renders blank on air while the producer's own
+ * screen shows the photo, which is the wrong direction for a failure to be
+ * invisible in. A URL has no such problem, because it is a reference rather than
+ * bytes and every machine fetches it independently. So the URL row stays live for
+ * everyone and the file buttons stand down, which is the whole rule.
+ *
  * Rendered inline as a panel, or inside AssetLibraryDialog as a modal. `onPick`
  * turns it into a chooser.
  */
 export function AssetLibrary({ onPick, selected, className, ...rest }) {
   const { assets, addFiles, addUrl, remove, rename } = useAssetLibrary()
+  const owner = useOwner()
   const [url, setUrl] = useState('')
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
@@ -65,6 +76,14 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
    * group as that image's whole key would throw the filename away.
    */
   const takeFiles = async (items) => {
+    // Guarded here rather than only on the buttons. A drop target is not a button,
+    // and this is the one path where letting something through produces a graphic
+    // that is blank on air and correct on the screen of whoever added it.
+    if (!owner) {
+      setError('Only the machine running OBS can add image files. Paste a URL instead — those work everywhere.')
+      return
+    }
+
     const chosen = [...(items ?? [])].filter((item) => (item?.file ?? item)?.type?.startsWith('image/'))
 
     if (!chosen.length) {
@@ -126,7 +145,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
         }}
         onDragOver={(event) => {
           event.preventDefault()
-          setOver(true)
+          setOver(owner)
         }}
         onDragLeave={() => setOver(false)}
         className={cx('flex flex-col gap-2 rounded-md border border-dashed p-3 transition-colors', over ? 'border-sky-500 bg-sky-500/10' : 'border-slate-700')}
@@ -164,62 +183,80 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
         {/* Under the URL line, not above it. Pasting a link is the common case on a
             board -- a logo lives somewhere already -- and the file button was
             sitting in front of it collecting the first glance every time. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => input.current?.click()}
-            disabled={busy}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
-          >
-            Choose files
-          </button>
-          <button
-            type="button"
-            onClick={() => folder.current?.click()}
-            disabled={busy}
-            className="ss-choose-folder rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
-          >
-            Choose a folder
-          </button>
-          <span className="text-xs text-slate-500">
-            {progress
-              ? `${progress.done} of ${progress.total}…`
-              : busy
-                ? 'Working…'
-                : 'or drop them here. A folder files itself under its own name; type a group above to use that instead.'}
-          </span>
-        </div>
+        {owner ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => input.current?.click()}
+              disabled={busy}
+              className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
+            >
+              Choose files
+            </button>
+            <button
+              type="button"
+              onClick={() => folder.current?.click()}
+              disabled={busy}
+              className="ss-choose-folder rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40"
+            >
+              Choose a folder
+            </button>
+            <span className="text-xs text-slate-500">
+              {progress
+                ? `${progress.done} of ${progress.total}…`
+                : busy
+                  ? 'Working…'
+                  : 'or drop them here. A folder files itself under its own name; type a group above to use that instead.'}
+            </span>
+          </div>
+        ) : (
+          /* Said plainly, and said as a fact about where the file is rather than as
+             a permission being withheld. An operator who reads "you cannot" goes
+             looking for the setting that lets them; one who reads "it would not
+             reach the machine that draws it" pastes a link instead. */
+          <p className="ss-files-elsewhere text-xs text-slate-500">
+            Image <em className="not-italic text-slate-400">files</em> are added on the machine running OBS &mdash; it is the one that has to draw them, and a
+            file dropped here would never reach it. A URL works from anywhere.
+          </p>
+        )}
 
         {error ? <span className="text-xs text-rose-400">{error}</span> : null}
 
-        <input
-          ref={input}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(event) => {
-            takeFiles(event.target.files)
-            event.target.value = ''
-          }}
-          aria-label="Add image files"
-          className="hidden"
-        />
+        {/* Not rendered at all off the OBS machine, rather than hidden and inert. A
+            file input that exists is a file input something can reach -- a test, a
+            script, a stray click -- and the DOM should say what is true. */}
+        {owner ? (
+          <>
+            <input
+              ref={input}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => {
+                takeFiles(event.target.files)
+                event.target.value = ''
+              }}
+              aria-label="Add image files"
+              className="hidden"
+            />
 
-        {/* webkitdirectory is the only way to pick a folder, and every browser that
-            matters supports it under that vendor name. React needs it lowercase. */}
-        <input
-          ref={folder}
-          type="file"
-          accept="image/*"
-          multiple
-          webkitdirectory=""
-          onChange={(event) => {
-            takeFiles(event.target.files)
-            event.target.value = ''
-          }}
-          aria-label="Add a folder of images"
-          className="hidden"
-        />
+            {/* webkitdirectory is the only way to pick a folder, and every browser that
+                matters supports it under that vendor name. React needs it lowercase. */}
+            <input
+              ref={folder}
+              type="file"
+              accept="image/*"
+              multiple
+              webkitdirectory=""
+              onChange={(event) => {
+                takeFiles(event.target.files)
+                event.target.value = ''
+              }}
+              aria-label="Add a folder of images"
+              className="hidden"
+            />
+          </>
+        ) : null}
       </div>
 
       {assets.length ? (
@@ -268,7 +305,9 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           )}
         </>
       ) : (
-        <p className="text-xs text-slate-500">Nothing here yet. Drop images or a folder in, or paste a URL.</p>
+        <p className="text-xs text-slate-500">
+          {owner ? 'Nothing here yet. Drop images or a folder in, or paste a URL.' : 'Nothing here yet. Paste a URL above, or ask the machine running OBS to add files.'}
+        </p>
       )}
     </section>
   )
