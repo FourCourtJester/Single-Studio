@@ -325,7 +325,6 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
             onConfirm={() => run(removeAll)}
             disabled={busy}
             label={`Remove all ${assets.length}`}
-            ask={`Remove all ${assets.length}? Click again`}
             className="px-2 py-1 text-xs"
           />
           <span className="text-xs text-slate-500">Everything above, off this machine and out of the show. It cannot be undone.</span>

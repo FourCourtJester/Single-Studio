@@ -67,7 +67,9 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 
 /** A separate profile: its own IndexedDB, its own SharedWorker. A second laptop. */
 const machine = async (label, at = `${BASE}/#/`) => {
-  const context = await browser.newContext({ reducedMotion: 'no-preference' })
+  // Clipboard permission so the invite's Copy button can be checked for what it
+  // actually put there, rather than only that it changed its label.
+  const context = await browser.newContext({ reducedMotion: 'no-preference', permissions: ['clipboard-read', 'clipboard-write'] })
   const page = await context.newPage()
 
   page.on('pageerror', (error) => console.log(`[${label} pageerror]`, error.message))
@@ -489,6 +491,28 @@ check(
   'removing them marks them removed rather than quietly forgetting them',
 )
 
+// -- Handing it to somebody -------------------------------------------------
+// The invite is eighty characters of base64 in a dock the width of a sidebar, which
+// is a drag-select somebody gets wrong twice before asking for a button.
+await openMenu(invited, 'collaborate')
+await invited.page.waitForSelector('.ss-collaborate-dialog[open] .ss-invite-link')
+
+const shown = (await invited.page.locator('.ss-invite-link').textContent()).trim()
+
+await invited.page.locator('.ss-invite-copy').click()
+
+check(await becomes(invited.page, () => /copied/i.test(document.querySelector('.ss-invite-copy')?.textContent ?? '')), 'the invite can be copied rather than selected by hand')
+check((await invited.page.evaluate(() => navigator.clipboard.readText())) === shown, 'and what lands on the clipboard is the link that was on screen')
+
+// Rotation moved out of here. This panel is for handing the show to somebody, and
+// the control for taking it away from somebody was the loudest thing in it.
+check(
+  !/shut somebody out/i.test(await invited.page.locator('.ss-collaborate-dialog').innerText()),
+  'and the way to shut somebody out is not sitting in the panel for letting them in',
+)
+
+await invited.page.locator('.ss-collaborate-dialog button[aria-label="Close"]').click()
+
 // -- Leaving --------------------------------------------------------------
 // There was a way out and nobody could find it: a grey "Work alone" in the corner
 // of the collaborate dialog, which says what it leaves you doing rather than what
@@ -497,10 +521,15 @@ check(
 // in the dock URL, which is the one an operator never sees and the one OBS keeps.
 await openMenu(invited, 'reset')
 await invited.page.waitForSelector('.ss-reset-dialog[open]')
+
+// Not offered on a relay of your own, because there is no key to rotate: what keeps
+// people out there is the per-operator tokens, which can be revoked one at a time.
+check(!(await invited.page.locator('.ss-reset-rekey').count()), 'and is not offered at all where there is no key to rotate')
+
 await invited.page.locator('.ss-reset-disconnect').click()
 
 check(
-  await becomes(invited.page, () => /click again/i.test(document.querySelector('.ss-reset-disconnect')?.textContent ?? '')),
+  await becomes(invited.page, () => /click to confirm/i.test(document.querySelector('.ss-reset-disconnect')?.textContent ?? '')),
   'the way out asks once before taking it',
 )
 check(
@@ -579,10 +608,28 @@ check(
   'and reads its own link back as an encrypted show',
 )
 
+// The box shows what they pasted, not what it was turned into. It used to come back
+// reading `https://abcdefghijklmnopqrst.supabase.co`, which matches neither the
+// label above it nor the dashboard it was copied from -- the address is what the
+// transport needs, the reference is what the person has.
 check(
-  await becomes(sealing.page, () => document.querySelector('.ss-collaborate-dialog input[aria-label="Project ID"]')?.value === 'https://abcdefghijklmnopqrst.supabase.co'),
-  'and the reference has become the address it stands for',
+  await becomes(sealing.page, () => document.querySelector('.ss-collaborate-dialog input[aria-label="Project ID"]')?.value === 'abcdefghijklmnopqrst'),
+  'and the Project ID box still reads as the Project ID',
 )
+
+// Rotation, where it went. It is the only revocation an encrypted show has -- a key
+// cannot be un-told, so shutting somebody out means a key they do not have -- and it
+// belongs with the other things that undo something rather than in the panel for
+// handing the show to people.
+await sealing.page.locator('.ss-collaborate-dialog button[aria-label="Close"]').click()
+await openMenu(sealing, 'reset')
+await sealing.page.waitForSelector('.ss-reset-dialog[open]')
+
+check(await sealing.page.locator('.ss-reset-rekey').isVisible(), 'a sealed show is offered a fresh key, in with the other ways to start over')
+
+await sealing.page.locator('.ss-reset-dialog button[aria-label="Close"]').click()
+await openMenu(sealing, 'collaborate')
+await sealing.page.waitForSelector('.ss-collaborate-dialog[open]')
 
 // A relay of its own is the one place this is not offered: it holds a copy of the
 // show so a late joiner gets it without another machine being awake, which means

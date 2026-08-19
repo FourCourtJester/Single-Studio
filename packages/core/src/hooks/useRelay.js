@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { newSecret } from '../velcro/crypto'
 import { useVelcro } from './useVelcro'
 
 // Joining a room without anybody typing a token.
@@ -102,6 +103,22 @@ export const setClockRole = (reference) => {
  * works, and so does a project URL for anybody who has one to hand.
  */
 const REFERENCE = /^[a-z0-9]{16,40}$/
+const SUPABASE = /^https:\/\/([a-z0-9]{16,40})\.supabase\.co$/i
+
+/**
+ * The other direction: what to show somebody who typed a Project ID.
+ *
+ * They pasted `abcdefghijklmnopqrst` and came back to a box reading
+ * `https://abcdefghijklmnopqrst.supabase.co`, which is a box that no longer matches
+ * the label above it or the page it was copied from. The address is what the
+ * transport needs; the reference is what the person has. Store the first, show the
+ * second.
+ */
+export function displayRelay(value) {
+  const address = SUPABASE.exec(String(value ?? '').trim())
+
+  return address ? address[1] : (value ?? '')
+}
 
 export function resolveRelay(value) {
   const given = String(value ?? '').trim()
@@ -131,7 +148,6 @@ export function resolveRelay(value) {
  * of the length gone.
  */
 const TOKEN = 'j'
-const SUPABASE = /^https:\/\/([a-z0-9]{16,40})\.supabase\.co$/i
 
 /**
  * Joined, not encoded. Base64 was tried and was worse.
@@ -337,5 +353,30 @@ export function useRelay({ auto = true } = {}) {
     if (typeof window !== 'undefined') window.location.replace(relayLink({}))
   }, [join])
 
-  return { config, join, leave, reference }
+  /**
+   * A new key, which is a new room, which is the only revocation there is.
+   *
+   * Nobody can be un-told a key they already hold, so shutting somebody out means a
+   * key they do not have -- and because the room is derived from the key, minting
+   * one moves the show somewhere the old link does not point. The document is
+   * local-first, so it comes along: this machine offers its copy into an empty room
+   * and nothing is reconstructed.
+   *
+   * Only for a show that had a key. Turning encryption *on* is a different act with
+   * a different button, and doing it silently here would be a board deciding to
+   * seal a show nobody asked to seal.
+   */
+  const rekey = useCallback(() => {
+    if (!config?.url || !config.secret) return null
+
+    const next = { ...config, secret: newSecret(), reference }
+
+    join(next)
+
+    if (typeof window !== 'undefined') window.location.replace(relayLink(next))
+
+    return next
+  }, [config, join, reference])
+
+  return { config, join, leave, rekey, reference }
 }

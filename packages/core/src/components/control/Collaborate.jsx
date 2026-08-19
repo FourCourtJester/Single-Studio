@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { relayLink, resolveRelay, useRelay } from '../../hooks/useRelay'
+import { displayRelay, relayLink, resolveRelay, useRelay } from '../../hooks/useRelay'
 import { newSecret } from '../../velcro/crypto'
 import { usePresence, useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
@@ -114,6 +114,7 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
   const [clock, setClock] = useState(false)
   const [secret, setSecret] = useState('')
   const [help, setHelp] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const element = dialog.current
@@ -129,7 +130,7 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
   useEffect(() => {
     if (!open) return
 
-    setUrl(config?.url ?? '')
+    setUrl(displayRelay(config?.url))
     setToken(config?.token ?? '')
     // Whoever is filling this in for the first time is the streamer at the machine
     // running OBS -- everybody else arrives on a link and never sees this form. So
@@ -162,6 +163,20 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
     // another machine, and already the shape of an invite link.
     window.location.replace(relayLink(next))
     onClose()
+  }
+
+  const invite = config?.url ? relayLink({ url: config.url, room: config.room, token: config.token, secret: config.secret }) : ''
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(invite)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // A dock without clipboard permission leaves the link on screen to select by
+      // hand, which is why the text is still there to select.
+      setCopied(false)
+    }
   }
 
   const disconnect = () => {
@@ -198,23 +213,22 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
               Send them this. Opening it is their whole setup &mdash; in a browser, or in an OBS dock if they are running one.
               {config.secret ? ' It contains the key to this show, so send it the way you would send a password.' : null}
             </span>
-            <code className="ss-invite-link select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
-              {relayLink({ url: config.url, room: config.room, token: config.token, secret: config.secret })}
-            </code>
-            {/* Revocation, and the only kind there is. Nobody can be un-told a key
-                they already hold, so shutting somebody out means a key they do not
-                have -- and because the key *is* the room, a new one moves the show
-                somewhere they cannot follow. It used to take renaming the room and
-                trusting the two stayed in step; now it is one button. */}
-            {config.secret ? (
+            {/* Selectable *and* copyable. Selecting eighty characters of base64 in a
+                dock the width of a sidebar is a drag somebody gets wrong twice; the
+                button is how this is actually used. The text stays because a link
+                you cannot see is a link you cannot check. */}
+            <div className="flex items-start gap-2">
+              <code className="ss-invite-link min-w-0 grow select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
+                {invite}
+              </code>
               <button
                 type="button"
-                onClick={() => setSecret(newSecret())}
-                className="ss-rekey self-start text-xs text-emerald-200/70 underline-offset-2 transition-colors hover:text-emerald-100 hover:underline"
+                onClick={copy}
+                className="ss-invite-copy shrink-0 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-200 transition-colors hover:border-emerald-400 hover:text-emerald-100"
               >
-                Shut somebody out &mdash; start a fresh key
+                {copied ? 'Copied' : 'Copy'}
               </button>
-            ) : null}
+            </div>
           </section>
         ) : null}
 
@@ -373,7 +387,6 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
           <Confirm
             onConfirm={disconnect}
             label="Disconnect"
-            ask="Disconnect — click again"
             tone="quiet"
             className="ss-disconnect px-2 py-1 text-xs"
             title="Leave the room and drive this show from this machine alone. Your graphics keep working; nothing is deleted."

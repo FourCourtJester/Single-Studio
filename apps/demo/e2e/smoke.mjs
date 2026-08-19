@@ -42,9 +42,9 @@ const check = (ok, msg) => {
  * below, because there is nothing to poll for: you have to wait a bounded time and
  * then confirm nothing arrived.
  */
-const becomes = async (page, fn, arg = null) => {
+const becomes = async (page, fn, arg = null, timeout = 5000) => {
   try {
-    await page.waitForFunction(fn, arg, { timeout: 5000 })
+    await page.waitForFunction(fn, arg, { timeout })
     return true
   } catch {
     return false
@@ -680,6 +680,40 @@ await round.locator('input').fill('4:30')
 await round.locator('button:has-text("Start")').click()
 check(await becomes(match, () => /0[45]:\d\d/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the duration countdown reaches the scene')
 
+// And it rests on the zero it was counting towards. A countdown used to vanish the
+// instant it ran out, so the number the whole thing exists to reach was the one
+// frame nobody ever saw. Two seconds, watched all the way down and then held.
+// The graphic has to be the foreground tab for this one. rAF is suspended in a
+// background tab, so a clock there does not repaint and neither does Playwright's
+// poll -- every check that needs a *change* on this page would fail for reasons
+// that have nothing to do with the clock. (The checks above pass backgrounded
+// because they are already true on the first poll.)
+await control.locator('button[aria-label="Stop Round"]').click()
+await round.locator('input').fill('2')
+await round.locator('button:has-text("Start")').click()
+await match.bringToFront()
+// Stopping and restarting inside one animation is a quarter of a second of
+// operator, and it used to strand the graphic mid-exit showing the old clock for
+// the rest of the show -- see Transition. Doing it deliberately here is the cheapest
+// place that case will ever be covered.
+check(await becomes(match, () => /00:0[12]/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000), 'a short countdown counts down where it can be seen')
+check(await becomes(match, () => /00:00/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 6000), 'and stops on 00:00 rather than removing itself')
+
+// Still there a beat later: resting, not passing through on the way out.
+await match.waitForTimeout(1500)
+check(/00:00/.test(await match.locator('.ss-scene').innerText()), 'and stays there, because a break clock on 00:00 is a graphic saying "we are back"')
+
+// Which means something has to be able to take it off air. The control used to go
+// back to offering a fresh duration the moment the clock ran out, so a graphic
+// resting on 00:00 would have had no way out but resetting the whole show.
+await control.bringToFront()
+check(await becomes(control, () => /Clear\s+00:00/.test(document.querySelector('.ss-timer-button')?.textContent ?? '')), 'and the control offers to clear it rather than pretending it is gone')
+
+// The fallback is for a clock nobody has set, which is a different thing from one
+// that finished. Clearing gets the dashes back.
+await control.locator('button[aria-label="Clear Round"]').click()
+check(await becomes(match, () => /--:--/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'and clearing it puts the fallback back, which finishing must not')
+
 // Count-up. Nothing ticks in the store -- both pages derive the same number from
 // the same stored origin.
 await control.locator('.ss-stopwatch button:has-text("Start")').click()
@@ -970,7 +1004,7 @@ await control.locator('.ss-menu-reset').click()
 await control.waitForSelector('.ss-reset-dialog[open]')
 
 await control.locator('.ss-reset-show').click()
-check(await becomes(control, () => /click again/i.test(document.querySelector('.ss-reset-show')?.textContent ?? '')), 'one click on a reset arms it and says so rather than doing it')
+check(await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-reset-show')?.textContent ?? '')), 'one click on a reset arms it and says so rather than doing it')
 const armedScore = await scoreNow()
 
 check(armedScore === '4', `and the show is still there after that first click (score ${armedScore})`)
@@ -994,7 +1028,7 @@ const purge = control.locator('.ss-asset-dialog[open] .ss-asset-purge .ss-confir
 check(new RegExp(`Remove all ${before}`).test((await purge.textContent()) ?? ''), 'the library offers to empty itself, and counts what that means')
 
 await purge.click()
-check(await becomes(control, () => /click again/i.test(document.querySelector('.ss-asset-purge .ss-confirm')?.textContent ?? '')), 'one click arms that one too')
+check(await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-asset-purge .ss-confirm')?.textContent ?? '')), 'one click arms that one too')
 check((await tiles()) === before, 'and removes nothing on its own')
 
 await purge.click()

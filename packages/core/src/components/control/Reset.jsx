@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { useAssetLibrary } from '../../hooks/useAssets'
+import { useAssetStore } from '../../hooks/useAssets'
 import { useRelay } from '../../hooks/useRelay'
 import { useSyncStatus } from '../../hooks/useSync'
+import { useVelcro } from '../../hooks/useVelcro'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { Confirm } from './Confirm'
 import { Icon } from '../common/Icon'
@@ -35,8 +36,9 @@ export function ResetDialog({ open, onClose }) {
   const dialog = useRef(null)
   const mutate = useVelcroMutate()
   const status = useSyncStatus()
-  const { leave } = useRelay({ auto: false })
-  const { removeAll } = useAssetLibrary()
+  const { config, leave, rekey } = useRelay({ auto: false })
+  const store = useAssetStore()
+  const velcro = useVelcro()
   const [done, setDone] = useState(null)
 
   useEffect(() => {
@@ -64,24 +66,32 @@ export function ResetDialog({ open, onClose }) {
     onClose()
   }
 
+  const fresh = () => {
+    rekey()
+    onClose()
+  }
+
   /**
    * Everything this machine holds, and then a reload.
    *
-   * The document is cleared through a mutation rather than by deleting the
-   * IndexedDB database. The database is held open by a SharedWorker that survives
-   * the reload, and `deleteDatabase` against an open connection blocks rather than
-   * failing -- so the delete would appear to do nothing and then happen at some
-   * unrelated later moment, which is the worst of both.
+   * The order is the whole correctness of it, and it is enforced inside the worker
+   * rather than here -- `wipe()` leaves the room, *then* clears the document, then
+   * deletes the store it was persisted to. Sequenced from this page it could not be:
+   * the document is a CRDT, so clearing it while a provider is still observing would
+   * replicate the clearing, and a control that says "reset this machine" would take
+   * the show off everybody else's board too.
    *
-   * The reload is what makes it a reset rather than a clear: the worker is where
-   * the sync seam, the clock role and the connection live, and none of that is
-   * re-read on the fly.
+   * The images are this page's to clear -- their store belongs to the page, not the
+   * worker -- and storage is neither's, so both happen out here.
+   *
+   * The reload is what makes it a reset rather than a clear: the worker holds the
+   * sync seam, the clock role and the connection, and none of that is re-read on the
+   * fly.
    */
   const resetMachine = async () => {
-    mutate('clear', {})
-
     try {
-      await removeAll()
+      await velcro.wipe()
+      await store.clear()
     } catch {
       // Best effort. A blocked or missing IndexedDB should not leave the rest of
       // the reset half-done -- storage and the reload still get somebody unstuck.
@@ -123,12 +133,10 @@ export function ResetDialog({ open, onClose }) {
       </header>
 
       <div className="flex flex-col gap-3 overflow-y-auto p-4">
-        <p className="text-xs text-slate-500">Each of these asks twice. Click once to arm it, again to do it — or click away and nothing happens.</p>
-
         <Row
           title="Reset the show"
           detail="Every name, score, timer and toggle back to its default, on every machine in the room. Your images are kept."
-          action={<Confirm onConfirm={resetShow} label="Reset the show" ask="Reset everything? Click again" className="ss-reset-show" />}
+          action={<Confirm onConfirm={resetShow} label="Reset the show" className="ss-reset-show" />}
         />
 
         {/* Only when there is a room to leave. A button that disconnects a board
@@ -138,14 +146,30 @@ export function ResetDialog({ open, onClose }) {
           <Row
             title="Disconnect from collaboration"
             detail="Leave the room and drive this show from this machine alone. Nothing is deleted, and your graphics do not miss a frame. The invite link keeps working if you want to come back."
-            action={<Confirm onConfirm={disconnect} label="Disconnect" ask="Disconnect? Click again" tone="quiet" className="ss-reset-disconnect" />}
+            action={<Confirm onConfirm={disconnect} label="Disconnect" tone="quiet" className="ss-reset-disconnect" />}
+          />
+        ) : null}
+
+        {/* Revocation, and the only kind there is. Nobody can be un-told a key they
+            already hold, so shutting somebody out means a key they do not have --
+            and because the room is derived from the key, minting one moves the show
+            somewhere the old link does not point.
+
+            It sat in the invite panel, which was the wrong room: that panel is for
+            handing the show to somebody, and the control for taking it away from
+            somebody was the loudest thing in it. */}
+        {config?.secret ? (
+          <Row
+            title="Shut somebody out"
+            detail="A brand new key, which is a brand new room. Your show comes with you — it lives on this machine, not on a server — and everyone you still want needs the new invite link. Anyone holding the old one is left in a room with nobody in it, which is the point."
+            action={<Confirm onConfirm={fresh} label="Start a fresh key" className="ss-reset-rekey" />}
           />
         ) : null}
 
         <Row
           title="Reset this machine"
-          detail="The show, the images, the room, your name — everything this browser has stored — and then a reload. Other machines in the room keep the show; this one comes back as if it had never been used."
-          action={<Confirm onConfirm={resetMachine} label="Reset this machine" ask="Wipe this machine? Click again" className="ss-reset-machine" />}
+          detail="The show, the images, the room, your name — everything this browser has stored — and then a reload. It leaves the room before it wipes anything, so the other machines keep the show; this one comes back as if it had never been used."
+          action={<Confirm onConfirm={resetMachine} label="Reset this machine" className="ss-reset-machine" />}
         />
 
         {done ? <p className="ss-reset-done rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs text-emerald-200">{done}</p> : null}

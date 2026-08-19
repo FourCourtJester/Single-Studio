@@ -23,7 +23,18 @@ import { cx } from '../../toolkits/cx'
  */
 const ARMED = 4000
 
-export function Confirm({ onConfirm, label, ask, tone = 'danger', disabled, className, children, ...rest }) {
+/**
+ * What an armed button says, and it is the same everywhere on purpose.
+ *
+ * It used to repeat the action -- "Remove all 17? Click again" -- which made the
+ * widest button on the screen the one nobody wants to be looking at, and pushed
+ * layouts around at the moment an operator is deciding something. The label already
+ * said what it does and is still sitting under the cursor; the armed state only has
+ * to say that a second click is what finishes it.
+ */
+const ASK = 'Click to confirm'
+
+export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled, className, children, ...rest }) {
   const [armed, setArmed] = useState(false)
   const timer = useRef(null)
 
@@ -73,7 +84,7 @@ export function Confirm({ onConfirm, label, ask, tone = 'danger', disabled, clas
       )}
       {...rest}
     >
-      {armed ? (ask ?? `${label} — click again`) : (children ?? label)}
+      {armed ? ask : (children ?? label)}
     </button>
   )
 }

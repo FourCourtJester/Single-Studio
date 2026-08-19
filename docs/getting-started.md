@@ -41,16 +41,19 @@ to undo:
 - **Disconnect from collaboration** — leave the room and drive the show from this
   machine alone. Nothing is deleted and the graphics do not miss a frame; the invite
   link still works if you want to come back.
+- **Shut somebody out** — a brand new key, which is a brand new room. Offered only
+  on an encrypted show, because that is the only kind with a key to rotate.
 - **Reset this machine** — the show, the images, the room, your name, everything
-  this browser has stored, and then a reload. Other machines in the room keep the
-  show. This is the one to reach for after a rebuild.
+  this browser has stored, and then a reload. It leaves the room *before* it wipes
+  anything, so the other machines keep the show. This is the one to reach for after
+  a rebuild.
 
 Emptying the image library is not in there. It lives in the image store beside the
 images, because it is the only one of these whose blast radius is a thing you are
 looking at.
 
-Each asks twice: one click arms the button and it says what it is about to do, a
-second does it, and a few seconds of silence disarms it. Deliberately not
+Each asks twice: one click arms the button, it says **Click to confirm**, a second
+does it, and a few seconds of silence disarms it. Deliberately not
 `window.confirm` — the board's main home is an OBS custom browser dock, where a
 native dialog may never be drawn, and a guard that silently reads as "they said no"
 is a guard that quietly stops the button working.
@@ -198,7 +201,7 @@ const mutate = useVelcroMutate()
 | `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
 | `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
 | `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                        |
-| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. `onComplete` fires once it lands.  |
+| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Rests on 00:00 (`hold`). `onComplete` fires once it lands. |
 | `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.            |
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                       |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
@@ -289,7 +292,21 @@ renders late but never wrong.
 
 Counting up floors and counting down rounds up, each so the number on screen matches
 what an operator means by it: a countdown reads 00:01 until time is genuinely out,
-and a stopwatch reads 00:00 until a second has genuinely passed.
+and a stopwatch reads 00:00 until a second has genuinely passed. Every digit of a
+countdown therefore holds for a full second, and a five-second timer opens on 00:05.
+
+**A finished countdown rests on 00:00 rather than removing itself.** It used to
+vanish the instant it ran out, which meant the number the whole thing exists to
+reach was the one frame nobody ever saw — 00:01, then the graphic animating away.
+A break clock sitting on 00:00 is a graphic saying "we are back", and it stays until
+somebody clears it: `TimerButton` offers **Clear 00:00** for exactly that. `hold`
+sets how long the rest lasts — `hold={3000}` for three seconds and then the old
+exit, `hold={0}` for the old behaviour.
+
+The rest is owed to a countdown somebody watched, not to a timestamp that happens to
+be in the past, so a `Timer` that mounts onto an already-finished clock shows its
+fallback. Otherwise a stale timer left in the document from last week would put
+00:00 on air at startup.
 
 ## Images
 

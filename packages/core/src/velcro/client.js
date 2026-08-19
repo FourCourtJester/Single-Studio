@@ -305,6 +305,17 @@ export class VelcroClient {
   }
 
   /**
+   * Leave the room, empty the document, delete the store. Resolves when it is done.
+   *
+   * One message rather than three, because the order matters and the page cannot
+   * enforce it -- see the host. What is left afterwards is a worker holding an empty
+   * in-memory document, which is why the caller reloads.
+   */
+  wipe() {
+    return this.#request('wipe')
+  }
+
+  /**
    * Returns an unsubscribe function. Last listener out closes the channel.
    *
    * The channel cannot open until the host has reported its id, so the wiring

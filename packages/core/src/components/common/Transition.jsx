@@ -110,7 +110,27 @@ export function Transition({ children, trigger, transition = 'fade', className, 
 
   // A new value: out, swap, in.
   useEffect(() => {
-    if (Object.is(committed.current, trigger)) return undefined
+    if (Object.is(committed.current, trigger)) {
+      /**
+       * Back to what is already on screen, while it was on its way out.
+       *
+       * This has to undo the exit rather than simply do nothing, and the reason is
+       * the cleanup at the bottom of this effect: it cancels the pending swap, so
+       * an effect run that "does nothing" here actually strands the machine in
+       * `exiting` with no timer left to finish it. Content is only ever replaced at
+       * a commit, so from that moment the element shows whatever it was showing
+       * when the exit began -- forever, on air, with the store perfectly correct
+       * behind it.
+       *
+       * It happens whenever a trigger flaps inside one animation: a lower third
+       * hidden and shown again in the same breath, or a countdown cleared and
+       * restarted, which is a quarter of a second of operator and well inside a
+       * transition.
+       */
+      if (phase === 'exiting') setPhase(trigger ? 'entering' : 'inactive')
+
+      return undefined
+    }
 
     // Nothing on screen to animate out -- go straight in.
     if (phase === 'inactive') {

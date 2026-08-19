@@ -99,6 +99,10 @@ export function useTimer(path) {
       mode: target ? 'down' : 'idle',
       running: remaining > 0,
       active: remaining > 0,
+      // A countdown that exists and has run out, which is a different state from
+      // "there is no countdown" and has to be tellable apart from it: one of them
+      // wants 00:00 on screen and the other wants nothing at all.
+      finished: Boolean(target) && remaining <= 0,
       elapsed: 0,
       remaining,
       duration: timer?.duration ?? 0,

@@ -318,6 +318,40 @@ export function createVelcroHost(config = {}) {
         port.postMessage({ type: 'snapshot:result', id: message.id, value: Doc.snapshot(doc) })
         break
 
+      /**
+       * Empty this machine: leave the room, clear the document, delete the store.
+       *
+       * All three happen here rather than on the page, because the order is the
+       * whole correctness of it and only the worker can guarantee it.
+       *
+       * Detaching first, and *awaited*: the document is a CRDT, so clearing it
+       * while a provider is still observing replicates the clearing, and a control
+       * that says "reset this machine" would take the show off everybody else's
+       * board too. A page can ask for a detach and then ask for a clear, but it
+       * cannot know the provider finished coming down in between.
+       *
+       * Deleting the store last, and from in here: the connection to it lives in
+       * this worker, the worker outlives the page's reload, and `deleteDatabase`
+       * against an open connection blocks rather than failing -- so a page trying
+       * to do this itself would appear to do nothing and then do it at some
+       * unrelated later moment.
+       */
+      case 'wipe':
+        sync
+          .detach()
+          .then(() => {
+            apply(doc, registry, 'clear', {}, 'local', sync.now)
+
+            return persistence?.clearData()
+          })
+          .catch((error) => {
+            // Reported rather than thrown: the page still has storage to clear and a
+            // reload to do, and a half-done reset is worse than a noisy one.
+            console.error('[velcro] wipe did not complete cleanly', error)
+          })
+          .finally(() => port.postMessage({ type: 'wipe:result', id: message.id, value: true }))
+        break
+
       // Answered with the version of the state, not a fresh one. An answer that
       // has been overtaken while it was in the queue must lose to what overtook it;
       // unstamped, it won instead, and the board it landed on stayed wrong for the
