@@ -436,19 +436,25 @@ export function createSync({ doc, name, status, config }) {
     if (mine !== generation) return null
 
     // A link may carry only an address, so a studio that names its own room keeps
-    // it. A token does not carry across relays, though: a credential for one room
-    // is not a credential for another, and sending it to a different host would be
-    // handing it to a stranger.
-    const moving = Boolean(override?.url) && override.url !== url
+    // it. Neither credential travels to a stranger, but they are scoped to
+    // different things and so have different rules.
+    //
+    // A token authorises this operator to a *host*: the relay issued it, and it
+    // means nothing anywhere else, but it stays good across rooms on the relay that
+    // minted it.
+    const elsewhere = Boolean(override?.url) && override.url !== url
+
+    // A key belongs to a *room*, and rotating the room is the only revocation there
+    // is -- nobody can be un-told a key they already have, so shutting somebody out
+    // means a room they have no key to. Carrying the old key into the new room would
+    // undo the whole of that in one line, which is why this is the wider test.
+    const rekeying = elsewhere || (Boolean(override?.room) && override.room !== room)
 
     active = {
       url: override?.url ?? url,
       room: override?.room ?? room,
-      token: override?.token ?? (moving ? undefined : token),
-      // A room key travels with the room, not with the machine. Carrying one to a
-      // relay it was not minted for would be handing a stranger the show, and it
-      // would not decrypt anything there anyway.
-      secret: override?.secret ?? (moving ? undefined : secret),
+      token: override?.token ?? (elsewhere ? undefined : token),
+      secret: override?.secret ?? (rekeying ? undefined : secret),
     }
 
     report(CONNECTING)

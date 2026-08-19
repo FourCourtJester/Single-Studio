@@ -42,6 +42,12 @@ export class VelcroClient {
 
   #last = { sync: { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false, delegated: false }, presence: [] }
 
+  /** What each kind last announced, so the duplicate copy is not passed on twice. */
+  #seen = { sync: null, presence: null }
+
+  /** The newest stamp seen per kind, so a late copy cannot undo a newer one. */
+  #seq = { sync: undefined, presence: undefined }
+
   constructor({ name, worker }) {
     if (typeof worker !== 'function') throw new TypeError('Velcro needs a `worker` factory: () => new SharedWorker(...)')
 
@@ -125,8 +131,8 @@ export class VelcroClient {
 
         this.#status = new BroadcastChannel(statusChannelFor(this.#name))
         this.#status.addEventListener('message', ({ data }) => {
-          if (data?.type === 'sync') this.#announce('sync', syncOf(data))
-          if (data?.type === 'presence') this.#announce('presence', data.peers ?? [])
+          if (data?.type === 'sync') this.#announce('sync', syncOf(data), data.seq)
+          if (data?.type === 'presence') this.#announce('presence', data.peers ?? [], data.seq)
         })
 
         this.#port.postMessage({ type: 'sync:status' })
@@ -136,7 +142,23 @@ export class VelcroClient {
     return () => set.delete(listener)
   }
 
-  #announce(kind, value) {
+  #announce(kind, value, seq) {
+    // The host says everything twice on purpose -- once over the channel, once down
+    // the port -- so that losing one is not losing the message. That makes ordering
+    // this side's problem: two roads are two queues, and a copy that arrives late by
+    // one road must not undo something newer that came by the other. The stamp is
+    // what tells "again" from "older".
+    if (seq !== undefined && this.#seq[kind] !== undefined && seq <= this.#seq[kind]) return
+
+    if (seq !== undefined) this.#seq[kind] = seq
+
+    // Identical is not worth passing on either: `useSyncStatus` builds a fresh
+    // object per announcement, so the duplicate would be a re-render for no change.
+    const shape = JSON.stringify(value)
+
+    if (shape === this.#seen[kind]) return
+
+    this.#seen[kind] = shape
     this.#last[kind] = value
 
     for (const listener of this.#watchers[kind]) listener(value)
@@ -191,19 +213,19 @@ export class VelcroClient {
     // The opening value for a subscription comes back down the port rather than
     // over the channel -- see the note in host.js subscribe().
     if (data?.type === 'value') {
-      this.#deliver(data.path, data.value)
+      this.#deliver(data.path, data.value, data.seq)
       return
     }
 
     // Answers to `sync:status`, which come back down the port because the page
     // asking may have opened after the last change was broadcast.
     if (data?.type === 'sync') {
-      this.#announce('sync', syncOf(data))
+      this.#announce('sync', syncOf(data), data.seq)
       return
     }
 
     if (data?.type === 'presence') {
-      this.#announce('presence', data.peers ?? [])
+      this.#announce('presence', data.peers ?? [], data.seq)
       return
     }
 
@@ -218,10 +240,25 @@ export class VelcroClient {
   }
 
   /** Fan a value out to everything listening on a path, from either transport. */
-  #deliver(path, value) {
+  #deliver(path, value, seq) {
     const entry = this.#subs.get(path)
 
     if (!entry || entry.closed) return
+
+    // Older than what is already on screen. Only possible because the host speaks
+    // twice, and precisely the failure that redundancy would otherwise introduce: a
+    // score going backwards on air because the slower road finally arrived.
+    if (seq !== undefined && entry.seq !== undefined && seq <= entry.seq) return
+
+    if (seq !== undefined) entry.seq = seq
+
+    // The same value arriving twice is the host being deliberately redundant, not a
+    // change. Dropping the repeat matters most on the busiest path there is: a
+    // scoreboard being tapped is a value per press, and every graphic reading it
+    // would otherwise render each one twice.
+    const shape = JSON.stringify(value)
+
+    if (entry.hydrated && shape === entry.shape) return
 
     // `hydrated` is separate from `value !== undefined`: a path that genuinely
     // holds nothing still counts as loaded once the host has said so. Graphics use
@@ -229,6 +266,7 @@ export class VelcroClient {
     // the second may render a fallback.
     entry.hydrated = true
     entry.value = value
+    entry.shape = shape
 
     for (const fn of entry.listeners) fn(value)
   }
@@ -279,7 +317,7 @@ export class VelcroClient {
     const key = collection ? `${normalize(path.slice(0, -2))}.*` : normalize(path)
 
     if (!this.#subs.has(key)) {
-      const entry = { channel: null, listeners: new Set(), value: undefined, hydrated: false, closed: false }
+      const entry = { channel: null, listeners: new Set(), value: undefined, shape: undefined, seq: undefined, hydrated: false, closed: false }
 
       this.#subs.set(key, entry)
 
@@ -289,7 +327,7 @@ export class VelcroClient {
         // Channel first, then ask: subsequent changes fan out over the channel, and
         // it has to be listening before the host can publish one.
         entry.channel = new BroadcastChannel(channelFor(this.#name, key))
-        entry.channel.addEventListener('message', ({ data }) => this.#deliver(data.path, data.value))
+        entry.channel.addEventListener('message', ({ data }) => this.#deliver(data.path, data.value, data.seq))
 
         this.#port.postMessage({ type: 'subscribe', path: key })
       })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { relayFromUrl, relayLink } from '../src/hooks/useRelay'
+import { nextRoom } from '../src/components/control/Collaborate'
 
 // An operator's whole setup is pasting a link into an OBS dock. Nobody types a
 // token, nobody opens a settings screen, and OBS remembers the dock URL, so it is
@@ -131,5 +132,30 @@ describe('building a link to send somebody', () => {
     const link = relayLink({ url: 'wss://r.example.com', room: 'friday night', token: 'a b/c', base: 'https://studio.example.com/' })
 
     expect(relayFromUrl(link)).toMatchObject({ room: 'friday night', token: 'a b/c' })
+  })
+})
+
+describe('rotating a room to shut somebody out', () => {
+  // The only revocation there is. Nobody can be un-told a key they already have, so
+  // removing a person means a room they have no key to -- and the name it lands on
+  // has to be one an operator still recognises as the same show at three minutes to
+  // air. The key is what keeps anybody out; the name only has to be different.
+
+  it('steps a plain name', () => {
+    expect(nextRoom('friday-night-7x2k9')).toBe('friday-night-7x2k9-2')
+  })
+
+  it('counts up rather than stacking suffixes', () => {
+    expect(nextRoom('friday-2')).toBe('friday-3')
+    expect(nextRoom(nextRoom(nextRoom('friday')))).toBe('friday-4')
+  })
+
+  it('does not mistake a number inside the name for a count', () => {
+    expect(nextRoom('week-1-finals')).toBe('week-1-finals-2')
+  })
+
+  it('has something to say even with nothing to work from', () => {
+    expect(nextRoom('')).toBe('show-2')
+    expect(nextRoom(undefined)).toBe('show-2')
   })
 })

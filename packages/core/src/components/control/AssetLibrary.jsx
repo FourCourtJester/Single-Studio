@@ -295,6 +295,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
                       onPick={onPick}
                       onRemove={() => remove(entry.key)}
                       onRename={(next) => rename(entry.key, next)}
+                      owner={owner}
                     />
                   ))}
                 </ul>
@@ -313,7 +314,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
   )
 }
 
-function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
+function AssetTile({ entry, selected, onPick, onRemove, onRename, owner }) {
   const url = useAssetUrl(toAssetRef(entry.key))
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(entry.key)
@@ -337,7 +338,9 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
         disabled={!onPick}
         title={
           entry.here === false
-            ? `Added on another machine. This one does not hold the image, so it will not show here.`
+            ? owner
+              ? 'Added on another machine. This one does not hold the image, so it may not show on air either.'
+              : 'Lives on the machine running OBS. It will go to air; this board just cannot preview it.'
             : entry.kind === 'url'
               ? entry.url
               : `${entry.name} · ${Math.round((entry.size ?? 0) / 1024)}kB`
@@ -347,7 +350,7 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
         {url ? (
           <img src={url} alt="" className="max-h-full max-w-full object-contain" />
         ) : (
-          <span className="px-1 text-center text-[10px] leading-tight text-slate-600">{entry.here === false ? 'on another machine' : '…'}</span>
+          <span className="px-1 text-center text-[10px] leading-tight text-slate-600">{entry.here === false ? (owner ? 'on another machine' : 'on the studio machine') : '…'}</span>
         )}
       </button>
 

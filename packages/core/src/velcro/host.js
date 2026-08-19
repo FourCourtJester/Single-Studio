@@ -34,7 +34,62 @@ export function createVelcroHost(config = {}) {
   const bases = Doc.basesOf(doc)
   const deltas = Doc.deltasOf(doc)
 
-  const status = new BroadcastChannel(statusChannelFor(name))
+  /** portId -> port, so the host can answer a client directly as well as broadcast. */
+  const connected = new Map()
+
+  /**
+   * A monotonic stamp on everything the host says, so a page can order it.
+   *
+   * Two roads out means two queues, and two queues have no shared ordering. Without
+   * this, a value delivered late on one road can land *after* a newer value that
+   * came by the other and quietly put the old one back on screen -- a stale
+   * scoreboard produced by the very redundancy meant to prevent one. The number
+   * makes the second copy identifiable as old rather than merely identical.
+   */
+  let tick = 0
+  const stamped = (message) => {
+    tick += 1
+
+    return { ...message, seq: tick }
+  }
+
+  const statusChannel = new BroadcastChannel(statusChannelFor(name))
+
+  /**
+   * Say something to every page, down both roads at once.
+   *
+   * The channel is the fan-out; the ports are the guarantee. A BroadcastChannel post
+   * from a worker is fire-and-forget with no acknowledgement and no recovery -- this
+   * codebase has already been bitten by one going missing, which is why a
+   * subscription's opening value stopped riding it (see subscribe()). Everything
+   * else about status had the same shape and the same failure: a board that missed
+   * the one message saying who holds the room, or that the show had arrived, sat
+   * there looking connected and wrong until somebody reloaded it.
+   *
+   * A duplicate is harmless -- the client stores the value and tells its listeners,
+   * and telling them the same thing twice is a comparison, not a render -- so
+   * sending both ways costs a message and removes a class of silent staleness.
+   */
+  const status = {
+    postMessage(message) {
+      const stampedMessage = stamped(message)
+
+      try {
+        statusChannel.postMessage(stampedMessage)
+      } catch (error) {
+        console.error('[velcro] could not broadcast status', error)
+      }
+
+      for (const port of connected.values()) {
+        try {
+          port.postMessage(stampedMessage)
+        } catch (error) {
+          console.error('[velcro] could not tell a page about status', error)
+        }
+      }
+    },
+  }
+
   /** path -> { channel, ports:Set<number> } */
   const subscriptions = new Map()
   /** Paths touched by the current transaction, flushed once it commits. */
@@ -73,7 +128,20 @@ export function createVelcroHost(config = {}) {
 
     if (!entry) return
 
-    entry.channel.postMessage({ path, value: valueAt(path) })
+    const message = stamped({ type: 'value', path, value: valueAt(path) })
+
+    // Both roads, for the reason in `status` above. The host already knows exactly
+    // which ports asked for this path, so the direct answer is not even a fan-out
+    // being simulated -- it is the more precise of the two.
+    entry.channel.postMessage(message)
+
+    for (const portId of entry.ports) {
+      try {
+        connected.get(portId)?.postMessage(message)
+      } catch (error) {
+        console.error('[velcro] could not publish to a page', path, error)
+      }
+    }
   }
 
   /**
@@ -151,7 +219,7 @@ export function createVelcroHost(config = {}) {
     // the graphic sits on its fallback until something else happens to change.
     // A port reply is ordered, targeted, and cannot be missed by a client that just
     // sent the request down it.
-    port.postMessage({ type: 'value', path: key, value: valueAt(key) })
+    port.postMessage(stamped({ type: 'value', path: key, value: valueAt(key) }))
   }
 
   function unsubscribe(path, portId) {
@@ -170,6 +238,8 @@ export function createVelcroHost(config = {}) {
 
   function dropPort(portId) {
     for (const path of [...subscriptions.keys()]) unsubscribe(path, portId)
+
+    connected.delete(portId)
   }
 
   // -- lifecycle ----------------------------------------------------------
@@ -278,6 +348,8 @@ export function createVelcroHost(config = {}) {
   function connect(port) {
     const portId = nextPortId
     nextPortId += 1
+
+    connected.set(portId, port)
 
     port.addEventListener('message', ({ data }) => {
       // Queue everything behind persistence so a mutation fired on page load

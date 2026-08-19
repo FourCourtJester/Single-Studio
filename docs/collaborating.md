@@ -75,10 +75,17 @@ Two things follow from that, and both are worth knowing before you need them:
 always true, but the link is now the whole of the secret rather than half of it, so
 treat it the way you would treat a shared login — not a public post.
 
-**To shut somebody out, make a new room.** Encryption cannot un-tell someone a key
-they already have. Open **Collaborate**, change the room name, press Go, and send
-everyone else the new link. Ten seconds, and the old link stops working. There is
-no button that removes one person from a room, and there honestly cannot be.
+**To shut somebody out, start a fresh room.** Encryption cannot un-tell someone a
+key they already have, so the answer is a room they have no key to. Open
+**Collaborate**, press **Shut somebody out — start a fresh room**, then **Move**.
+That picks a new room name and a brand new key; your show comes with you, because
+it lives on your machine rather than on a server. Send everyone you still want the
+new link.
+
+Anyone holding the old link is left in a room with nobody in it. That is the point,
+and it is the honest shape of the thing: there is no button that removes one person
+from a room while everyone else carries on, because a key that has already been read
+cannot be taken back.
 
 If you would rather not encrypt — you are testing, or you want to be able to read
 the traffic yourself — untick **Encrypt this show** before pressing Go.

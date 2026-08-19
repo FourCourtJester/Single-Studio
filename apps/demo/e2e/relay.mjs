@@ -234,6 +234,11 @@ check(
 // anybody has claimed it. Erring open during that moment is the right default --
 // see useOwner -- which is exactly why the test has to wait for the answer instead
 // of catching the board mid-question.
+// Polled rather than read once: the operator learns the role from the host's
+// awareness state, so there is a moment after joining where it does not yet know
+// anybody has claimed it. Erring open during that moment is the right default --
+// see useOwner -- which is exactly why the test has to wait for the answer instead
+// of catching the board mid-question.
 check(
   await becomes(operator.page, () => !document.querySelector('.ss-asset-library input[aria-label="Add image files"]'), null, 15000),
   'and a machine that cannot display the bytes is not offered one at all',
@@ -302,7 +307,16 @@ check(
 
     return tile?.classList.contains('ss-elsewhere')
   }),
-  'and marked as one this machine cannot show, rather than offered as if it could',
+  'and marked as one this board cannot draw',
+)
+
+// What that marking *means* changed when files became the OBS machine's to add.
+// It used to warn "pick this and it goes to air blank"; now the bytes are by
+// definition on the machine going to air, so the only thing missing is the preview.
+// Warning somebody off it would be warning them off the correct choice.
+check(
+  await becomes(operator.page, () => /go to air/i.test(document.querySelector('.ss-asset-tile.ss-elsewhere button')?.title ?? '')),
+  'and explained as a missing preview rather than a warning, since it will draw where it matters',
 )
 
 // -- Losing the relay --------------------------------------------------------

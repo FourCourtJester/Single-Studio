@@ -56,6 +56,22 @@ export function Collaborate({ className, ...rest }) {
   )
 }
 
+/**
+ * The next room along: `friday` becomes `friday-2`, `friday-2` becomes `friday-3`.
+ *
+ * Rotating the room is the whole of revocation here, so the name it produces has to
+ * be one an operator recognises as the same show. A fresh random string would be
+ * safer against guessing and worse at three minutes to air, and the key is what is
+ * actually keeping anybody out.
+ */
+export function nextRoom(name) {
+  const at = /^(.*)-(\d+)$/.exec(String(name ?? '').trim())
+
+  if (at) return `${at[1]}-${Number(at[2]) + 1}`
+
+  return `${String(name ?? '').trim() || 'show'}-2`
+}
+
 /** "3s behind" / "12s ahead", from the offset that would correct it. */
 const formatSkew = (offset) => `${Math.round(Math.abs(offset) / 1000)}s ${offset > 0 ? 'behind' : 'ahead of'}`
 
@@ -150,7 +166,30 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
             <code className="ss-invite-link select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
               {relayLink({ url: config.url, room: config.room, token: config.token, secret: config.secret })}
             </code>
+
+            {/* The only revocation there is, and it is worth saying why rather than
+                hiding it behind a word like "rotate". Nobody can be un-told a key
+                they already have, so shutting somebody out means a room they have no
+                key to. Your own machine carries the show into it, so nothing is lost
+                but the people you meant to leave behind. */}
+            <button
+              type="button"
+              onClick={() => {
+                setName(nextRoom(config.room ?? room))
+                setSecret(newSecret())
+              }}
+              className="ss-rekey self-start text-xs text-emerald-300/80 underline-offset-2 transition-colors hover:text-emerald-200 hover:underline"
+            >
+              Shut somebody out &mdash; start a fresh room
+            </button>
           </section>
+        ) : null}
+
+        {config?.url && name.trim() !== (config.room ?? '') && secret && secret !== config.secret ? (
+          <p className="ss-rekey-warning rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+            Press <span className="font-medium">Move</span> to start <span className="font-mono">{name.trim()}</span> with a new key. Your show comes with you.
+            Everyone you still want in it needs the new link &mdash; anyone holding the old one is left behind, which is the point.
+          </p>
         ) : null}
 
         <p className="text-sm text-slate-400">

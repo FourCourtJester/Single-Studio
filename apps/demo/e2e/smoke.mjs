@@ -354,10 +354,23 @@ const units = ['artillery', 'battle-tank', 'engineer', 'gunship', 'missile-squad
 
 await library.locator('input[aria-label="Add image files"]').setInputFiles(units.map((unit) => asset(`units/${unit}.svg`)))
 
-check(
-  await becomes(control, () => document.querySelectorAll('.ss-asset-group').length >= 2),
-  'a batch files itself under the group that was typed',
-)
+// Waited on by *count*, not by the group merely existing. A batch is added one
+// file at a time -- each is read, hashed and written to IndexedDB in turn -- so the
+// group appears as soon as the first one lands, and a check that fires then reads a
+// half-filled list and calls it a lost file. The failure looked exactly like the
+// deduplication racing itself, which is a considerably more alarming thing to go
+// looking for than a test that did not wait.
+const inUnits = (want) =>
+  becomes(
+    control,
+    (n) =>
+      [...document.querySelectorAll('.ss-asset-group')]
+        .find((group) => group.querySelector('h3')?.textContent.startsWith('units'))
+        ?.querySelectorAll('.ss-asset-name').length === n,
+    want,
+  )
+
+check(await inUnits(units.length), 'a batch files itself under the group that was typed')
 
 const filed = await control.evaluate(() => {
   const section = [...document.querySelectorAll('.ss-asset-group')].find((group) => group.querySelector('h3')?.textContent.startsWith('units'))

@@ -375,6 +375,21 @@ describe('the room key at the seam', () => {
     expect(made.sync.snapshot.encrypted).toBe(false)
   })
 
+  it('leaves it behind when the room is rotated to shut somebody out', async () => {
+    // The revocation story, and the line that makes it true. Nobody can be un-told
+    // a key they already have, so removing a person means a room they have no key
+    // to. Carrying the old key into the new room would hand it straight back.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `rotated-${Math.random()}`, sync: { connect: build, url: 'https://one.supabase.co', room: 'friday', secret: newSecret() } })
+
+    await made.started
+    await settle()
+
+    await made.sync.attach({ room: 'friday-2' })
+
+    expect(build.mock.calls.at(-1)[0].secret).toBeUndefined()
+  })
+
   it('keeps it when the same board reconnects to the room it is already in', async () => {
     const build = vi.fn(() => ({ destroy() {} }))
     const secret = newSecret()

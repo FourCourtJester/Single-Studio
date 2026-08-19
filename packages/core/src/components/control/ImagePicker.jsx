@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
+import { useOwner } from '../../hooks/useSync'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { assetKeyOf, groupOf, isAssetRef, leafOf, toAssetRef } from '../../velcro/assets'
 import { cx } from '../../toolkits/cx'
@@ -34,6 +35,7 @@ export function ImagePicker({ name, label: caption = 'Image', namespace = 'varia
   const path = `${namespace}.${name}`
   const { value, dirty, onChange } = useDraftValue(path)
   const { assets } = useAssetLibrary()
+  const owner = useOwner()
   const preview = useAssetUrl(value || null)
   const [browsing, setBrowsing] = useState(false)
 
@@ -116,13 +118,25 @@ export function ImagePicker({ name, label: caption = 'Image', namespace = 'varia
             </span>
           ) : null}
 
-          {/* The failure this exists to prevent: a file somebody else added, chosen
-              here, goes to air blank on whichever machines lack the bytes. Saying so
-              costs a line; not saying so costs a graphic nobody notices is wrong. */}
+          {/* Two different sentences, because the ownership rule changed which one is
+              true. Files are added on the machine running OBS, so an entry this
+              board cannot draw is one that lives on the machine going to air --
+              picking it is right, and only the preview is missing. Warning somebody
+              off it would now be warning them off the correct choice.
+
+              With nobody holding the role, though, the old hazard is back: files
+              could have come from anywhere, and one chosen here may go to air blank
+              on the machine that has to draw it. */}
           {chosen && !chosen.here ? (
-            <span className="ss-elsewhere truncate text-xs text-amber-400" title={`"${chosen.key}" was added on another machine`}>
-              Not on this machine &mdash; it will not show here
-            </span>
+            owner ? (
+              <span className="ss-elsewhere truncate text-xs text-amber-400" title={`"${chosen.key}" was added on another machine`}>
+                Not on this machine &mdash; it may not show on air
+              </span>
+            ) : (
+              <span className="ss-not-here truncate text-xs text-slate-500" title={`"${chosen.key}" lives on the machine running OBS`}>
+                On the studio machine &mdash; it will go to air, just not previewed here
+              </span>
+            )
           ) : null}
         </div>
       </div>

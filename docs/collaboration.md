@@ -429,12 +429,28 @@ failure mode worth caring about, and it is why the frame marker is a byte `>= 0x
 the two apart with no ambiguity at all. All three mismatches say something an
 operator can act on: no key, wrong key, or somebody here without one.
 
-##### What it still does not do
+##### Revocation, and the shape it actually has
 
-Revocation. Encrypting cannot un-tell somebody a key they already have. Removing a
-person means a new room and a new key — which, because the link carries both, is one
-fresh link to send. For a four-person production that is fine; it is worth knowing
-rather than discovering.
+Encrypting cannot un-tell somebody a key they already have, so per-person revocation
+is not available at any price worth paying. What is available is rotation: a new
+room with a new key, which the dialog does in two clicks under a button that says
+what it is for rather than hiding behind the word "rotate".
+
+Three things make that a real answer rather than a shrug:
+
+- **The show comes with you.** State is local-first, so moving to a fresh room means
+  your own machine offering its document into an empty one. Nothing is reconstructed
+  and nothing is lost.
+- **The old key does not follow.** `attach` treats a change of *room* as rekeying,
+  not only a change of address — a token is scoped to the host that issued it, a key
+  to the room it was minted for. Carrying the old key into the new room would undo
+  the whole thing in one line, which is why that is a wider test than the token's.
+- **Nobody is half-in.** The excluded machine is left in a room with nobody in it,
+  rather than connected-but-mute in a way somebody has to notice.
+
+The alternative — per-recipient key wrapping and a rekey on every removal — is a
+great deal of machinery that still cannot claw back what has already been read, for
+a production with four people in it.
 
 And it is **not offered on a self-hosted relay**, for the original reason, now
 stated at the point of decision rather than in a document: a relay keeps a copy so
@@ -689,6 +705,45 @@ shape is already the one the full version needs.
 - **Multi-OBS topologies.** One OBS, _n_ operators. Several hosts means several
   writers of scene-ish state and a genuinely different problem.
 
+## Two roads to a page ✅
+
+The worker reaches a page two ways: a `MessagePort` per client, and a
+`BroadcastChannel` per path. The channel was the fan-out and, for a long time, the
+only road that changes travelled.
+
+That produced a fault that took several attempts to corner. Roughly one browser run
+in three or four, a peer would connect and then never learn something the room
+already knew — an invite-link machine sitting on an empty board, or an operator that
+never heard which machine holds the OBS role. It looked like a relay problem and was
+not: the same scenarios in Node against a real socket were stable across repeated
+runs.
+
+The measurement that cracked it was reloading the page at the moment of failure and
+asking again. The answer came back immediately, which meant **the worker had known
+all along and the page had missed the message.** A `BroadcastChannel` post from a
+worker is fire-and-forget: no acknowledgement, no retry, and no way for either end
+to notice one went missing. This codebase had already been bitten by that once — a
+subscription's opening value stopped riding the channel for exactly this reason —
+and everything still on it had the same shape and the same failure, with no recovery
+path.
+
+So the host now says everything **down the port as well**. It already tracks which
+ports subscribed to which path, so the direct answer is the more precise of the two
+roads rather than a fan-out being simulated. Six consecutive browser runs against a
+baseline that was failing one in three.
+
+### The hazard that introduces, and the stamp that closes it
+
+Two roads are two queues, and two queues have no ordering between them. A value
+delayed on one road can arrive *after* a newer value that came by the other — which,
+applied, is a score going backwards on air, produced by the very redundancy meant to
+stop a value going missing. Strictly worse than the bug being fixed.
+
+Every message the host sends therefore carries a monotonic `seq`, and a page ignores
+anything not newer than what it already has. That is what makes the second copy
+identifiable as *old* rather than merely identical. Removing the guard makes the
+straggler win, which is how it was checked.
+
 ## Risks worth naming
 
 | Risk                                                   | Handling                                                                                                                                                                                                    |
@@ -696,5 +751,6 @@ shape is already the one the full version needs.
 | Remote operators on non-Chromium browsers              | Not a real constraint: module `SharedWorker` is Chrome 83+, Firefox 114+, Safari 16+. Ship a minimum-version note rather than a fallback. See [getting-started](./getting-started.md#browser-requirements). |
 | Relay is a single point of failure for _collaboration_ | Accepted. It is never a single point of failure for the _broadcast_ — that's what local-first buys.                                                                                                         |
 | Counter delta growth                                   | Bounded by distinct clientIDs that have ever incremented a path. A long-lived doc across many sessions accumulates keys; add compaction on load if it ever shows up in practice.                            |
-| **A peer intermittently not learning what the room already knows** | **Open, not root-caused, and it predates this work.** Two symptoms in `apps/demo/e2e/relay.mjs`, both roughly one run in three or four: a third machine opening an invite link connects and stays on an empty board (this one reproduces on `main` with none of the ownership work applied), and an operator connects but never learns another machine holds the OBS role. Both are "connected, and never told". What is ruled out: the wire protocol and the room's join handshake, because the same two scenarios in Node against a real socket -- `packages/relay/test/integration.test.js`, including studios joining before and after the claim -- are stable across repeated runs, as are the seam's own unit tests. That leaves something browser-side: the `SharedWorker` lifecycle around the host's post-setup reload, or the worker-to-page status channel. Timing is not the cause: the measured time-to-know is 2--14ms when it works and never when it does not, so it is a missed edge rather than a slow one. |
+| A peer intermittently not learning what the room already knows | **Fixed.** Root cause was a `BroadcastChannel` post from the worker going missing with no recovery path — see [Two roads to a page](#two-roads-to-a-page-). Worth remembering for the shape rather than the fix: it looked like a relay fault for a long time, and the thing that cornered it was reloading the page at the moment of failure and finding the worker had known all along. |
+| A test that waits for the wrong thing | Not a product risk, but it cost real time twice. A folder upload adds files one at a time, and a check that waited for the *group* to exist read a half-filled list and reported a lost file — which looks exactly like the deduplication racing itself, a considerably more alarming thing to go hunting for. Wait on the count. |
 | Two operators editing one text field                   | Presence (stage 3). Character-level merging is available if needed, but a field is not a document and last-write-wins is usually what an operator expects.                                                  |
