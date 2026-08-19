@@ -38,6 +38,68 @@ function room() {
   return { join, peers, greet: () => peers.forEach((peer) => peer.mesh.greet()) }
 }
 
+describe('a transport that will not take a message', () => {
+  // Supabase answers a broadcast with a status rather than throwing, so a refused
+  // send resolves like a successful one and a `try` around it catches nothing. The
+  // cost of missing that is not noise in a log: the peers quietly diverge and the
+  // board goes on saying "connected".
+
+  it('notices a send that fails after the call returned', async () => {
+    const noise = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const told = []
+    const doc = new Y.Doc()
+    const mesh = createMeshProvider({
+      doc,
+      name: 'flaky',
+      report: (state, why) => told.push([state, why]),
+      send: () => Promise.reject(new Error('rate limited')),
+    })
+
+    mesh.connected()
+    doc.getMap('state').set('variables.home.name', 'Vanguard')
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(told.some(([state]) => state === 'error')).toBe(true)
+
+    noise.mockRestore()
+  })
+
+  it('notices one that throws outright', async () => {
+    const noise = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const told = []
+    const doc = new Y.Doc()
+    const mesh = createMeshProvider({
+      doc,
+      name: 'broken',
+      report: (state, why) => told.push([state, why]),
+      send: () => {
+        throw new Error('socket is gone')
+      },
+    })
+
+    mesh.connected()
+    doc.getMap('state').set('variables.home.name', 'Vanguard')
+
+    expect(told.some(([state]) => state === 'error')).toBe(true)
+
+    noise.mockRestore()
+  })
+
+  it('says nothing when the transport is happy', async () => {
+    const told = []
+    const doc = new Y.Doc()
+    const mesh = createMeshProvider({ doc, name: 'fine', report: (state) => told.push(state), send: () => Promise.resolve('ok') })
+
+    mesh.connected()
+    doc.getMap('state').set('variables.home.name', 'Vanguard')
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(told.filter((state) => state === 'error')).toEqual([])
+  })
+})
+
 describe('two peers', () => {
   it('converge on an edit', () => {
     const show = room()

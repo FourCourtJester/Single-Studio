@@ -42,13 +42,31 @@ export function createMeshProvider({ doc, send, report, name = 'mesh' }) {
   let open = false
   let destroyed = false
 
+  /**
+   * Hand bytes to the transport, and notice when it does not take them.
+   *
+   * A transport may fail long after the call returns -- a hosted channel answers
+   * with a status rather than throwing, and a rejected promise is invisible to a
+   * `try`. That matters more here than the usual tidiness argument: a dropped
+   * broadcast is a lost edit, the peers quietly diverge, and the board goes on
+   * saying "connected". Silent divergence on air is the exact failure this whole
+   * system is built to make impossible, so it is reported rather than swallowed.
+   */
   const post = (bytes) => {
     if (destroyed || !open) return
 
     try {
-      send(bytes)
+      const sending = send(bytes)
+
+      if (typeof sending?.catch === 'function') {
+        sending.catch((error) => {
+          console.error(`[${name}] could not send`, error)
+          report?.('error', 'An edit did not reach the other machines. They may be showing something different.')
+        })
+      }
     } catch (error) {
       console.error(`[${name}] could not send`, error)
+      report?.('error', 'An edit did not reach the other machines. They may be showing something different.')
     }
   }
 

@@ -69,7 +69,15 @@ export function connectSupabase({ doc, url, room, token, report, seal, open, isS
     open,
     isSealed,
     report,
-    toTransport: (bytes) => channel.send({ type: 'broadcast', event: EVENT, payload: { b: encode(bytes) } }),
+    // Supabase answers with a status rather than throwing, so a refused broadcast --
+    // a rate limit hit by a paste that turns into fifty mutations, a channel that
+    // went away underneath us -- looks exactly like a successful one. Turning it
+    // into a rejection is what lets anything upstream notice.
+    toTransport: async (bytes) => {
+      const result = await channel.send({ type: 'broadcast', event: EVENT, payload: { b: encode(bytes) } })
+
+      if (result !== 'ok') throw new Error(`Supabase would not broadcast: ${result}`)
+    },
     toMesh: (bytes) => mesh.receive(bytes),
   })
 
