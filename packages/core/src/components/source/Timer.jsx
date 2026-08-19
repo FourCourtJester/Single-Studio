@@ -10,23 +10,23 @@ import { Transition } from '../common/Transition'
  * The trigger is `active`, not the text -- the display ticks once a second and
  * animating each tick would be unreadable. Only starting and finishing animate.
  *
- * **It rests on 00:00.** A countdown used to vanish the instant it ran out, so the
- * zero it was counting towards was the one frame nobody ever saw -- 00:01, then the
- * graphic animating away. That is a fair reading of "the countdown is over" and it
- * is the wrong one for anybody watching: a five-second countdown that never shows a
- * zero has not counted anything, and it is the note every client sends back.
+ * **It shows the zero, then takes itself away.** A countdown used to vanish at the
+ * instant it reached zero, so the number the whole thing exists to reach was the one
+ * frame nobody ever saw -- 00:01, then the graphic animating out. The zero now gets
+ * the same second on screen as every other digit, and then the graphic leaves on its
+ * own, because a timer somebody has to remember to dismiss during a show is a timer
+ * that stays on air.
  *
- * Nothing here changed to get that. `active` did: it meant "has time left" and now
- * means "there is a countdown", which is what it already meant for a stopwatch. So
- * the graphic stays until somebody clears the clock -- a break timer on 00:00 is a
- * graphic saying "we are back" -- and `TimerButton` offers **Clear** to do it.
+ * Nothing here does that. `active` does -- see `useTimer`. It is arithmetic on the
+ * stored instant, so the zero appears and leaves at the same moment on every machine
+ * with nobody telling anybody.
  *
- * `onComplete` fires on `running`, not on `active`, or it would announce the
- * countdown finishing at the moment somebody cleared it instead.
+ * `onComplete` fires on `running`, so it lands when the clock actually runs out
+ * rather than a second later when the graphic goes.
  *
- * (The first frame was already right, and is worth stating because the two look
- * like one problem. A countdown rounds *up*, so each digit holds for a full second
- * and a five-second timer opens on 00:05. See `formatDuration`.)
+ * (The first frame was already right, and is worth stating because the two look like
+ * one problem. A countdown rounds *up*, so each digit holds for a full second and a
+ * five-second timer opens on 00:05. See `formatDuration`.)
  */
 export function Timer({ name, fallback = '00:00', onComplete, className, namespace = 'timers', ...rest }) {
   const { active, running, text, loaded } = useTimer(`${namespace}.${name}`)

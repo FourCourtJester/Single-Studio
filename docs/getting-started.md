@@ -201,7 +201,7 @@ const mutate = useVelcroMutate()
 | `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
 | `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
 | `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                        |
-| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Rests on 00:00 until cleared. `onComplete` fires once it lands. |
+| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Shows 00:00, then clears itself. `onComplete` fires once it lands. |
 | `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.            |
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                       |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
@@ -295,18 +295,20 @@ what an operator means by it: a countdown reads 00:01 until time is genuinely ou
 and a stopwatch reads 00:00 until a second has genuinely passed. Every digit of a
 countdown therefore holds for a full second, and a five-second timer opens on 00:05.
 
-**A finished countdown rests on 00:00 rather than removing itself.** It used to
-vanish the instant it ran out, which meant the number the whole thing exists to
+**A countdown shows 00:00 for a second, then takes itself off air.** It used to
+vanish the instant it reached zero, which meant the number the whole thing exists to
 reach was the one frame nobody ever saw — 00:01, then the graphic animating away.
-A break clock sitting on 00:00 is a graphic saying "we are back", and it stays until
-somebody clears it: `TimerButton` and `Countdown` offer **Clear** for exactly that.
+The zero now gets the same second on screen as every other digit, because rounding
+up already gives each of them exactly one.
 
-That is one distinction, not a feature. `active` means *there is a clock* and
-`running` means *it is moving* — which is what they already meant for a stopwatch,
-where `active` covers a paused one. Countdowns had `active` aliased to `running`,
-and that alias was the whole bug. It cannot be widened to "remaining is zero or
-more" instead: `remaining` is 0 both for a countdown that finished and for a path
-holding no countdown at all, so what separates them is whether there is a target.
+Then it goes, on its own. A graphic that waits to be dismissed is one somebody has
+to remember mid-show, and remembering it is worth nothing: the countdown is over and
+everyone watching can see that it is over.
+
+None of that is written or announced. It is `now - target < 1000` on the instant
+every peer already has, so the zero appears and leaves at the same moment on every
+machine with nobody telling anybody, and a countdown left in the document from last
+week is simply long past rather than something to clean up before going on air.
 
 ## Images
 

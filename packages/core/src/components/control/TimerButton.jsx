@@ -22,7 +22,7 @@ import { cx } from '../../toolkits/cx'
  */
 export function TimerButton({ name, label, duration, placeholder = '5:00', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`
-  const { active, running, text, input } = useTimer(path)
+  const { active, text, input } = useTimer(path)
   const mutate = useVelcroMutate()
   const ref = useRef(null)
 
@@ -38,29 +38,19 @@ export function TimerButton({ name, label, duration, placeholder = '5:00', names
     mutate('timer', { [path]: { duration: ms, input: String(raw) } })
   }
 
-  /**
-   * A finished countdown is still a countdown, and still has to be takeable off air.
-   *
-   * The graphic rests on 00:00 now rather than removing itself -- see `Timer` --
-   * which means the doc holds a target in the past and something has to be able to
-   * clear it. Without this the only ways out were starting another one or resetting
-   * the whole show, because the control went back to offering a fresh duration and
-   * quietly stopped mentioning the clock that was on screen.
-   */
   if (active) {
     return (
       <button
         type="button"
         onClick={stop}
-        aria-label={`${running ? 'Stop' : 'Clear'} ${label ?? name}`}
+        aria-label={`Stop ${label ?? name}`}
         className={cx(
-          'ss-timer-button rounded-md px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors',
-          running ? 'bg-rose-600 hover:bg-rose-500' : 'bg-slate-700 hover:bg-slate-600',
+          'ss-timer-button rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500',
           className,
         )}
         {...rest}
       >
-        {running ? 'Stop' : 'Clear'} {text}
+        Stop {text}
       </button>
     )
   }

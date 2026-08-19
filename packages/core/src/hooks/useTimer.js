@@ -23,6 +23,26 @@ import { useVelcroState } from './useVelcroValue'
 const SAMPLE = 250
 
 /**
+ * How long a finished countdown stays on screen showing 00:00.
+ *
+ * One second, and it is not a taste decision -- it is the dwell every other digit
+ * already has. A countdown rounds up, so 00:05 is on screen for a second, and 00:01
+ * is on screen for a second, and the zero being the exception is the whole
+ * complaint: the number the clock exists to reach was the one nobody ever saw.
+ *
+ * Then it goes, on its own. A graphic that waits to be dismissed is a graphic
+ * somebody has to remember during a show, and remembering it is worth nothing --
+ * the countdown is over, everyone can see that it is over, and the operator has
+ * moved on to whatever the countdown was counting towards.
+ *
+ * Derived, never written. Every peer computes this from the same stored instant, so
+ * the zero appears and leaves at the same moment on every machine with nobody
+ * telling anybody -- and a countdown left in the document from last week is simply
+ * long past, rather than a graphic that has to be cleaned up before it goes to air.
+ */
+const REST = 1000
+
+/**
  * Read a clock. Three shapes, one hook.
  *
  *   { ts, duration }  counting down to a target epoch  -- a break, a countdown
@@ -58,22 +78,48 @@ export function useTimer(path) {
 
     let last = shown()
     let id = null
+    let tail = null
 
-    const sample = () => {
-      const next = shown()
+    /**
+     * One last render, when the zero has had its second.
+     *
+     * The sampler cannot do it: `shown()` has been 0 since the clock ran out and
+     * stays 0, so there is no change for it to notice, and the thing that has to
+     * change is the *rest* elapsing rather than the number moving.
+     */
+    const rest = () => {
+      const left = target + REST - (Date.now() + offset)
 
-      if (next === last) return
-
-      last = next
-      force((n) => n + 1)
-
-      // A countdown that has reached zero has nothing left to say.
-      if (target && next <= 0) clearInterval(id)
+      if (left > 0) tail = setTimeout(() => force((n) => n + 1), left)
     }
 
-    id = setInterval(sample, SAMPLE)
+    // Mounted onto a countdown that has already run out. Nothing to sample; it
+    // either has some of its second left or it is long gone.
+    if (target && last <= 0) rest()
+    else {
+      const sample = () => {
+        const next = shown()
 
-    return () => clearInterval(id)
+        if (next === last) return
+
+        last = next
+        force((n) => n + 1)
+
+        // Reached zero: stop sampling a number that cannot move again, and wait out
+        // the second it is owed.
+        if (target && next <= 0) {
+          clearInterval(id)
+          rest()
+        }
+      }
+
+      id = setInterval(sample, SAMPLE)
+    }
+
+    return () => {
+      clearInterval(id)
+      clearTimeout(tail)
+    }
   }, [target, from, offset])
 
   return useMemo(() => {
@@ -99,20 +145,23 @@ export function useTimer(path) {
       mode: target ? 'down' : 'idle',
       running: remaining > 0,
       /**
-       * There *is* a countdown, which is not the same as one with time left on it.
+       * On screen: counting down, or showing the zero it reached a moment ago.
        *
-       * This used to be `remaining > 0` -- an alias for `running` -- and that is
-       * the whole of why a finished countdown vanished from air instead of resting
-       * on the zero it was counting towards. The distinction already existed for
-       * the other direction, where `active` is a stopwatch that has been started
-       * and `running` is one that is not paused; countdowns just were not told.
+       * This used to be `remaining > 0` -- an alias for `running` -- which is why a
+       * countdown vanished at the instant it reached zero and never showed it. It
+       * is not `Boolean(target)` either: that rests on 00:00 until somebody clears
+       * it, and nobody is going to sit on a finished timer to take it off air.
        *
-       * It cannot be `remaining >= 0`, tempting as that looks. `remaining` is 0
-       * both for a countdown that has finished and for a path holding no countdown
-       * at all, so that reads as "always" and puts 00:00 on a board that never
-       * started one. What separates them is whether there is a target.
+       * So: a second past the target, and then gone. Note what it is *not* -- a
+       * written state, a flag, or anything a machine has to tell another machine.
+       * It is arithmetic on the same stored instant every peer already has, which
+       * is the property the whole clock design rests on.
+       *
+       * `remaining >= 0` was the tempting one-character version and is wrong for a
+       * different reason: `remaining` is 0 both for a countdown that finished and
+       * for a path holding no countdown at all, so it reads as "always".
        */
-      active: Boolean(target),
+      active: Boolean(target) && now - target < REST,
       elapsed: 0,
       remaining,
       duration: timer?.duration ?? 0,

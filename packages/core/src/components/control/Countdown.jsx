@@ -19,7 +19,7 @@ import { cx } from '../../toolkits/cx'
  */
 export function Countdown({ name, label = 'Countdown', as = 'time', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`
-  const { active, running, text, input } = useTimer(path)
+  const { active, text, input } = useTimer(path)
   const mutate = useVelcroMutate()
   const ref = useRef(null)
 
@@ -52,7 +52,7 @@ export function Countdown({ name, label = 'Countdown', as = 'time', namespace = 
       <button
         type="button"
         onClick={stop}
-        title={`${running ? 'Stop' : 'Clear'} ${label}`}
+        title={`Stop ${label}`}
         className={cx(
           'ss-countdown rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500',
           className,

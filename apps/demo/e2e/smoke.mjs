@@ -697,22 +697,18 @@ await match.bringToFront()
 // the rest of the show -- see Transition. Doing it deliberately here is the cheapest
 // place that case will ever be covered.
 check(await becomes(match, () => /00:0[12]/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000), 'a short countdown counts down where it can be seen')
-check(await becomes(match, () => /00:00/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 6000), 'and stops on 00:00 rather than removing itself')
+check(await becomes(match, () => /00:00/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 6000), 'and shows 00:00 rather than skipping the number it was counting to')
 
-// Still there a beat later: resting, not passing through on the way out.
-await match.waitForTimeout(1500)
-check(/00:00/.test(await match.locator('.ss-scene').innerText()), 'and stays there, because a break clock on 00:00 is a graphic saying "we are back"')
+// And then leaves, without being asked. A graphic that waits to be dismissed is one
+// somebody has to remember mid-show, and remembering it is worth nothing: the
+// countdown is over and everybody watching can see that it is over.
+check(await becomes(match, () => /--:--/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000), 'and then takes itself off air, without an operator doing anything')
 
-// Which means something has to be able to take it off air. The control used to go
-// back to offering a fresh duration the moment the clock ran out, so a graphic
-// resting on 00:00 would have had no way out but resetting the whole show.
 await control.bringToFront()
-check(await becomes(control, () => /Clear\s+00:00/.test(document.querySelector('.ss-timer-button')?.textContent ?? '')), 'and the control offers to clear it rather than pretending it is gone')
-
-// The fallback is for a clock nobody has set, which is a different thing from one
-// that finished. Clearing gets the dashes back.
-await control.locator('button[aria-label="Clear Round"]').click()
-check(await becomes(match, () => /--:--/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'and clearing it puts the fallback back, which finishing must not')
+check(
+  await becomes(control, () => !!document.querySelector('.ss-timer-button input')),
+  'and the control is back to offering a fresh duration, with nothing left to dismiss',
+)
 
 // Count-up. Nothing ticks in the store -- both pages derive the same number from
 // the same stored origin.
