@@ -736,6 +736,32 @@ consecutive collaboration runs passed against a baseline that had been failing a
 one in three — and then the ninth failed the same way. Call it one in eight rather
 than one in three: a real improvement, and not a fix.
 
+### It is not a startup race, which was the comfortable answer
+
+The obvious hope was that the fault needs a joiner arriving inside the host's own
+startup — a machine-speed coincidence that the real sequence prevents, since there
+is no invite to open until the host's dashboard is up. That would have made it
+something to note and not chase.
+
+It was worth testing rather than assuming, and it is wrong. `relay.mjs` takes
+`SETTLE` to put a human-sized gap between the host settling and the operator joining
+(zero by default, because the fast join is the harsher case):
+
+| Gap before the operator joins | Runs | Failed |
+| --- | --- | --- |
+| none — a second after the host connects | ~8 | ~1 |
+| `SETTLE=10000` — ten seconds, host idle | 12 | 1 |
+
+Statistically indistinguishable. Ten consecutive clean runs early in the second
+batch looked like a result and were not; the twelfth failed the same way as always.
+**A settled host is no protection**, so the remaining cause is not a startup race
+and this is something an operator can hit on an ordinary join.
+
+The practical shape: a board that lands stale shows it immediately — file buttons
+offered to a machine that should not have them, or an empty show — and a reload
+clears it. It does not degrade mid-show; it is wrong from the moment it opens or not
+at all.
+
 So a lost broadcast was *a* cause and evidently not the only one. What still holds
 from the investigation: the worker knows and the page does not, the wire protocol
 and the relay's join handshake are exonerated by stable Node runs, and the gap is
@@ -762,6 +788,6 @@ straggler win, which is how it was checked.
 | Remote operators on non-Chromium browsers              | Not a real constraint: module `SharedWorker` is Chrome 83+, Firefox 114+, Safari 16+. Ship a minimum-version note rather than a fallback. See [getting-started](./getting-started.md#browser-requirements). |
 | Relay is a single point of failure for _collaboration_ | Accepted. It is never a single point of failure for the _broadcast_ — that's what local-first buys.                                                                                                         |
 | Counter delta growth                                   | Bounded by distinct clientIDs that have ever incremented a path. A long-lived doc across many sessions accumulates keys; add compaction on load if it ever shows up in practice.                            |
-| A peer intermittently not learning what the room already knows | **Improved, still open.** A lost `BroadcastChannel` post was one cause and is closed — see [Two roads to a page](#two-roads-to-a-page-) — which took it from roughly one run in three to about one in eight. Something else can still lose a message between the worker and the page. Worth remembering for the shape rather than the fix: it looked like a relay fault for a long time, and what cornered the first cause was reloading the page at the moment of failure and finding the worker had known all along. That measurement is the one to repeat on the remainder. |
+| A peer intermittently not learning what the room already knows | **Improved, still open, and reachable in the ordinary flow.** A lost `BroadcastChannel` post was one cause and is closed — see [Two roads to a page](#two-roads-to-a-page-) — taking it from roughly one run in three to about one in eight. It is *not* a startup race: a ten-second gap between the host settling and the operator joining failed at the same rate, so a settled host is no protection. A board that lands stale is wrong from the moment it opens rather than degrading mid-show, and a reload clears it. Worth remembering for the shape rather than the fix: it looked like a relay fault for a long time, and what cornered the first cause was reloading the page at the moment of failure and finding the worker had known all along. That measurement is the one to repeat on the remainder. |
 | A test that waits for the wrong thing | Not a product risk, but it cost real time twice. A folder upload adds files one at a time, and a check that waited for the *group* to exist read a half-filled list and reported a lost file — which looks exactly like the deduplication racing itself, a considerably more alarming thing to go hunting for. Wait on the count. |
 | Two operators editing one text field                   | Presence (stage 3). Character-level merging is available if needed, but a field is not a document and last-write-wins is usually what an operator expects.                                                  |

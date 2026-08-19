@@ -116,6 +116,21 @@ const dockUrl = await host.page.evaluate(() => location.href)
 console.log(`  dock URL after setup: ${dockUrl}`)
 check(/[?&]relay=/.test(dockUrl) && /[?&]room=friday/.test(dockUrl), 'and the room ends up in the dock URL, where OBS will remember it')
 
+/**
+ * Zero by default, and that is the point: this joins as fast as a machine can.
+ *
+ * The real flow has a human-sized gap here. The OBS machine loads its dock and sits
+ * there untouched -- its URL is not even visible in OBS -- somebody sets the room up
+ * on it, the dashboard settles, and only then does an invite get copied and sent.
+ * Joining a second later is the harsher case and the one worth testing by default,
+ * because it is where the remaining intermittent fault lives: with a settled host
+ * the joiner's worker learns who holds the room *before* its own page asks, so the
+ * answer comes from cache rather than from a message in flight.
+ *
+ * `SETTLE=10000` reproduces the gentle version, which is how that was measured.
+ */
+await host.page.waitForTimeout(Number(process.env.SETTLE ?? 0))
+
 // And everyone else: paste a link into an OBS dock. That is the whole of it --
 // no token typed, no settings screen, and OBS remembers the URL.
 const invite = `${BASE}/?relay=${encodeURIComponent(`ws://127.0.0.1:${port}`)}&room=friday#/`
