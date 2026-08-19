@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { relayFromUrl, relayLink } from '../src/hooks/useRelay'
+import { relayFromUrl, relayLink, resolveRelay } from '../src/hooks/useRelay'
 import { nextRoom } from '../src/components/control/Collaborate'
 
 // An operator's whole setup is pasting a link into an OBS dock. Nobody types a
@@ -157,5 +157,42 @@ describe('rotating a room to shut somebody out', () => {
   it('has something to say even with nothing to work from', () => {
     expect(nextRoom('')).toBe('show-2')
     expect(nextRoom(undefined)).toBe('show-2')
+  })
+})
+
+describe('what an operator actually has to hand', () => {
+  // Supabase's dashboard used to show a "Project URL" to copy. It shows a Project
+  // ID now, and the URL is built from it. Rather than send somebody hunting for a
+  // label that has moved once and may move again, take either.
+
+  it('builds a project URL from a reference', () => {
+    expect(resolveRelay('abcdefghijklmnopqrst')).toBe('https://abcdefghijklmnopqrst.supabase.co')
+  })
+
+  it('leaves a URL alone, whatever its scheme', () => {
+    expect(resolveRelay('https://abcdefghijklmnopqrst.supabase.co')).toBe('https://abcdefghijklmnopqrst.supabase.co')
+    expect(resolveRelay('wss://relay.example.com')).toBe('wss://relay.example.com')
+    expect(resolveRelay('ws://127.0.0.1:4444')).toBe('ws://127.0.0.1:4444')
+  })
+
+  it('tidies a trailing slash, since a copied URL often has one', () => {
+    expect(resolveRelay('https://abc.supabase.co/')).toBe('https://abc.supabase.co')
+  })
+
+  it('does not guess at anything else', () => {
+    // A hostname is not a reference, and inventing a scheme for it would be picking
+    // between ws and https on somebody's behalf. Hand it back and let it fail where
+    // it can be seen.
+    expect(resolveRelay('relay.example.com')).toBe('relay.example.com')
+    expect(resolveRelay('')).toBe('')
+    expect(resolveRelay(undefined)).toBe('')
+  })
+
+  it('tolerates the whitespace that comes with a paste', () => {
+    expect(resolveRelay('  abcdefghijklmnopqrst  ')).toBe('https://abcdefghijklmnopqrst.supabase.co')
+  })
+
+  it('expands a reference found in a link, so an invite can carry either', () => {
+    expect(relayFromUrl('https://studio.example.com/?relay=abcdefghijklmnopqrst&room=friday#/')?.url).toBe('https://abcdefghijklmnopqrst.supabase.co')
   })
 })

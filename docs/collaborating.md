@@ -25,20 +25,55 @@ You get that link from the **Collaborate** dialog on your own board.
 You need a free Supabase project. It takes about three minutes, we never see it,
 and there is nothing to install or deploy.
 
-1. Go to [supabase.com](https://supabase.com) and sign in. The free tier is enough,
-   and it does not ask for a card.
-2. Press **New project**. Any name, any region near you, any database password —
-   you will never need it.
-3. Wait a minute or two while it builds.
-4. Open **Project Settings → API**.
-5. Copy the **Project URL** and the key labelled **`anon` `public`**.
+1. Sign in at [supabase.com](https://supabase.com) — GitHub, Google or email. The
+   free tier is enough and it does not ask for a card.
+2. Make an **organisation** if it asks for one. It is just a container for
+   projects: the name does not matter, and you can be its only member.
+3. Then **New project**. Any name, any region near you, any database password —
+   you will never need the password.
+4. Wait a minute or two while it builds.
+5. Open **Project Settings** from the sidebar and copy the **Project ID** — a short
+   string of letters, not a web address.
+6. Open **API Keys** and copy the **publishable** key (it begins
+   `sb_publishable_`). An older project may show `anon` under a **Legacy** tab
+   instead; that works too.
 
 Then, on your board:
 
-6. Press **Collaborate** in the header.
-7. Paste both values and pick a room name. Leave **This machine runs OBS** and
+7. Open the header menu and press **Collaborate**.
+8. Paste both values and pick a room name. Leave **This machine runs OBS** and
    **Encrypt this show** ticked — both are on by default and both are explained
    below. Press **Go**.
+
+### If the boxes do not match what you are looking at
+
+Supabase moves this furniture around, so the board takes whatever you have.
+
+The first box wants the **Project ID**, because that is what the dashboard shows
+today. A full `https://….supabase.co` address works just as well if you have one,
+and so does your own relay's `wss://` address — the board works out which it is
+looking at.
+
+The second box wants the **publishable** key. The older `anon` key is the same
+thing under its previous name and still works; Supabase is retiring it, so prefer
+the publishable one on a new project.
+
+### What you do *not* have to do
+
+Nothing else. In particular:
+
+- **No database, no tables, no Row Level Security.** RLS governs who can read rows
+  in a database, and there is no database here — the show travels over a Realtime
+  *broadcast channel*, which is a pipe rather than a table. Supabase's public
+  channels require no authorisation at all, which is why the setup is two values
+  and no policies.
+- **No inviting anybody to the Supabase project.** Project access controls who can
+  log into the *dashboard* and administer the project. It has nothing to say about
+  who can join a room, so adding your operators there would give them the keys to
+  your Supabase account and change nothing about the show. Leave it alone.
+
+What keeps strangers out of the show is the room key, which travels in the invite
+link and never reaches Supabase at all.
 
 The page reloads and you are connected. That is it — no tables to create, no
 policies to configure, no code.
@@ -122,20 +157,22 @@ That rules almost everything out.
 
 | Option                   | Why not                                                                                                                       |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Supabase Realtime** ✅ | Broadcast works straight from the browser with a project's public key. Free tier is far more than a production needs.         |
+| **Supabase Realtime** ✅ | Broadcast works straight from the browser with a project's publishable key, on a public channel that needs no database and no policies. Free tier is far more than a production needs. |
 | Pusher                   | Sending between clients needs private channels, which need a server to authorise them. A backend, which is the thing avoided. |
 | Trystero / WebRTC        | Genuinely needs nothing — but WebRTC cannot run in a `SharedWorker`, and the entire store lives in one.                       |
 | A relay we host          | Then we hold the keys, and your show depends on us staying in business.                                                       |
 
-### Is the anon key really safe in a URL?
+### Is the publishable key really safe in a URL?
 
-Yes. Supabase's `anon` key is designed to sit in the page of a public website —
-that is its purpose. It identifies the project, not a person. Every Supabase app
-you have ever used ships it to the browser.
+Yes — that is what it is for. Supabase calls it *publishable* because it is meant
+to sit in the page of a public website. It identifies the project, not a person,
+and every Supabase app you have ever used ships one to the browser. The same was
+true of the `anon` key it replaces.
 
 That is also exactly why shows are encrypted. A public key plus a guessable room
 name is a thin thing to rest a production on, so the room key does the actual work
-of keeping people out — and unlike the anon key, it never leaves your browser.
+of keeping people out — and unlike the publishable key, it never leaves your
+browser.
 
 ### What it costs
 

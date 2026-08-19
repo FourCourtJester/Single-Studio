@@ -88,6 +88,31 @@ export const setClockRole = (reference) => {
   }
 }
 
+/**
+ * What a Supabase project reference looks like, and what to do with one.
+ *
+ * The dashboard used to show a "Project URL" to copy. It does not any more -- what
+ * Project Settings shows is a Project ID, also called a reference, and the URL is
+ * built from it: `https://<ref>.supabase.co`. Rather than send somebody hunting for
+ * a label that has moved once and may move again, take either. A reference is
+ * lowercase alphanumeric with no dots and no slashes, which nothing else somebody
+ * might paste here looks like.
+ *
+ * Anything with a scheme is passed through untouched, so a relay of one's own still
+ * works, and so does a project URL for anybody who has one to hand.
+ */
+const REFERENCE = /^[a-z0-9]{16,40}$/
+
+export function resolveRelay(value) {
+  const given = String(value ?? '').trim()
+
+  if (!given) return ''
+  if (/^[a-z]+:\/\//i.test(given)) return given.replace(/\/+$/, '')
+  if (REFERENCE.test(given)) return `https://${given}.supabase.co`
+
+  return given
+}
+
 /** Read a room out of a URL. Both the real query and the hash query are checked. */
 export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.location.href) {
   if (!href) return null
@@ -105,7 +130,7 @@ export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.
     if (!found.url) return null
 
     return {
-      url: found.url,
+      url: resolveRelay(found.url),
       room: found.room || undefined,
       token: found.token || undefined,
       secret: inHash.get(SECRET) || undefined,

@@ -306,7 +306,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           )}
         </>
       ) : (
-        <p className="text-xs text-slate-500">
+        <p className="py-8 text-center text-xs text-slate-500">
           {owner ? 'Nothing here yet. Drop images or a folder in, or paste a URL.' : 'Nothing here yet. Paste a URL above, or ask the machine running OBS to add files.'}
         </p>
       )}

@@ -8,9 +8,7 @@ import {
   ImagePicker,
   ImageSelect,
   Leaderboard,
-  Operator,
   Panel,
-  RelayAdmin,
   ResetButton,
   Stepper,
   Stopwatch,
@@ -118,15 +116,6 @@ export default function Control() {
             operator picks drives anything the stylesheet can express. */}
         <ColorPicker name="sponsor.color" label="Accent" fallback="#f59e0b" presets={['#f59e0b', '#0ea5e9', '#e11d48', '#22c55e', '#a855f7', '#f8fafc']} />
         <ToggleButton name="sponsor" label="sponsor" />
-      </Panel>
-
-      <Panel title="Operators">
-        {/* Presence needs a name to show. Local to the machine, not part of the
-            show -- see the note in Operator. */}
-        <Operator />
-        {/* Only for a relay of your own: a hosted service has no token API, and
-            inviting there is handing over the link the header dialog shows. */}
-        <RelayAdmin />
       </Panel>
 
       <Panel title="Ticker">

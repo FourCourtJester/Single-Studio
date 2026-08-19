@@ -106,7 +106,7 @@ const host = await machine('host')
 // build time -- a studio deploys as static files, and an address baked into the
 // build cannot be changed without a redeploy.
 await openMenu(host, 'collaborate')
-await host.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill(`ws://127.0.0.1:${port}`)
+await host.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').fill(`ws://127.0.0.1:${port}`)
 await host.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('friday')
 await host.page.locator('.ss-collaborate-dialog .ss-collaborate-go').click()
 
@@ -206,8 +206,16 @@ const indicator = (machine) => machine.page.locator('.ss-sync-status')
 
 check(await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected'), 'the board says it is connected')
 
-await host.page.locator('.ss-operator input').fill('Dez')
-await operator.page.locator('.ss-operator input').fill('Sam')
+// Naming yourself lives in the Collaborate dialog now, beside the room it applies
+// to, rather than in a panel on the board next to the fields of the show.
+const nameYourself = async (machine, as) => {
+  await openMenu(machine, 'collaborate')
+  await machine.page.locator('.ss-collaborate-you .ss-operator input').fill(as)
+  await machine.page.locator('.ss-collaborate-dialog button[aria-label="Close"]').click()
+}
+
+await nameYourself(host, 'Dez')
+await nameYourself(operator, 'Sam')
 
 check(
   await becomes(host.page, () => /2/.test(document.querySelector('.ss-sync-peers')?.textContent ?? '')),
@@ -420,6 +428,10 @@ check(onHost === onOperator, 'and converge on one value rather than staying spli
 // with no redeploy. The one moment this must work is the moment somebody is
 // removed *during* a show, so the socket goes immediately rather than at their
 // next reconnect -- otherwise they keep editing until they happen to refresh.
+//
+// In the Collaborate dialog with the rest of "who is in this show", rather than in
+// a panel on the board.
+await openMenu(host, 'collaborate')
 await host.page.locator('.ss-relay-admin input[aria-label="Relay admin secret"]').fill(ADMIN)
 await host.page.locator('.ss-relay-admin input[aria-label="Relay admin secret"]').blur()
 
@@ -463,7 +475,6 @@ check(
   'and they appear in the list',
 )
 
-
 host.page.on('dialog', (dialog) => dialog.accept())
 await host.page.locator('.ss-relay-admin button[aria-label^="Remove"]').first().click()
 
@@ -486,8 +497,10 @@ check(
 const sealing = await machine('sealing')
 
 await openMenu(sealing, 'collaborate')
-await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill('https://abcdefgh.supabase.co')
-await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Anon key"]').fill('eyJhbGciOi.test')
+// A bare project reference, which is what the dashboard actually shows. It has to
+// become a real address by the time it reaches the link.
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').fill('abcdefghijklmnopqrst')
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Publishable key"]').fill('eyJhbGciOi.test')
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('sealed-show')
 
 check(
@@ -503,6 +516,10 @@ const [beforeHash, afterHash] = sealedUrl.split('#')
 
 console.log(`  sealed dock URL: ${sealedUrl.replace(/k=[^&]+/, 'k=…')}`)
 check(/[?&]k=[A-Za-z0-9_-]{43}/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
+check(
+  decodeURIComponent(beforeHash).includes('relay=https://abcdefghijklmnopqrst.supabase.co'),
+  'and a project reference has become the address it stands for',
+)
 check(!/k=/.test(beforeHash), 'and never in the query, which would already have been sent to one')
 
 // It also has to survive the trip, or the link is a very private way of showing
@@ -519,7 +536,7 @@ check(
 // A relay of its own is the one place this is not offered: it holds a copy of the
 // show so a late joiner gets it without another machine being awake, which means
 // it has to be able to read it.
-await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill(`ws://127.0.0.1:${port}`)
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').fill(`ws://127.0.0.1:${port}`)
 
 check(await sealing.page.locator('.ss-seal input[type="checkbox"]').isDisabled(), 'and encryption stands down for a relay, which has to be able to read the show')
 

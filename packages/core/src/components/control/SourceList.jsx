@@ -78,10 +78,7 @@ export function SourceList({ bare = false, className }) {
     <section className={cx(bare ? '' : 'rounded-lg border border-slate-800 bg-slate-900/40 p-4', className)}>
       {bare ? null : <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">Browser sources</h2>}
       <p className="mb-3 text-xs text-slate-500">
-        Add each of these to OBS as a Browser source. Leave &ldquo;Shutdown source when not visible&rdquo; unchecked so state stays warm. Use Copy rather than
-        retyping: it adds <code className="text-slate-400">?{LAYER_NAME}=</code>, which is what OBS names the source from &mdash; each one arrives as{' '}
-        <code className="text-slate-400">{`${PREFIX} - ${studio.name} - …`}</code>{' '}
-        rather than as another &ldquo;localhost&rdquo;.
+        Add each source to OBS as a Browser. You can make a new Browser and copy the URL, or drag in the hyperlink beside it.
       </p>
       <ul className="flex flex-col gap-2">
         {names.map((name) => (

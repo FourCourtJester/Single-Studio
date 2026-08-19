@@ -269,6 +269,21 @@
   }
 
   /*
+   * Controls that need more than the default before they start folding.
+   *
+   * `--ss-control-min` is the wrap point, and one number cannot be right for a
+   * text field and for a clock carrying a readout and two buttons. Rather than
+   * making every panel wider, the controls that know they need more say so, on
+   * themselves -- `flex-basis` above reads the property from the same element, so
+   * this is a per-control default that an integrator's own rule still overrides.
+   */
+  .ss-panel-body > .ss-stopwatch,
+  .ss-panel-body > .ss-timer-button,
+  .ss-panel-body > .ss-countdown {
+    --ss-control-min: 15rem;
+  }
+
+  /*
    * Tall controls hang from the top of their row instead of the bottom.
    *
    * flex-end above is right for a row of ordinary controls -- it lines their inputs

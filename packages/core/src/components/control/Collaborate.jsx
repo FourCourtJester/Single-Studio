@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { relayLink, useRelay } from '../../hooks/useRelay'
+import { relayLink, resolveRelay, useRelay } from '../../hooks/useRelay'
 import { newSecret } from '../../velcro/crypto'
 import { useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
+import { Operator } from './Operator'
+import { RelayAdmin } from './RelayAdmin'
 import { SyncStatus } from './SyncStatus'
 
 /**
@@ -126,10 +128,12 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
   // you are up. That means it has to be able to read it. Supabase holds nothing, so
   // there is nothing to give up -- which is the whole reason this is offered here
   // and not there.
-  const canSeal = /^https?:/i.test(url.trim())
+  // A project reference resolves to https, which is the sealed transport; a relay
+  // of one's own is ws or wss, which is not. Resolve before asking.
+  const canSeal = /^https?:/i.test(resolveRelay(url))
 
   const go = () => {
-    const next = { url: url.trim(), room: name.trim(), token: token.trim(), reference: clock, secret: canSeal ? secret : '' }
+    const next = { url: resolveRelay(url), room: name.trim(), token: token.trim(), reference: clock, secret: canSeal ? secret : '' }
 
     if (!next.url) return
 
@@ -216,9 +220,9 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
         </p>
 
         {help ? (
-          <ol className="ss-collaborate-help flex list-decimal flex-col gap-1 rounded-md border border-slate-800 bg-slate-950/60 p-3 pl-7 text-xs text-slate-400">
+          <ol className="ss-collaborate-help flex list-decimal flex-col gap-1.5 rounded-md border border-slate-800 bg-slate-950/60 p-3 pl-7 text-xs text-slate-400">
             <li>
-              Go to{' '}
+              Sign in at{' '}
               <a
                 href="https://supabase.com"
                 target="_blank"
@@ -227,45 +231,69 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
               >
                 supabase.com
               </a>{' '}
-              and sign in. The free tier is enough, and it does not ask for a card.
+              &mdash; GitHub, Google or email. The free tier is enough and it does not ask for a card.
             </li>
             <li>
-              Press <span className="text-slate-300">New project</span>. Any name, any region near you, any database password &mdash; you will not need it.
+              Make an <span className="text-slate-300">organisation</span> if it asks for one. It is a container for projects; the name does not matter and you
+              can be its only member.
+            </li>
+            <li>
+              Then <span className="text-slate-300">New project</span>. Any name, any region near you, any database password &mdash; you will not need the
+              password.
             </li>
             <li>Wait a minute or two while it builds.</li>
             <li>
-              Open <span className="text-slate-300">Project Settings &rarr; API</span>.
+              Open <span className="text-slate-300">Project Settings</span> from the sidebar. The <span className="text-slate-300">Project ID</span> on that page
+              is the first box below &mdash; a short string of letters, not a web address.
             </li>
             <li>
-              Copy the <span className="text-slate-300">Project URL</span> and the key labelled <span className="font-mono text-slate-300">anon</span>{' '}
-              <span className="font-mono text-slate-300">public</span> into the boxes below.
+              Then <span className="text-slate-300">API Keys</span>, and copy the <span className="text-slate-300">publishable</span> key (it starts{' '}
+              <span className="font-mono text-slate-300">sb_publishable_</span>) into the second box. An older project may show{' '}
+              <span className="font-mono text-slate-300">anon</span> under a <span className="text-slate-300">Legacy</span> tab instead; that works too.
             </li>
-            <li>Nothing else. No tables, no settings, no code.</li>
+            <li>Nothing else. No tables, no policies, no code.</li>
           </ol>
         ) : null}
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Project URL</span>
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Project ID</span>
           <input
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://abcdefgh.supabase.co"
-            aria-label="Project URL"
-            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-500"
+            placeholder="abcdefghijklmnopqrst"
+            aria-label="Project ID"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-100 outline-none placeholder:font-sans placeholder:text-slate-600 focus:border-sky-500"
           />
+          <span className="text-xs text-slate-600">
+            From Project Settings. A full <span className="font-mono">https://…supabase.co</span> address works too, as does your own relay&rsquo;s{' '}
+            <span className="font-mono">wss://</span> address.
+          </span>
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Anon key</span>
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Publishable key</span>
           <input
             value={token}
             onChange={(event) => setToken(event.target.value)}
-            placeholder="eyJhbGciOi…"
-            aria-label="Anon key"
+            placeholder="sb_publishable_…"
+            aria-label="Publishable key"
             className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-100 outline-none placeholder:font-sans placeholder:text-slate-600 focus:border-sky-500"
           />
-          <span className="text-xs text-slate-600">Safe to share &mdash; it is a public key. What keeps a show private is the room name.</span>
+          <span className="text-xs text-slate-600">
+            Safe to share &mdash; it is meant to sit in a public page. A legacy <span className="font-mono">anon</span> key works as well.
+          </span>
         </label>
+
+        {/* Who you are, beside who else is here. It used to be a panel on the board,
+            which put a field you touch once next to the ones you touch every
+            minute -- and put it nowhere near the only screen that explains what it
+            is for. */}
+        <div className="ss-collaborate-you flex flex-col gap-3 rounded-md border border-slate-800 bg-slate-950/60 p-3">
+          <Operator label="You are" placeholder="Your name" />
+          <span className="text-xs text-slate-600">Shown to the other operators, and beside any field you have open. Only ever stored on this machine.</span>
+          {/* Only for a relay of your own: a hosted project has no token API. */}
+          <RelayAdmin />
+        </div>
 
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Room</span>

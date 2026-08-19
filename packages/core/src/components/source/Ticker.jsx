@@ -15,8 +15,8 @@ import { cx } from '../../toolkits/cx'
  * for viewport-plus-text.
  *
  * So the start and end offsets are measured in pixels and handed to the keyframes
- * as custom properties: start one viewport-width to the right, end one text-width
- * to the left. Distance and duration then agree, and `speed` means what it says --
+ * as custom properties: start at the far clipping edge, end one text-width beyond
+ * the near one. Distance and duration then agree, and `speed` means what it says --
  * pixels per second, constant regardless of how much text there is.
  *
  * New text is staged and swapped between passes, never mid-scroll.
@@ -49,9 +49,26 @@ export function Ticker({ name, fallback = '', speed = 100, className, namespace 
       const across = viewport.current.clientWidth
       const content = track.current.scrollWidth
 
+      // Padding is the difference between where the text starts and where the
+      // clipping starts, and forgetting it put a visible seam in every loop.
+      //
+      // `overflow: hidden` cuts at the padding box; the track's untransformed left
+      // edge sits at the *content* box, one padding-left further in. So `-content`
+      // left the message's tail still on screen by exactly that much when the
+      // animation wrapped, and `across` began it that much past the far edge. On a
+      // crawl with `px-6` that is 24px of text vanishing and reappearing at the
+      // seam -- which does not read as an offset, it reads as a stutter.
+      //
+      // Measured motion between the seams was already exact: 120px/s asked for,
+      // 119.0-120.5 observed across a sweep at a steady 16.7ms per frame. The seam
+      // was the whole of it.
+      const pad = parseFloat(getComputedStyle(viewport.current).paddingLeft) || 0
+
       setMetrics({
-        from: across,
-        to: -content,
+        from: across - pad,
+        to: -(content + pad),
+        // Unchanged: the travel is still one viewport plus one text-width, the
+        // padding having moved from one end of it to the other.
         duration: speed > 0 ? (across + content) / speed : 0,
       })
     }

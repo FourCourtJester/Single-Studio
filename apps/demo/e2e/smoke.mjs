@@ -278,42 +278,65 @@ const crawl = await ticker.evaluate(() => {
   return {
     across: viewport.clientWidth,
     content: track.scrollWidth,
-    from: style.getPropertyValue('--ss-ticker-from').trim(),
-    to: style.getPropertyValue('--ss-ticker-to').trim(),
+    // Where the text starts relative to where the clipping starts. `overflow`
+    // cuts at the padding box; the text begins at the content box.
+    pad: parseFloat(getComputedStyle(viewport).paddingLeft) || 0,
+    from: parseFloat(style.getPropertyValue('--ss-ticker-from')),
+    to: parseFloat(style.getPropertyValue('--ss-ticker-to')),
     duration: parseFloat(style.animationDuration),
   }
 })
 
 console.log(`  ticker: ${JSON.stringify(crawl)}`)
-check(crawl.from === `${crawl.across}px`, 'the crawl starts one full viewport-width off the right edge')
-check(crawl.to === `${-crawl.content}px`, 'the crawl ends one full text-width off the left edge')
+
+// Stated as the two edges rather than as the formula, because the formula was
+// what was wrong: it read plausibly while leaving a padding's worth of text on
+// screen at the wrap, which is seen as a stutter rather than as an offset.
+check(crawl.from + crawl.pad === crawl.across, 'the crawl starts with its first letter exactly at the clipping edge')
+check(crawl.to + crawl.pad + crawl.content === 0, 'and ends with its last letter exactly at the other one')
+check(crawl.pad > 0, 'with padding in play, which is the case that used to be wrong')
 // speed is 120px/s in the demo, and distance must match the duration or the crawl
 // moves at the wrong rate for its length.
 check(Math.abs(crawl.duration - (crawl.across + crawl.content) / 120) < 0.05, 'duration matches the distance actually travelled')
 
-// -- Narrow dock -------------------------------------------------------------
-// An OBS dock can be a narrow column. Nothing may overflow it horizontally --
-// a board you have to scroll sideways during a show is unusable.
-const narrow = await browser.newContext({ viewport: { width: 260, height: 900 } })
-const dock = await narrow.newPage()
-await dock.goto(`${BASE}/#/`)
-await dock.waitForSelector('text=Clocks')
-await dock.waitForTimeout(900)
+// -- Every width, not just the narrow one -------------------------------------
+// A dock is whatever width somebody dragged it to, and the interesting failures
+// are not at the extremes. A Reset button used to hang outside its panel at
+// exactly 680px -- the one width where three clocks fit on a row and each is
+// barely wide enough to hold its own contents -- which is invisible to a test that
+// checks a narrow dock and a full screen and nothing between.
+//
+// So: sweep, and ask two questions at each stop. Does the page scroll sideways
+// (a board you have to scroll during a show is unusable), and does any control
+// hold more than it has room for (which is how something escapes its panel).
+const widths = [260, 320, 380, 440, 500, 560, 620, 680, 740, 820, 960, 1180]
+const breaks = []
 
-const overflow = await dock.evaluate(() => {
-  const root = document.documentElement
-  const widest = [...document.querySelectorAll('.ss-panel, .ss-panel-body > *')]
-    .map((el) => Math.round(el.getBoundingClientRect().right))
-    .reduce((max, right) => Math.max(max, right), 0)
+for (const width of widths) {
+  const sized = await browser.newContext({ viewport: { width, height: 900 } })
+  const dock = await sized.newPage()
 
-  return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth, widestRight: widest }
-})
+  await dock.goto(`${BASE}/#/`)
+  await dock.waitForSelector('text=Clocks')
+  await dock.waitForTimeout(400)
 
-console.log(`  narrow dock: ${JSON.stringify(overflow)}`)
-check(overflow.scrollWidth <= overflow.clientWidth + 1, 'a 260px dock has no horizontal scroll')
-check(overflow.widestRight <= overflow.clientWidth + 1, 'no control escapes a 260px dock')
+  const found = await dock.evaluate(() => {
+    const root = document.documentElement
+    const spills = [...document.querySelectorAll('.ss-panel-body > *')]
+      .filter((el) => el.scrollWidth - el.clientWidth > 1)
+      .map((el) => (el.className.toString().split(' ').find((c) => c.startsWith('ss-')) ?? el.tagName))
 
-await narrow.close()
+    return { sideways: root.scrollWidth > root.clientWidth + 1, spills: [...new Set(spills)] }
+  })
+
+  if (found.sideways) breaks.push(`${width}px scrolls sideways`)
+  if (found.spills.length) breaks.push(`${width}px: ${found.spills.join(', ')} overflows`)
+
+  await sized.close()
+}
+
+console.log(`  widths swept: ${widths.length}, breaks: ${breaks.length ? breaks.join(' | ') : 'none'}`)
+check(!breaks.length, `no control escapes its panel at any width (${widths[0]}-${widths.at(-1)}px)`)
 
 // -- Asset library -----------------------------------------------------------
 // Images arrive two ways and both become a named entry: a URL gets pasted, a file
