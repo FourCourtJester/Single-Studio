@@ -1,7 +1,7 @@
 import * as Y from 'yjs'
 
 import * as Counter from './counter'
-import { normalize } from './paths'
+import { normalize, SEPARATOR } from './paths'
 
 // The document is three flat top-level maps:
 //
@@ -47,6 +47,25 @@ export const keys = (doc) => [...new Set([...stateOf(doc).keys(), ...Counter.pat
 
 /** Plain-object snapshot, for debugging and the dev harness. */
 export const snapshot = (doc) => Object.fromEntries(keys(doc).map((key) => [key, read(doc, key)]))
+
+/**
+ * Everything under a prefix, keyed by the part after it.
+ *
+ * For state that is a *set* rather than a value -- a library of images, a roster --
+ * where one path per member is the only conflict-free shape. A single path holding
+ * the whole collection would mean two operators adding different members at the
+ * same time, and one of them silently losing theirs to last-write-wins. Separate
+ * keys in one Y.Map merge; a single object replacing itself does not.
+ */
+export function collect(doc, prefix) {
+  const under = `${normalize(prefix)}${SEPARATOR}`
+
+  return Object.fromEntries(
+    keys(doc)
+      .filter((key) => key.startsWith(under))
+      .map((key) => [key.slice(under.length), read(doc, key)]),
+  )
+}
 
 /**
  * Promote a path into the counter maps, seeding the base from whatever plain

@@ -285,15 +285,31 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename }) {
   }
 
   return (
-    <li className={cx('ss-asset-tile group relative flex flex-col overflow-hidden rounded-md border', selected ? 'border-sky-500' : 'border-slate-800')}>
+    <li
+      className={cx(
+        'ss-asset-tile group relative flex flex-col overflow-hidden rounded-md border',
+        selected ? 'border-sky-500' : 'border-slate-800',
+        entry.here === false && 'ss-elsewhere border-dashed opacity-60',
+      )}
+    >
       <button
         type="button"
         onClick={() => onPick?.(entry)}
         disabled={!onPick}
-        title={entry.kind === 'url' ? entry.url : `${entry.name} · ${Math.round((entry.size ?? 0) / 1024)}kB`}
+        title={
+          entry.here === false
+            ? `Added on another machine. This one does not hold the image, so it will not show here.`
+            : entry.kind === 'url'
+              ? entry.url
+              : `${entry.name} · ${Math.round((entry.size ?? 0) / 1024)}kB`
+        }
         className="flex h-20 items-center justify-center bg-slate-950 p-1 disabled:cursor-default"
       >
-        {url ? <img src={url} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-[10px] text-slate-600">…</span>}
+        {url ? (
+          <img src={url} alt="" className="max-h-full max-w-full object-contain" />
+        ) : (
+          <span className="px-1 text-center text-[10px] leading-tight text-slate-600">{entry.here === false ? 'on another machine' : '…'}</span>
+        )}
       </button>
 
       <div className="flex items-center gap-1 bg-slate-900 px-1.5 py-1">

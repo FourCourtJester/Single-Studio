@@ -37,3 +37,21 @@ export function useVelcroValue(path, fallback = undefined) {
 
   return value === undefined ? fallback : value
 }
+
+/**
+ * Everything under a namespace, as an object keyed by the part after it.
+ *
+ * For state that is a *set* rather than a value -- a library of images, a roster.
+ * One path per member is the only conflict-free shape: two operators adding
+ * different members at the same time merge, where a single path holding the whole
+ * collection would lose one of them to last-write-wins.
+ *
+ *   const { value: assets } = useVelcroCollection('assets')
+ */
+export function useVelcroCollection(prefix) {
+  const { value, loaded } = useVelcroState(prefix ? `${prefix}.*` : undefined)
+
+  return { value: value ?? EMPTY, loaded }
+}
+
+const EMPTY = {}

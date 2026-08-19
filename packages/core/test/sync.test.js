@@ -1,6 +1,7 @@
 import * as Y from 'yjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import * as Doc from '../src/velcro/doc'
 import { createVelcroHost } from '../src/velcro/host'
 import { channelFor, statusChannelFor } from '../src/velcro/channels'
 import { CONNECTED, CONNECTING, ERROR, OFFLINE } from '../src/velcro/sync'
@@ -556,5 +557,109 @@ describe('re-attaching', () => {
 
     expect(destroy).toHaveBeenCalledOnce()
     expect(made.sync.state).toBe(OFFLINE)
+  })
+})
+
+describe('collections', () => {
+  // State that is a *set* rather than a value: a library of images, a roster. One
+  // path per member is the only conflict-free shape, so the store has to be able to
+  // hand back everything under a namespace.
+  const collection = async (made, prefix, name) => {
+    const { port, seen } = client(made)
+    // Both transports, because the host uses both: the opening value comes back
+    // down the asking port, and every change after it goes over the channel. A
+    // helper watching only one of them tests half the thing.
+    const channel = new BroadcastChannel(channelFor(name, `${prefix}.*`))
+
+    channel.onmessage = ({ data }) => seen.push({ type: 'value', ...data })
+    live.push({ close: () => channel.close() })
+
+    await made.started
+    port.postMessage({ type: 'subscribe', path: `${prefix}.*` })
+    await settle()
+
+    return {
+      port,
+      latest: () => [...seen].reverse().find((message) => message.type === 'value' && message.path === `${prefix}.*`)?.value,
+    }
+  }
+
+  it('opens with everything already under the namespace', async () => {
+    const name = `open-${Math.random()}`
+    const made = host({ name })
+
+    await made.started
+    made.doc.getMap('state').set('assets.logo', { kind: 'url' })
+    made.doc.getMap('state').set('assets.players/ada', { kind: 'file' })
+    made.doc.getMap('state').set('variables.home.name', 'Vanguard')
+
+    const watched = await collection(made, 'assets', name)
+
+    expect(watched.latest()).toEqual({ logo: { kind: 'url' }, 'players/ada': { kind: 'file' } })
+  })
+
+  it('leaves out everything that is not under it', async () => {
+    const name = `apart-${Math.random()}`
+    const made = host({ name })
+    const watched = await collection(made, 'assets', name)
+
+    made.doc.getMap('state').set('variables.home.name', 'Vanguard')
+    await settle()
+
+    expect(watched.latest()).toEqual({})
+  })
+
+  it('republishes when a member is added, changed or removed', async () => {
+    const name = `moving-${Math.random()}`
+    const made = host({ name })
+    const watched = await collection(made, 'assets', name)
+
+    made.doc.getMap('state').set('assets.logo', { kind: 'url', url: 'a' })
+    await settle()
+    expect(watched.latest()).toEqual({ logo: { kind: 'url', url: 'a' } })
+
+    made.doc.getMap('state').set('assets.logo', { kind: 'url', url: 'b' })
+    await settle()
+    expect(watched.latest()).toEqual({ logo: { kind: 'url', url: 'b' } })
+
+    made.doc.getMap('state').delete('assets.logo')
+    await settle()
+    expect(watched.latest()).toEqual({})
+  })
+
+  it('does not wake a collection for a change outside it', async () => {
+    // The reason subscriptions are per-path at all. A board watching a library must
+    // not re-render every time the shot clock moves.
+    const made = host({ name: `quiet-${Math.random()}` })
+    const { port, seen } = client(made)
+
+    await made.started
+    port.postMessage({ type: 'subscribe', path: 'assets.*' })
+    await settle()
+
+    const before = seen.filter((message) => message.path === 'assets.*').length
+
+    made.doc.getMap('state').set('variables.home.score', 3)
+    await settle()
+
+    expect(seen.filter((message) => message.path === 'assets.*').length).toBe(before)
+  })
+
+  it('keeps two members added at once, rather than losing one', async () => {
+    // The whole reason for a path per member. Under a single path holding the
+    // collection, two operators each adding an image inside the replication window
+    // means one of them silently loses theirs -- the same failure the counter design
+    // exists to prevent, in a different costume.
+    const a = Doc.createDoc()
+    const b = Doc.createDoc()
+
+    a.getMap('state').set('assets.ada', { kind: 'file' })
+    b.getMap('state').set('assets.kim', { kind: 'file' })
+
+    Y.applyUpdate(a, Y.encodeStateAsUpdate(b))
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a))
+
+    expect(Doc.collect(a, 'assets')).toEqual({ ada: { kind: 'file' }, kim: { kind: 'file' } })
+    expect(Doc.collect(b, 'assets')).toEqual(Doc.collect(a, 'assets'))
   })
 })

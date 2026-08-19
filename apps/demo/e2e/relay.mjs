@@ -16,9 +16,14 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { fileURLToPath } from 'node:url'
+
 import { chromium } from 'playwright'
 
 import { createRelay } from '../../../packages/relay/src/node.js'
+
+/** A file in the demo's public folder, anchored to this script rather than the cwd. */
+const asset = (name) => fileURLToPath(new URL(`../public/${name}`, import.meta.url))
 
 const BASE = process.argv[2] ?? 'http://localhost:4173'
 const PORT = Number(process.env.RELAY_PORT ?? 0)
@@ -185,6 +190,52 @@ await save(operator)
 check(
   await becomes(host.page, () => !document.querySelector('.ss-field-busy')),
   'and stops saying so once they save',
+)
+
+// -- The image library -------------------------------------------------------
+// The index replicates; the bytes do not. Without this the failure is silent and
+// lands on air: an operator picks a headshot from their own library, the reference
+// replicates fine, the machine running OBS has no bytes for it, and the graphic
+// goes out showing its fallback while the operator's screen shows the photo.
+await host.page.locator('.ss-asset-library input[aria-label="Image URL"]').fill(`${BASE}/logos/broncos.svg`)
+await host.page.locator('.ss-asset-library input[aria-label="Asset name"]').fill('sponsor-logo')
+await host.page.locator('.ss-asset-library button:has-text("Add URL")').click()
+
+check(
+  await becomes(operator.page, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /sponsor-logo/.test(tile.textContent))),
+  'an image added on one machine appears in the library on the other',
+)
+
+// A URL entry is showable everywhere by definition -- the bytes are wherever they
+// always were.
+check(
+  await becomes(operator.page, () => {
+    const tile = [...document.querySelectorAll('.ss-asset-tile')].find((it) => /sponsor-logo/.test(it.textContent))
+
+    return tile && !tile.classList.contains('ss-elsewhere')
+  }),
+  'and a pasted URL is usable there too, because its bytes never moved',
+)
+
+// A file is different: its bytes live on the machine it was added to.
+await host.page.locator('.ss-asset-library input[aria-label="Add image files"]').setInputFiles(asset('logos/vandals.svg'))
+
+check(
+  await becomes(operator.page, () => {
+    const tile = [...document.querySelectorAll('.ss-asset-tile')].find((it) => /vandals/.test(it.textContent))
+
+    return Boolean(tile)
+  }),
+  'a dropped file is known about on the other machine',
+)
+
+check(
+  await becomes(operator.page, () => {
+    const tile = [...document.querySelectorAll('.ss-asset-tile')].find((it) => /vandals/.test(it.textContent))
+
+    return tile?.classList.contains('ss-elsewhere')
+  }),
+  'and marked as one this machine cannot show, rather than offered as if it could',
 )
 
 // -- Losing the relay --------------------------------------------------------

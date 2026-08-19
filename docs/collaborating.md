@@ -104,6 +104,21 @@ holds the document, and the Collaborate dialog takes its address the same way.
 
 ---
 
+## Images
+
+The library's _names_ are shared; the _files_ are not.
+
+An image somebody pastes in as a URL works everywhere — the file is wherever it
+always was. An image somebody drops in from their desktop lives on their machine,
+and everyone else sees it in the list marked **elsewhere**, greyed out.
+
+That marking is the point. Choose an image the machine running OBS does not have
+and the graphic goes out blank — so the board says which ones those are rather than
+letting you find out on air.
+
+**Put images that matter on the machine running OBS**, or paste them as URLs. Either
+works everywhere.
+
 ## Who is here, and who is editing what
 
 Once connected, the header shows the room and how many people are in it. Put your

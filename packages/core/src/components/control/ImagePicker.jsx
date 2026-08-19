@@ -27,7 +27,10 @@ import { AssetLibraryDialog } from './AssetLibrary'
  * That split is what lets an operator line up the next guest mid-segment and commit
  * on the cut.
  */
-export function ImagePicker({ name, label = 'Image', namespace = 'variables', className, ...rest }) {
+/** An entry this machine cannot render says so where it is chosen. */
+const label = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
+
+export function ImagePicker({ name, label: caption = 'Image', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { value, dirty, onChange } = useDraftValue(path)
   const { assets } = useAssetLibrary()
@@ -36,6 +39,7 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
 
   // A path may hold a raw URL from before it was managed, or a key that has since
   // been deleted. Show that rather than silently pretending nothing is set.
+  const chosen = assets.find((entry) => entry.key === assetKeyOf(value))
   const key = assetKeyOf(value)
   const known = key ? assets.some((entry) => entry.key === key) : false
   const orphaned = Boolean(value) && (isAssetRef(value) ? !known : true)
@@ -54,7 +58,7 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
   return (
     <section className={cx('ss-image-picker flex w-full flex-col gap-2', className)} {...rest}>
       <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-        {label}
+        {caption}
         {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
       </span>
 
@@ -75,20 +79,20 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
             <select
               value={known ? value : ''}
               onChange={(event) => onChange(event.target.value)}
-              aria-label={`${label} selection`}
+              aria-label={`${caption} selection`}
               className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500 focus:relative"
             >
               <option value="">— none —</option>
               {loose.map((entry) => (
                 <option key={entry.key} value={toAssetRef(entry.key)}>
-                  {entry.key}
+                  {label(entry, entry.key)}
                 </option>
               ))}
               {grouped.map(([group, entries]) => (
                 <optgroup key={group} label={group}>
                   {entries.map((entry) => (
                     <option key={entry.key} value={toAssetRef(entry.key)}>
-                      {leafOf(entry.key)}
+                      {label(entry, leafOf(entry.key))}
                     </option>
                   ))}
                 </optgroup>
@@ -98,7 +102,7 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
               <button
                 type="button"
                 onClick={() => setBrowsing(true)}
-                aria-label={`Browse images for ${label}`}
+                aria-label={`Browse images for ${caption}`}
                 className="ss-browse -ml-px flex h-full shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
               >
                 <Icon name="search" />
@@ -109,6 +113,15 @@ export function ImagePicker({ name, label = 'Image', namespace = 'variables', cl
           {orphaned ? (
             <span className="truncate text-xs text-amber-400" title={value}>
               {isAssetRef(value) ? `"${key}" is not in the library` : value}
+            </span>
+          ) : null}
+
+          {/* The failure this exists to prevent: a file somebody else added, chosen
+              here, goes to air blank on whichever machines lack the bytes. Saying so
+              costs a line; not saying so costs a graphic nobody notices is wrong. */}
+          {chosen && !chosen.here ? (
+            <span className="ss-elsewhere truncate text-xs text-amber-400" title={`"${chosen.key}" was added on another machine`}>
+              Not on this machine &mdash; it will not show here
             </span>
           ) : null}
         </div>

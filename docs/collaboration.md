@@ -462,10 +462,9 @@ doc), put only the hash in the document, and have a peer that lacks a blob reque
 it over the relay. The document stays small and replicates as it does now; blobs
 move out-of-band and only to peers that need them.
 
-### Replicate the index before the bytes
+### Replicate the index before the bytes ✅
 
-There is a half-step worth taking first, because without it the naive version has
-a silent on-air failure.
+**Shipped.** Without it the naive version has a silent on-air failure.
 
 An operator drops in a headshot, picks it, saves. The reference `asset:players/ada`
 replicates fine. The host has no bytes for that hash, `resolveAsset` returns null,
@@ -484,6 +483,16 @@ url, hash, size — is a few hundred bytes and belongs in the document. Then:
 
 That turns the limitation from a trap into a visible boundary, and the index is the
 same structure the eventual blob transfer needs anyway.
+
+An entry lives at `assets.<key>`, one path each, and the store grew a way to watch
+a whole namespace (`useVelcroCollection('assets')`). One path per member is the
+only conflict-free shape: a single path holding the whole library would mean two
+operators adding different images inside the replication window and one of them
+silently losing theirs — the counter problem again, in a different costume.
+
+A picker marks an entry it cannot render _(elsewhere)_, and the library greys the
+tile. The bytes still do not move; what changed is that nobody is offered a choice
+that would go out blank.
 
 This is deliberately deferred. It wants the relay to exist first, since blob
 transfer is a second channel over the same connection, and until then a

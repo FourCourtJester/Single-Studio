@@ -340,6 +340,16 @@ Three ways to file something:
 The name field means "name" for one file and "group" for several, which is the same
 field meaning the same thing at two scales.
 
+#### Sharing a library
+
+When collaboration is on, the library's _index_ replicates and its _bytes_ do not.
+Every machine sees every entry; one that does not hold the file shows it as
+**elsewhere** and will not offer it as if it could render it.
+
+A URL entry works everywhere by definition. A dropped file works where it was
+dropped — so put images that matter on the machine running OBS, or paste them as
+URLs.
+
 #### How many images can it hold?
 
 There is no limit in the framework. The practical ones:

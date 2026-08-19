@@ -237,7 +237,10 @@ export class VelcroClient {
    * happens after ready() while listeners register synchronously.
    */
   subscribe(path, listener) {
-    const key = normalize(path)
+    // `assets.*` is a collection: everything under a namespace. The star is not a
+    // path segment, so it is held aside while the rest is normalised.
+    const collection = path.endsWith('.*')
+    const key = collection ? `${normalize(path.slice(0, -2))}.*` : normalize(path)
 
     if (!this.#subs.has(key)) {
       const entry = { channel: null, listeners: new Set(), value: undefined, hydrated: false, closed: false }

@@ -4,7 +4,7 @@ import { channelFor, statusChannelFor } from './channels'
 import * as Counter from './counter'
 import * as Doc from './doc'
 import { apply, mutations as defaults } from './mutations'
-import { normalize } from './paths'
+import { isUnder, normalize } from './paths'
 import { createSync } from './sync'
 
 // The host runs inside the SharedWorker. It owns the one Y.Doc for this studio.
@@ -53,12 +53,27 @@ export function createVelcroHost(config = {}) {
 
   // -- publishing ----------------------------------------------------------
 
+  /**
+   * A subscription to a whole namespace rather than one value.
+   *
+   * `assets.*` means "every path under `assets.`, as an object". Collections are
+   * how a *set* of things replicates without conflicts -- one path per member, so
+   * two operators adding different members merge instead of one losing theirs.
+   */
+  const COLLECTION = '.*'
+  const isCollection = (path) => path.endsWith(COLLECTION)
+  const prefixOf = (path) => path.slice(0, -COLLECTION.length)
+
+  function valueAt(path) {
+    return isCollection(path) ? Doc.collect(doc, prefixOf(path)) : Doc.read(doc, path)
+  }
+
   function publish(path) {
     const entry = subscriptions.get(path)
 
     if (!entry) return
 
-    entry.channel.postMessage({ path, value: Doc.read(doc, path) })
+    entry.channel.postMessage({ path, value: valueAt(path) })
   }
 
   /**
@@ -89,6 +104,13 @@ export function createVelcroHost(config = {}) {
   function markDirty(path) {
     // Only bother tracking paths somebody is actually listening to.
     if (subscriptions.has(path)) dirty.add(path)
+
+    // A change to one member is a change to the collection it belongs to. Cheap
+    // because there are only ever a handful of collection subscriptions -- a board
+    // watching a library, not a graphic watching a score.
+    for (const key of subscriptions.keys()) {
+      if (isCollection(key) && isUnder(path, prefixOf(key))) dirty.add(key)
+    }
   }
 
   state.observe((event) => {
@@ -109,7 +131,9 @@ export function createVelcroHost(config = {}) {
   // -- subscriptions ------------------------------------------------------
 
   function subscribe(path, portId, port) {
-    const key = normalize(path)
+    // A collection's trailing `*` is not a path segment, so it is stripped before
+    // normalising and put back afterwards.
+    const key = isCollection(path) ? `${normalize(prefixOf(path))}${COLLECTION}` : normalize(path)
 
     if (!subscriptions.has(key)) subscriptions.set(key, { channel: new BroadcastChannel(channelFor(name, key)), ports: new Set() })
 
@@ -127,11 +151,11 @@ export function createVelcroHost(config = {}) {
     // the graphic sits on its fallback until something else happens to change.
     // A port reply is ordered, targeted, and cannot be missed by a client that just
     // sent the request down it.
-    port.postMessage({ type: 'value', path: key, value: Doc.read(doc, key) })
+    port.postMessage({ type: 'value', path: key, value: valueAt(key) })
   }
 
   function unsubscribe(path, portId) {
-    const key = normalize(path)
+    const key = isCollection(path) ? `${normalize(prefixOf(path))}${COLLECTION}` : normalize(path)
     const entry = subscriptions.get(key)
 
     if (!entry) return
