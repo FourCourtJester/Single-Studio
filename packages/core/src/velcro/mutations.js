@@ -174,12 +174,24 @@ export const mutations = {
     }
   },
 
-  /** Wipe everything, or everything under a prefix. `{ prefix: 'variables' }` */
+  /**
+   * Wipe everything, or everything under a prefix. `{ prefix: 'variables' }`
+   *
+   * `except` spares one or more prefixes, and exists for the one clear an operator
+   * actually presses: start the show over without throwing away the image library.
+   * Those are different kinds of thing -- the show is what happened tonight, the
+   * library is what somebody spent an afternoon filing -- and a single button that
+   * loses both is a button nobody dares touch. Expressed as an exception rather
+   * than as a list of prefixes to keep, because a studio's namespaces are its own
+   * and core cannot know them.
+   */
   clear(ctx, payload = {}) {
-    const { prefix } = payload
+    const { prefix, except } = payload
+    const spared = toPaths(except ?? [])
 
     for (const key of Doc.keys(ctx.doc)) {
       if (prefix && !isUnder(key, prefix)) continue
+      if (spared.some((one) => isUnder(key, one))) continue
 
       if (Counter.exists(ctx.bases, key)) Counter.remove(ctx.bases, ctx.deltas, key)
       else ctx.state.delete(key)

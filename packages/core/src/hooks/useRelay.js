@@ -322,5 +322,20 @@ export function useRelay({ auto = true } = {}) {
     [velcro],
   )
 
-  return { config, join, reference }
+  /**
+   * Leave the room and go back to working alone.
+   *
+   * Three things, and all three are needed. Forgetting the stored room stops the
+   * next load rejoining it; rewriting the URL stops the *dock* rejoining it, which
+   * is the one an operator cannot see and the one OBS remembers; and dropping the
+   * clock role stops a machine that was the reference from beating into a room it
+   * has left.
+   */
+  const leave = useCallback(() => {
+    join({ reference: false })
+
+    if (typeof window !== 'undefined') window.location.replace(relayLink({}))
+  }, [join])
+
+  return { config, join, leave, reference }
 }

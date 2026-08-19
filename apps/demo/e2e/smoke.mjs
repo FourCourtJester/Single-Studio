@@ -68,7 +68,7 @@ const control = await context.newPage()
 control.on('pageerror', (e) => console.log('[control pageerror]', e.message))
 await control.goto(`${BASE}/#/`)
 await control.waitForSelector('text=Clocks')
-await control.waitForFunction(() => document.querySelectorAll('.ss-stepper output').length > 0)
+await control.waitForFunction(() => document.querySelectorAll('.ss-stepper input').length > 0)
 await control.waitForTimeout(1000)
 
 const homeName = control.locator('.ss-field:has-text("Home") input').first()
@@ -122,7 +122,7 @@ check(!(await control.locator('.ss-save .ss-discard').isVisible()), 'and the dis
 // Buttons stay immediate -- a stepper is one deliberate act with no half-typed state.
 await control.locator('button[aria-label="Increase Home score"]').click()
 await control.locator('button[aria-label="Increase Home score"]').click()
-check(await becomes(control, () => document.querySelector('.ss-stepper output')?.textContent.trim() === '2'), 'two increments read as 2 on the control surface')
+check(await becomes(control, () => document.querySelector('.ss-stepper input')?.value === '2'), 'two increments read as 2 on the control surface')
 check(await becomes(source, sceneHas, '2'), 'button presses reach the graphic with no save')
 
 // -- Transition ordering -----------------------------------------------------
@@ -917,6 +917,97 @@ check(
 )
 
 await control.locator('.ss-sources-dialog button[aria-label="Close the source list"]').click()
+
+// -- Typing a number into a stepper -----------------------------------------
+// The buttons add, because two operators tapping +1 at once have to come to +2.
+// The field sets, because going from 3 to 10 by pressing + seven times is not a
+// control. Both write to the same path and the difference is the intention.
+const score = control.locator('.ss-stepper input[aria-label="Home score"]')
+
+await score.fill('3')
+await score.press('Enter')
+check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '3'), 'a stepper takes a number typed straight in')
+
+// And the buttons still add to it rather than replacing it, which is the property
+// the typed field could quietly have broken.
+await control.locator('.ss-stepper button[aria-label="Increase Home score"]').click()
+check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '4'), 'and the buttons still add to what was typed')
+
+// Escape abandons, the same bargain a text field makes. A half-typed number must
+// not reach air just because somebody clicked away mid-thought.
+await score.fill('99')
+await score.press('Escape')
+check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '4'), 'and Escape abandons an edit rather than committing it')
+
+// -- Starting over -----------------------------------------------------------
+// Destructive, so it asks -- and it asks inside the page rather than through
+// window.confirm, which an OBS dock may never draw. One click arms, a second does
+// it, and a lone click has to be provably harmless.
+//
+// Counted inside the open dialog, not on the page: an ImagePicker renders a library
+// of its own, so a bare `.ss-asset-tile` count is the pickers plus the dialog and
+// answers a question nobody asked.
+const openLibrary = async () => {
+  await control.locator('.ss-menu-open').click()
+  await control.locator('.ss-menu-images').click()
+  await control.waitForSelector('.ss-asset-dialog[open] .ss-asset-library')
+  // The tiles come out of IndexedDB a beat after the dialog does, so a count taken
+  // on the dialog appearing is a count of nothing.
+  await control.waitForSelector('.ss-asset-dialog[open] .ss-asset-tile')
+}
+
+const closeLibrary = () => control.locator('.ss-asset-dialog[open] button[aria-label="Close the image library"]').click()
+const tiles = () => control.locator('.ss-asset-dialog[open] .ss-asset-tile').count()
+
+await openLibrary()
+const before = await tiles()
+await closeLibrary()
+
+const scoreNow = () => control.locator('.ss-stepper input[aria-label="Home score"]').inputValue()
+
+await control.locator('.ss-menu-open').click()
+await control.locator('.ss-menu-reset').click()
+await control.waitForSelector('.ss-reset-dialog[open]')
+
+await control.locator('.ss-reset-show').click()
+check(await becomes(control, () => /click again/i.test(document.querySelector('.ss-reset-show')?.textContent ?? '')), 'one click on a reset arms it and says so rather than doing it')
+const armedScore = await scoreNow()
+
+check(armedScore === '4', `and the show is still there after that first click (score ${armedScore})`)
+
+await control.locator('.ss-reset-show').click()
+check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '0'), 'a second click resets the show')
+
+await control.locator('.ss-reset-dialog button[aria-label="Close"]').click()
+
+// The whole reason the reset takes an exception rather than clearing everything:
+// the show is what happened tonight, the library is what somebody spent an
+// afternoon filing, and one button that loses both is one nobody dares press.
+await openLibrary()
+check((await tiles()) === before, `and leaves the ${before} images alone (found ${await tiles()})`)
+
+// -- Emptying the library ----------------------------------------------------
+// Its own button, in with the images, because it is the only one of these whose
+// blast radius is a thing you are looking at.
+const purge = control.locator('.ss-asset-dialog[open] .ss-asset-purge .ss-confirm')
+
+check(new RegExp(`Remove all ${before}`).test((await purge.textContent()) ?? ''), 'the library offers to empty itself, and counts what that means')
+
+await purge.click()
+check(await becomes(control, () => /click again/i.test(document.querySelector('.ss-asset-purge .ss-confirm')?.textContent ?? '')), 'one click arms that one too')
+check((await tiles()) === before, 'and removes nothing on its own')
+
+await purge.click()
+check(
+  await becomes(control, () => {
+    const library = document.querySelector('.ss-asset-dialog[open] .ss-asset-library')
+
+    return library?.querySelectorAll('.ss-asset-tile').length === 0 && /Nothing here yet/.test(library?.textContent ?? '')
+  }),
+  'a second click empties it, back to the empty state rather than an empty grid',
+)
+
+await closeLibrary()
 
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces

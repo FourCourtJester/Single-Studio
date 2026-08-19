@@ -51,7 +51,7 @@ const becomes = async (page, fn, arg = null, timeout = 8000) => {
  * using one fails instantly and looks exactly like the feature being broken.
  */
 const HOME_NAME = '.ss-field input[placeholder="Kestrel Corps"]'
-const SCORE = '.ss-stepper output'
+const SCORE = '.ss-stepper input'
 
 const storage = await mkdtemp(join(tmpdir(), 'ss-relay-'))
 const ADMIN = 'let-me-in'
@@ -189,7 +189,7 @@ check(await becomes(host.page, (at) => document.querySelector(at)?.value === 'Re
 // worst failure this system has. It is pinned in a unit test between two docs and
 // in a relay test across a fake wire; this is the same claim through a real
 // browser, a real SharedWorker, a real socket and a real relay.
-const startingScore = Number(await scoreOf(host).textContent())
+const startingScore = Number(await scoreOf(host).inputValue())
 
 await Promise.all([
   host.page.locator('button[aria-label="Increase Home score"]').click(),
@@ -197,7 +197,7 @@ await Promise.all([
 ])
 
 const expected = startingScore + 2
-const landed = async (machine) => becomes(machine.page, (want) => document.querySelector('.ss-stepper output')?.textContent.trim() === String(want), expected)
+const landed = async (machine) => becomes(machine.page, (want) => document.querySelector('.ss-stepper input')?.value === String(want), expected)
 
 check(await landed(host), `concurrent increments add up on the host (expected ${expected})`)
 check(await landed(operator), 'and to the same number on the operator')
@@ -487,6 +487,37 @@ await host.page.locator('.ss-relay-admin button[aria-label^="Remove"]').first().
 check(
   await becomes(host.page, () => [...document.querySelectorAll('.ss-operator-token')].some((row) => /removed/i.test(row.textContent))),
   'removing them marks them removed rather than quietly forgetting them',
+)
+
+// -- Leaving --------------------------------------------------------------
+// There was a way out and nobody could find it: a grey "Work alone" in the corner
+// of the collaborate dialog, which says what it leaves you doing rather than what
+// it does. It is now a named button in with the other ways to start over, and it
+// has to undo all three halves -- the connection, the remembered room, and the room
+// in the dock URL, which is the one an operator never sees and the one OBS keeps.
+await openMenu(invited, 'reset')
+await invited.page.waitForSelector('.ss-reset-dialog[open]')
+await invited.page.locator('.ss-reset-disconnect').click()
+
+check(
+  await becomes(invited.page, () => /click again/i.test(document.querySelector('.ss-reset-disconnect')?.textContent ?? '')),
+  'the way out asks once before taking it',
+)
+check(
+  await becomes(invited.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected'),
+  'and is still connected while it is only asking',
+)
+
+await invited.page.locator('.ss-reset-disconnect').click()
+
+check(await becomes(invited.page, () => !/[?&]j=/.test(location.href)), 'a second click takes the room out of the dock URL, so a reload does not rejoin it')
+check(
+  await becomes(invited.page, () => (document.querySelector('.ss-sync-status')?.dataset.state ?? 'offline') !== 'connected'),
+  'and the board says it is on its own',
+)
+check(
+  await invited.page.evaluate(() => (document.querySelector('.ss-field input')?.value ?? '') !== ''),
+  'while the show it was driving stays exactly where it was',
 )
 
 // -- Where the room key goes -------------------------------------------------

@@ -4,6 +4,7 @@ import { relayLink, resolveRelay, useRelay } from '../../hooks/useRelay'
 import { newSecret } from '../../velcro/crypto'
 import { usePresence, useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
+import { Confirm } from './Confirm'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
 import { Operator } from './Operator'
@@ -98,15 +99,15 @@ function Roster() {
 /** The settings themselves, opened from the menu. */
 export function CollaborateDialog({ open, onClose }) {
   const status = useSyncStatus()
-  const { config, join, reference } = useRelay({ auto: false })
+  const { config, join, leave, reference } = useRelay({ auto: false })
 
-  return <SetupDialog open={open} onClose={onClose} config={config} join={join} reference={reference} offset={status.offset} />
+  return <SetupDialog open={open} onClose={onClose} config={config} join={join} leave={leave} reference={reference} offset={status.offset} />
 }
 
 /** "3s behind" / "12s ahead", from the offset that would correct it. */
 const formatSkew = (offset) => `${Math.round(Math.abs(offset) / 1000)}s ${offset > 0 ? 'behind' : 'ahead of'}`
 
-function SetupDialog({ open, onClose, config, join, reference, offset }) {
+function SetupDialog({ open, onClose, config, join, leave, reference, offset }) {
   const dialog = useRef(null)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
@@ -163,9 +164,8 @@ function SetupDialog({ open, onClose, config, join, reference, offset }) {
     onClose()
   }
 
-  const leave = () => {
-    join({ reference: false })
-    window.location.replace(relayLink({}))
+  const disconnect = () => {
+    leave()
     onClose()
   }
 
@@ -366,10 +366,18 @@ function SetupDialog({ open, onClose, config, join, reference, offset }) {
       </div>
 
       <footer className="flex shrink-0 items-center gap-2 border-t border-slate-800 px-4 py-3">
+        {/* It said "Work alone", which is what it leaves you doing rather than what
+            it does, and nobody looking for a way out of a room recognised it. The
+            word people go looking for is the one they were told when they joined. */}
         {config?.url ? (
-          <button type="button" onClick={leave} className="text-xs text-slate-500 transition-colors hover:text-rose-400">
-            Work alone
-          </button>
+          <Confirm
+            onConfirm={disconnect}
+            label="Disconnect"
+            ask="Disconnect — click again"
+            tone="quiet"
+            className="ss-disconnect px-2 py-1 text-xs"
+            title="Leave the room and drive this show from this machine alone. Your graphics keep working; nothing is deleted."
+          />
         ) : null}
         <button
           type="button"

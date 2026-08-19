@@ -252,6 +252,36 @@ describe('mutations', () => {
 
       expect(Doc.keys(doc)).toEqual([])
     })
+
+    it('spares what it is told to spare, which is the reset an operator presses', () => {
+      // Starting the show over without throwing away the image library. Those are
+      // different kinds of thing, and one button that loses both is a button nobody
+      // dares touch.
+      run(doc, 'set', { 'variables.a': 1, 'toggles.b': true, 'assets.logo': { kind: 'url' } })
+      run(doc, 'increment', { 'variables.score': 2 })
+      run(doc, 'clear', { except: 'assets' })
+
+      expect(Doc.read(doc, 'variables.a')).toBeUndefined()
+      expect(Doc.read(doc, 'variables.score')).toBeUndefined()
+      expect(Doc.read(doc, 'toggles.b')).toBeUndefined()
+      expect(Doc.read(doc, 'assets.logo')).toEqual({ kind: 'url' })
+    })
+
+    it('spares a prefix rather than a key, so a whole library survives', () => {
+      // `assets` has to mean everything under it, or sparing it would keep nothing:
+      // every real entry is `assets.<key>` and none of them is `assets`.
+      run(doc, 'set', { 'assets.players/ada': 1, 'assets.logos/acme': 2, 'variables.a': 3 })
+      run(doc, 'clear', { except: ['assets'] })
+
+      expect(Doc.keys(doc).sort()).toEqual(['assets.logos/acme', 'assets.players/ada'])
+    })
+
+    it('does not let a spared prefix escape the requested one', () => {
+      run(doc, 'set', { 'variables.a': 1, 'toggles.b': true, 'assets.logo': 2 })
+      run(doc, 'clear', { prefix: 'variables', except: 'assets' })
+
+      expect(Doc.keys(doc).sort()).toEqual(['assets.logo', 'toggles.b'])
+    })
   })
 
   describe('registry', () => {

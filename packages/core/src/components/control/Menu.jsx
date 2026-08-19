@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { AssetLibraryDialog } from './AssetLibrary'
 import { Collaborate, CollaborateDialog } from './Collaborate'
+import { ResetDialog } from './Reset'
 import { SourceListDialog } from './SourceList'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
@@ -10,10 +11,10 @@ import { Tooltip } from '../common/Tooltip'
 /**
  * The board's own controls, gathered behind one button.
  *
- * These three -- the room, the image library, the OBS URLs -- have nothing to do
- * with the show being run. They are setup, opened rarely, and each one had found
- * its own way onto the header or the bottom of the page, where they competed for
- * room with the fields an operator touches every minute. A dock is often a narrow
+ * These -- the room, the image library, the OBS URLs, the ways to start over --
+ * have nothing to do with the show being run. They are setup, opened rarely, and
+ * each one had found its own way onto the header or the bottom of the page, where
+ * they competed for room with the fields an operator touches every minute. A dock is often a narrow
  * column beside a preview; that space belongs to the show.
  *
  * The connection light stays outside the menu on purpose. Everything in here is
@@ -23,6 +24,10 @@ const ITEMS = [
   { key: 'collaborate', icon: 'people', label: 'Collaborate', hint: 'Bring other operators into this show' },
   { key: 'images', icon: 'image', label: 'Image store', hint: 'Add, name and remove images' },
   { key: 'sources', icon: 'screen', label: 'Browser sources', hint: 'The URLs to paste into OBS' },
+  // Last, and on its own side of a rule. Everything above opens something; this one
+  // undoes something, and a destructive item sitting flush against three harmless
+  // ones is a mis-click waiting for a bad night.
+  { key: 'reset', icon: 'revert', label: 'Start over', hint: 'Reset the show, leave the room, or wipe this machine', apart: true },
 ]
 
 export function Menu({ className, ...rest }) {
@@ -97,6 +102,7 @@ export function Menu({ className, ...rest }) {
               className={cx(
                 `ss-menu-${item.key}`,
                 'flex items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-slate-800',
+                item.apart && 'mt-1 border-t border-slate-800 pt-2.5',
               )}
             >
               <Icon name={item.icon} className="h-4 w-4 shrink-0 text-slate-400" />
@@ -115,6 +121,7 @@ export function Menu({ className, ...rest }) {
       {showing === 'collaborate' ? <CollaborateDialog open onClose={close} /> : null}
       {showing === 'images' ? <AssetLibraryDialog open onClose={close} /> : null}
       {showing === 'sources' ? <SourceListDialog open onClose={close} /> : null}
+      {showing === 'reset' ? <ResetDialog open onClose={close} /> : null}
     </span>
   )
 }

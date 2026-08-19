@@ -321,6 +321,23 @@ export class AssetStore {
 
     if (!others.length) await request((await this.#store(BLOBS, 'readwrite')).delete(entry.hash))
   }
+
+  /**
+   * Empty the library on this machine.
+   *
+   * Both stores, because leaving the blobs would be leaving the bytes -- the part
+   * that takes the space -- behind an index that no longer names them. Nothing
+   * would ever refer to them again and nothing would ever collect them.
+   *
+   * `clear()` rather than deleting the database: the database is opened once and
+   * held for the life of the page, and `deleteDatabase` blocks on an open
+   * connection rather than failing, so a reset would appear to do nothing and then
+   * happen at some later reload.
+   */
+  async clear() {
+    await request((await this.#store(ENTRIES, 'readwrite')).clear())
+    await request((await this.#store(BLOBS, 'readwrite')).clear())
+  }
 }
 
 // One object URL per blob per page.
@@ -354,3 +371,6 @@ export function resolveAsset(store, key) {
 
 /** Drop a cached resolution so a renamed or replaced entry is re-read. */
 export const forgetAsset = (key) => urls.delete(key)
+
+/** Drop every cached resolution. For the one case that invalidates all of them. */
+export const forgetAssets = () => urls.clear()

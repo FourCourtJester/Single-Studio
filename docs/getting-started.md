@@ -31,6 +31,30 @@ Open the printed URL. That is the control surface. The header's menu holds the
 setup a board needs and a show does not: **Browser sources** lists every graphic's
 URL with a copy button, alongside the image store and the collaboration settings.
 
+**Start over** is the last item, under a rule of its own, and holds the three ways
+to undo:
+
+- **Reset the show** — every name, score, timer and toggle back to its default, on
+  every machine in the room. The image library is kept: the show is what happened
+  tonight, the library is what somebody spent an afternoon filing, and one button
+  that loses both is one nobody dares press.
+- **Disconnect from collaboration** — leave the room and drive the show from this
+  machine alone. Nothing is deleted and the graphics do not miss a frame; the invite
+  link still works if you want to come back.
+- **Reset this machine** — the show, the images, the room, your name, everything
+  this browser has stored, and then a reload. Other machines in the room keep the
+  show. This is the one to reach for after a rebuild.
+
+Emptying the image library is not in there. It lives in the image store beside the
+images, because it is the only one of these whose blast radius is a thing you are
+looking at.
+
+Each asks twice: one click arms the button and it says what it is about to do, a
+second does it, and a few seconds of silence disarms it. Deliberately not
+`window.confirm` — the board's main home is an OBS custom browser dock, where a
+native dialog may never be drawn, and a guard that silently reads as "they said no"
+is a guard that quietly stops the button working.
+
 Each copied URL carries `?layer-name=SS - <studio> - <Source>`, which is the name
 OBS gives the browser source. The display name is title-cased from the source's
 key, so a key written for a URL (`lower-third`) reads as English in a scene list
@@ -138,6 +162,15 @@ with the `namespace` prop.
 concurrent edits add up rather than overwrite each other. Use them for anything
 numeric an operator adjusts — scores especially.
 
+`step` sizes the buttons, so a sport scoring in threes is `<Stepper step={3} …/>`
+and nothing else changes.
+
+Typing a number into the field **sets** it rather than adding, and that is the point
+— going from 3 to 10 by pressing + seven times is not a control. It is a different
+intention, so it gets a different write: an absolute value lands on top of whatever
+anybody else was adding at that instant, because that is what correcting a value
+means.
+
 ### Add a mutation
 
 ```js
@@ -184,11 +217,12 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.               |
 | `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved.  |
 | `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.    |
-| `Stepper`      | `variables.<name>` | Numeric &minus;/+. Uses counters, so concurrent edits add up.    |
+| `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright. |
 | `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                      |
 | `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                            |
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first.                         |
 | `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.        |
+| `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
 | `TimerButton`  | `timers.<name>`    | Duration countdown. Typed unless `duration` presets it.          |
 | `Countdown`    | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                |
 | `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                  |
@@ -609,9 +643,13 @@ be on screen.
 | **Escape** (in a field) | Abandon that field's edit |
 | **Discard** (red ✕)     | Abandon all staged edits  |
 
-Buttons — `Stepper`, `ToggleButton`, `ImageToggle`, `ImageSelect`, `SwapButton`,
+Buttons — `Stepper`'s &minus;/+, `ToggleButton`, `ImageToggle`, `ImageSelect`, `SwapButton`,
 `ResetButton`, `TimerButton`, `Countdown`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
 half-finished state to protect.
+
+`Stepper`'s **field** is the exception among them, and stages like the text ones do:
+typing "10" passes through "1", and a board that wrote every keystroke would put a
+1 on air on the way to a 10. Enter or clicking away commits it; Escape abandons it.
 
 A save is one mutation, so every staged path lands in a single transaction and the
 whole board changes on air together.

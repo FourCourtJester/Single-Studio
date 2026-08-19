@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { AssetStore, assetKeyOf, forgetAsset, isAssetRef, resolveAsset } from '../velcro/assets'
+import { AssetStore, assetKeyOf, forgetAsset, forgetAssets, isAssetRef, resolveAsset } from '../velcro/assets'
 import { useStudio } from '../studio/context'
 import { useVelcroCollection } from './useVelcroValue'
 import { useVelcroMutate } from './useVelcroMutate'
@@ -180,6 +180,21 @@ export function useAssetLibrary() {
     [store, mutate],
   )
 
+  /**
+   * Empty the library, here and in the room.
+   *
+   * Both halves, and in that order. The bytes are local and the index replicates,
+   * so clearing only the store would leave every other machine offering images that
+   * no longer exist anywhere, and clearing only the index would leave the bytes
+   * occupying IndexedDB with nothing able to name them.
+   */
+  const removeAll = useCallback(async () => {
+    await store.clear()
+    forgetAssets()
+    mutate('clear', { prefix: INDEX })
+    bump()
+  }, [store, mutate])
+
   const rename = useCallback(
     async (key, next) => {
       const entry = await store.rename(key, next)
@@ -198,5 +213,5 @@ export function useAssetLibrary() {
     [store, mutate, share],
   )
 
-  return { assets, addFile, addFiles, addUrl, remove, rename, store }
+  return { assets, addFile, addFiles, addUrl, remove, removeAll, rename, store }
 }

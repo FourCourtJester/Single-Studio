@@ -192,7 +192,7 @@ Two families, one store.
 render on air. Each is a thin wrapper over `useVelcroValue`.
 
 **Control** (`Field`, `Select`, `ImageSelect`, `ImagePicker`, `Stepper`, `Cycle`,
-`ToggleButton`, `ImageToggle`, `SwapButton`, `ResetButton`, `TimerButton`,
+`ToggleButton`, `ImageToggle`, `SwapButton`, `ResetButton`, `Confirm`, `TimerButton`,
 `Countdown`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
 it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
 
@@ -223,6 +223,11 @@ Three carry non-obvious decisions:
   a path per cell. An operator pastes standings in from a spreadsheet, and one
   value keeps that a single atomic write instead of twenty racing ones — and lets
   the graphic render the board from one subscription.
+- **`Confirm`** arms on the first click and acts on the second, rather than calling
+  `window.confirm`. The board's main home is an OBS custom browser dock, where a
+  native dialog may never be drawn — and the truthful reading of a `confirm()` that
+  never appeared is "they said no", so the safest-looking guard in the codebase
+  would be the one that quietly makes a button stop working.
 - **`ResetButton`** uses `unset`, not empty strings. Removing the keys makes each
   source fall back to its own default; writing `''` would leave the paths present
   and holding blanks, which looks identical on the board and different on air.

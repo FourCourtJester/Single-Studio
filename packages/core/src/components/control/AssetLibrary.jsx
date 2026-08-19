@@ -5,6 +5,7 @@ import { useOwner } from '../../hooks/useSync'
 import { groupOf, leafOf, toAssetRef } from '../../velcro/assets'
 import { filesFromDrop } from '../../toolkits/entries'
 import { cx } from '../../toolkits/cx'
+import { Confirm } from './Confirm'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
 
@@ -40,7 +41,7 @@ import { Tooltip } from '../common/Tooltip'
  * turns it into a chooser.
  */
 export function AssetLibrary({ onPick, selected, className, ...rest }) {
-  const { assets, addFiles, addUrl, remove, rename } = useAssetLibrary()
+  const { assets, addFiles, addUrl, remove, removeAll, rename } = useAssetLibrary()
   const owner = useOwner()
   const [url, setUrl] = useState('')
   const [key, setKey] = useState('')
@@ -310,6 +311,26 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           {owner ? 'Nothing here yet. Drop images or a folder in, or paste a URL.' : 'Nothing here yet. Paste a URL above, or ask the machine running OBS to add files.'}
         </p>
       )}
+
+      {/* Not offered while picking. A chooser is opened to answer "which image",
+          and the one control on the screen that answers "none of them, ever" does
+          not belong in that moment.
+
+          It clears the room's index as well as this machine's bytes, and says so:
+          an entry every board can still see but no board can draw is worse than no
+          entry, because a picker keeps offering it. */}
+      {!onPick && assets.length ? (
+        <div className="ss-asset-purge flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
+          <Confirm
+            onConfirm={() => run(removeAll)}
+            disabled={busy}
+            label={`Remove all ${assets.length}`}
+            ask={`Remove all ${assets.length}? Click again`}
+            className="px-2 py-1 text-xs"
+          />
+          <span className="text-xs text-slate-500">Everything above, off this machine and out of the show. It cannot be undone.</span>
+        </div>
+      ) : null}
     </section>
   )
 }

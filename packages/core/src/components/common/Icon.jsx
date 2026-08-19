@@ -64,6 +64,14 @@ const shapes = {
       <path d="M15.5 15.5L21 21" />
     </>
   ),
+  /* An arrow coming back round to where it started. Undo, at the scale of a show. */
+  revert: (
+    <>
+      <path d="M4 10h6" />
+      <path d="M4 10V4" />
+      <path d="M6.3 16a8 8 0 1 0 .5-8" />
+    </>
+  ),
   /* Two figures: one nearer, one behind. Collaboration, without a metaphor. */
   people: (
     <>
