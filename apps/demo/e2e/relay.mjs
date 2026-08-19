@@ -517,7 +517,7 @@ const sealedUrl = await sealing.page.evaluate(() => location.href)
 const [beforeHash, afterHash] = sealedUrl.split('#')
 
 console.log(`  sealed dock URL: ${sealedUrl.replace(/k=[^&]+/, 'k=…')}`)
-check(/,[A-Za-z0-9_-]{43}$/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
+check(/,[A-Za-z0-9_-]{22}$/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
 check(!beforeHash.includes('?'), 'and so does everything else -- nothing at all is sent to the page host')
 // The token keeps the *reference*, which is most of the length saved, and expands
 // it on the way back in. So the proof is the round trip, not the string.

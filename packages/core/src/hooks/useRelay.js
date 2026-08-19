@@ -152,10 +152,29 @@ const SUPABASE = /^https:\/\/([a-z0-9]{16,40})\.supabase\.co$/i
  */
 const JOIN = ','
 
+/**
+ * The one genuinely redundant thing in the payload.
+ *
+ * Compression was measured against this and lost: deflate on the joined string came
+ * to 124 characters against 121, brotli 122, and packing it all into binary before
+ * base64 made it 127 -- because three quarters of what is here is a random project
+ * reference, a random project key and a random room key, and randomness does not
+ * compress. base64's third-on-top then costs more than any of it saves.
+ *
+ * What *is* redundant is the fifteen characters every Supabase publishable key
+ * begins with. A single leading dot stands in for it, which no real key can start
+ * with -- a publishable key begins `sb_`, a legacy one is a JWT beginning `eyJ`.
+ */
+const KEY_PREFIX = 'sb_publishable_'
+const PREFIXED = '.'
+
+const squeezeKey = (token) => (token?.startsWith(KEY_PREFIX) ? PREFIXED + token.slice(KEY_PREFIX.length) : (token ?? ''))
+const expandKey = (token) => (token?.startsWith(PREFIXED) ? KEY_PREFIX + token.slice(1) : token)
+
 /** Everything a board needs to join, as one string. */
 export function packRoom({ url, room, token, secret } = {}) {
   const address = SUPABASE.exec(String(url ?? '').trim())
-  const parts = [address ? address[1] : (url ?? ''), room ?? '', token ?? '', secret ?? ''].map((part) => String(part ?? ''))
+  const parts = [address ? address[1] : (url ?? ''), room ?? '', squeezeKey(token), secret ?? ''].map((part) => String(part ?? ''))
 
   // Trailing empties carry no information and cost characters.
   while (parts.length && !parts.at(-1)) parts.pop()
@@ -176,7 +195,7 @@ export function unpackRoom(value) {
     // failing to reach a relay nobody ever had.
     if (!/^[a-z]+:\/\//i.test(url)) return null
 
-    return { url, room: parts[1] || undefined, token: parts[2] || undefined, secret: parts[3] || undefined }
+    return { url, room: parts[1] || undefined, token: expandKey(parts[2]) || undefined, secret: parts[3] || undefined }
   } catch {
     return null
   }

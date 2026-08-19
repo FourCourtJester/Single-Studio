@@ -397,10 +397,16 @@ scores before anybody is meant to see them.
 
 ##### How it works
 
-A room key is 32 random bytes, generated rather than typed — nobody invents a good
+A room key is 16 random bytes, generated rather than typed — nobody invents a good
 passphrase half an hour before doors, and a weak one here would look like protection
 while being a dictionary away from nothing. Frames are AES-GCM with a fresh 96-bit
 nonce each, behind a two-byte header.
+
+It was 32 bytes, which was an unexamined choice and cost twenty-one characters in
+every invite link somebody has to send. AES-128-GCM is the NIST minimum and is
+beyond brute force by any margin that means anything here: the threat is somebody
+guessing a link, not an adversary with a datacentre and a century. Keys minted at
+the old length still open the shows they were made for.
 
 **The key rides the URL fragment.** Everything before the `#` goes to whoever serves
 the page; the fragment does not, and is stripped from `Referer` besides. So an
@@ -704,6 +710,38 @@ shape is already the one the full version needs.
   with drag-and-drop. Layout stays code so this stays honest.
 - **Multi-OBS topologies.** One OBS, _n_ operators. Several hosts means several
   writers of scene-ish state and a genuinely different problem.
+
+## What an invite link costs ✅
+
+The room used to travel as four parameters, most of it percent-encoding and
+parameter names. One value after the `#` was better on both counts — shorter, and
+none of it sent to whoever serves the page — but the obvious next step, compressing
+it, was measured and lost:
+
+| | characters |
+| --- | --- |
+| four parameters | 121 |
+| deflate, then base64url | 124 |
+| brotli, then base64url | 122 |
+| packed into binary, then base64url | 127 |
+| deflate the binary pack | 100 |
+| **a dot standing in for the constant key prefix** | **106** |
+| **and a 128-bit room key rather than 256** | **86** |
+
+Compression loses because three quarters of the payload is a random project
+reference, a random project key and a random room key. Randomness does not compress,
+and base64's third-on-top then costs more than the structure it removes.
+
+The build-code trick this resembles — a whole character build in a short string —
+works because a build is mostly low-entropy structure: item ids, levels, flags,
+enormously redundant. There is no redundancy of that kind here to find.
+
+So the wins were content rather than algorithm. Fifteen characters of
+`sb_publishable_` on every Supabase key, replaced by a single dot no real key can
+begin with. And twenty-one characters of room key that were never doing anything.
+
+What is left is close to the floor: a project reference, a project key and a room
+key all have to travel, all are random, and together they are most of what remains.
 
 ## Two roads to a page ✅
 

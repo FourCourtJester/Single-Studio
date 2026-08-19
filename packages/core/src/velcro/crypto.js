@@ -24,8 +24,21 @@
 // already have. Removing a person means a new room and a new key, which is one
 // fresh link to send -- see docs/collaborating.md.
 
-/** 256 bits. Generated, never typed: nobody invents a good passphrase under pressure. */
-const SECRET_BYTES = 32
+/**
+ * 128 bits, generated rather than typed -- nobody invents a good passphrase under
+ * pressure, and a weak one here would look like protection while being a dictionary
+ * away from nothing.
+ *
+ * It was 256, which was an unexamined choice of mine and cost twenty-one characters
+ * in every invite link somebody has to send. AES-128-GCM is the NIST minimum and is
+ * beyond brute force by any margin that means anything: the threat here is a person
+ * guessing a link, not an adversary with a datacentre and a century. Nothing else
+ * in the design leans on the key being longer.
+ *
+ * Keys already minted at 256 bits still work -- `looksLikeSecret` takes both -- so
+ * an invite link handed out yesterday keeps opening the show it was made for.
+ */
+const SECRET_BYTES = 16
 
 /**
  * Frame header: a magic byte and a version.
@@ -63,12 +76,13 @@ function fromBase64Url(text) {
   return Uint8Array.from(atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, '=')), (char) => char.charCodeAt(0))
 }
 
-/** A fresh room key, as the 43 characters that will ride an invite link's fragment. */
+/** A fresh room key, as the 22 characters that will ride an invite link's fragment. */
 export function newSecret() {
   return toBase64Url(bytes().getRandomValues(new Uint8Array(SECRET_BYTES)))
 }
 
-export const looksLikeSecret = (secret) => typeof secret === 'string' && /^[A-Za-z0-9_-]{43}$/.test(secret)
+/** 22 characters for a 128-bit key, 43 for the 256-bit ones minted before it. */
+export const looksLikeSecret = (secret) => typeof secret === 'string' && /^(?:[A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{43})$/.test(secret)
 
 /** True for a frame this module produced, false for anything the mesh sent in the clear. */
 export const isSealed = (frame) => frame?.length > HEADER && frame[0] === MAGIC
@@ -104,7 +118,7 @@ export function sequence() {
  * half a million, and the birthday bound sits around four billion.
  */
 export function createCipher(secret) {
-  if (!looksLikeSecret(secret)) throw new Error('A room key is 43 url-safe characters; see newSecret()')
+  if (!looksLikeSecret(secret)) throw new Error('That is not a room key: expected 22 url-safe characters, or 43 for one minted earlier. See newSecret()')
   if (!subtle()) throw new Error('This browser cannot encrypt here: crypto.subtle needs a secure origin (https, or localhost)')
 
   // Imported once and reused. Non-extractable, so nothing can read it back out of

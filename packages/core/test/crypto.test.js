@@ -19,11 +19,27 @@ describe('a room key', () => {
   })
 
   it('is url-safe, because its whole job is to ride a link', () => {
-    for (let i = 0; i < 50; i += 1) expect(newSecret()).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    for (let i = 0; i < 50; i += 1) expect(newSecret()).toMatch(/^[A-Za-z0-9_-]{22}$/)
+  })
+
+  it('is short, because every character is one somebody has to send', () => {
+    // 128 bits rather than 256. The threat is a person guessing a link, not an
+    // adversary with a datacentre, and the twenty-one characters saved are twenty-one
+    // fewer in every invite.
+    expect(newSecret().length).toBe(22)
+  })
+
+  it('still takes a key minted at the old length', () => {
+    // An invite handed out before this change has to keep opening the show it was
+    // made for.
+    const old = 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk'
+
+    expect(looksLikeSecret(old)).toBe(true)
+    expect(() => createCipher(old)).not.toThrow()
   })
 
   it('refuses anything that is not one', () => {
-    expect(() => createCipher('hunter2')).toThrow(/43/)
+    expect(() => createCipher('hunter2')).toThrow(/key/i)
     expect(looksLikeSecret('')).toBe(false)
     expect(looksLikeSecret(`${newSecret()}x`)).toBe(false)
   })

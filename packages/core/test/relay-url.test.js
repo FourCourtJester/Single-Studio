@@ -275,3 +275,46 @@ describe('the whole room as one value', () => {
     expect(relayFromUrl('https://studio.example.com/#/?j=rubbish')).toBeNull()
   })
 })
+
+describe('what the link costs', () => {
+  // Measured, because compression was tried here and lost. Three quarters of the
+  // payload is a random project reference, a random project key and a random room
+  // key, and randomness does not compress -- deflate on the joined string came out
+  // longer than the string, and so did packing it into binary first, because
+  // base64's third-on-top costs more than either saves.
+  //
+  // What was left was content: fifteen characters of constant key prefix, and a
+  // room key twice as long as it needed to be.
+
+  const room = {
+    url: 'https://abcdefghijklmnopqrst.supabase.co',
+    room: 'friday-night-7x2k9',
+    token: 'sb_publishable_Xy7Kq2mNp4RtVw9zAb3CdE',
+    secret: 'AAAAAAAAAAAAAAAAAAAAAA',
+  }
+
+  it('stands a dot in for the prefix every publishable key begins with', () => {
+    const packed = packRoom(room)
+
+    expect(packed).not.toContain('sb_publishable_')
+    expect(packed).toContain(',.Xy7Kq2mNp4RtVw9zAb3CdE,')
+    expect(unpackRoom(packed).token).toBe(room.token)
+  })
+
+  it('leaves a legacy key alone, since it does not begin that way', () => {
+    const legacy = { ...room, token: 'eyJhbGciOiJIUzI1NiJ9.legacy' }
+
+    expect(packRoom(legacy)).toContain('eyJhbGciOiJIUzI1NiJ9.legacy')
+    expect(unpackRoom(packRoom(legacy)).token).toBe(legacy.token)
+  })
+
+  it('is a third shorter than the parameters it started as', () => {
+    // Stated as the saving rather than a round number, because the round number is
+    // arbitrary and the saving is the point. Against the four separate parameters,
+    // percent-encoded, with the full key prefix and a 256-bit room key.
+    const before = `?relay=${encodeURIComponent(room.url)}&room=${room.room}&key=${room.token}#/?k=${'A'.repeat(43)}`
+    const after = `#/?j=${packRoom(room)}`
+
+    expect(after.length).toBeLessThan(before.length * 0.7)
+  })
+})
