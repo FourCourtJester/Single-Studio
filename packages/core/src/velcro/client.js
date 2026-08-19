@@ -10,6 +10,16 @@ import { normalize } from './paths'
 
 let nextRequestId = 1
 
+/** The status message, named rather than spread, so a stray field cannot ride along. */
+const syncOf = (data) => ({
+  state: data.state,
+  room: data.room,
+  url: data.url,
+  detail: data.detail,
+  offset: data.offset ?? 0,
+  reference: Boolean(data.reference),
+})
+
 export class VelcroClient {
   #name
 
@@ -29,7 +39,7 @@ export class VelcroClient {
 
   #watchers = { sync: new Set(), presence: new Set() }
 
-  #last = { sync: { state: 'offline', room: null, url: null, detail: null }, presence: [] }
+  #last = { sync: { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false }, presence: [] }
 
   constructor({ name, worker }) {
     if (typeof worker !== 'function') throw new TypeError('Velcro needs a `worker` factory: () => new SharedWorker(...)')
@@ -102,7 +112,7 @@ export class VelcroClient {
 
         this.#status = new BroadcastChannel(statusChannelFor(this.#name))
         this.#status.addEventListener('message', ({ data }) => {
-          if (data?.type === 'sync') this.#announce('sync', { state: data.state, room: data.room, url: data.url, detail: data.detail })
+          if (data?.type === 'sync') this.#announce('sync', syncOf(data))
           if (data?.type === 'presence') this.#announce('presence', data.peers ?? [])
         })
 
@@ -151,6 +161,19 @@ export class VelcroClient {
     return this
   }
 
+  /**
+   * Declare this machine the room's clock reference, or stop.
+   *
+   * Separate from `connectSync` because it is a property of the machine, not of the
+   * room: it is the one running OBS, whose clock is the one going to air. That is
+   * also why it never travels on an invite link -- everybody who arrives on one is
+   * by definition not that machine.
+   */
+  setClock(reference) {
+    this.ready().then(() => this.#port.postMessage({ type: 'sync:clock', reference: Boolean(reference) }))
+    return this
+  }
+
   #receive(data) {
     // The opening value for a subscription comes back down the port rather than
     // over the channel -- see the note in host.js subscribe().
@@ -162,7 +185,7 @@ export class VelcroClient {
     // Answers to `sync:status`, which come back down the port because the page
     // asking may have opened after the last change was broadcast.
     if (data?.type === 'sync') {
-      this.#announce('sync', { state: data.state, room: data.room, url: data.url, detail: data.detail })
+      this.#announce('sync', syncOf(data))
       return
     }
 

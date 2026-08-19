@@ -21,6 +21,28 @@ export const CONNECTING = 'connecting'
 export const CONNECTED = 'connected'
 export const ERROR = 'error'
 
+/**
+ * How often the clock reference republishes what time it thinks it is.
+ *
+ * Five seconds is chosen against how the measurement is *used*, not how precise it
+ * could be: skew is a property of a machine, so it is effectively constant across a
+ * show, and a countdown that starts a beat before the first sample lands is out by
+ * the skew it would have been out by anyway. Frequent enough that a joiner is
+ * corrected before they touch anything, rare enough to be invisible on the wire.
+ */
+const BEAT = 5000
+
+/**
+ * Re-measurements smaller than this are noise and are ignored.
+ *
+ * Every sample carries one-way network transit, which moves around by tens of
+ * milliseconds between beats. Acting on that would nudge every running clock on the
+ * board a few times a minute, which can land either side of a second boundary and
+ * show up as a digit that flickers. Clocks here are read in whole seconds; anything
+ * under a quarter of one is not a correction, it is jitter.
+ */
+const JITTER = 250
+
 export function createSync({ doc, name, status, config }) {
   const { connect, room = name, url, token, autoConnect = true } = config ?? {}
 
@@ -34,6 +56,31 @@ export function createSync({ doc, name, status, config }) {
    */
   let local = {}
   const watchers = new Set()
+
+  /**
+   * The clock beat, published alongside presence when this machine is the reference.
+   *
+   * `{ reference: true, at }` -- a standing claim plus the time it was made. Kept
+   * apart from `local` because it is machinery rather than an operator: it must not
+   * make an unnamed machine appear in the room's list, and its five-second churn
+   * must not re-render a roster that has not changed.
+   */
+  let beacon = {}
+
+  /**
+   * How far this machine's clock is behind the reference, in milliseconds.
+   *
+   * Added to `Date.now()` everywhere a time is written or read, which is the whole
+   * mechanism. Zero when nobody is the reference, so a studio that never sets one
+   * behaves exactly as it did before any of this existed.
+   */
+  let offset = 0
+
+  /** clientId of the reference being followed, and the last `at` seen from each. */
+  let following = null
+  const seen = new Map()
+  let beating = null
+  let known = new Set()
 
   /**
    * Where we actually are, which is not always where the config said.
@@ -62,7 +109,11 @@ export function createSync({ doc, name, status, config }) {
 
   // `url` rides along because the token API lives on the same host as the socket,
   // and a board that can show the room should not have to be told twice where it is.
-  const snapshot = () => ({ state, room: active.room, url: active.url, detail })
+  const snapshot = () => ({ state, room: active.room, url: active.url, detail, offset, reference: Boolean(beacon.reference) })
+
+  // Only ever sent once a studio has opted in. An offline studio posting "offline"
+  // would be a message that never existed before.
+  const announceStatus = () => status.postMessage({ type: 'sync', name, ...snapshot() })
 
   function report(next, why = null) {
     if (state === next && detail === why) return
@@ -70,9 +121,7 @@ export function createSync({ doc, name, status, config }) {
     state = next
     detail = why
 
-    // Only ever announced once a studio has opted in. An offline studio posting
-    // "offline" would be a message that never existed before.
-    status.postMessage({ type: 'sync', name, ...snapshot() })
+    announceStatus()
   }
 
   /** The awareness the current provider exposes, if it has one. */
@@ -91,16 +140,49 @@ export function createSync({ doc, name, status, config }) {
 
     if (!awareness) return Object.keys(local).length ? [{ id: 'local', self: true, ...local }] : []
 
-    return [...awareness.getStates().entries()]
-      .filter(([, state]) => state && Object.keys(state).length)
-      .map(([id, state]) => ({ id, self: id === awareness.clientID, ...state }))
+    const list = []
+
+    for (const [id, state] of awareness.getStates()) {
+      if (!state) continue
+
+      // The clock beat is dropped here rather than filtered downstream. It is not
+      // something an operator did, so a machine that has only ever published a beat
+      // is not a person in the room, and a beat arriving every five seconds is not a
+      // change to who is here.
+      const { at, reference, ...rest } = state
+
+      if (!Object.keys(rest).length) continue
+
+      list.push({ id, self: id === awareness.clientID, ...rest })
+    }
+
+    return list
   }
+
+  /**
+   * Announce the room, but only when it is different.
+   *
+   * Awareness fires a change for anything anyone publishes, the clock beat very much
+   * included, and every one of those used to walk down the status channel and set
+   * React state on every board in the building. Comparing the projection is one
+   * string compare against a list that is never longer than the number of people on
+   * the show.
+   */
+  let announced = null
 
   const announce = () => {
     const list = peers()
+    const shape = JSON.stringify(list)
+
+    if (shape === announced) return
+
+    announced = shape
 
     for (const watcher of watchers) watcher(list)
   }
+
+  /** Everything this machine publishes about itself: the operator, and the beat. */
+  const publishLocal = () => awarenessOf()?.setLocalState({ ...local, ...beacon })
 
   /** Merge into what we tell the room. Survives reconnects; see `local`. */
   function present(patch) {
@@ -110,10 +192,158 @@ export function createSync({ doc, name, status, config }) {
       if (value === undefined) delete local[key]
     }
 
-    awarenessOf()?.setLocalState(local)
+    publishLocal()
 
     // Awareness only notifies on a real change, and an offline studio has no
     // awareness at all, so the local view is announced either way.
+    announce()
+  }
+
+  // -- the clock -----------------------------------------------------------
+  //
+  // One machine in the room -- the one running OBS -- publishes what time it thinks
+  // it is, and everybody else works out how far off they are and adds the difference
+  // to their own `Date.now()`. That is the entire scheme.
+  //
+  // Deliberately not a round-trip handshake. What a handshake buys is removing
+  // one-way transit from the estimate, which on any network worth streaming over is
+  // tens of milliseconds; what this removes is machine skew, which on consumer
+  // hardware is routinely seconds and sometimes minutes. Measuring the large error
+  // roughly beats measuring the small one exactly, and every clock on this system is
+  // read in whole seconds anyway.
+  //
+  // A clock reference is *not* a state authority. Nothing here decides what is true
+  // -- state stays a CRDT, and the reference machine has no more say in it than
+  // anyone else. It only lends the room a shared idea of "now".
+
+  /** Take a new measurement, unless it is smaller than the noise floor. */
+  function adopt(next) {
+    if (Math.abs(next - offset) < JITTER) return
+
+    offset = next
+    announceStatus()
+  }
+
+  function beat() {
+    if (!beacon.reference) return
+
+    beacon = { reference: true, at: Date.now() }
+    publishLocal()
+  }
+
+  function stopBeating() {
+    if (beating) clearInterval(beating)
+
+    beating = null
+  }
+
+  function startBeating() {
+    stopBeating()
+
+    if (!beacon.reference || !awarenessOf()) return
+
+    beat()
+    beating = setInterval(beat, BEAT)
+    // Under Node a bare interval keeps the process alive; in a worker this is a
+    // number and the call quietly does nothing.
+    beating?.unref?.()
+  }
+
+  /**
+   * Beat immediately when somebody new turns up.
+   *
+   * Without this a joiner waits out a full interval before it can trust a sample --
+   * see the staleness rule in `readClock` -- and spends that time running on its own
+   * uncorrected clock. Setting local state fires another change, but by then the
+   * arrival is already recorded, so this cannot feed itself.
+   */
+  function greetClock() {
+    const awareness = awarenessOf()
+
+    if (!awareness) return
+
+    const now = new Set([...awareness.getStates().keys()].filter((id) => id !== awareness.clientID))
+    const arrived = [...now].some((id) => !known.has(id))
+
+    known = now
+
+    if (arrived) beat()
+  }
+
+  function readClock() {
+    const awareness = awarenessOf()
+
+    if (!awareness) return
+
+    // The reference does not correct itself: it is what everyone else corrects
+    // against, so its own offset is zero by definition.
+    if (beacon.reference) {
+      following = null
+      adopt(0)
+      return
+    }
+
+    const states = awareness.getStates()
+
+    // Forget a machine that left, so if it comes back its first value is treated as
+    // the unknown-age thing it is rather than measured against one from before.
+    for (const id of [...seen.keys()]) if (!states.has(id)) seen.delete(id)
+
+    // Two machines both told they run OBS is a misconfiguration, not a crash. The
+    // lowest client id wins, which every peer works out identically, so nobody ends
+    // up following a different clock from everybody else.
+    const chosen =
+      [...states.entries()]
+        .filter(([id, state]) => id !== awareness.clientID && state?.reference && Number.isFinite(state.at))
+        .map(([id]) => id)
+        .sort((a, b) => a - b)
+        .at(0) ?? null
+
+    following = chosen
+
+    // The last measurement is kept rather than reset. A machine that has gone quiet
+    // has not changed what time it is, and snapping every running clock on the board
+    // by several seconds would be a visible fault where holding still is invisible.
+    if (chosen === null) return
+
+    const at = states.get(chosen).at
+    const before = seen.get(chosen)
+
+    seen.set(chosen, at)
+
+    // The first value read from a peer may have been written long ago: awareness
+    // state persists, so a machine joining an established room sees whatever the
+    // reference last published, not what it is publishing now. Only a value we
+    // watched *change* has a known age, so the opening one is recorded and skipped.
+    if (before === undefined || at === before) return
+
+    adopt(at - Date.now())
+  }
+
+  /** Declare -- or stop declaring -- that this machine sets the room's clock. */
+  function clock(on) {
+    const want = Boolean(on)
+
+    if (want === Boolean(beacon.reference)) return
+
+    beacon = want ? { reference: true, at: Date.now() } : {}
+    seen.clear()
+    following = null
+
+    if (want) offset = 0
+
+    publishLocal()
+
+    if (want) startBeating()
+    else stopBeating()
+
+    announceStatus()
+    readClock()
+  }
+
+  const onAwareness = () => {
+    greetClock()
+    readClock()
     announce()
   }
 
@@ -123,17 +353,22 @@ export function createSync({ doc, name, status, config }) {
     if (!awareness) return
 
     // Re-apply after a reconnect: a fresh provider starts with an empty slot.
-    if (Object.keys(local).length) awareness.setLocalState(local)
+    if (Object.keys(local).length || Object.keys(beacon).length) publishLocal()
 
-    awareness.on('change', announce)
-    announce()
+    known = new Set()
+    seen.clear()
+
+    awareness.on('change', onAwareness)
+    startBeating()
+    onAwareness()
   }
 
   /** Destroy whatever is attached. Does not touch generation or state. */
   async function teardown() {
     const going = provider
 
-    going?.awareness?.off?.('change', announce)
+    stopBeating()
+    going?.awareness?.off?.('change', onAwareness)
     provider = null
 
     if (!going) return
@@ -234,6 +469,19 @@ export function createSync({ doc, name, status, config }) {
     detach,
     present,
     peers,
+    clock,
+
+    /**
+     * What time it is in the room, rather than on this machine.
+     *
+     * Every mutation that writes an instant goes through this. That is the half of
+     * skew correction which is easy to miss: correcting only the *display* leaves a
+     * five-minute break started by an operator whose clock runs four seconds fast
+     * genuinely running four seconds long on air, and looking right on every screen
+     * while it does it. Correcting the write makes the stored instant mean the same
+     * thing on every machine, and the display correction then simply agrees with it.
+     */
+    now: () => Date.now() + offset,
 
     /**
      * Returns an unsubscribe. Called with the full peer list on every change.
@@ -258,6 +506,14 @@ export function createSync({ doc, name, status, config }) {
     },
     get state() {
       return state
+    },
+    /** Milliseconds to add to this machine's clock to get the room's. */
+    get offset() {
+      return offset
+    },
+    /** The peer whose clock this machine is following, if any. */
+    get following() {
+      return following
     },
     get snapshot() {
       return snapshot()

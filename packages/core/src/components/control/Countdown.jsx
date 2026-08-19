@@ -28,14 +28,21 @@ export function Countdown({ name, label = 'Countdown', as = 'time', namespace = 
 
     if (!raw) return
 
-    const at = as === 'time' ? Date.now() + untilClockTime(raw) : new Date(raw).getTime()
+    // `HH:MM` is handed over as a *duration* rather than resolved to an epoch here,
+    // and that is the skew-correct thing to do. The mutation runs in the worker,
+    // where the room's clock is known; resolving it on this page would bake this
+    // machine's idea of now into the target, so a board four seconds fast would put
+    // a pre-show countdown four seconds late on the machine going to air. A full
+    // date is genuinely absolute and needs no such help.
+    const spec = as === 'time' ? { duration: untilClockTime(raw), input: raw } : { at: new Date(raw).getTime(), input: raw }
+    const at = spec.at ?? Date.now() + spec.duration
 
     // A target in the past clears rather than starting a countdown that is
     // instantly over. The mutation enforces this too; bailing here keeps the
     // operator's entry in the field so they can correct it.
     if (!Number.isFinite(at) || at <= Date.now()) return
 
-    mutate('timer', { [path]: { at, input: raw } })
+    mutate('timer', { [path]: spec })
   }
 
   const stop = () => mutate('timer', { [path]: 0 })

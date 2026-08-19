@@ -19,6 +19,21 @@ import { useVelcro } from './useVelcro'
 
 const KEY = 'single-studio:relay'
 
+/**
+ * Which machine sets the room's clock, kept apart from the room itself.
+ *
+ * It has to be a separate key. Arriving on a link overwrites the remembered room --
+ * deliberately, since a new link means a new room -- and the streamer's own dock
+ * arrives on a link too, because pressing Go rewrites the URL and reloads. Folded
+ * into the same record, the machine running OBS would forget it was the clock the
+ * instant it finished being told.
+ *
+ * That it does not travel in the URL is the other half: an invite link is the
+ * streamer's own dock URL, so anything in it is true of everybody who opens it.
+ * Being the clock is true of exactly one machine.
+ */
+const CLOCK = 'single-studio:clock'
+
 /** `key` rather than `token` in the URL: shorter, and it reads like a house key. */
 const PARAMS = { url: 'relay', room: 'room', token: 'key' }
 
@@ -36,6 +51,24 @@ const remember = (config) => {
     else localStorage.removeItem(KEY)
   } catch {
     // A locked-down profile costs the convenience, not the connection.
+  }
+}
+
+/** Whether this machine has been told it is the one going to air. */
+export const isClock = () => {
+  try {
+    return localStorage.getItem(CLOCK) === 'reference'
+  } catch {
+    return false
+  }
+}
+
+export const setClockRole = (reference) => {
+  try {
+    if (reference) localStorage.setItem(CLOCK, 'reference')
+    else localStorage.removeItem(CLOCK)
+  } catch {
+    // Same bargain as above: the clock falls back to uncorrected, not to broken.
   }
 }
 
@@ -91,6 +124,7 @@ export function relayLink({ url, room, token, base = typeof window === 'undefine
 export function useRelay({ auto = true } = {}) {
   const velcro = useVelcro()
   const [config, setConfig] = useState(() => (typeof window === 'undefined' ? null : (relayFromUrl() ?? remembered())))
+  const [reference, setReference] = useState(() => (typeof window === 'undefined' ? false : isClock()))
 
   useEffect(() => {
     if (!auto) return
@@ -111,6 +145,15 @@ export function useRelay({ auto = true } = {}) {
     velcro.connectSync(config)
   }, [auto, config, velcro])
 
+  // Told every time, including when it is false. The worker outlives a reload but
+  // not a change of mind, and "no longer the clock" is a thing that has to be
+  // sayable or a machine demoted in the dialog would keep beating until it closed.
+  useEffect(() => {
+    if (!auto) return
+
+    velcro.setClock(reference)
+  }, [auto, reference, velcro])
+
   const join = useCallback(
     (next) => {
       const cleaned = next?.url ? { url: next.url, room: next.room || undefined, token: next.token || undefined } : null
@@ -118,11 +161,17 @@ export function useRelay({ auto = true } = {}) {
       remember(cleaned)
       setConfig(cleaned)
 
+      if (next?.reference !== undefined) {
+        setClockRole(next.reference)
+        setReference(Boolean(next.reference))
+        velcro.setClock(next.reference)
+      }
+
       if (cleaned) velcro.connectSync(cleaned)
       else velcro.disconnectSync()
     },
     [velcro],
   )
 
-  return { config, join }
+  return { config, join, reference }
 }

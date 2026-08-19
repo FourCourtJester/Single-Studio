@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useVelcro } from './useVelcro'
 
-const OFFLINE = { state: 'offline', room: null, url: null, detail: null }
+const OFFLINE = { state: 'offline', room: null, url: null, detail: null, offset: 0, reference: false }
 
 /**
  * Whether this machine is reaching the room, and which room.
@@ -33,6 +33,33 @@ export function useSyncStatus() {
     }),
     [status],
   )
+}
+
+/**
+ * Milliseconds to add to this machine's clock to get the room's.
+ *
+ * Zero alone, zero in a room with no clock reference, and zero on the reference
+ * itself -- so a component using this is not branching on whether collaboration is
+ * on, it is just adding a number that is usually nought.
+ *
+ * Narrower than `useSyncStatus` on purpose: clocks are read by graphics, and a
+ * graphic re-rendering because somebody else's connection wobbled would be a frame
+ * of work for nothing. Setting the same number is not a render.
+ */
+export function useClockOffset() {
+  const velcro = useVelcro()
+  const [offset, setOffset] = useState(0)
+
+  useEffect(() => velcro.onSyncStatus((status) => setOffset(status.offset ?? 0)), [velcro])
+
+  return offset
+}
+
+/** Tell the worker whether this machine is the one everyone sets their watch by. */
+export function useSetClock() {
+  const velcro = useVelcro()
+
+  return useCallback((reference) => velcro.setClock(reference), [velcro])
 }
 
 /**

@@ -134,6 +134,9 @@ Hence the flat layout.
 A timer stores `{ ts, duration }` where `ts` is a target epoch. Every peer derives
 the countdown locally, so there is no tick to synchronise and no drift to correct.
 
+The one thing an absolute instant cannot absorb by itself is two machines
+disagreeing about what "now" is — see stage 5.
+
 ---
 
 ## Staged delivery
@@ -397,15 +400,81 @@ its costs stated, and the person who runs the show should make it.
 **Done when:** a revoked token cannot reconnect ✅ and is disconnected on the spot
 ✅. Encryption is deferred with the reasoning above.
 
-### Stage 5 — Clock skew
+### Stage 5 — Clock skew ✅
 
-Timers compare `ts` against local `Date.now()`, and two machines routinely differ
-by seconds. Negotiate an offset per peer against the host's clock on connect and
-apply it in `useTimer`. Small change, but a visibly wrong countdown on a remote
-operator's board undermines trust in everything else on screen.
+Timers store an instant and compare it against local `Date.now()`, and two
+machines routinely differ by seconds. One machine in the room is named the
+reference; everybody else measures how far off they are and adds the difference.
 
-**Done when:** a peer with a deliberately skewed clock displays the same
-countdown as the host, within a second.
+**The reference is the machine running OBS.** The Collaborate dialog has a "This
+machine runs OBS" box, on by default, because whoever is filling that form in for
+the first time is the streamer at that machine — everybody else arrives on an
+invite link and never opens it. The role is kept in local storage under a
+different key from the room, and never in the URL: an invite link _is_ the
+streamer's own dock URL, so anything carried in it would be true of everybody who
+opened it.
+
+A clock reference is not a state authority. It does not decide what is true —
+state stays a CRDT and the reference machine has no more say in it than anyone
+else. It only lends the room a shared idea of "now".
+
+#### Measuring it
+
+The reference publishes `at: Date.now()` in its awareness state every five
+seconds, and on any new arrival. A peer computes `offset = at - Date.now()`.
+
+That is deliberately not the NTP round-trip. What a handshake buys is removing
+one-way transit from the estimate — tens of milliseconds on any network worth
+streaming over. What this removes is machine skew, which on consumer hardware is
+routinely seconds and occasionally minutes. Every clock in this system is read in
+whole seconds. Measuring the large error roughly beats measuring the small one
+exactly.
+
+Three rules make it behave:
+
+- **The first value read from a peer is discarded.** Awareness state persists, so
+  a machine joining an established room sees whatever the reference last
+  published, not what it is publishing now. Only a value watched to _change_ has a
+  known age. Beating on arrival is what keeps that from costing a joiner five
+  seconds of uncorrected clock.
+- **Re-measurements under 250ms are ignored.** Transit varies between beats, and
+  nudging every running clock a few times a minute can land either side of a
+  second boundary and show up as a digit that flickers.
+- **A reference that goes quiet keeps its last measurement.** A machine that
+  dropped off has not changed what time it is; snapping every clock back several
+  seconds mid-show is a visible fault where standing still is invisible.
+
+Two machines both told they run OBS is a misconfiguration, not a crash: the lowest
+client id wins, which every peer works out identically, so nobody ends up
+following a different clock from everybody else.
+
+#### Two places, not one
+
+The non-obvious half. Correcting the **display** is what the problem looks like it
+needs, and on its own it is worse than useless: a board four seconds fast starting
+a five-minute break writes a target four seconds late on the machine going to air.
+The break genuinely overruns, and every screen in the building shows it counting
+down correctly while it does.
+
+So the correction also happens at **write** time. `ctx.now()` in the mutation
+context is the room's clock rather than the machine's, and `timer` and `stopwatch`
+use it, so a stored instant means the same thing everywhere. The display
+correction in `useTimer` then simply agrees with it.
+
+The same reasoning moved one thing in `Countdown`: `HH:MM` is handed to the
+mutation as a duration rather than resolved to an epoch on the page, because the
+page does not know the room's clock and the worker does. A full date is genuinely
+absolute and needs no help.
+
+`useClockOffset()` is nought alone, nought in a room with no reference, and nought
+on the reference itself — so a studio that never touches any of this behaves
+exactly as it did before it existed.
+
+**Done when:** a peer with a deliberately skewed clock displays the same countdown
+as the host, within a second. ✅ — and the harder one it implies, that the host
+_stores_ the same countdown, which `test/clock.test.js` asserts against a
+seven-second skew and which fails by exactly seven seconds with the write-side
+correction removed.
 
 ---
 

@@ -28,7 +28,7 @@ import { SyncStatus } from './SyncStatus'
  */
 export function Collaborate({ className, ...rest }) {
   const status = useSyncStatus()
-  const { config, join } = useRelay({ auto: false })
+  const { config, join, reference } = useRelay({ auto: false })
   const [open, setOpen] = useState(false)
 
   return (
@@ -50,16 +50,20 @@ export function Collaborate({ className, ...rest }) {
         </Tooltip>
       )}
 
-      <SetupDialog open={open} onClose={() => setOpen(false)} config={config} join={join} room={status.room} />
+      <SetupDialog open={open} onClose={() => setOpen(false)} config={config} join={join} room={status.room} reference={reference} offset={status.offset} />
     </span>
   )
 }
 
-function SetupDialog({ open, onClose, config, join, room }) {
+/** "3s behind" / "12s ahead", from the offset that would correct it. */
+const formatSkew = (offset) => `${Math.round(Math.abs(offset) / 1000)}s ${offset > 0 ? 'behind' : 'ahead of'}`
+
+function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
   const dialog = useRef(null)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
   const [name, setName] = useState('')
+  const [clock, setClock] = useState(false)
   const [help, setHelp] = useState(false)
 
   useEffect(() => {
@@ -79,10 +83,14 @@ function SetupDialog({ open, onClose, config, join, room }) {
     setUrl(config?.url ?? '')
     setToken(config?.token ?? '')
     setName(config?.room ?? room ?? '')
-  }, [open, config, room])
+    // Whoever is filling this in for the first time is the streamer at the machine
+    // running OBS -- everybody else arrives on a link and never sees this form. So
+    // the useful default is on, and the box exists for the case where it is wrong.
+    setClock(config?.url ? reference : true)
+  }, [open, config, room, reference])
 
   const go = () => {
-    const next = { url: url.trim(), room: name.trim(), token: token.trim() }
+    const next = { url: url.trim(), room: name.trim(), token: token.trim(), reference: clock }
 
     if (!next.url) return
 
@@ -94,7 +102,7 @@ function SetupDialog({ open, onClose, config, join, room }) {
   }
 
   const leave = () => {
-    join(null)
+    join({ reference: false })
     window.location.replace(relayLink({}))
   }
 
@@ -196,6 +204,33 @@ function SetupDialog({ open, onClose, config, join, room }) {
           />
           <span className="text-xs text-slate-600">Anything, as long as everyone on the show uses the same one. Make it hard to guess.</span>
         </label>
+
+        {/* Skew between two machines is routinely seconds, and it is invisible: every
+            screen shows a five-minute break as five minutes while the one going to
+            air runs long. Naming one machine fixes it, and the machine to name is
+            always the one nobody is guessing about. */}
+        <label className="ss-clock-role flex cursor-pointer items-start gap-2.5 rounded-md border border-slate-800 bg-slate-950/60 p-3">
+          <input
+            type="checkbox"
+            checked={clock}
+            onChange={(event) => setClock(event.target.checked)}
+            aria-label="This machine runs OBS"
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-sky-500"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm text-slate-200">This machine runs OBS</span>
+            <span className="text-xs text-slate-500">
+              Everyone&rsquo;s timers follow this machine&rsquo;s clock, so a five-minute break is five minutes on air even if somebody else&rsquo;s computer
+              disagrees about the time. Tick it on one machine only.
+            </span>
+          </span>
+        </label>
+
+        {!clock && Math.abs(offset ?? 0) >= 1000 ? (
+          <p className="ss-clock-offset text-xs text-amber-400">
+            This computer&rsquo;s clock is {formatSkew(offset)} the one running OBS. Timers are corrected for it &mdash; the numbers here are what goes to air.
+          </p>
+        ) : null}
       </div>
 
       <footer className="flex shrink-0 items-center gap-2 border-t border-slate-800 px-4 py-3">

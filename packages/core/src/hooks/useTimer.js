@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { displayedSeconds, formatDuration } from '../toolkits/time'
+import { useClockOffset } from './useSync'
 import { useVelcroState } from './useVelcroValue'
 
 /**
@@ -32,7 +33,11 @@ const SAMPLE = 250
  * clocks replicate for free: each peer derives the same number from the same
  * timestamp, so there is nothing to synchronise and no drift to correct. It is also
  * why a paused stopwatch stores what it held rather than stopping a tick somewhere.
- * (Clock skew between machines is the one caveat -- see docs/collaboration.md.)
+ *
+ * Machine skew is the one thing a stored instant cannot absorb on its own, since
+ * two machines disagreeing about what "now" is will read the same timestamp as two
+ * different numbers. `useClockOffset` is that difference, and it is nought unless
+ * somebody in the room has been named the clock -- see docs/collaboration.md.
  *
  * The sampling below is a view concern only. Nothing about it is written anywhere,
  * so a slow or throttled tab renders late but never wrong: the next sample derives
@@ -40,6 +45,7 @@ const SAMPLE = 250
  */
 export function useTimer(path) {
   const { value: timer, loaded } = useVelcroState(path)
+  const offset = useClockOffset()
   const [tick, force] = useState(0)
 
   const target = timer?.ts
@@ -48,7 +54,7 @@ export function useTimer(path) {
   useEffect(() => {
     if (!target && !from) return undefined
 
-    const shown = () => displayedSeconds({ ts: target, from })
+    const shown = () => displayedSeconds({ ts: target, from }, Date.now() + offset)
 
     let last = shown()
     let id = null
@@ -68,10 +74,10 @@ export function useTimer(path) {
     id = setInterval(sample, SAMPLE)
 
     return () => clearInterval(id)
-  }, [target, from])
+  }, [target, from, offset])
 
   return useMemo(() => {
-    const now = Date.now()
+    const now = Date.now() + offset
     const up = { round: 'floor' }
 
     if (from) {
@@ -106,5 +112,5 @@ export function useTimer(path) {
     // that a sample which changed the displayed second recomputes this, and a sample
     // which did not, does not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, target, from, timer?.elapsed, timer?.duration, timer?.input, tick])
+  }, [loaded, offset, target, from, timer?.elapsed, timer?.duration, timer?.input, tick])
 }

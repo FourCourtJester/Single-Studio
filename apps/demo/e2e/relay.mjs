@@ -126,6 +126,24 @@ check(
   'and an operator joins by opening a link, with nothing configured',
 )
 
+// Which machine sets the room's clock. It is a property of the machine, not the
+// room, so it must not ride along on the link: the invite *is* the host's own dock
+// URL, and anything in it would be true of everybody who opened it.
+check(!/[?&]clock=/.test(dockUrl), 'the clock role stays off the dock URL, so an invite cannot hand it out')
+
+const clockBox = async (machine) => {
+  await machine.page.locator('.ss-collaborate button, .ss-collaborate-open').first().click()
+
+  const checked = await machine.page.locator('.ss-clock-role input[type="checkbox"]').isChecked()
+
+  await machine.page.locator('.ss-collaborate-dialog button[aria-label="Close"]').click()
+
+  return checked
+}
+
+check(await clockBox(host), 'the machine that set the room up is the one everyone sets their watch by')
+check((await clockBox(operator)) === false, 'and a machine that arrived on a link is not')
+
 await host.page.waitForTimeout(1500)
 
 // -- The basic claim ---------------------------------------------------------

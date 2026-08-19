@@ -216,8 +216,13 @@ export function createVelcroHost(config = {}) {
         unsubscribe(message.path, portId)
         break
 
+      // `sync.now` rather than `Date.now`: a mutation that writes an instant --
+      // a countdown target, a stopwatch origin -- has to write it in the room's
+      // frame, or a skewed operator's five-minute break is five minutes on their
+      // screen and something else on air. Identical to `Date.now` when nobody is
+      // the clock reference, which is the single-machine default.
       case 'mutate':
-        apply(doc, registry, message.name, message.payload, message.origin ?? 'local')
+        apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now)
         break
 
       case 'peek':
@@ -252,6 +257,13 @@ export function createVelcroHost(config = {}) {
 
       case 'sync:detach':
         sync.detach()
+        break
+
+      // Whether this machine is the one everybody else sets their watch by. It is a
+      // property of the machine rather than of the room, so it arrives separately
+      // from the relay's address and is never carried on an invite link.
+      case 'sync:clock':
+        sync.clock(message.reference)
         break
 
       case 'bye':

@@ -36,10 +36,30 @@ and there is nothing to install or deploy.
 Then, on your board:
 
 6. Press **Collaborate** in the header.
-7. Paste both values, pick a room name, press **Go**.
+7. Paste both values, pick a room name, leave **This machine runs OBS** ticked,
+   press **Go**.
 
 The page reloads and you are connected. That is it — no tables to create, no
 policies to configure, no code.
+
+### "This machine runs OBS"
+
+Tick it on the machine going to air, and nowhere else.
+
+Two computers rarely agree about what time it is — a few seconds apart is normal
+and nobody notices until it matters. It matters here: if your producer's laptop is
+four seconds fast and they start a five-minute break, the break is five minutes on
+their screen and five minutes four seconds on air, and every screen in the building
+shows it counting down correctly the whole time.
+
+Ticking the box says "this is the clock everyone works to". Other machines quietly
+measure how far off they are and correct for it, in both directions — what they
+show you, and what they set when they start a timer. Nobody has to change their
+system clock, and nobody has to think about it again.
+
+If you leave it unticked everywhere, nothing breaks; timers just go back to
+trusting whichever machine started them. If you tick it on two machines, the show
+carries on and one of them wins consistently for everybody.
 
 ### The room name is the password
 

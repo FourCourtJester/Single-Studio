@@ -18,6 +18,7 @@ import { isNullable, isUnder, normalize, toEntries, toPaths } from './paths'
 //   ctx.read(path)   current value at a path
 //   ctx.write(pairs) apply [path, value] pairs, pruning empty values
 //   ctx.add(path, n) add to a counter, promoting the path if needed
+//   ctx.now()        what time it is *in the room* -- see below
 
 /** Write a plain value, deleting the key when the value means "nothing". */
 function writeOne(ctx, path, value) {
@@ -108,7 +109,7 @@ export const mutations = {
    * the field can repopulate. A non-positive or past target clears the timer.
    */
   timer(ctx, payload) {
-    const now = Date.now()
+    const now = ctx.now()
 
     for (const [path, value] of toEntries(payload)) {
       const spec = value && typeof value === 'object' ? value : { duration: value }
@@ -141,7 +142,7 @@ export const mutations = {
    * exactly where it stopped without ever having counted anything itself.
    */
   stopwatch(ctx, payload) {
-    const now = Date.now()
+    const now = ctx.now()
 
     for (const [path, action] of toEntries(payload)) {
       const key = normalize(path)
@@ -187,7 +188,7 @@ export const mutations = {
 }
 
 /** Build the transaction context handed to every mutation. */
-export function createContext(doc) {
+export function createContext(doc, now = Date.now) {
   const bases = Doc.basesOf(doc)
   const deltas = Doc.deltasOf(doc)
 
@@ -197,6 +198,18 @@ export function createContext(doc) {
     deltas,
     state: Doc.stateOf(doc),
     clientId: doc.clientID,
+    /**
+     * The room's clock, not this machine's.
+     *
+     * Identical to `Date.now` on a machine that is alone, or in a room with no clock
+     * reference, so a mutation written against this behaves the same either way.
+     * Where it differs is the case that matters: an operator whose laptop is four
+     * seconds fast starting a five-minute break. Written with `Date.now` the stored
+     * target is four seconds late on the machine going to air, and every screen in
+     * the show agrees it is correct while the break overruns. Written with this it
+     * means five minutes everywhere, because everyone is naming the same instant.
+     */
+    now,
     read: (path) => Doc.read(doc, path),
     add: (path, amount) => Counter.add(bases, deltas, Doc.asCounter(doc, path), doc.clientID, amount),
     write: (entries) => {
@@ -211,7 +224,7 @@ export function createContext(doc) {
  * Apply a named mutation inside a single Yjs transaction, so observers see one
  * atomic change and a multi-path write never publishes a half-state.
  */
-export function apply(doc, registry, name, payload, origin = 'local') {
+export function apply(doc, registry, name, payload, origin = 'local', now = Date.now) {
   const mutation = registry[name]
 
   if (!mutation) throw new Error(`Unknown Velcro mutation: ${name}`)
@@ -219,7 +232,7 @@ export function apply(doc, registry, name, payload, origin = 'local') {
   let result
 
   doc.transact(() => {
-    result = mutation(createContext(doc), payload)
+    result = mutation(createContext(doc, now), payload)
   }, origin)
 
   return result

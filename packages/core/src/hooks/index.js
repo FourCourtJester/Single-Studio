@@ -4,6 +4,6 @@ export { useVelcroCollection, useVelcroState, useVelcroValue } from './useVelcro
 export { useVelcroVars } from './useVelcroVars'
 export { useAssetLibrary, useAssetStore, useAssetUrl } from './useAssets'
 export { usePageTitle } from './usePageTitle'
-export { usePathPresence, usePresence, usePresent, useSyncStatus } from './useSync'
-export { relayFromUrl, relayLink, useRelay } from './useRelay'
+export { useClockOffset, usePathPresence, usePresence, usePresent, useSetClock, useSyncStatus } from './useSync'
+export { isClock, relayFromUrl, relayLink, setClockRole, useRelay } from './useRelay'
 export { useTimer } from './useTimer'
