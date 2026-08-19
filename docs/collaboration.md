@@ -306,9 +306,9 @@ to the show.
 recovering, without a reload. ✅ — covered by `apps/demo/e2e/relay.mjs`, which
 stops the relay mid-show and asserts the indicator changes and changes back.
 
-### Stage 4 — Access control 🟡
+### Stage 4 — Access control ✅
 
-**Tokens and revocation shipped. Payload encryption deliberately not — see below.**
+**Tokens and revocation for a self-hosted relay; end-to-end encryption on Supabase.**
 
 Rooms are `roomId` plus **per-operator tokens**. A production loses people: someone
 finishes a contract, someone is not on this show, someone's laptop goes missing an
@@ -371,34 +371,83 @@ Decisions worth keeping:
 - **No admin secret means the API is off, not open.** An unguarded mint endpoint is
   a worse default than no endpoint.
 
-#### Why encryption is not here
+#### Encryption ✅, and why it took a change of transport to be worth it
 
-The original plan said "encrypt the document payload so the relay operator can't
-read a show". Building it revealed a trade the plan had not accounted for, and it
-is not ours to make quietly:
+This was deferred once, on reasoning worth keeping because it is what makes the
+current answer defensible:
 
-**Encryption and server-side persistence are mutually exclusive.** The relay holds
-a replica so a late joiner gets the show without another peer being awake — that is
-stage 2's late-joiner guarantee and the reason an operator can open their board
-before the streamer has started OBS. A relay that cannot read updates cannot
-maintain that replica; it becomes a dumb rebroadcaster, and a late joiner needs
-somebody else already online to sync from.
+> **Encryption and server-side persistence are mutually exclusive.** The relay
+> holds a replica so a late joiner gets the show without another peer being awake.
+> A relay that cannot read updates cannot maintain that replica; it becomes a dumb
+> rebroadcaster, and a late joiner needs somebody else already online to sync from.
 
-There is a second cost: revoking a token stops somebody connecting, but it cannot
-un-tell them a key they already have. Real revocation under encryption means
-rekeying the room and redistributing to everyone who remains — which is exactly the
-shared-secret rotation this stage exists to abolish.
+That argument was written when the relay was the transport. It does not survive the
+move to Supabase, because **Supabase Realtime holds nothing**. The mesh already
+pays the late-joiner cost — an operator who opens their board while every machine
+is off sees an empty show either way. So on the shipping path encryption costs
+nothing that was not already spent, and the objection evaporates.
 
-The threat it defends against is also narrower than it first appears. The relay is
-the user's own Cloudflare account. "The relay operator cannot read the show" is
-worth having when the relay is shared or hosted by someone else, and worth much
-less when the relay operator _is_ the streamer.
+The other half of the old reasoning also inverted. It said the threat was narrow
+because "the relay operator _is_ the streamer". On Supabase the operator is
+Supabase, and the anon key is public by design — it ships in the page of every
+Supabase app ever built. Until now the only thing between a stranger and a show was
+the room name: one guessable string, sent in the clear, to a company that could read
+every frame. That is thin for a document holding guest names, sponsor copy and
+scores before anybody is meant to see them.
 
-So: not built, and not because it is hard. It should be a deliberate choice with
-its costs stated, and the person who runs the show should make it.
+##### How it works
+
+A room key is 32 random bytes, generated rather than typed — nobody invents a good
+passphrase half an hour before doors, and a weak one here would look like protection
+while being a dictionary away from nothing. Frames are AES-GCM with a fresh 96-bit
+nonce each, behind a two-byte header.
+
+**The key rides the URL fragment.** Everything before the `#` goes to whoever serves
+the page; the fragment does not, and is stripped from `Referer` besides. So an
+invite link carries the key without it ever reaching GitHub Pages, Supabase, or
+anything in between — which is what lets an operator's entire setup stay "paste this
+link" while the show stays unreadable to the services carrying it. The same trick
+every end-to-end share link uses. A key found in the *query* is deliberately
+ignored: it has already been sent to a server, so honouring it would quietly bless
+the exact mistake this prevents.
+
+**It authenticates as well as encrypts.** GCM means a peer without the key cannot
+write to the show either, so guessing the room name no longer gets anybody in. The
+room name stops being the only secret and becomes one of two.
+
+**Presence is covered for free.** Operator names and which field each has open ride
+the same byte path as the document, so sealing that path covers them without a
+second mechanism.
+
+##### The rule that makes it real rather than decorative
+
+A frame in the clear is **refused**, not applied. A peer with no key still produces
+well-formed mesh frames; accepting them would leave a room that works perfectly,
+that everybody believes is sealed, and that is not. That silent downgrade is the
+failure mode worth caring about, and it is why the frame marker is a byte `>= 0x80`
+— a plaintext frame opens with a lib0 varuint of 0 or 1, so one leading byte tells
+the two apart with no ambiguity at all. All three mismatches say something an
+operator can act on: no key, wrong key, or somebody here without one.
+
+##### What it still does not do
+
+Revocation. Encrypting cannot un-tell somebody a key they already have. Removing a
+person means a new room and a new key — which, because the link carries both, is one
+fresh link to send. For a four-person production that is fine; it is worth knowing
+rather than discovering.
+
+And it is **not offered on a self-hosted relay**, for the original reason, now
+stated at the point of decision rather than in a document: a relay keeps a copy so
+operators can open their boards before you are up, which means it has to be able to
+read it. The dialog says so and disables the box; the demo's transport refuses a
+key outright rather than sending in the clear while a board displays a link with a
+key in it.
 
 **Done when:** a revoked token cannot reconnect ✅ and is disconnected on the spot
-✅. Encryption is deferred with the reasoning above.
+✅; a sealed room converges while putting nothing readable on the wire ✅; a peer
+without the key can neither read nor write it ✅; and a frame in the clear is
+refused rather than applied ✅. Each of those fails if its guard is removed, which
+is how they were checked.
 
 ### Stage 5 — Clock skew ✅
 

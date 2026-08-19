@@ -24,9 +24,17 @@ import { mutations } from './mutations'
  * A studio that only ever uses one can of course pass one `connect` and skip this.
  */
 const connect = (context) => {
-  const { doc, url, room, token, report } = context
+  const { doc, url, room, token, secret, report } = context
 
   if (/^https?:/.test(url)) return connectSupabase(context)
+
+  // Refused rather than ignored. A relay holds a replica of the show so a late
+  // joiner gets it without another machine being awake, which means it has to be
+  // able to read what it is given -- so there is no way to honour a key here. The
+  // dangerous version of this is the quiet one: sending in the clear while a board
+  // shows a link with a key in it would have everyone believing the show was
+  // sealed while every frame went out readable.
+  if (secret) throw new Error('This link carries a room key, and a relay cannot use one: it holds a copy of the show, so it has to be able to read it. Use a Supabase project to encrypt, or an invite link without a key.')
 
   const provider = new WebsocketProvider(url, room, doc, { params: token ? { token } : {} })
 

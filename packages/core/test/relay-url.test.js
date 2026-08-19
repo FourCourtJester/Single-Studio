@@ -54,6 +54,56 @@ describe('reading a room from a link', () => {
   })
 })
 
+describe('the room key in a link', () => {
+  // The key rides the fragment because the fragment is not sent to a server. That
+  // is the entire reason an encrypted show can still be set up by pasting one link:
+  // GitHub Pages serves the page without ever seeing the key, and Supabase relays
+  // the show without ever seeing it either.
+
+  it('is read from the fragment', () => {
+    expect(relayFromUrl('https://studio.example.com/?relay=https://x.supabase.co&room=friday&key=anon#/?k=Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk')).toMatchObject({
+      url: 'https://x.supabase.co',
+      room: 'friday',
+      token: 'anon',
+      secret: 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk',
+    })
+  })
+
+  it('is ignored when it turns up in the query instead', () => {
+    // The one rule that makes the fragment worth anything. A key before the `#` has
+    // already been sent to whoever served the page, so honouring it would bless
+    // exactly the mistake this design exists to prevent -- and it would do so
+    // invisibly, because the show would work perfectly either way.
+    expect(relayFromUrl('https://studio.example.com/?relay=https://x.supabase.co&room=friday&k=leaked#/')?.secret).toBeUndefined()
+  })
+
+  it('is absent from a link for a show that is not encrypted', () => {
+    expect(relayFromUrl('https://studio.example.com/?relay=https://x.supabase.co&room=friday#/')?.secret).toBeUndefined()
+  })
+
+  it('goes into the fragment when a link is built, never the query', () => {
+    const link = relayLink({
+      url: 'https://x.supabase.co',
+      room: 'friday',
+      token: 'anon',
+      secret: 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk',
+      base: 'https://studio.example.com/',
+    })
+
+    const [before, after] = link.split('#')
+
+    expect(after).toContain('Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk')
+    expect(before).not.toContain('Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk')
+  })
+
+  it('round-trips, so a link this builds is a link this reads', () => {
+    const secret = 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk'
+    const made = relayLink({ url: 'https://x.supabase.co', room: 'friday', token: 'anon', secret, base: 'https://studio.example.com/' })
+
+    expect(relayFromUrl(made)).toMatchObject({ url: 'https://x.supabase.co', room: 'friday', token: 'anon', secret })
+  })
+})
+
 describe('building a link to send somebody', () => {
   it('is the studio, with the room on it', () => {
     // Not a link to the relay: what an operator needs is the board, and the room

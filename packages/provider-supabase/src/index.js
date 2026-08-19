@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 import { createMeshProvider } from './mesh.js'
+import { createSealedWire } from './sealed.js'
 
 // Collaboration over a service the user owns, with a key we never hold.
 //
@@ -18,8 +19,14 @@ import { createMeshProvider } from './mesh.js'
 //   Own relay    packages/relay, for anyone who wants their own. One deploy.
 //
 // The anon key is public by design -- it is in the page of every Supabase app
-// ever shipped -- and it is the *user's* key in the user's project. What guards a
-// show is the room name, exactly as it guards the relay.
+// ever shipped -- and it is the *user's* key in the user's project.
+//
+// Which is exactly why a room can be sealed. With `seal`/`open` supplied, every
+// frame is encrypted before it reaches Supabase and decrypted after it leaves, so
+// what the service relays is bytes it cannot read: the room name stops being the
+// only thing guarding a show, and -- because the sealing authenticates as well as
+// encrypts -- guessing the room no longer lets anybody write to it either. Nothing
+// here knows how that is done. It is handed two functions. See velcro/crypto.js.
 
 const CHANNEL = (room) => `single-studio:${room}`
 const EVENT = 'y'
@@ -35,7 +42,7 @@ const decode = (text) => Uint8Array.from(atob(text), (char) => char.charCodeAt(0
  * changes: `url` is the Supabase project URL, `token` is its anon key, and `room`
  * is the show.
  */
-export function connectSupabase({ doc, url, room, token, report }) {
+export function connectSupabase({ doc, url, room, token, report, seal, open, isSealed }) {
   if (!url || !token) throw new Error('Supabase needs a project URL and its anon key')
 
   const client = createClient(url, token, {
@@ -54,15 +61,22 @@ export function connectSupabase({ doc, url, room, token, report }) {
     },
   })
 
-  const mesh = createMeshProvider({
-    doc,
+  // Late-bound both ways on purpose: the wire needs somewhere to hand decrypted
+  // bytes, and the mesh needs somewhere to hand bytes for the wire. Neither can be
+  // built first, and an arrow costs nothing.
+  const wire = createSealedWire({
+    seal,
+    open,
+    isSealed,
     report,
-    name: 'supabase',
-    send: (bytes) => channel.send({ type: 'broadcast', event: EVENT, payload: { b: encode(bytes) } }),
+    toTransport: (bytes) => channel.send({ type: 'broadcast', event: EVENT, payload: { b: encode(bytes) } }),
+    toMesh: (bytes) => mesh.receive(bytes),
   })
 
+  const mesh = createMeshProvider({ doc, report, name: 'supabase', send: wire.send })
+
   channel.on('broadcast', { event: EVENT }, ({ payload }) => {
-    if (payload?.b) mesh.receive(decode(payload.b))
+    if (payload?.b) wire.receive(decode(payload.b))
   })
 
   // Somebody new arrived. Saying hello again is cheap and saves them a round trip

@@ -37,6 +37,22 @@ const CLOCK = 'single-studio:clock'
 /** `key` rather than `token` in the URL: shorter, and it reads like a house key. */
 const PARAMS = { url: 'relay', room: 'room', token: 'key' }
 
+/**
+ * The room key, and it lives in the fragment on purpose.
+ *
+ * Everything before the `#` is sent to the server that hands out the page; the
+ * fragment is not, and is stripped from `Referer` besides. So a link can carry the
+ * one secret that actually matters without it ever reaching GitHub Pages, Supabase,
+ * or anywhere in between -- which is what lets the whole of an operator's setup stay
+ * "paste this link" while the show itself stays unreadable to the service carrying
+ * it. The same trick every end-to-end share link uses.
+ *
+ * Read only from the fragment, never from the query. A key found before the `#`
+ * has already been sent to a server, so honouring it would quietly bless exactly
+ * the mistake this is built to prevent.
+ */
+const SECRET = 'k'
+
 const remembered = () => {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? 'null')
@@ -88,7 +104,12 @@ export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.
     // that names its own room only needs the address.
     if (!found.url) return null
 
-    return { url: found.url, room: found.room || undefined, token: found.token || undefined }
+    return {
+      url: found.url,
+      room: found.room || undefined,
+      token: found.token || undefined,
+      secret: inHash.get(SECRET) || undefined,
+    }
   } catch {
     return null
   }
@@ -101,7 +122,7 @@ export function relayFromUrl(href = typeof window === 'undefined' ? '' : window.
  * relay: what an operator needs is the board, and the room is how it finds its way
  * home. One thing to send, and it is the thing they were going to need anyway.
  */
-export function relayLink({ url, room, token, base = typeof window === 'undefined' ? '' : window.location.href } = {}) {
+export function relayLink({ url, room, token, secret, base = typeof window === 'undefined' ? '' : window.location.href } = {}) {
   const link = new URL(base)
   const params = new URLSearchParams()
 
@@ -110,7 +131,8 @@ export function relayLink({ url, room, token, base = typeof window === 'undefine
   if (token) params.set(PARAMS.token, token)
 
   link.search = params.toString()
-  link.hash = '#/'
+  // After the `#`, so it is never sent to a server. See SECRET.
+  link.hash = secret ? `#/?${SECRET}=${encodeURIComponent(secret)}` : '#/'
 
   return link.toString()
 }
@@ -156,7 +178,9 @@ export function useRelay({ auto = true } = {}) {
 
   const join = useCallback(
     (next) => {
-      const cleaned = next?.url ? { url: next.url, room: next.room || undefined, token: next.token || undefined } : null
+      const cleaned = next?.url
+        ? { url: next.url, room: next.room || undefined, token: next.token || undefined, secret: next.secret || undefined }
+        : null
 
       remember(cleaned)
       setConfig(cleaned)

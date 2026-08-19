@@ -61,15 +61,38 @@ If you leave it unticked everywhere, nothing breaks; timers just go back to
 trusting whichever machine started them. If you tick it on two machines, the show
 carries on and one of them wins consistently for everybody.
 
-### The room name is the password
+### Your show is encrypted
 
-Anyone with the project URL, the key and the room name can join. The first two are
-public by design, so **the room name is what keeps a show private.** Use something
-nobody would guess — `friday-night` is a bad room name, `friday-night-7x2k9` is a
-fine one.
+New shows on Supabase are encrypted by default, and you do not have to do anything
+to get it. The **invite link is the key** — it is generated for you, and it sits
+after the `#`, which browsers never send to a server. So Supabase carries your show
+without being able to read a word of it, and neither can we, and neither can anyone
+who works out your room name.
 
-If a room name gets out, move to a new one and send everyone a fresh link. That
-takes ten seconds and costs nothing.
+Two things follow from that, and both are worth knowing before you need them:
+
+**Send the link like a password.** Anyone who has it can open your show. That was
+always true, but the link is now the whole of the secret rather than half of it, so
+treat it the way you would treat a shared login — not a public post.
+
+**To shut somebody out, make a new room.** Encryption cannot un-tell someone a key
+they already have. Open **Collaborate**, change the room name, press Go, and send
+everyone else the new link. Ten seconds, and the old link stops working. There is
+no button that removes one person from a room, and there honestly cannot be.
+
+If you would rather not encrypt — you are testing, or you want to be able to read
+the traffic yourself — untick **Encrypt this show** before pressing Go.
+
+### If you run your own relay instead
+
+Encryption is not offered there, and the reason is the feature you chose it for: a
+relay keeps a copy of the show, so an operator can open their board hours before you
+are up. It can only do that if it can read the show. The Collaborate dialog greys
+the box out and says so.
+
+On a relay, **the room name is what keeps a show private**, together with the
+per-operator keys the relay issues. Use something nobody would guess —
+`friday-night` is a bad room name, `friday-night-7x2k9` is a fine one.
 
 ### Why the page reloads
 
@@ -96,11 +119,15 @@ That rules almost everything out.
 | Trystero / WebRTC        | Genuinely needs nothing — but WebRTC cannot run in a `SharedWorker`, and the entire store lives in one.                       |
 | A relay we host          | Then we hold the keys, and your show depends on us staying in business.                                                       |
 
-### Is the key really safe in a URL?
+### Is the anon key really safe in a URL?
 
 Yes. Supabase's `anon` key is designed to sit in the page of a public website —
 that is its purpose. It identifies the project, not a person. Every Supabase app
 you have ever used ships it to the browser.
+
+That is also exactly why shows are encrypted. A public key plus a guessable room
+name is a thin thing to rest a production on, so the room key does the actual work
+of keeping people out — and unlike the anon key, it never leaves your browser.
 
 ### What it costs
 

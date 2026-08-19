@@ -5,6 +5,7 @@ import * as Doc from '../src/velcro/doc'
 import { createVelcroHost } from '../src/velcro/host'
 import { channelFor, statusChannelFor } from '../src/velcro/channels'
 import { CONNECTED, CONNECTING, ERROR, OFFLINE } from '../src/velcro/sync'
+import { newSecret } from '../src/velcro/crypto'
 
 // Persistence is off throughout: IndexedDB does not exist here, and the seam is
 // about the transport rather than the store beneath it. BroadcastChannel and
@@ -297,6 +298,94 @@ describe('detaching', () => {
 
     await made.started
     await expect(made.sync.detach()).resolves.toBeUndefined()
+  })
+})
+
+describe('the room key at the seam', () => {
+  // Core builds the cipher and hands a transport two functions, so there is one
+  // implementation of the crypto and one place it is tested -- and a provider needs
+  // to know nothing about keys at all.
+
+  it('hands a provider the means to seal, and the frame test to go with it', async () => {
+    const build = vi.fn(() => ({ destroy() {} }))
+    const secret = newSecret()
+    const made = host({ name: `sealed-${Math.random()}`, sync: { connect: build, url: 'https://x.supabase.co', room: 'friday', secret } })
+
+    await made.started
+    await settle()
+
+    const handed = build.mock.calls[0][0]
+
+    expect(typeof handed.seal).toBe('function')
+    expect(typeof handed.open).toBe('function')
+    // Needed even where there is nothing to open: it is how a board notices it has
+    // been handed a link that cannot read the show.
+    expect(typeof handed.isSealed).toBe('function')
+    expect(handed.secret).toBe(secret)
+
+    expect(await handed.open(await handed.seal(Uint8Array.from([1, 2, 3])))).toEqual(Uint8Array.from([1, 2, 3]))
+  })
+
+  it('hands nothing to seal with when a room has no key', async () => {
+    // The property that keeps this safe to have added: with no key, a provider is
+    // called exactly as it was before any of it existed.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `plain-${Math.random()}`, sync: { connect: build, url: 'wss://relay.test', room: 'friday' } })
+
+    await made.started
+    await settle()
+
+    const handed = build.mock.calls[0][0]
+
+    expect(handed.seal).toBeUndefined()
+    expect(handed.open).toBeUndefined()
+    expect(handed.secret).toBeUndefined()
+  })
+
+  it('says a room is encrypted without ever broadcasting the key', async () => {
+    // A board already has the key -- it arrived in the link -- so putting it on a
+    // channel every page can read would be surface for nothing. Whether the show is
+    // sealed is a different question, and one an operator should see at a glance.
+    const name = `told-${Math.random()}`
+    const seen = watch(name)
+    const secret = newSecret()
+    const made = host({ name, sync: { connect: () => ({ destroy() {} }), url: 'https://x.supabase.co', secret } })
+
+    await made.started
+    await settle()
+
+    const status = seen.findLast((message) => message.type === 'sync')
+
+    expect(status.encrypted).toBe(true)
+    expect(JSON.stringify(seen)).not.toContain(secret)
+  })
+
+  it('leaves the key behind when a board is moved to another relay', async () => {
+    // A key for one room is not a key for another, and sending it to a different
+    // host would be handing the show to a stranger. Same rule as the token.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `moved-${Math.random()}`, sync: { connect: build, url: 'https://one.supabase.co', secret: newSecret() } })
+
+    await made.started
+    await settle()
+
+    await made.sync.attach({ url: 'https://two.supabase.co', room: 'elsewhere' })
+
+    expect(build.mock.calls.at(-1)[0].secret).toBeUndefined()
+    expect(made.sync.snapshot.encrypted).toBe(false)
+  })
+
+  it('keeps it when the same board reconnects to the room it is already in', async () => {
+    const build = vi.fn(() => ({ destroy() {} }))
+    const secret = newSecret()
+    const made = host({ name: `stays-${Math.random()}`, sync: { connect: build, url: 'https://one.supabase.co', room: 'friday', secret } })
+
+    await made.started
+    await settle()
+
+    await made.sync.attach({ room: 'friday' })
+
+    expect(build.mock.calls.at(-1)[0].secret).toBe(secret)
   })
 })
 

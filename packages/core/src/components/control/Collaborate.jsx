@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { relayLink, useRelay } from '../../hooks/useRelay'
+import { newSecret } from '../../velcro/crypto'
 import { useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
@@ -64,6 +65,7 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
   const [token, setToken] = useState('')
   const [name, setName] = useState('')
   const [clock, setClock] = useState(false)
+  const [secret, setSecret] = useState('')
   const [help, setHelp] = useState(false)
 
   useEffect(() => {
@@ -87,10 +89,20 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
     // running OBS -- everybody else arrives on a link and never sees this form. So
     // the useful default is on, and the box exists for the case where it is wrong.
     setClock(config?.url ? reference : true)
+    // A new room is sealed unless somebody says otherwise. The document holds guest
+    // names, sponsor copy and scores before anybody is meant to see them, and on
+    // this transport sealing costs nothing -- see the note by the box.
+    setSecret(config?.url ? (config.secret ?? '') : newSecret())
   }, [open, config, room, reference])
 
+  // A relay of your own holds the show so an operator can open their board before
+  // you are up. That means it has to be able to read it. Supabase holds nothing, so
+  // there is nothing to give up -- which is the whole reason this is offered here
+  // and not there.
+  const canSeal = /^https?:/i.test(url.trim())
+
   const go = () => {
-    const next = { url: url.trim(), room: name.trim(), token: token.trim(), reference: clock }
+    const next = { url: url.trim(), room: name.trim(), token: token.trim(), reference: clock, secret: canSeal ? secret : '' }
 
     if (!next.url) return
 
@@ -131,9 +143,12 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
         {config?.url ? (
           <section className="flex flex-col gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3">
             <span className="text-xs font-medium uppercase tracking-wide text-emerald-200">Invite someone</span>
-            <span className="text-xs text-emerald-100/70">Send them this. They paste it into an OBS custom browser dock, and that is their whole setup.</span>
+            <span className="text-xs text-emerald-100/70">
+              Send them this. They paste it into an OBS custom browser dock, and that is their whole setup.
+              {config.secret ? ' It contains the key to this show, so send it the way you would send a password.' : null}
+            </span>
             <code className="ss-invite-link select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
-              {relayLink({ url: config.url, room: config.room, token: config.token })}
+              {relayLink({ url: config.url, room: config.room, token: config.token, secret: config.secret })}
             </code>
           </section>
         ) : null}
@@ -222,6 +237,29 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
             <span className="text-xs text-slate-500">
               Everyone&rsquo;s timers follow this machine&rsquo;s clock, so a five-minute break is five minutes on air even if somebody else&rsquo;s computer
               disagrees about the time. Tick it on one machine only.
+            </span>
+          </span>
+        </label>
+
+        {/* Two sentences, because the trade is real either way and the person reading
+            it is deciding for a whole production. Encryption is free on Supabase and
+            costs the late-joiner guarantee on a relay, and that is the sort of thing
+            somebody should be told where the choice is, not in a document. */}
+        <label className={cx('ss-seal flex items-start gap-2.5 rounded-md border p-3', canSeal ? 'cursor-pointer border-slate-800 bg-slate-950/60' : 'border-slate-800/60 bg-slate-950/30')}>
+          <input
+            type="checkbox"
+            checked={Boolean(secret) && canSeal}
+            disabled={!canSeal}
+            onChange={(event) => setSecret(event.target.checked ? (secret || newSecret()) : '')}
+            aria-label="Encrypt this show"
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-sky-500 disabled:cursor-not-allowed"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className={cx('text-sm', canSeal ? 'text-slate-200' : 'text-slate-500')}>Encrypt this show</span>
+            <span className="text-xs text-slate-500">
+              {canSeal
+                ? 'Supabase carries your show without being able to read it, and nobody who guesses the room can join or change anything. The invite link becomes the key — send it like a password, and send a fresh one if you need to shut somebody out.'
+                : 'Not available on your own relay: it keeps a copy of the show so operators can open their boards before you are up, which means it has to be able to read it.'}
             </span>
           </span>
         </label>

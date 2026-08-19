@@ -437,6 +437,60 @@ check(
   'removing them marks them removed rather than quietly forgetting them',
 )
 
+// -- Where the room key goes -------------------------------------------------
+// The one property of encryption that can break silently and still look perfect.
+// Everything before the `#` is sent to whoever serves the page; the fragment is
+// not, and is stripped from `Referer` besides. So the key riding the fragment is
+// what lets an operator's whole setup stay "paste this link" while the show stays
+// unreadable to the services carrying it -- and a key that drifted into the query
+// would work exactly as well, while having already been handed to a server.
+//
+// A fresh machine, so nothing above is disturbed. It never connects: what is under
+// test is the link the dialog builds, and the sealing itself is settled against a
+// real cipher in the provider's own tests.
+const sealing = await machine('sealing')
+
+await sealing.page.locator('.ss-collaborate-open').click()
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill('https://abcdefgh.supabase.co')
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Anon key"]').fill('eyJhbGciOi.test')
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('sealed-show')
+
+check(
+  await sealing.page.locator('.ss-seal input[type="checkbox"]').isChecked(),
+  'a new show on a Supabase project is encrypted unless somebody says otherwise',
+)
+
+await sealing.page.locator('.ss-collaborate-dialog .ss-collaborate-go').click()
+await sealing.page.waitForSelector('.ss-panel')
+
+const sealedUrl = await sealing.page.evaluate(() => location.href)
+const [beforeHash, afterHash] = sealedUrl.split('#')
+
+console.log(`  sealed dock URL: ${sealedUrl.replace(/k=[^&]+/, 'k=…')}`)
+check(/[?&]k=[A-Za-z0-9_-]{43}/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
+check(!/k=/.test(beforeHash), 'and never in the query, which would already have been sent to one')
+
+// It also has to survive the trip, or the link is a very private way of showing
+// nobody anything.
+check(
+  await becomes(sealing.page, () => document.querySelector('.ss-collaborate button, .ss-collaborate-open') !== null),
+  'and the board comes back up on it',
+)
+
+await sealing.page.locator('.ss-collaborate button, .ss-collaborate-open').first().click()
+
+check(
+  await sealing.page.locator('.ss-seal input[type="checkbox"]').isChecked(),
+  'and reads its own link back as an encrypted show',
+)
+
+// A relay of its own is the one place this is not offered: it holds a copy of the
+// show so a late joiner gets it without another machine being awake, which means
+// it has to be able to read it.
+await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill(`ws://127.0.0.1:${port}`)
+
+check(await sealing.page.locator('.ss-seal input[type="checkbox"]').isDisabled(), 'and encryption stands down for a relay, which has to be able to read the show')
+
 // -- A late joiner -----------------------------------------------------------
 // Straight from storage: the room outlived the process that was serving it.
 // Whether a guarded room refuses a keyless client is settled in the relay's own

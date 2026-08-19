@@ -15,6 +15,8 @@
 // have the replay land on top of remote state -- both of which look like data loss
 // to whoever is watching.
 
+import { createCipher, isSealed } from './crypto'
+
 /** No provider attached. The single-operator default, and where a failure lands. */
 export const OFFLINE = 'offline'
 export const CONNECTING = 'connecting'
@@ -44,7 +46,7 @@ const BEAT = 5000
 const JITTER = 250
 
 export function createSync({ doc, name, status, config }) {
-  const { connect, room = name, url, token, autoConnect = true } = config ?? {}
+  const { connect, room = name, url, token, secret, autoConnect = true } = config ?? {}
 
   /**
    * What this machine tells the room about itself.
@@ -104,7 +106,7 @@ export function createSync({ doc, name, status, config }) {
    * address, the invite links a board hands out -- has to be told the room it is
    * in rather than the room it was configured for.
    */
-  let active = { url, room, token }
+  let active = { url, room, token, secret }
 
   let provider = null
   let state = OFFLINE
@@ -123,7 +125,20 @@ export function createSync({ doc, name, status, config }) {
 
   // `url` rides along because the token API lives on the same host as the socket,
   // and a board that can show the room should not have to be told twice where it is.
-  const snapshot = () => ({ state, room: active.room, url: active.url, detail, offset, reference: Boolean(beacon.reference), delegated })
+  // The key itself never travels this way. A board already has it -- it arrived in
+  // the link -- so broadcasting it again would be surface for nothing. Whether the
+  // show *is* encrypted is a different question, and one an operator should be able
+  // to see at a glance.
+  const snapshot = () => ({
+    state,
+    room: active.room,
+    url: active.url,
+    detail,
+    offset,
+    reference: Boolean(beacon.reference),
+    delegated,
+    encrypted: Boolean(active.secret),
+  })
 
   // Only ever sent once a studio has opted in. An offline studio posting "offline"
   // would be a message that never existed before.
@@ -430,6 +445,10 @@ export function createSync({ doc, name, status, config }) {
       url: override?.url ?? url,
       room: override?.room ?? room,
       token: override?.token ?? (moving ? undefined : token),
+      // A room key travels with the room, not with the machine. Carrying one to a
+      // relay it was not minted for would be handing a stranger the show, and it
+      // would not decrypt anything there anyway.
+      secret: override?.secret ?? (moving ? undefined : secret),
     }
 
     report(CONNECTING)
@@ -447,7 +466,11 @@ export function createSync({ doc, name, status, config }) {
     }
 
     try {
-      const built = await build({ doc, name, ...active, report: speak })
+      // Built here rather than in the provider so there is one implementation of the
+      // crypto and one place it is tested, and so a transport needs to know nothing
+      // about keys -- only that it has two functions to put bytes through.
+      const cipher = active.secret ? createCipher(active.secret) : null
+      const built = await build({ doc, name, ...active, seal: cipher?.seal, open: cipher?.open, isSealed, report: speak })
 
       // Detached, or attached somewhere else, while we were connecting. Throw the
       // connection away rather than leaving one live that nobody is holding, and
