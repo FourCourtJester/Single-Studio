@@ -343,12 +343,19 @@ field meaning the same thing at two scales.
 #### Sharing a library
 
 When collaboration is on, the library's _index_ replicates and its _bytes_ do not.
-Every machine sees every entry; one that does not hold the file shows it as
-**elsewhere** and will not offer it as if it could render it.
+Every machine sees every entry by name; one that does not hold the file marks it
+**elsewhere** and greys it.
 
-A URL entry works everywhere by definition. A dropped file works where it was
-dropped — so put images that matter on the machine running OBS, or paste them as
-URLs.
+The rule that makes that safe rather than a trap: **files are added on the machine
+running OBS, and URLs by anybody.** A file's bytes exist only where they were
+dropped, and the machine that has to draw a graphic is the machine going to air —
+so the one place a file can usefully be added is the one place it can be drawn. A
+URL is a reference rather than bytes, so it works from anywhere and replicates for
+free.
+
+That means an entry marked **elsewhere** on a remote operator's board is not a
+warning. It lives on the studio machine, it will go to air, and the only thing
+missing is their own preview. The board says so in those words.
 
 #### How many images can it hold?
 
@@ -423,11 +430,12 @@ Bytes live in their own IndexedDB database, never in the document. Putting a few
 megabytes of JPEG in a store that is persisted whole and cloned to every tab on
 every change would be expensive now and worse once it replicates.
 
-**Uploads are per-machine.** A file does not reach a remote operator — that needs
-blob transfer over the relay, which is [planned but not
-built](./collaboration.md#operator-supplied-files). URL entries replicate fine,
-since they are just strings. For a single-machine studio, which is what ships
-today, both work completely.
+**Bytes stay on the machine that holds them.** A file added on the OBS machine does
+not travel to a remote operator's board, and deliberately so: moving it would buy a
+preview, not correctness, because the machine that has to draw it is the one that
+already has it. That is why files are the OBS machine's to add — see [the rule that
+removes most of the problem](./collaboration.md#the-rule-that-removes-most-of-the-problem-).
+URL entries replicate fine, since they are just strings.
 
 ### Driving anything else from a value
 

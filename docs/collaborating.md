@@ -36,8 +36,9 @@ and there is nothing to install or deploy.
 Then, on your board:
 
 6. Press **Collaborate** in the header.
-7. Paste both values, pick a room name, leave **This machine runs OBS** ticked,
-   press **Go**.
+7. Paste both values and pick a room name. Leave **This machine runs OBS** and
+   **Encrypt this show** ticked — both are on by default and both are explained
+   below. Press **Go**.
 
 The page reloads and you are connected. That is it — no tables to create, no
 policies to configure, no code.
