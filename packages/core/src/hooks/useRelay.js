@@ -8,7 +8,7 @@ import { useVelcro } from './useVelcro'
 // operator's entire setup should be pasting a URL into an OBS dock. So the room
 // lives in the URL, the way a share link does everywhere else:
 //
-//   https://studio.example.com/?relay=wss://relay.example.com&room=friday&key=abc#/
+//   https://studio.example.com/#/?j=abcdefghijklmnopqrst,,.abc,SGVsbG8gdGhlcmUgeW91
 //
 // OBS remembers a dock's URL, so that is a once-ever step. The operator never sees
 // the word "token" and never opens a settings screen.
@@ -125,10 +125,10 @@ export function resolveRelay(value) {
  * is an encoding: a compact array, base64url, no padding.
  *
  * Putting *everything* after the `#` is the part worth having. The fragment is
- * never sent to a server, so the room name and the project key stop travelling to
- * whoever hosts the page, alongside the key that was already kept out of their
- * reach. And a Supabase address collapses back to the reference it was built from,
- * which is most of the length gone.
+ * never sent to a server, so the project key stops travelling to whoever hosts the
+ * page, alongside the room key that was already kept out of their reach. And a
+ * Supabase address collapses back to the reference it was built from, which is most
+ * of the length gone.
  */
 const TOKEN = 'j'
 const SUPABASE = /^https:\/\/([a-z0-9]{16,40})\.supabase\.co$/i
@@ -141,14 +141,14 @@ const SUPABASE = /^https:\/\/([a-z0-9]{16,40})\.supabase\.co$/i
  * quotes and brackets cost more than the parameter names they saved. Measured: 177
  * characters against 165.
  *
- * A separator costs one character each. The parts are percent-encoded so a room
- * name containing one cannot break the split, which for the alphanumeric names
- * anybody actually types is free.
+ * A separator costs one character each. The parts are percent-encoded so nothing
+ * containing one can break the split.
  *
  * A comma, specifically, because `encodeURIComponent` escapes it. The obvious
  * choice was `~` and it is silently wrong: `~` is an unreserved mark, so it comes
- * back through the encoder untouched, and a room called "friday ~ night" would
- * split into pieces. The separator has to be a character the encoder takes away.
+ * back through the encoder untouched, and an older link's room called
+ * "friday ~ night" would split into pieces. The separator has to be a character the
+ * encoder takes away.
  */
 const JOIN = ','
 
@@ -171,7 +171,15 @@ const PREFIXED = '.'
 const squeezeKey = (token) => (token?.startsWith(KEY_PREFIX) ? PREFIXED + token.slice(KEY_PREFIX.length) : (token ?? ''))
 const expandKey = (token) => (token?.startsWith(PREFIXED) ? KEY_PREFIX + token.slice(1) : token)
 
-/** Everything a board needs to join, as one string. */
+/**
+ * Everything a board needs to join, as one string.
+ *
+ * The room slot is still here and is empty in everything made now: the room is
+ * derived from the key (see `deriveRoom`), so there is nothing to carry. It stays
+ * because the parts are positional -- dropping the slot would make an older link's
+ * `ref,friday,key` read as `ref,<token>,…` and send a board somewhere it has no
+ * business being. One character to keep every dock somebody has already set up.
+ */
 export function packRoom({ url, room, token, secret } = {}) {
   const address = SUPABASE.exec(String(url ?? '').trim())
   const parts = [address ? address[1] : (url ?? ''), room ?? '', squeezeKey(token), secret ?? ''].map((part) => String(part ?? ''))

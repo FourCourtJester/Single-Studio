@@ -155,3 +155,38 @@ export function createCipher(secret) {
     },
   }
 }
+
+/**
+ * The room a key belongs to.
+ *
+ * The room used to be a name somebody typed, and it was the weakest thing in the
+ * design: an operator had to invent an unguessable string under time pressure, then
+ * keep it in step with the key by hand, and the dialog carried a whole second field
+ * plus a rename-rekeys-you warning to make that survivable. Every part of that was
+ * machinery for a value nobody wanted to choose.
+ *
+ * So it is derived instead. One key, and the room is a function of it: rotating the
+ * key rotates the room, which is exactly the relationship the old warning existed to
+ * enforce. Nobody types a room, nobody sees one, and the invite link stops carrying
+ * one.
+ *
+ * SHA-256, truncated to 72 bits. The digest is public -- it is the channel name on
+ * the wire -- and one-way, so the room reveals nothing about the key that made it.
+ * The label is domain separation: it keeps this digest from ever coinciding with
+ * some other use of the same secret, which is free to do now and impossible to add
+ * later without moving every show at once.
+ *
+ * Twelve characters is a room nobody guesses, and short enough that the show it
+ * names is still the shortest thing in the link.
+ */
+const ROOM_LABEL = 'single-studio/room/v1'
+const ROOM_BYTES = 9
+
+export async function deriveRoom(secret) {
+  if (!looksLikeSecret(secret)) throw new Error('That is not a room key: expected 22 url-safe characters, or 43 for one minted earlier. See newSecret()')
+  if (!subtle()) throw new Error('This browser cannot encrypt here: crypto.subtle needs a secure origin (https, or localhost)')
+
+  const digest = await subtle().digest('SHA-256', new TextEncoder().encode(`${ROOM_LABEL}:${secret}`))
+
+  return toBase64Url(new Uint8Array(digest).subarray(0, ROOM_BYTES))
+}

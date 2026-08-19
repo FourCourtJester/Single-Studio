@@ -52,7 +52,7 @@ export function Collaborate({ onOpen, className, ...rest }) {
 
   if (!status.configured) return null
 
-  // No Tooltip here: SyncStatus carries its own, naming the room and who is in it,
+  // No Tooltip here: SyncStatus carries its own, naming the show and who is in it,
   // and wrapping it in a second one stacked two bubbles under the same button.
   // The button keeps an aria-label, which is what a screen reader needs and what a
   // tooltip is not.
@@ -100,33 +100,16 @@ export function CollaborateDialog({ open, onClose }) {
   const status = useSyncStatus()
   const { config, join, reference } = useRelay({ auto: false })
 
-  return <SetupDialog open={open} onClose={onClose} config={config} join={join} room={status.room} reference={reference} offset={status.offset} />
-}
-
-/**
- * The next room along: `friday` becomes `friday-2`, `friday-2` becomes `friday-3`.
- *
- * Rotating the room is the whole of revocation here, so the name it produces has to
- * be one an operator recognises as the same show. A fresh random string would be
- * safer against guessing and worse at three minutes to air, and the key is what is
- * actually keeping anybody out.
- */
-export function nextRoom(name) {
-  const at = /^(.*)-(\d+)$/.exec(String(name ?? '').trim())
-
-  if (at) return `${at[1]}-${Number(at[2]) + 1}`
-
-  return `${String(name ?? '').trim() || 'show'}-2`
+  return <SetupDialog open={open} onClose={onClose} config={config} join={join} reference={reference} offset={status.offset} />
 }
 
 /** "3s behind" / "12s ahead", from the offset that would correct it. */
 const formatSkew = (offset) => `${Math.round(Math.abs(offset) / 1000)}s ${offset > 0 ? 'behind' : 'ahead of'}`
 
-function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
+function SetupDialog({ open, onClose, config, join, reference, offset }) {
   const dialog = useRef(null)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
-  const [name, setName] = useState('')
   const [clock, setClock] = useState(false)
   const [secret, setSecret] = useState('')
   const [help, setHelp] = useState(false)
@@ -147,7 +130,6 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
 
     setUrl(config?.url ?? '')
     setToken(config?.token ?? '')
-    setName(config?.room ?? room ?? '')
     // Whoever is filling this in for the first time is the streamer at the machine
     // running OBS -- everybody else arrives on a link and never sees this form. So
     // the useful default is on, and the box exists for the case where it is wrong.
@@ -156,7 +138,7 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
     // names, sponsor copy and scores before anybody is meant to see them, and on
     // this transport sealing costs nothing -- see the note by the box.
     setSecret(config?.url ? (config.secret ?? '') : newSecret())
-  }, [open, config, room, reference])
+  }, [open, config, reference])
 
   // A relay of your own holds the show so an operator can open their board before
   // you are up. That means it has to be able to read it. Supabase holds nothing, so
@@ -167,7 +149,9 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
   const canSeal = /^https?:/i.test(resolveRelay(url))
 
   const go = () => {
-    const next = { url: resolveRelay(url), room: name.trim(), token: token.trim(), reference: clock, secret: canSeal ? secret : '' }
+    // No room. The key is the room -- see `deriveRoom` -- and a show without one
+    // lands on the studio's own name, which is what one-repo-per-show already means.
+    const next = { url: resolveRelay(url), token: token.trim(), reference: clock, secret: canSeal ? secret : '' }
 
     if (!next.url) return
 
@@ -217,14 +201,27 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
             <code className="ss-invite-link select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
               {relayLink({ url: config.url, room: config.room, token: config.token, secret: config.secret })}
             </code>
-
+            {/* Revocation, and the only kind there is. Nobody can be un-told a key
+                they already hold, so shutting somebody out means a key they do not
+                have -- and because the key *is* the room, a new one moves the show
+                somewhere they cannot follow. It used to take renaming the room and
+                trusting the two stayed in step; now it is one button. */}
+            {config.secret ? (
+              <button
+                type="button"
+                onClick={() => setSecret(newSecret())}
+                className="ss-rekey self-start text-xs text-emerald-200/70 underline-offset-2 transition-colors hover:text-emerald-100 hover:underline"
+              >
+                Shut somebody out &mdash; start a fresh key
+              </button>
+            ) : null}
           </section>
         ) : null}
 
-        {config?.url && name.trim() !== (config.room ?? '') && secret && secret !== config.secret ? (
+        {config?.url && secret && secret !== (config.secret ?? '') ? (
           <p className="ss-rekey-warning rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-            Press <span className="font-medium">Move</span> to start <span className="font-mono">{name.trim()}</span> with a new key. Your show comes with you.
-            Everyone you still want in it needs the new link &mdash; anyone holding the old one is left behind, which is the point.
+            Press <span className="font-medium">Move</span> to start this show over with a new key. Your show comes with you. Everyone you still want in it needs
+            the new link &mdash; anyone holding the old one is left behind, which is the point.
           </p>
         ) : null}
 
@@ -317,24 +314,6 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
           <RelayAdmin />
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Room</span>
-          <input
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value)
-              // A new room needs a new key: the old one does not travel to it, and a
-              // box still holding the key for the room being left behind is how
-              // somebody sends an invite that opens nothing.
-              if (canSeal && secret && event.target.value.trim() !== (config?.room ?? '')) setSecret(newSecret())
-            }}
-            placeholder="friday-night"
-            aria-label="Room name"
-            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-500"
-          />
-          <span className="text-xs text-slate-600">Anything, as long as everyone on the show uses the same one. Make it hard to guess.</span>
-        </label>
-
         {/* Skew between two machines is routinely seconds, and it is invisible: every
             screen shows a five-minute break as five minutes while the one going to
             air runs long. Naming one machine fixes it, and the machine to name is
@@ -373,8 +352,8 @@ function SetupDialog({ open, onClose, config, join, room, reference, offset }) {
             <span className={cx('text-sm', canSeal ? 'text-slate-200' : 'text-slate-500')}>Encrypt this show</span>
             <span className="text-xs text-slate-500">
               {canSeal
-                ? 'Supabase carries your show without being able to read it, and nobody who guesses the room can join or change anything. The invite link becomes the key — send it like a password, and send a fresh one if you need to shut somebody out.'
-                : 'Not available on your own relay: it keeps a copy of the show so operators can open their boards before you are up, which means it has to be able to read it.'}
+                ? 'Supabase carries your show without being able to read it, and the key is also the address — there is no room name for anyone to guess. The invite link becomes the key, so send it like a password. Turn this off and the show sits under this studio’s name, in the open, for anyone on this project.'
+                : 'Not available on your own relay: it keeps a copy of the show so operators can open their boards before you are up, which means it has to be able to read it. Your relay’s tokens are what keep people out there.'}
             </span>
           </span>
         </label>

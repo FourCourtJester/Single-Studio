@@ -41,9 +41,12 @@ and there is nothing to install or deploy.
 Then, on your board:
 
 7. Open the header menu and press **Collaborate**.
-8. Paste both values and pick a room name. Leave **This machine runs OBS** and
-   **Encrypt this show** ticked — both are on by default and both are explained
-   below. Press **Go**.
+8. Paste both values. Leave **This machine runs OBS** and **Encrypt this show**
+   ticked — both are on by default and both are explained below. Press **Go**.
+
+There is no room to name. The key the board generates for you *is* the room, so
+there is nothing to invent, nothing to keep in step, and nothing for anyone to
+guess.
 
 ### If the boxes do not match what you are looking at
 
@@ -73,7 +76,9 @@ Nothing else. In particular:
   your Supabase account and change nothing about the show. Leave it alone.
 
 What keeps strangers out of the show is the room key, which travels in the invite
-link and never reaches Supabase at all.
+link and never reaches Supabase at all. It is also the room's address, so a
+stranger on the same project has nothing to guess: without the key there is no name
+to try.
 
 You are connected. That is it — no tables to create, no policies to configure, no
 code.
@@ -102,8 +107,11 @@ carries on and one of them wins consistently for everybody.
 New shows on Supabase are encrypted by default, and you do not have to do anything
 to get it. The **invite link is the key** — it is generated for you, and it sits
 after the `#`, which browsers never send to a server. So Supabase carries your show
-without being able to read a word of it, and neither can we, and neither can anyone
-who works out your room name.
+without being able to read a word of it, and neither can we.
+
+The key is also the address. Your show sits under a name derived from the key
+rather than one you chose, so there is no room name to work out: somebody who
+guesses right about your show still has nowhere to knock.
 
 Two things follow from that, and both are worth knowing before you need them:
 
@@ -111,12 +119,12 @@ Two things follow from that, and both are worth knowing before you need them:
 always true, but the link is now the whole of the secret rather than half of it, so
 treat it the way you would treat a shared login — not a public post.
 
-**To shut somebody out, start a fresh room.** Encryption cannot un-tell someone a
-key they already have, so the answer is a room they have no key to. Open
-**Collaborate**, press **Shut somebody out — start a fresh room**, then **Move**.
-That picks a new room name and a brand new key; your show comes with you, because
-it lives on your machine rather than on a server. Send everyone you still want the
-new link.
+**To shut somebody out, start a fresh key.** Encryption cannot un-tell someone a
+key they already have, so the answer is a key they do not have. Open
+**Collaborate**, press **Shut somebody out — start a fresh key**, then **Move**.
+Because the key is the room, that moves the show somewhere the old link does not
+point; your show comes with you, because it lives on your machine rather than on a
+server. Send everyone you still want the new link.
 
 Anyone holding the old link is left in a room with nobody in it. That is the point,
 and it is the honest shape of the thing: there is no button that removes one person
@@ -124,7 +132,10 @@ from a room while everyone else carries on, because a key that has already been 
 cannot be taken back.
 
 If you would rather not encrypt — you are testing, or you want to be able to read
-the traffic yourself — untick **Encrypt this show** before pressing Go.
+the traffic yourself — untick **Encrypt this show** before pressing Go. With no key
+there is nothing to derive a room from, so the show falls back to sitting under your
+studio's own name, in the open, for anyone on the same project. That is the honest
+shape of an unencrypted show and it is why the box is ticked by default.
 
 ### If you run your own relay instead
 
@@ -133,9 +144,10 @@ relay keeps a copy of the show, so an operator can open their board hours before
 are up. It can only do that if it can read the show. The Collaborate dialog greys
 the box out and says so.
 
-On a relay, **the room name is what keeps a show private**, together with the
-per-operator keys the relay issues. Use something nobody would guess —
-`friday-night` is a bad room name, `friday-night-7x2k9` is a fine one.
+On a relay, what keeps a show private is the **per-operator keys the relay
+issues** — one per person, revocable one at a time, which is the thing encryption
+cannot do. The show sits under your studio's own name; the relay's tokens are the
+door, not the name.
 
 ### Why the URL changes
 
@@ -146,8 +158,8 @@ losing it the next time somebody re-added the dock.
 
 It is one value after the `#`, rather than a row of parameters, for two reasons.
 It is shorter and there is only one thing to copy — and nothing after a `#` is ever
-sent to a server, so your room name and project key stay on your machines along
-with the room key.
+sent to a server, so your project key stays on your machines along with the room
+key.
 
 ---
 
@@ -225,7 +237,7 @@ public link sharing — and paste that.
 
 ## Who is here, and who is editing what
 
-Once connected, the header shows the room and how many people are in it. Put your
+Once connected, the header shows the show and how many people are in it. Put your
 name in the **Operators** panel and everyone sees it.
 
 A field somebody else has open is marked with their name. It is a **warning, not a

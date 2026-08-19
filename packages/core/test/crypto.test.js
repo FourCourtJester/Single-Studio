@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCipher, isSealed, looksLikeSecret, newSecret, sequence } from '../src/velcro/crypto'
+import { createCipher, deriveRoom, isSealed, looksLikeSecret, newSecret, sequence } from '../src/velcro/crypto'
 
 // The claim being tested is narrow and worth stating: a frame that leaves this
 // module carries no readable trace of what went in, cannot be altered without the
@@ -142,5 +142,49 @@ describe('ordering', () => {
     expect(done).toEqual(['after'])
 
     noise.mockRestore()
+  })
+})
+
+describe('the room a key belongs to', () => {
+  // The room stopped being a name somebody types and became a function of the key.
+  // What has to hold: everyone holding the same key lands in the same place, nobody
+  // holding a different one does, and the room -- which is public, it is the channel
+  // name on the wire -- gives away nothing about the key that made it.
+
+  it('is the same room for everybody holding the same key', async () => {
+    const secret = newSecret()
+
+    expect(await deriveRoom(secret)).toBe(await deriveRoom(secret))
+  })
+
+  it('is a different room for a different key, which is the whole of revocation', async () => {
+    // Rotating the key has to move the show somewhere the old key cannot follow.
+    // If these collided, a link handed out before the rotation would still work.
+    expect(await deriveRoom(newSecret())).not.toBe(await deriveRoom(newSecret()))
+  })
+
+  it('carries no trace of the key it came from', async () => {
+    const secret = newSecret()
+    const room = await deriveRoom(secret)
+
+    expect(room).not.toContain(secret)
+    expect(secret).not.toContain(room)
+  })
+
+  it('is short enough to be the cheapest thing in a link and long enough to be unguessable', async () => {
+    const room = await deriveRoom(newSecret())
+
+    expect(room).toMatch(/^[A-Za-z0-9_-]{12}$/)
+  })
+
+  it('takes a key minted at the old length too, so an existing show still opens', async () => {
+    expect(await deriveRoom('A'.repeat(43))).toMatch(/^[A-Za-z0-9_-]{12}$/)
+  })
+
+  it('refuses anything that is not a key rather than inventing a room', async () => {
+    // A typo becoming a room is worse than a link that plainly does not work: two
+    // machines would each sit in a room of one, both reporting connected.
+    await expect(deriveRoom('friday-night')).rejects.toThrow(/not a room key/)
+    await expect(deriveRoom(undefined)).rejects.toThrow(/not a room key/)
   })
 })

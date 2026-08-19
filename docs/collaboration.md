@@ -154,6 +154,8 @@ createVelcroHost({
   name: STUDIO_ID,
   mutations,
   sync: {
+    // Optional, and a fallback rather than a name: a show with a room key derives
+    // its room from the key. Without one it lands here, or on `name`.
     room: 'friday-show',
     url: 'wss://relay.example.com',
     token,
@@ -325,7 +327,7 @@ pnpm relay -- --admin "$RELAY_ADMIN"   # without this the token API is off entir
 Paste a link into an OBS custom browser dock. That is the whole of it.
 
 ```
-https://your-studio.github.io/?relay=wss://relay.example.com&room=friday&key=…#/
+https://your-studio.github.io/#/?j=wss://relay.example.com,,…
 ```
 
 They never see the word "token" and never open a settings screen; OBS remembers a
@@ -418,8 +420,8 @@ ignored: it has already been sent to a server, so honouring it would quietly ble
 the exact mistake this prevents.
 
 **It authenticates as well as encrypts.** GCM means a peer without the key cannot
-write to the show either, so guessing the room name no longer gets anybody in. The
-room name stops being the only secret and becomes one of two.
+write to the show either. There is nothing left to guess besides: the room name
+stopped being a secret and stopped being a name at all — see below.
 
 **Presence is covered for free.** Operator names and which field each has open ride
 the same byte path as the document, so sealing that path covers them without a
@@ -435,22 +437,57 @@ failure mode worth caring about, and it is why the frame marker is a byte `>= 0x
 the two apart with no ambiguity at all. All three mismatches say something an
 operator can act on: no key, wrong key, or somebody here without one.
 
+##### The key is the room
+
+The room used to be a name an operator typed, and it was the weakest thing in the
+design. It asked somebody to invent an unguessable string under time pressure, it
+had to be kept in step with the key by hand, and the dialog carried a whole second
+field plus a "renaming rekeys you" warning to make that survivable. Every part of
+that was machinery for a value nobody wanted to choose.
+
+So it is derived: `deriveRoom(secret)` is `SHA-256("single-studio/room/v1:" + key)`
+truncated to 72 bits and base64url'd — twelve characters. The digest is public (it
+is the channel name on the wire) and one-way, so it gives away nothing about the key
+that made it. The label is domain separation, free to add now and impossible to add
+later without moving every live show at once.
+
+What falls out of it:
+
+- **One secret instead of two.** Rotating the key rotates the room, because they are
+  the same fact. The relationship the old warning existed to enforce by hand is now
+  the only relationship there is.
+- **Nothing to guess.** A stranger on the same Supabase project has no room name to
+  try, because there is no room name.
+- **Nothing to type, and nothing in the link.** The invite drops the room, and the
+  dialog drops a field.
+
+Precedence in `attach` is: a room the *link* names outright, then the key's room,
+then whatever the build configured, then the document's name. Deriving comes second
+rather than first so a dock set up before this change keeps opening the room it was
+made for — OBS remembers a dock's URL for as long as the dock exists. And the
+build's room is deliberately *not* treated as naming one, or the derivation would
+never fire for any studio that had configured one, which is every studio written
+before this.
+
+A show with no key has nothing to derive from and falls back to the studio's own
+name — guessable, which is the honest shape of a room nobody sealed, and one repo
+per show means that name is already the label everybody uses.
+
 ##### Revocation, and the shape it actually has
 
 Encrypting cannot un-tell somebody a key they already have, so per-person revocation
-is not available at any price worth paying. What is available is rotation: a new
-room with a new key, which the dialog does in two clicks under a button that says
-what it is for rather than hiding behind the word "rotate".
+is not available at any price worth paying. What is available is rotation: a fresh
+key, which the dialog does in one click under a button that says what it is for
+rather than hiding behind the word "rotate".
 
 Three things make that a real answer rather than a shrug:
 
 - **The show comes with you.** State is local-first, so moving to a fresh room means
   your own machine offering its document into an empty one. Nothing is reconstructed
   and nothing is lost.
-- **The old key does not follow.** `attach` treats a change of *room* as rekeying,
-  not only a change of address — a token is scoped to the host that issued it, a key
-  to the room it was minted for. Carrying the old key into the new room would undo
-  the whole thing in one line, which is why that is a wider test than the token's.
+- **The old link points nowhere.** The key is the room, so a new key is a new
+  address. There is no way for the two to drift apart, because there are no longer
+  two things.
 - **Nobody is half-in.** The excluded machine is left in a room with nobody in it,
   rather than connected-but-mute in a way somebody has to notice.
 
@@ -714,7 +751,7 @@ shape is already the one the full version needs.
 ## What an invite link costs ✅
 
 The room used to travel as four parameters, most of it percent-encoding and
-parameter names. One value after the `#` was better on both counts — shorter, and
+parameter names. It is now three, one of them empty. One value after the `#` was better on both counts — shorter, and
 none of it sent to whoever serves the page — but the obvious next step, compressing
 it, was measured and lost:
 
@@ -727,6 +764,7 @@ it, was measured and lost:
 | deflate the binary pack | 100 |
 | **a dot standing in for the constant key prefix** | **106** |
 | **and a 128-bit room key rather than 256** | **86** |
+| **and no room, because the key is the room** | **68** |
 
 Compression loses because three quarters of the payload is a random project
 reference, a random project key and a random room key. Randomness does not compress,
@@ -738,10 +776,17 @@ enormously redundant. There is no redundancy of that kind here to find.
 
 So the wins were content rather than algorithm. Fifteen characters of
 `sb_publishable_` on every Supabase key, replaced by a single dot no real key can
-begin with. And twenty-one characters of room key that were never doing anything.
+begin with. Twenty-one characters of room key that were never doing anything. And
+finally the room itself, which was a second secret duplicating the work of the
+first — see [the key is the room](#the-key-is-the-room).
 
-What is left is close to the floor: a project reference, a project key and a room
-key all have to travel, all are random, and together they are most of what remains.
+The room's *slot* survives as a single comma. The parts are positional, so dropping
+it would make an older link's `ref,friday,key` read as `ref,<token>,…` and send a
+board somewhere it has no business being. One character to keep every dock somebody
+has already set up.
+
+What is left is at the floor: a project reference, a project key and a room key all
+have to travel, all are random, and together they are all of what remains.
 
 ## Two roads to a page ✅
 

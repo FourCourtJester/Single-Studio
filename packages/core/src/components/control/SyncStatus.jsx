@@ -1,4 +1,5 @@
 import { useSyncStatus, usePresence } from '../../hooks/useSync'
+import { useStudio } from '../../studio/context'
 import { cx } from '../../toolkits/cx'
 import { Tooltip } from '../common/Tooltip'
 
@@ -27,6 +28,11 @@ const LOOKS = {
 export function SyncStatus({ className, ...rest }) {
   const status = useSyncStatus()
   const peers = usePresence()
+  // The show, not the room. The room is a digest of the key now -- twelve characters
+  // of base64 that mean nothing to anybody -- and the name the studio already has is
+  // the one an operator would have used anyway.
+  const { studio } = useStudio()
+  const show = studio?.name || 'this show'
 
   if (!status.configured && status.state === 'offline') return null
 
@@ -36,12 +42,12 @@ export function SyncStatus({ className, ...rest }) {
   const detail =
     status.state === 'connected'
       ? others.length
-        ? `${describe(others)} also in ${status.room}`
-        : `Connected to ${status.room}. Nobody else is here.`
+        ? `${describe(others)} also on ${show}`
+        : `Connected to ${show}. Nobody else is here.`
       : status.state === 'error'
         ? `Cannot reach the relay${status.detail ? `: ${status.detail}` : ''}. Your graphics are unaffected — edits will sync when it returns.`
         : status.state === 'connecting'
-          ? `Reaching ${status.room}…`
+          ? `Reaching ${show}…`
           : 'Not connected. Edits stay on this machine.'
 
   return (

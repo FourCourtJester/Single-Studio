@@ -107,7 +107,6 @@ const host = await machine('host')
 // build cannot be changed without a redeploy.
 await openMenu(host, 'collaborate')
 await host.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').fill(`ws://127.0.0.1:${port}`)
-await host.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('friday')
 await host.page.locator('.ss-collaborate-dialog .ss-collaborate-go').click()
 
 check(
@@ -120,7 +119,12 @@ check(
 const dockUrl = await host.page.evaluate(() => location.href)
 
 console.log(`  dock URL after setup: ${dockUrl}`)
-check(/#\/\?j=[^&]*friday/.test(dockUrl), 'and the room ends up in the dock URL, where OBS will remember it')
+// The address and nothing else. There is no room to remember any more -- on a
+// relay of your own the show lands on the studio's own name, and on a Supabase
+// project the key is the room. Both machines here run the same build, which is
+// what one repo per show already means.
+check(/#\/\?j=ws%3A%2F%2F127\.0\.0\.1%3A/.test(dockUrl), 'and the relay ends up in the dock URL, where OBS will remember it')
+check(!/friday/.test(dockUrl), 'with no room name in it, because nobody types one any more')
 check(!dockUrl.split('#')[0].includes('?'), 'with nothing before the hash, so none of it is sent to whoever serves the page')
 
 /**
@@ -140,7 +144,7 @@ await host.page.waitForTimeout(Number(process.env.SETTLE ?? 0))
 
 // And everyone else: paste a link into an OBS dock. That is the whole of it --
 // no token typed, no settings screen, and OBS remembers the URL.
-const invite = `${BASE}/#/?j=${[`ws://127.0.0.1:${port}`, 'friday'].map(encodeURIComponent).join(',')}`
+const invite = `${BASE}/#/?j=${encodeURIComponent(`ws://127.0.0.1:${port}`)}`
 const operator = await machine('operator', invite)
 
 check(
@@ -503,10 +507,9 @@ await openMenu(sealing, 'collaborate')
 // become a real address by the time it reaches the link.
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').fill('abcdefghijklmnopqrst')
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Publishable key"]').fill('eyJhbGciOi.test')
-await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('sealed-show')
 
 check(
-  await sealing.page.locator('.ss-seal input[type="checkbox"]').isChecked(),
+  await becomes(sealing.page, () => document.querySelector('.ss-seal input[type="checkbox"]')?.checked === true),
   'a new show on a Supabase project is encrypted unless somebody says otherwise',
 )
 
@@ -518,6 +521,10 @@ const [beforeHash, afterHash] = sealedUrl.split('#')
 
 console.log(`  sealed dock URL: ${sealedUrl.replace(/k=[^&]+/, 'k=…')}`)
 check(/,[A-Za-z0-9_-]{22}$/.test(afterHash ?? ''), 'the room key ends up in the fragment, where no server ever sees it')
+// The slot is still there and it is empty. Positional parts, so dropping it would
+// make an older link's `ref,friday,key` read as `ref,<token>,…`; keeping it costs
+// one character and every dock somebody already set up.
+check(/j=abcdefghijklmnopqrst,,/.test(afterHash ?? ''), 'and the room slot is empty, because the key is the room now')
 check(!beforeHash.includes('?'), 'and so does everything else -- nothing at all is sent to the page host')
 // The token keeps the *reference*, which is most of the length saved, and expands
 // it on the way back in. So the proof is the round trip, not the string.
@@ -533,13 +540,16 @@ check(await becomes(sealing.page, () => document.querySelector('.ss-menu-open') 
 
 await openMenu(sealing, 'collaborate')
 
+// Polled rather than read once. The dialog is mounted only while it is open, so
+// what a click produces is an empty form for one paint and the remembered room on
+// the next -- reading the instant the element exists is reading the wrong frame.
 check(
-  await sealing.page.locator('.ss-seal input[type="checkbox"]').isChecked(),
+  await becomes(sealing.page, () => document.querySelector('.ss-seal input[type="checkbox"]')?.checked === true),
   'and reads its own link back as an encrypted show',
 )
 
 check(
-  (await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').inputValue()) === 'https://abcdefghijklmnopqrst.supabase.co',
+  await becomes(sealing.page, () => document.querySelector('.ss-collaborate-dialog input[aria-label="Project ID"]')?.value === 'https://abcdefghijklmnopqrst.supabase.co'),
   'and the reference has become the address it stands for',
 )
 
@@ -548,7 +558,10 @@ check(
 // it has to be able to read it.
 await sealing.page.locator('.ss-collaborate-dialog input[aria-label="Project ID"]').fill(`ws://127.0.0.1:${port}`)
 
-check(await sealing.page.locator('.ss-seal input[type="checkbox"]').isDisabled(), 'and encryption stands down for a relay, which has to be able to read the show')
+check(
+  await becomes(sealing.page, () => document.querySelector('.ss-seal input[type="checkbox"]')?.disabled === true),
+  'and encryption stands down for a relay, which has to be able to read the show',
+)
 
 // -- A late joiner -----------------------------------------------------------
 // Straight from storage: the room outlived the process that was serving it.

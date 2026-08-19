@@ -15,7 +15,7 @@
 // have the replay land on top of remote state -- both of which look like data loss
 // to whoever is watching.
 
-import { createCipher, isSealed } from './crypto'
+import { createCipher, deriveRoom, isSealed } from './crypto'
 
 /** No provider attached. The single-operator default, and where a failure lands. */
 export const OFFLINE = 'offline'
@@ -46,7 +46,18 @@ const BEAT = 5000
 const JITTER = 250
 
 export function createSync({ doc, name, status, config }) {
-  const { connect, room = name, url, token, secret, autoConnect = true } = config ?? {}
+  const { connect, room, url, token, secret, autoConnect = true } = config ?? {}
+
+  /**
+   * The room to use when nothing else names one.
+   *
+   * The document's own name, which for a studio is the show: one repo per show, so
+   * the build already carries the only label anybody wanted. It is what an
+   * unencrypted room lands on, and it is guessable -- which is the honest shape of
+   * an unencrypted room, and why an encrypted one derives its room from the key
+   * instead.
+   */
+  const fallback = room || name
 
   /**
    * What this machine tells the room about itself.
@@ -106,7 +117,7 @@ export function createSync({ doc, name, status, config }) {
    * address, the invite links a board hands out -- has to be told the room it is
    * in rather than the room it was configured for.
    */
-  let active = { url, room, token, secret }
+  let active = { url, room: fallback, token, secret }
 
   let provider = null
   let state = OFFLINE
@@ -450,14 +461,12 @@ export function createSync({ doc, name, status, config }) {
     // undo the whole of that in one line, which is why this is the wider test.
     const rekeying = elsewhere || (Boolean(override?.room) && override.room !== room)
 
-    active = {
-      url: override?.url ?? url,
-      room: override?.room ?? room,
-      token: override?.token ?? (elsewhere ? undefined : token),
-      secret: override?.secret ?? (rekeying ? undefined : secret),
-    }
-
-    report(CONNECTING)
+    // Only a room a *link* names outright, never one the build configured. A build's
+    // room is a fallback for a show with no key -- treating it as a name would mean
+    // the derivation never fired for any studio that set one, which is every studio
+    // written before the key became the room.
+    const named = override?.room
+    const key = override?.secret ?? (rekeying ? undefined : secret)
 
     // A provider that knows its own connection state must win over the seam
     // guessing. Tracking whether it ever spoke is the only way to tell "the
@@ -472,6 +481,28 @@ export function createSync({ doc, name, status, config }) {
     }
 
     try {
+      // Where the room comes from, in order: one named by the link, which is only
+      // ever an older link that still carries the field; then the key's own room;
+      // then whatever the build configured, or the show's own name. Deriving comes
+      // second rather than first so a link made before this change keeps opening the
+      // room it was made for.
+      //
+      // This awaits, so the generation has to be re-checked afterwards -- a detach
+      // during a digest is unlikely and would otherwise install a connection over a
+      // deliberate disconnect, which is the failure this whole counter exists for.
+      const derived = !named && key ? await deriveRoom(key) : null
+
+      if (mine !== generation) return null
+
+      active = {
+        url: override?.url ?? url,
+        room: named || derived || fallback,
+        token: override?.token ?? (elsewhere ? undefined : token),
+        secret: key,
+      }
+
+      report(CONNECTING)
+
       // Built here rather than in the provider so there is one implementation of the
       // crypto and one place it is tested, and so a transport needs to know nothing
       // about keys -- only that it has two functions to put bytes through.

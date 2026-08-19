@@ -15,16 +15,19 @@ never hold a credential for it.
 | Trystero              | Genuinely zero setup, but WebRTC cannot be created in a `SharedWorker` and the whole store lives in one.            |
 | Your own relay        | [`@single-studio/relay`](../relay) — one deploy, for anyone who wants it.                                           |
 
-The anon key is public by design; it is in the page of every Supabase app ever
-shipped, and it is the _user's_ key in the _user's_ project. What guards a show is
-the room name, exactly as it does with a relay.
+The publishable key (`anon` on older projects) is public by design; it is in the
+page of every Supabase app ever shipped, and it is the _user's_ key in the _user's_
+project. What guards a show is its **room key**: frames are sealed with it, and the
+channel name is derived from it, so there is no room name for anyone to guess.
 
 ## Setup, for whoever runs the show
 
 1. Make a free project at supabase.com.
-2. **Settings → API**: copy the project URL and the `anon` key.
-3. Paste both into the board's **Relay** panel, with a room name.
-4. Press **Invite** for each operator and send them the link.
+2. **Project Settings**: copy the **Project ID**. **API Keys**: copy the
+   **publishable** key (an older project shows `anon` under **Legacy**).
+3. Paste both into the board's **Collaborate** dialog and press **Go**. There is no
+   room to name — the key generated for you is the room.
+4. Send the resulting link to each operator.
 
 An operator pastes that link into an OBS custom browser dock. That is their whole
 setup — no key to type, no account to make, and OBS remembers the URL.
@@ -38,8 +41,9 @@ import { connectSupabase } from '@single-studio/provider-supabase'
 createVelcroHost({ name: STUDIO_ID, mutations, sync: { connect: connectSupabase } })
 ```
 
-`url` is the project URL, `token` is the anon key, `room` is the show — the three
-things an invite link already carries, so nothing else changes.
+`url` is the project URL, `token` is the publishable key, `room` is the channel —
+derived from the room key by core before the provider ever sees it, so the provider
+takes it exactly as it did when somebody typed one.
 
 To accept either a Supabase project or a relay, dispatch on the address:
 

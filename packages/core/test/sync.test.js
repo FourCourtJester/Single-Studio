@@ -301,6 +301,102 @@ describe('detaching', () => {
   })
 })
 
+describe('where the room comes from', () => {
+  // The room stopped being a field somebody fills in. It is derived from the key, so
+  // rotating the key moves the show -- which is the relationship the old
+  // "renaming rekeys you" warning existed to enforce by hand.
+
+  const roomHandedTo = (build) => build.mock.calls.at(-1)[0].room
+
+  it('is the key, not the show, when there is a key', async () => {
+    const build = vi.fn(() => ({ destroy() {} }))
+    const name = `derived-${Math.random()}`
+    const made = host({ name, sync: { connect: build, url: 'https://x.supabase.co', secret: newSecret() } })
+
+    await made.started
+    await settle()
+
+    expect(roomHandedTo(build)).toMatch(/^[A-Za-z0-9_-]{12}$/)
+    expect(roomHandedTo(build)).not.toBe(name)
+  })
+
+  it('puts two machines holding the same key in the same room, and two holding different keys apart', async () => {
+    // The one property the whole scheme rests on: nobody agrees a room any more, so
+    // agreement has to fall out of the key alone. Different studio names on purpose
+    // -- an operator's build is not guaranteed to match the streamer's.
+    const secret = newSecret()
+    // A mock each. Sharing one would make the assertion depend on which machine's
+    // attach happened to resolve first, which is a test that passes for the wrong
+    // reason until the day it does not.
+    const joins = () => vi.fn(() => ({ destroy() {} }))
+    const [first, second, third] = [joins(), joins(), joins()]
+    const one = host({ name: `one-${Math.random()}`, sync: { connect: first, url: 'https://x.supabase.co', secret } })
+    const two = host({ name: `two-${Math.random()}`, sync: { connect: second, url: 'https://x.supabase.co', secret } })
+    const other = host({ name: `three-${Math.random()}`, sync: { connect: third, url: 'https://x.supabase.co', secret: newSecret() } })
+
+    await Promise.all([one.started, two.started, other.started])
+    await settle()
+
+    expect(roomHandedTo(first)).toBe(roomHandedTo(second))
+    expect(roomHandedTo(third)).not.toBe(roomHandedTo(first))
+  })
+
+  it('follows the key when the key is rotated', async () => {
+    // Revocation. The old link has to stop working, and it stops working because the
+    // room it names is somewhere nobody is any more.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `rotating-${Math.random()}`, sync: { connect: build, url: 'https://x.supabase.co', secret: newSecret() } })
+
+    await made.started
+    await settle()
+
+    const before = roomHandedTo(build)
+
+    await made.sync.attach({ secret: newSecret() })
+
+    expect(roomHandedTo(build)).not.toBe(before)
+  })
+
+  it('is still the key when the build configured a room, which every studio before this did', async () => {
+    // The build's room is a fallback, not a name. Read as a name it would win over
+    // the derivation on every studio that set one -- silently, and only for the
+    // people who had already deployed.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `built-${Math.random()}`, sync: { connect: build, url: 'https://x.supabase.co', room: 'friday', secret: newSecret() } })
+
+    await made.started
+    await settle()
+
+    expect(roomHandedTo(build)).not.toBe('friday')
+    expect(roomHandedTo(build)).toMatch(/^[A-Za-z0-9_-]{12}$/)
+  })
+
+  it('lets a link that names a room outright still win, so an older dock keeps working', async () => {
+    // OBS remembers a dock's URL for as long as the dock exists, and a link handed
+    // out before any of this carries a room. Deriving second is what keeps it.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const made = host({ name: `legacy-${Math.random()}`, sync: { connect: build, url: 'https://x.supabase.co' } })
+
+    await made.started
+    await made.sync.attach({ url: 'https://x.supabase.co', room: 'friday', secret: newSecret() })
+
+    expect(roomHandedTo(build)).toBe('friday')
+  })
+
+  it('falls back to the show itself when there is no key at all', async () => {
+    // An unencrypted show has nothing to derive from, so it lands on the studio's own
+    // name -- guessable, which is the honest shape of a room nobody sealed.
+    const build = vi.fn(() => ({ destroy() {} }))
+    const name = `bare-${Math.random()}`
+    const made = host({ name, sync: { connect: build, url: 'wss://relay.test' } })
+
+    await made.started
+    await settle()
+
+    expect(roomHandedTo(build)).toBe(name)
+  })
+})
+
 describe('the room key at the seam', () => {
   // Core builds the cipher and hands a transport two functions, so there is one
   // implementation of the crypto and one place it is tested -- and a provider needs
