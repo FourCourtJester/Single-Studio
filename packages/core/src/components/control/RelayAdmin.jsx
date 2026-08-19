@@ -61,7 +61,12 @@ export function RelayAdmin({ label = 'Operators', className, ...rest }) {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  const endpoint = configured && url ? apiFor(url, room) : null
+  // Only a relay of your own has a token API. A hosted service has no such thing --
+  // there, inviting somebody is handing them the link, which the Collaborate dialog
+  // does. Rendering a dead "paste your admin secret" box at a Supabase user would
+  // be asking them for something that does not exist.
+  const ownRelay = /^wss?:/.test(url ?? '')
+  const endpoint = configured && ownRelay ? apiFor(url, room) : null
 
   const call = useCallback(
     async (path = '', options = {}) => {
@@ -101,7 +106,7 @@ export function RelayAdmin({ label = 'Operators', className, ...rest }) {
     if (secret) refresh()
   }, [secret, refresh])
 
-  if (!configured) return null
+  if (!configured || !ownRelay) return null
 
   const remember = (value) => {
     setSecret(value)

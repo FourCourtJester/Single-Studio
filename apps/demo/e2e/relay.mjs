@@ -90,17 +90,26 @@ const scoreOf = (machine) => machine.page.locator(SCORE).first()
 
 const host = await machine('host')
 
-// The one person with no link to arrive on: whoever runs the show points their own
-// machine at a relay, once. Runtime, not build time -- a studio deploys as static
-// files, and an address baked into the build cannot be changed without a redeploy.
-await host.page.locator('.ss-relay-connect input[aria-label="Relay address"]').fill(`ws://127.0.0.1:${port}`)
-await host.page.locator('.ss-relay-connect input[aria-label="Room name"]').fill('friday')
-await host.page.locator('.ss-relay-connect button:has-text("Join")').click()
+// The one person with no link to arrive on: whoever runs the show, through the
+// dialog a streamer half an hour before doors would actually find. Runtime, not
+// build time -- a studio deploys as static files, and an address baked into the
+// build cannot be changed without a redeploy.
+await host.page.locator('.ss-collaborate-open').click()
+await host.page.locator('.ss-collaborate-dialog input[aria-label="Project URL"]').fill(`ws://127.0.0.1:${port}`)
+await host.page.locator('.ss-collaborate-dialog input[aria-label="Room name"]').fill('friday')
+await host.page.locator('.ss-collaborate-dialog .ss-collaborate-go').click()
 
 check(
-  await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 15000),
-  'a board can be pointed at a relay without rebuilding anything',
+  await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 20000),
+  'a board can be pointed at a room from the dialog, without rebuilding anything',
 )
+
+// Go rewrites the URL and reloads, which is the point: a dock's URL is the only
+// thing OBS remembers, so the room has to live there rather than only in storage.
+const dockUrl = await host.page.evaluate(() => location.href)
+
+console.log(`  dock URL after setup: ${dockUrl}`)
+check(/[?&]relay=/.test(dockUrl) && /[?&]room=friday/.test(dockUrl), 'and the room ends up in the dock URL, where OBS will remember it')
 
 // And everyone else: paste a link into an OBS dock. That is the whole of it --
 // no token typed, no settings screen, and OBS remembers the URL.

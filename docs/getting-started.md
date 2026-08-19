@@ -171,6 +171,15 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `Panel`        | —                  | Titled group. Children wrap in a flex row.                       |
 | `Break`        | —                  | Forces a line break inside a `Panel`.                            |
 
+## Working with other people
+
+A studio is one operator by default and needs nothing. To bring in others, press
+**Collaborate** on the board: it wants a free Supabase project's URL and public
+key, and gives you a link to send each operator, which they paste into an OBS dock.
+
+That is the whole setup, and [working with other people](./collaborating.md) walks
+through it — including why Supabase, what it costs, and what it gives up.
+
 ## Clocks
 
 Three of them, because a broadcast asks three different questions:

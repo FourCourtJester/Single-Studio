@@ -38,6 +38,15 @@ const shapes = {
       <path d="M15.5 15.5L21 21" />
     </>
   ),
+  /* Two figures: one nearer, one behind. Collaboration, without a metaphor. */
+  people: (
+    <>
+      <circle cx="9" cy="8" r="3.25" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.5a3.25 3.25 0 0 1 0 6" />
+      <path d="M17.5 14.5a5.5 5.5 0 0 1 3 5.5" />
+    </>
+  ),
 }
 
 export function Icon({ name, label, className, ...rest }) {

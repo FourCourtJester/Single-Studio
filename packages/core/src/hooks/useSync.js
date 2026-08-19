@@ -21,7 +21,10 @@ export function useSyncStatus() {
   return useMemo(
     () => ({
       ...status,
-      configured: Boolean(status.room),
+      // Having somewhere to connect to, not having a room name. A studio may name
+      // its own room in its build and still have no address, which is not
+      // configured -- it is a studio that has never been told where anyone is.
+      configured: Boolean(status.url),
       connected: status.state === 'connected',
       // A relay that is down is not a broadcast problem -- the graphics keep
       // rendering from this machine's own document -- but it is an operator

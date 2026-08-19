@@ -11,7 +11,6 @@ import {
   Operator,
   Panel,
   RelayAdmin,
-  RelayConnect,
   ResetButton,
   Stepper,
   Stopwatch,
@@ -125,12 +124,8 @@ export default function Control() {
         {/* Presence needs a name to show. Local to the machine, not part of the
             show -- see the note in Operator. */}
         <Operator />
-        {/* Where the other operators connect. Set once, on this machine -- an
-            operator who arrives on an invite link never sees it. */}
-        <RelayConnect />
-        <Break />
-        {/* Renders nothing until a room is joined. Invite hands over a link, not a
-            token, and removing somebody mid-show must not need a redeploy. */}
+        {/* Only for a relay of your own: a hosted service has no token API, and
+            inviting there is handing over the link the header dialog shows. */}
         <RelayAdmin />
       </Panel>
 
