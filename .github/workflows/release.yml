@@ -62,8 +62,29 @@ jobs:
       # costs a red build, rather than on npm, where it costs a version number.
       - run: node scripts/verify-template.mjs
 
+      # Authentication written into the *project* .npmrc, by hand.
+      #
+      # `actions/setup-node` already writes one carrying `${NODE_AUTH_TOKEN}` --
+      # but it writes it to a temp file and points `NPM_CONFIG_USERCONFIG` at it,
+      # which is npm's convention and not reliably pnpm's. The first release failed
+      # on `ENEEDAUTH` after building both tarballs perfectly, which is exactly what
+      # that looks like from the outside and is indistinguishable from a missing
+      # secret. Writing the line where pnpm certainly reads it removes the question.
+      #
+      # The checkout is ephemeral, so nothing here outlives the job.
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
-        run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # An unset secret expands to an empty string, and npm reports that as
+          # "you need to log in" -- a true statement that sends you looking in the
+          # wrong place. Say which of the two it actually is.
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN is empty. Add it under Settings → Secrets and variables → Actions, as an npm automation token scoped to the single-studio org."
+            exit 1
+          fi
+
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
+
+          pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
