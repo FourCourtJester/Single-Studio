@@ -1,0 +1,66 @@
+# Publish the demo studio to GitHub Pages.
+#
+# Separate from ci.yml on purpose. CI runs on every branch and every pull request
+# and is allowed to fail loudly; this runs on the default branch only, holds the
+# Pages deployment token, and has one job: put a working board at a URL somebody
+# can open. Folding the two together would mean every pull request carried write
+# access to the published site.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  # So a deploy can be re-run without an empty commit -- a demo is often needed
+  # back at short notice and rarely at the moment the code changed.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # deploy-pages authenticates with OIDC rather than a stored secret.
+  id-token: write
+
+# One deploy at a time, and a newer commit wins. `cancel-in-progress: false` so a
+# deploy that is already uploading finishes rather than leaving Pages half-written.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No version here on purpose: the action reads "packageManager" from
+      # package.json, so this and the devcontainer cannot drift apart.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Builds the framework packages first; the demo consumes them through their
+      # published entrypoints rather than reaching into source, so they have to
+      # exist before it can resolve them.
+      - run: pnpm demo:build
+
+      # `base: './'` in the demo's vite config is what makes this work at a repo
+      # subpath. Nothing here has to know the repo is called Single-Studio, and the
+      # same artifact would serve from a custom domain or off a disk.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/demo/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
