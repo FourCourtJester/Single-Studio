@@ -25,17 +25,23 @@ clock.
 
 ## Layout
 
-| Path                         | What                                                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`              | `@single-studio/core` — the framework                                                                                           |
-| `packages/provider-supabase` | Collaboration over a Supabase project. Nothing to deploy                                                                        |
-| `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                        |
-| `templates/studio`           | Starting point for a new studio                                                                                                 |
-| `apps/demo`                  | A working studio, and the integration test for the package boundary                                                             |
+| Path                         | What                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/core`              | `@single-studio/core` — the framework                                                                                                                                                |
+| `packages/provider-supabase` | Collaboration over a Supabase project. Nothing to deploy                                                                                                                             |
+| `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                                                                             |
+| `templates/studio`           | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                |
+| `apps/demo`                  | A working studio, and the integration test for the package boundary                                                                                                                  |
 | `docs/`                      | [Architecture](docs/architecture.md) · [Getting started](docs/getting-started.md) · [Working with other people](docs/collaborating.md) · [Collaboration plan](docs/collaboration.md) |
 
 A studio is its own repo that depends on `@single-studio/core`, with its own build
 and its own Pages deployment. Framework upgrades are a version bump, not a merge.
+
+`pnpm verify:template` is what keeps that promise honest: it packs the packages the
+way `npm publish` would, copies the template somewhere clean, points it at the
+tarballs and builds it with no workspace to fall back on. The demo cannot answer the
+same question — it resolves the framework through `workspace:*`, which reaches the
+whole package directory regardless of what `files` says.
 
 ## Quick start
 

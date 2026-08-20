@@ -13,12 +13,11 @@ name: Release
 on:
   push:
     tags: ['v*']
+  # Run by hand and nothing is published: every publishing step is gated on the ref
+  # being a tag. That makes a manual run a rehearsal -- lint, test, build, and the
+  # template built against packed tarballs -- which is the thing worth doing before
+  # cutting a version you cannot take back.
   workflow_dispatch:
-    inputs:
-      dry-run:
-        description: Pack and verify without publishing
-        type: boolean
-        default: true
 
 permissions:
   contents: read
