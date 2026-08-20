@@ -30,6 +30,17 @@ anything can be published under it. That part is a form, on the website.
    Classic tokens are not an option and are not hiding somewhere in the UI. npm
    revoked every one of them in November 2025 and disabled creating more.
 
+   **Bypass 2FA is the box people miss**, and missing it fails late and confusingly:
+   the publish authenticates, uploads, prints the whole tarball manifest, and then
+   stops on `EOTP` — a request for a code from your authenticator that a runner has
+   no way to answer. It reads like an auth failure and is the opposite one. The
+   setting cannot be changed on an existing token; make a new one.
+
+   It is also the reason the token is temporary rather than permanent. Since August
+   2026 a bypass-2FA token can no longer manage the account, and from around January
+   2027 it will not publish directly at all — npm is moving everybody to trusted
+   publishing, which is where this goes as soon as the packages exist.
+
 4. **Publish.** From CI: add the token as the `NPM_TOKEN` repository secret, then
    `git tag v0.1.0 && git push --tags`, same as every release after it.
 
