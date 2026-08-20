@@ -22,10 +22,23 @@ anything can be published under it. That part is a form, on the website.
 2. **Organisation** — [npmjs.com/org/create](https://www.npmjs.com/org/create), name
    it `single-studio`, free plan. The free plan publishes unlimited _public_
    packages; it only charges for private ones, and these are public.
-3. **Log in locally** — `npm login`, which opens a browser.
-4. **Publish once, by hand:**
+3. **A token** — [npmjs.com/settings/~/tokens](https://www.npmjs.com/settings/~/tokens)
+   → **Granular Access Token**, read and write, scoped to the `@single-studio`
+   organisation, **Bypass 2FA** on so it can run unattended. Write tokens cap at 90
+   days, which is fine: this one is scaffolding.
+
+   Classic tokens are not an option and are not hiding somewhere in the UI. npm
+   revoked every one of them in November 2025 and disabled creating more.
+
+4. **Publish.** From CI: add the token as the `NPM_TOKEN` repository secret, then
+   `git tag v0.1.0 && git push --tags`, same as every release after it.
+
+   Or from a laptop, if you would rather watch the first one go. Note there is no
+   `npm login` step — writing the token into `.npmrc` is the same credential with
+   less ceremony:
 
    ```bash
+   npm config set //registry.npmjs.org/:_authToken=<token>
    pnpm install
    pnpm verify:template          # the rehearsal — see below
    pnpm -r --filter "./packages/*" publish --access public
@@ -38,10 +51,21 @@ anything can be published under it. That part is a form, on the website.
    `prepack` on `packages/core` builds `dist` first, so there is no separate build
    step and no way to ship a stale one.
 
-That first publish has to come from a laptop rather than from CI, and not by choice:
-npm requires a package to _exist_ before a trusted publisher can be attached to it,
-so OIDC cannot perform a package's first publish. Every release after this one is a
-tag.
+The first publish is the one that cannot use OIDC: npm requires a package to _exist_
+before a trusted publisher can be attached to it. It can still come from CI — a
+token works anywhere — it just cannot be tokenless. That is the whole reason the
+token above exists, and the reason to delete it afterwards.
+
+### If `npm login` says there is no BROWSER
+
+Then skip it. The `npm config set` above writes the same credential the login flow
+would, and is the better answer on a devcontainer or any headless box —
+`npm login` now hands out a two-hour session rather than a lasting token, so it is
+the _more_ fiddly path, not the less.
+
+If you want it anyway: the web flow shells out to `$BROWSER`, so `BROWSER=echo npm
+login` prints the URL rather than trying to open it, and you finish signing in in
+whatever browser you already have.
 
 ## Every release after that
 
@@ -84,8 +108,10 @@ to leak, and provenance attached automatically. Configure it per package under
 **Settings → Trusted Publisher** on npmjs.com (or `npm trust` for both at once),
 pointing at this repository and `release.yml`.
 
-Once both packages are configured, delete the `NPM_TOKEN` secret and the
-`NODE_AUTH_TOKEN` line from the workflow. Until then the token path is what works.
+Once both packages are configured, delete the `NPM_TOKEN` secret, revoke the token
+on npm, and drop the `NODE_AUTH_TOKEN` line from the workflow. Until then the token
+path is what works — and npm is narrowing it: from January 2027 a bypass-2FA token
+loses direct publish and can only stage a release for a human to approve.
 
 ## Versioning
 
