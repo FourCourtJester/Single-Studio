@@ -1,0 +1,57 @@
+# Publish this studio to GitHub Pages.
+#
+# Switch Pages to "GitHub Actions" as its source under Settings -> Pages, push to
+# the default branch, and the board lands at
+# https://<you>.github.io/<this-repo>/#/ -- which is the URL you paste into an OBS
+# custom browser dock, and the one every invite link is built from.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # deploy-pages authenticates with OIDC rather than a stored secret.
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # `base: './'` in vite.config.js is what makes this work under a repo
+      # subpath. Nothing here has to know what the repo is called, and the same
+      # artifact would serve from a custom domain or straight off a disk.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,70 @@
+# Publish the framework packages to npm.
+#
+# Tag-driven rather than push-driven. A version is a promise somebody else's build
+# will hold you to, so it should be a deliberate act -- `git tag v0.1.0 && git push
+# --tags` -- rather than something that happens because a commit landed.
+#
+# The tag has to match the version in package.json. Checking that here rather than
+# trusting it is worth the six lines: the failure it prevents is a tarball published
+# under a version number nobody can find the source for, and npm does not let you
+# take a version back.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Pack and verify without publishing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  # npm provenance: the published package carries a signed link back to the commit
+  # and workflow that built it, so anybody can check the tarball came from here.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+      - name: Check the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for dir in packages/core packages/provider-supabase; do
+            version=$(node -p "require('./$dir/package.json').version")
+            if [ "$tag" != "$version" ]; then
+              echo "::error::$dir is $version but the tag says $tag"
+              exit 1
+            fi
+          done
+
+      # The publish rehearsal: pack the packages and build the starter template
+      # against the tarballs. Catches a broken `files` or `exports` here, where it
+      # costs a red build, rather than on npm, where it costs a version number.
+      - run: node scripts/verify-template.mjs
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/')
+        run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

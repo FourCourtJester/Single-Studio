@@ -32,6 +32,15 @@ jobs:
       - name: Build demo studio
         run: pnpm demo:build
 
+      # The starter template, built the way a stranger gets it: from packed
+      # tarballs, in a directory with no workspace to fall back on. The demo cannot
+      # answer this -- it resolves the framework through `workspace:*`, which
+      # reaches the whole package directory regardless of what `files` says, so it
+      # would keep building for years after `dist` fell out of the published
+      # tarball. See scripts/verify-template.mjs.
+      - name: Verify the starter template
+        run: node scripts/verify-template.mjs
+
       # Integration coverage for the parts that only exist in a browser:
       # SharedWorker startup, cross-tab BroadcastChannel fan-out, IndexedDB.
       - name: Install Chromium

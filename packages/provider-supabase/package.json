@@ -3,28 +3,48 @@
   "version": "0.1.0",
   "description": "Collaboration for Single Studio over Supabase Realtime: bring your own key, no backend to deploy.",
   "license": "MIT",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.js",
-    "./mesh": "./src/mesh.js"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
+    "directory": "packages/provider-supabase"
   },
+  "homepage": "https://github.com/FourCourtJester/Single-Studio#readme",
+  "bugs": "https://github.com/FourCourtJester/Single-Studio/issues",
+  "keywords": [
+    "obs",
+    "broadcast",
+    "graphics",
+    "collaboration",
+    "supabase",
+    "realtime",
+    "yjs",
+    "crdt"
+  ],
+  "type": "module",
   "files": [
     "src",
     "README.md"
   ],
+  "exports": {
+    ".": "./src/index.js",
+    "./mesh": "./src/mesh.js"
+  },
   "scripts": {
     "test": "vitest run"
-  },
-  "peerDependencies": {
-    "yjs": "^13.6.20"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
     "lib0": "^0.2.117",
     "y-protocols": "^1.0.7"
   },
+  "peerDependencies": {
+    "yjs": "^13.6.20"
+  },
   "devDependencies": {
     "vitest": "^2.1.8",
     "yjs": "^13.6.20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
