@@ -15,6 +15,14 @@
 // dependency ranges, and whether the template's own manifest lists everything it
 // imports.
 //
+// It also checks what is *in* the tarballs, which is a different worry with the
+// same answer. A studio's assets are its client's -- logos, headshots, sponsor
+// artwork -- and none of it belongs in a framework that gets published to a public
+// registry. `.gitignore` keeps client studios out of the repository; this keeps
+// anything that did get committed out of a tarball, because a mistake here is not
+// one you can take back: npm refuses to unpublish after 72 hours, and the tarball
+// is mirrored the moment it lands.
+//
 //   node scripts/verify-template.mjs [--keep]
 //
 // `--keep` leaves the built project behind and prints where, for poking at when
@@ -31,6 +39,25 @@ const keep = process.argv.includes('--keep')
 
 /** Published packages, in the order the template depends on them. */
 const PACKAGES = ['packages/core', 'packages/provider-supabase']
+
+/**
+ * What a framework package is made of, and nothing else.
+ *
+ * Deliberately an allowlist of *code*. A denylist of image extensions would have to
+ * be right about every format anybody might drop in, and would be wrong about the
+ * next one; this is wrong only if the framework legitimately grows a new kind of
+ * file, which is a two-word change made by somebody who knows they are making it.
+ */
+const SHIPPABLE = /\.(js|jsx|mjs|cjs|ts|tsx|d\.ts|css|json|md|map)$/i
+
+/**
+ * The paperwork npm adds whatever `files` says.
+ *
+ * It force-includes these, so they turn up in a tarball without anybody asking and
+ * a check that did not know about them would fail on a correct package -- which is
+ * how a guard gets switched off.
+ */
+const PAPERWORK = /^(package\.json|README|LICEN[CS]E|CHANGELOG|NOTICE)/i
 
 const run = (command, args, cwd) => execFileSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env } })
 const capture = (command, args, cwd) => execFileSync(command, args, { cwd, encoding: 'utf8', env: { ...process.env } }).trim()
@@ -58,11 +85,41 @@ try {
     if (!out) throw new Error(`pnpm pack produced no tarball for ${manifest.name}`)
 
     packed[manifest.name] = out
-    console.log(`  ${manifest.name} → ${out.split('/').at(-1)}`)
+
+    // Read back what actually went in, rather than trusting `files` to have meant
+    // what somebody thought it meant. `tar -tf` is the tarball npm would receive.
+    const contents = capture('tar', ['-tzf', out], root)
+      .split('\n')
+      .map((entry) => entry.replace(/^package\//, ''))
+      .filter((entry) => entry && !entry.endsWith('/'))
+
+    const strangers = contents.filter((entry) => !PAPERWORK.test(entry) && !SHIPPABLE.test(entry))
+
+    if (strangers.length) {
+      throw new Error(
+        `${manifest.name} would publish files that are not framework code:\n  ${strangers.join('\n  ')}\n` +
+          'A published tarball is public and permanent -- npm refuses to unpublish after 72 hours. ' +
+          "If this is legitimate, widen SHIPPABLE in this script; if it is a studio's assets, it belongs in that studio's own repo.",
+      )
+    }
+
+    console.log(`  ${manifest.name} → ${out.split('/').at(-1)} (${contents.length} files, all code)`)
   }
 
   console.log(`\n→ copying templates/studio to ${project}`)
   cpSync(join(root, 'templates/studio'), project, { recursive: true })
+
+  // The same worry about the template, which is copied wholesale into every new
+  // studio anybody starts. A stray asset in here would not merely be published
+  // once -- it would be handed to every project made from it, and turn up in repos
+  // whose owners never knew it was there.
+  const scaffold = capture('git', ['ls-files', 'templates/studio'], root).split('\n').filter(Boolean)
+  const assets = scaffold.filter((file) => !PAPERWORK.test(file.split('/').at(-1)) && !/\.(js|jsx|css|json|md|html|yml|yaml|gitignore)$/i.test(file))
+
+  if (assets.length)
+    throw new Error(`templates/studio carries files that are not scaffolding:\n  ${assets.join('\n  ')}\nEvery studio made from the template gets a copy.`)
+
+  console.log(`  ${scaffold.length} scaffold files, no assets`)
 
   // The only edit. Everything else about the template is exactly what somebody
   // gets, including the version ranges -- which are left alone deliberately, so a
