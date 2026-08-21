@@ -9,13 +9,22 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # No version here on purpose: the action reads "packageManager" from
       # package.json, so CI and the devcontainer cannot drift apart.
-      - uses: pnpm/action-setup@v4
+      #
+      # Every action in this repository is pinned to a major that runs on Node 24.
+      # Node 20 leaves the runners on 16 September 2026, and until then a node20
+      # action is force-run on 24 regardless -- so the deadline is not the day they
+      # break, it is the day they stop being warned about and start being absent.
+      #
+      # Bumped to the *lowest* major on 24 rather than the newest available. The
+      # job is getting off a retired runtime, not chasing releases, and a smaller
+      # diff is one CI can actually vouch for.
+      - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm

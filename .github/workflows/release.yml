@@ -29,15 +29,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       # Deliberately no `registry-url`. It exists to write an .npmrc containing
       # `${NODE_AUTH_TOKEN}`, and with no token to expand that placeholder to, the
       # line is at best noise and at worst something pnpm trips over. OIDC needs
       # none of it, and the default registry is the one being published to.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
