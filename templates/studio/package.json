@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@single-studio/core": "^0.1.0",
-    "@single-studio/provider-supabase": "^0.1.0",
+    "@single-studio/core": "^0.1.2",
+    "@single-studio/provider-supabase": "^0.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",

@@ -27,16 +27,25 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # No version pinned here: the action reads "packageManager" from
+      # package.json, so your machine and this runner cannot drift apart.
       - uses: pnpm/action-setup@v5
-        with:
-          version: 10
 
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      # Not `--frozen-lockfile`, and that is for the first push rather than for
+      # every one after it. A repository made from this template has no
+      # pnpm-lock.yaml until somebody runs an install and commits one, and
+      # `--frozen-lockfile` fails outright when there is nothing to freeze -- so the
+      # very first deploy would fail, on a project nobody had touched yet, for a
+      # reason that reads like a broken template.
+      #
+      # Nothing is given up. pnpm already turns frozen-lockfile on by itself in CI
+      # once a lockfile exists, so this is strict exactly when it can be.
+      - run: pnpm install
       - run: pnpm build
 
       # `base: './'` in vite.config.js is what makes this work under a repo

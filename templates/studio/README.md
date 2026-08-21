@@ -12,6 +12,10 @@ pnpm install
 pnpm dev
 ```
 
+Commit the `pnpm-lock.yaml` that first install produces. Nothing breaks without it —
+the deploy workflow is written to survive a repository that has never been installed
+— but it is what makes a build today and a build in six months the same build.
+
 Open the control surface at the printed URL. The header menu lists every graphic's
 browser-source URL with a copy button.
 
