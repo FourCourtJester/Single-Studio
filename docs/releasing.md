@@ -143,6 +143,26 @@ The workflow also upgrades npm before publishing, because Node 22 ships npm 10 a
 OIDC publishing needs 11.5.1 or newer. pnpm still owns install and build; this is
 only about who talks to the registry.
 
+## Provenance needs a public repository
+
+npm can attach a signed statement linking a tarball back to the commit and workflow
+that built it — but only when the **source repository is public**. A private one is
+refused outright:
+
+```
+422 Unsupported GitHub Actions source repository visibility: "private".
+Only public source repositories are supported when publishing with provenance.
+```
+
+So `release.yml` asks for provenance only when the repository is public, and warns
+in the run when it cannot. Nothing has to be remembered: the day this repository
+goes public, releases start being signed on their own.
+
+Worth knowing while it stays private: the published packages are public and their
+`repository` field points at a URL that nobody outside the repo can open. That is
+not broken, but it is a dead link on two public npm pages, and anybody evaluating
+the package cannot read the source before installing it.
+
 ## Versioning
 
 Both packages move together and share a version. They are two halves of one release
