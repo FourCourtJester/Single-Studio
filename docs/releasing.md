@@ -132,6 +132,17 @@ and revoke the token on npm. `release.yml` already carries no reference to eithe
 merge the tokenless workflow, then tag. Deleting the secret while the workflow still
 expects one leaves the next release failing on a credential nobody meant to remove.
 
+### The publish uses `npm`, not `pnpm`
+
+Trusted publishing is npm's feature and the npm CLI is where it is implemented.
+pnpm 10.33 does not perform the OIDC exchange at all — it looks for a token, finds
+none, and stops on `ENEEDAUTH` without ever mentioning OIDC, which reads exactly
+like a missing credential and is not one.
+
+The workflow also upgrades npm before publishing, because Node 22 ships npm 10 and
+OIDC publishing needs 11.5.1 or newer. pnpm still owns install and build; this is
+only about who talks to the registry.
+
 ## Versioning
 
 Both packages move together and share a version. They are two halves of one release

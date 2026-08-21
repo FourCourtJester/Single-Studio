@@ -65,23 +65,32 @@ jobs:
       # costs a red build, rather than on npm, where it costs a version number.
       - run: node scripts/verify-template.mjs
 
-      # No token. npm authenticates this publish over OIDC -- the `id-token: write`
-      # permission above is the whole credential, and it is minted per run, scoped
-      # to this workflow, and expired minutes later. There is nothing to rotate,
-      # nothing to leak, and nothing for a compromised dependency to read.
+      # `npm publish`, not `pnpm publish`, and npm upgraded first.
       #
-      # It is also the only path with a future. The bypass-2FA token that published
-      # 0.1.0 was already living on borrowed time: since August 2026 such a token
-      # cannot manage the account, and from around January 2027 it cannot publish
-      # directly at all.
+      # Trusted publishing is npm's own feature and the npm CLI is where it is
+      # actually implemented -- pnpm 10.33 does not perform the OIDC exchange at
+      # all. That is not a subtle failure: it looks for a token, finds none, and
+      # stops on ENEEDAUTH without a single line about OIDC, which reads exactly
+      # like a missing credential and is not one.
       #
-      # Provenance comes along automatically, which is why `--provenance` is gone
-      # rather than kept -- it was passed explicitly for 0.1.0 and produced no
-      # attestation, because a token publish cannot sign one.
+      # The upgrade is load-bearing too. Node 22 ships npm 10, and OIDC publishing
+      # needs npm 11.5.1 or newer, so the npm that comes with the runner would fail
+      # the same way for a different reason.
       #
-      # Each package needs a Trusted Publisher on npmjs.com naming this repository
-      # and this file. Without it the publish fails on authentication, and the fix
-      # is a settings page rather than anything in here.
+      # pnpm still owns install and build. This is only about who talks to the
+      # registry, and that is the one job it has repeatedly got wrong here.
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
-        run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+          # One at a time, and deliberately not `npm publish --workspaces`: this is
+          # a pnpm workspace, npm cannot see it, and each package is an ordinary
+          # standalone publish from its own directory. `prepack` still runs, so
+          # core's dist is built here exactly as it is everywhere else.
+          for dir in packages/core packages/provider-supabase; do
+            echo "::group::publishing $dir"
+            (cd "$dir" && npm publish --access public)
+            echo "::endgroup::"
+          done
