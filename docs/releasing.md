@@ -119,10 +119,18 @@ to leak, and provenance attached automatically. Configure it per package under
 **Settings → Trusted Publisher** on npmjs.com (or `npm trust` for both at once),
 pointing at this repository and `release.yml`.
 
-Once both packages are configured, delete the `NPM_TOKEN` secret, revoke the token
-on npm, and drop the `NODE_AUTH_TOKEN` line from the workflow. Until then the token
-path is what works — and npm is narrowing it: from January 2027 a bypass-2FA token
-loses direct publish and can only stage a release for a human to approve.
+Configure it **per package** — there is no repository-wide switch, so both
+`@single-studio/core` and `@single-studio/provider-supabase` need their own entry
+naming this repository and `release.yml`. A package without one fails the publish on
+authentication, and the fix is that settings page rather than anything in the
+workflow.
+
+Once both are configured, the token is dead weight: delete the `NPM_TOKEN` secret
+and revoke the token on npm. `release.yml` already carries no reference to either.
+
+**Order matters here and is easy to get backwards.** Configure the publishers, then
+merge the tokenless workflow, then tag. Deleting the secret while the workflow still
+expects one leaves the next release failing on a credential nobody meant to remove.
 
 ## Versioning
 
