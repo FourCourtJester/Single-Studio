@@ -29,7 +29,7 @@
 // something has gone wrong.
 
 import { execFileSync } from 'node:child_process'
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -69,20 +69,38 @@ const project = join(stage, 'studio')
 try {
   console.log(`\n→ packing into ${tarballs}`)
 
+  // npm will not create its own --pack-destination, where pnpm did.
+  mkdirSync(tarballs, { recursive: true })
+
   const packed = {}
 
   for (const dir of PACKAGES) {
     const manifest = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
 
-    // `pnpm pack` runs the package's own prepack/prepublishOnly, so a package that
-    // builds before it publishes builds here too -- which is the point: this has to
-    // fail the same way a real publish would.
-    const out = capture('pnpm', ['pack', '--pack-destination', tarballs], join(root, dir))
+    /**
+     * `npm pack`, because `npm publish` is what actually ships these.
+     *
+     * It used to be `pnpm pack`, and the two do not produce the same tarball: pnpm
+     * copies the workspace root's LICENSE into every package and npm does not. So
+     * the rehearsal carried a licence the real publish dropped, and said the
+     * packages were fine while two releases went out without one. A rehearsal that
+     * uses a different tool from the performance is not a rehearsal.
+     *
+     * `npm pack` runs the package's own prepack, so a package that builds before it
+     * publishes builds here too -- which is the point: this has to fail the same way
+     * a real publish would, including the ways nobody has thought of yet.
+     */
+    // npm reports the bare filename where pnpm reported a full path, so resolve it
+    // against the destination rather than trusting either shape.
+    const named = capture('npm', ['pack', '--pack-destination', tarballs], join(root, dir))
       .split('\n')
+      .map((line) => line.trim())
       .filter((line) => line.endsWith('.tgz'))
       .at(-1)
 
-    if (!out) throw new Error(`pnpm pack produced no tarball for ${manifest.name}`)
+    if (!named) throw new Error(`npm pack produced no tarball for ${manifest.name}`)
+
+    const out = named.startsWith('/') ? named : join(tarballs, named)
 
     packed[manifest.name] = out
 
@@ -94,6 +112,21 @@ try {
       .filter((entry) => entry && !entry.endsWith('/'))
 
     const strangers = contents.filter((entry) => !PAPERWORK.test(entry) && !SHIPPABLE.test(entry))
+
+    // The other direction, and the one that bit. Switching the publish from pnpm to
+    // npm silently dropped LICENSE from both tarballs: pnpm copies the workspace
+    // root's into every package, npm does not. Nothing failed, nothing warned, and
+    // two releases went out declaring a licence they did not carry. A guard that
+    // only looks for files that should not be there cannot see that.
+    const missing = ['package.json', 'README.md', 'LICENSE'].filter((need) => !contents.includes(need))
+
+    if (missing.length) {
+      throw new Error(
+        `${manifest.name} would publish without ${missing.join(' and ')}.\n` +
+          'npm force-includes these from the package directory whatever `files` says, so a missing one means the file is not there at all -- ' +
+          'not that it was excluded. A package that states a licence and does not carry its text is worse than one that states neither.',
+      )
+    }
 
     if (strangers.length) {
       throw new Error(

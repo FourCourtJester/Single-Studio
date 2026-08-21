@@ -79,6 +79,12 @@ jobs:
       #
       # pnpm still owns install and build. This is only about who talks to the
       # registry, and that is the one job it has repeatedly got wrong here.
+      #
+      # `--provenance` is back, having been dropped on the understanding that
+      # trusted publishing attaches it by itself. 0.1.1 published over OIDC on npm
+      # 12 and produced no attestation at all, so that understanding was wrong --
+      # or is true of some configuration this is not. Asking for it explicitly costs
+      # nothing and is checkable; assuming it gave two unsigned releases.
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -91,6 +97,6 @@ jobs:
           # core's dist is built here exactly as it is everywhere else.
           for dir in packages/core packages/provider-supabase; do
             echo "::group::publishing $dir"
-            (cd "$dir" && npm publish --access public)
+            (cd "$dir" && npm publish --access public --provenance)
             echo "::endgroup::"
           done
