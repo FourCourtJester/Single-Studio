@@ -14,7 +14,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Dropdown bound to a path, staged until saved.
+ * A dropdown of allowed values, staged until saved. Options are plain strings, or
+ * `{ value, label }` when what is stored differs from what is shown.
  *
  * Staged rather than immediate for consistency with the fields beside it: a board
  * where some controls are live and others are not is worse than one where the rule
@@ -22,6 +23,19 @@ import { cx } from '../../toolkits/cx'
  *
  * The empty option always exists so a choice can be cleared. Saving '' deletes the
  * key, which makes a source fall back to its own default rather than hold a blank.
+ *
+ * @example
+ * <Select name="period" label="Period" options={['1st', '2nd', '3rd', 'OT']} />
+ *
+ * @example
+ * <Select
+ *   name="round"
+ *   label="Round"
+ *   options={[
+ *     { value: 'qf', label: 'Quarter-final' },
+ *     { value: 'sf', label: 'Semi-final' },
+ *   ]}
+ * />
  *
  * @param {SelectProps & import("react").HTMLAttributes<HTMLElement>} props
  */

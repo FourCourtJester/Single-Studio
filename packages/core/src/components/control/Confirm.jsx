@@ -2,25 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import { cx } from '../../toolkits/cx'
 
-/**
- * A destructive button that asks first, without a dialog.
- *
- * One click arms it and it says what it is about to do; a second click does it. A
- * few seconds of silence disarms it, so a board left alone never sits with a live
- * "wipe the show" under the cursor.
- *
- * **Not `window.confirm`.** The board's main home is an OBS custom browser dock,
- * and a dock is a CEF surface with no chrome to draw a native dialog into --
- * depending on the build, a `confirm()` there either never appears or appears
- * somewhere the operator is not looking. Either way the truthful reading of the
- * return value is "they said no", so the safest-looking guard in the codebase would
- * be the one that quietly makes the button stop working. Asking inside the page is
- * the only version that is true everywhere the board runs.
- *
- * It is also the better interaction. The question is asked where the answer is
- * given, the second click lands in the same place as the first, and there is no
- * modal to focus-trap or dismiss mid-show.
- */
 const ARMED = 4000
 
 /**
@@ -45,6 +26,31 @@ const ARMED = 4000
 const ASK = 'Click to confirm'
 
 /**
+ * A destructive button that asks first, without a dialog: one click arms it, a
+ * second does it, and a few seconds of silence disarms it.
+ *
+ * One click arms it and it says what it is about to do; a second click does it. A
+ * few seconds of silence disarms it, so a board left alone never sits with a live
+ * "wipe the show" under the cursor.
+ *
+ * **Not `window.confirm`.** The board's main home is an OBS custom browser dock,
+ * and a dock is a CEF surface with no chrome to draw a native dialog into --
+ * depending on the build, a `confirm()` there either never appears or appears
+ * somewhere the operator is not looking. Either way the truthful reading of the
+ * return value is "they said no", so the safest-looking guard in the codebase would
+ * be the one that quietly makes the button stop working. Asking inside the page is
+ * the only version that is true everywhere the board runs.
+ *
+ * It is also the better interaction. The question is asked where the answer is
+ * given, the second click lands in the same place as the first, and there is no
+ * modal to focus-trap or dismiss mid-show.
+ *
+ * @example
+ * <Confirm label="Remove all" onConfirm={() => library.removeAll()} />
+ *
+ * @example
+ * <Confirm label="Disconnect" tone="quiet" onConfirm={leave} />
+ *
  * @param {ConfirmProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
 export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled, className, children, ...rest }) {

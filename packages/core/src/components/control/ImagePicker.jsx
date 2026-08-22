@@ -10,7 +10,18 @@ import { Tooltip } from '../common/Tooltip'
 import { AssetLibraryDialog } from './AssetLibrary'
 
 /**
- * Point a path at an image from the library.
+ * @typedef {object} ImagePickerProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Image"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/** An entry this machine cannot render says so where it is chosen. */
+const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
+
+/**
+ * One image, chosen by name from the studio's library, with a preview beside the
+ * dropdown and a magnifier to open the library itself. Writes `asset:<key>`.
  *
  * A preview of what is selected, a dropdown of the library's keys for a quick
  * swap, and a magnifier that opens the library itself for adding, renaming and
@@ -27,18 +38,13 @@ import { AssetLibraryDialog } from './AssetLibrary'
  * Adding to the library is not staged: a file arriving is not a broadcast change.
  * That split is what lets an operator line up the next guest mid-segment and commit
  * on the cut.
- */
-/**
- * @typedef {object} ImagePickerProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
- * @property {string} [label] - Shown above the control. Defaults to `"Image"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
- * @property {string} [className] - Added to the component's own classes.
- */
-/** An entry this machine cannot render says so where it is chosen. */
-const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
-
-/**
+ *
+ * @example
+ * <ImagePicker name="guest.photo" label="Guest photo" />
+ *
+ * @example
+ * <ImagePicker name="sponsor.logo" label="Sponsor" />
+ *
  * @param {ImagePickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function ImagePicker({ name, label = 'Image', namespace = 'variables', className, ...rest }) {

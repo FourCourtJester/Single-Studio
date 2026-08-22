@@ -14,7 +14,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Count down to a wall-clock time rather than for a duration.
+ * Counts down to a time of day rather than a length — "we go live at 19:30".
+ * Rolls to tomorrow if the time has already passed today.
  *
  * Named for what an operator types into it: `CountdownTo` takes 19:30, `Countdown`
  * takes 5:00. It was called `Countdown` and the duration one was called
@@ -29,6 +30,13 @@ import { cx } from '../../toolkits/cx'
  * The operator's raw entry is stored alongside the target so the field repopulates
  * after a reload — someone returning to the board mid-show should see what they
  * typed, not an empty input under a running clock.
+ *
+ * @example
+ * <CountdownTo name="showtime" label="Doors open" />
+ *
+ * @example
+ * // Something further out than today
+ * <CountdownTo name="finals" label="Finals" as="datetime-local" />
  *
  * @param {CountdownToProps & import("react").HTMLAttributes<HTMLElement>} props
  */

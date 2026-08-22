@@ -6,11 +6,22 @@ import { cx } from '../../toolkits/cx'
  * @typedef {object} CycleProps
  * @property {string} name - Path under `namespace`, e.g. `home.score`.
  * @property {string} [label] - Shown above the control.
- * @property {string[]} [options] - Stepped through in order, wrapping back to unset.
+ * @property {string[]} [options] - Stepped through in order, wrapping back to unset. One option makes it a checkbox.
  * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
-/** Step through a fixed list of options, wrapping back to unset. *
+/**
+ * One button that steps through a list of values in order, wrapping back to unset
+ * at the end. With a single option it is a checkbox: press to set it, press again
+ * to clear it — which is what to reach for when a graphic only needs "on or the
+ * value, or nothing".
+ * @example
+ * <Cycle name="period" label="Game" options={['Game 1', 'Game 2', 'Tiebreak']} />
+ *
+ * @example
+ * // One option, so it toggles between that value and nothing
+ * <Cycle name="status" label="Live" options={['LIVE']} />
+ *
  * @param {CycleProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Cycle({ name, label, options = [], namespace = 'variables', className, ...rest }) {

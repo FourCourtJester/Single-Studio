@@ -3,22 +3,6 @@ import { useId } from 'react'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 
-/**
- * A colour, as a swatch to pick from and a hex field to type into.
- *
- * A `Scene`'s `vars` can map any path onto a CSS custom property, which makes an
- * operator-chosen colour drive anything a stylesheet can express. That is only
- * useful if choosing one does not require knowing that amber is #f59e0b.
- *
- * Both halves write the same path, so an operator can pick from the swatch or
- * paste a brand hex from a style guide -- and the two stay in step, because the
- * swatch reads back whatever the field holds.
- *
- * Staged like a `Field`, and for the same reason: typing `#f5` mid-hex would
- * otherwise put a half-parsed colour on air. `presets` puts a studio's own palette
- * one click away, which is the common case -- most shows have four colours, not
- * sixteen million.
- */
 const HEX = /^#[0-9a-f]{6}$/i
 
 /**
@@ -34,6 +18,31 @@ const HEX = /^#[0-9a-f]{6}$/i
 const swatchValue = (value, fallback) => (HEX.test(String(value ?? '').trim()) ? String(value).trim() : fallback)
 
 /**
+ * A colour, as a swatch to pick from and a hex field to type into. Pair it with
+ * `Scene`'s `vars` to drive anything a stylesheet can express.
+ *
+ * A `Scene`'s `vars` can map any path onto a CSS custom property, which makes an
+ * operator-chosen colour drive anything a stylesheet can express. That is only
+ * useful if choosing one does not require knowing that amber is #f59e0b.
+ *
+ * Both halves write the same path, so an operator can pick from the swatch or
+ * paste a brand hex from a style guide -- and the two stay in step, because the
+ * swatch reads back whatever the field holds.
+ *
+ * Staged like a `Field`, and for the same reason: typing `#f5` mid-hex would
+ * otherwise put a half-parsed colour on air. `presets` puts a studio's own palette
+ * one click away, which is the common case -- most shows have four colours, not
+ * sixteen million.
+ *
+ * @example
+ * <ColorPicker name="home.color" label="Home colour" presets={['#0a3161', '#c8102e']} />
+ *
+ * @example
+ * // and on the graphic
+ * <Scene vars={{ '--home': 'home.color' }}>
+ *   <div style={{ background: 'var(--home, #0a3161)' }} />
+ * </Scene>
+ *
  * @param {ColorPickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function ColorPicker({ name, label = 'Color', presets = [], fallback = '#0ea5e9', namespace = 'variables', className, ...rest }) {

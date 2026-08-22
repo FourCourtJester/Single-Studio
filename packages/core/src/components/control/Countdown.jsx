@@ -15,7 +15,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Count down for a duration -- a break, a half, a stinger.
+ * Counts down a duration — a break, a half, a stinger. Without `duration` the
+ * operator types one; with it the control is a single press.
  *
  * Named for what an operator types into it: `Countdown` takes 5:00, `CountdownTo`
  * takes 19:30. This was `TimerButton`, which said nothing about which of the two it
@@ -32,6 +33,13 @@ import { cx } from '../../toolkits/cx'
  *
  * Either way the entry is stored alongside the target, so the field repopulates
  * after a reload instead of coming back empty under a running clock.
+ *
+ * @example
+ * <Countdown name="round" label="Round" />
+ *
+ * @example
+ * // Always the same length, so one press starts it
+ * <Countdown name="break" label="break" duration="5:00" />
  *
  * @param {CountdownProps & import("react").HTMLAttributes<HTMLElement>} props
  */

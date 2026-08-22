@@ -12,7 +12,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Scrolling crawl.
+ * Text scrolling across the bottom of the screen, looping continuously. Speed is
+ * in pixels per second, so a long crawl and a short one read at the same pace.
  *
  * The travel is measured, not expressed in percentages. A percentage transform
  * resolves against the *element's own* width, so `translateX(100%)` on the text
@@ -28,6 +29,12 @@ import { cx } from '../../toolkits/cx'
  * pixels per second, constant regardless of how much text there is.
  *
  * New text is staged and swapped between passes, never mid-scroll.
+ *
+ * @example
+ * <Ticker name="headlines" />
+ *
+ * @example
+ * <Ticker name="headlines" speed={60} fallback="" className="text-2xl" />
  *
  * @param {TickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */

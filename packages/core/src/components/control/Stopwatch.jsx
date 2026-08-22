@@ -10,7 +10,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * A count-up clock: start, pause, reset.
+ * Counts up from when it was started, with pause and reset. Stores an origin
+ * rather than a running total, so every machine derives the same number.
  *
  * The third of the three clocks. <Countdown> counts down a duration, <CountdownTo>
  * counts down to a wall-clock time, and this one counts up from the moment it was
@@ -19,6 +20,9 @@ import { cx } from '../../toolkits/cx'
  * Nothing here ticks. The mutation stores an origin and every peer derives the same
  * elapsed time from it, so a companion operator's stopwatch reads the same number as
  * the OBS machine's without either of them sending the other a single frame.
+ *
+ * @example
+ * <Stopwatch name="match" label="Show elapsed" />
  *
  * @param {StopwatchProps & import("react").HTMLAttributes<HTMLElement>} props
  */

@@ -10,7 +10,15 @@ const now = (locale, options) => new Date().toLocaleTimeString(locale, options)
  * @property {Intl.DateTimeFormatOptions} [options] - Passed to `Intl.DateTimeFormat`.
  * @property {string} [className] - Added to the component's own classes.
  */
-/** Wall clock. Local to each machine by definition, so it never replicates. *
+/**
+ * The time of day, from the machine the graphic is running on. Nothing replicates
+ * here — every browser source reads its own clock.
+ * @example
+ * <Clock />
+ *
+ * @example
+ * <Clock locale="en-GB" options={{ hour: '2-digit', minute: '2-digit' }} />
+ *
  * @param {ClockProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Clock({ locale, options, className, ...rest }) {

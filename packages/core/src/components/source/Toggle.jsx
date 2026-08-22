@@ -10,10 +10,21 @@ import { Transition } from '../common/Transition'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Show or hide a block of graphics on the operator's say-so.
+ * Shows its children while a toggle is on, and animates them in and out. This is
+ * how a whole graphic is put on and taken off air.
  *
  * Hidden until the path has loaded, so a source rebuilt mid-show never flashes its
  * contents before finding out it was supposed to be off.
+ *
+ * @example
+ * <Toggle name="lowerthird">
+ *   <LowerThird />
+ * </Toggle>
+ *
+ * @example
+ * <Toggle name="stats" transition="slide-up ease-back">
+ *   <StatsCard />
+ * </Toggle>
  *
  * @param {ToggleProps & import("react").HTMLAttributes<HTMLElement>} props
  */

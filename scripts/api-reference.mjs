@@ -32,9 +32,10 @@ if (!existsSync(types)) {
  * What a studio author writes, and what the framework renders for them.
  *
  * Deliberately a list rather than "everything exported". `Menu`, `SyncStatus`,
- * `RelayAdmin` and the dialogs are real components with real props, and none of them
- * is something a studio author places -- `ControlPage` renders them. Documenting
- * them here would triple the page and bury the twenty that matter.
+ * `RelayAdmin`, `SaveButton` and the dialogs are real components with real props,
+ * and none of them is something a studio author places -- `ControlPage` renders
+ * them, and there is only ever one of each. Documenting them here would pad the page
+ * with things nobody can use and bury the ones they can.
  */
 const AUTHORED = {
   control: [
@@ -55,7 +56,6 @@ const AUTHORED = {
     'Leaderboard',
     'Panel',
     'Break',
-    'SaveButton',
     'Confirm',
   ],
   source: ['Scene', 'Variable', 'Image', 'ImageList', 'Toggle', 'Timer', 'Ticker', 'Clock'],
@@ -63,16 +63,16 @@ const AUTHORED = {
 
 /** First sentence of a doc comment: what the thing is, before why it is that way. */
 function summarise(text) {
-  const body = text
-    .split('\n')
-    .map((line) => line.replace(/^\s*\/?\*+\/?\s?/, '').trim())
-    .filter(Boolean)
+  // Blank lines are kept: the opening paragraph ends at one, and that paragraph is
+  // what a reference entry wants -- what the thing is, before the pages of why it is
+  // shaped that way that the source rightly carries and a reader here does not want.
+  const body = text.split('\n').map((line) => line.replace(/^\s*\/?\*+\/?\s?/, '').trimEnd())
 
-  const first = body.findIndex((line) => line && !line.startsWith('@'))
+  const first = body.findIndex((line) => line.trim() && !line.trim().startsWith('@'))
 
   if (first === -1) return ''
 
-  const sentence = []
+  const paragraph = []
 
   for (const raw of body.slice(first)) {
     // A one-line doc comment -- `/** Text. */` -- leaves a trailing asterisk once the
@@ -81,12 +81,46 @@ function summarise(text) {
 
     if (!line || line.startsWith('@')) break
 
-    sentence.push(line)
-
-    if (/[.!?]$/.test(line)) break
+    paragraph.push(line)
   }
 
-  return sentence.join(' ')
+  return paragraph.join(' ')
+}
+
+/**
+ * `@example` blocks, in the order they were written.
+ *
+ * An example is worth more than a prop table for a component somebody has not met:
+ * the table says what may be passed, and the example says what a real line looks
+ * like. Two or three each, chosen to show the common case first and the reason the
+ * other props exist second.
+ */
+function examplesIn(text) {
+  const found = []
+  let current = null
+
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/^\s*\*\s?/, '').replace(/\s*\*\/\s*$/, '')
+
+    if (line.trim().startsWith('@example')) {
+      if (current) found.push(current.join('\n').trim())
+      current = []
+      continue
+    }
+
+    if (current === null) continue
+    if (line.trim().startsWith('@')) {
+      found.push(current.join('\n').trim())
+      current = null
+      continue
+    }
+
+    current.push(line)
+  }
+
+  if (current) found.push(current.join('\n').trim())
+
+  return found.filter(Boolean)
 }
 
 /** Props out of an emitted `export type XProps = { … }` block. */
@@ -118,8 +152,13 @@ function propsOf(source, component) {
     while (at < block.length) {
       const char = block[at]
 
-      if ('{([<'.includes(char)) depth += 1
-      else if ('})]>'.includes(char)) depth -= 1
+      // Angle brackets are deliberately not counted. `>` is the second half of `=>`
+      // as often as it closes a generic, and counting it sent `() => void` to depth
+      // -1, where the terminating semicolon never matched and the type ran on to
+      // swallow every remaining member of the object. Braces and parens are enough:
+      // a generic contains no top-level semicolon to stop at.
+      if ('{(['.includes(char)) depth += 1
+      else if ('})]'.includes(char)) depth -= 1
       else if (char === ';' && depth === 0) break
 
       at += 1
@@ -162,10 +201,17 @@ function render(component) {
 
   const declaration = source.indexOf(`export declare function ${component}(`)
   const before = source.lastIndexOf('/**', declaration)
-  const summary = before === -1 ? '' : summarise(source.slice(before, declaration))
-  const props = propsOf(source, component) ?? []
+  const doc = before === -1 ? '' : source.slice(before, declaration)
+  const summary = summarise(doc)
+  const examples = examplesIn(doc)
+  // Alphabetical, because a reader looking for one prop is scanning rather than
+  // reading. Declaration order means something to whoever wrote the component and
+  // nothing to somebody trying to remember whether it is `slug` or `slugify`.
+  const props = (propsOf(source, component) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
 
   const lines = [`### \`${component}\``, '', summary]
+
+  for (const example of examples) lines.push('', '```jsx', example, '```')
 
   if (props.length) {
     lines.push(
@@ -181,36 +227,48 @@ function render(component) {
   return `${lines.join('\n')}\n`
 }
 
+const link = (name) => `[\`${name}\`](#${name.toLowerCase()})`
+
 const page = `<!-- Generated by scripts/api-reference.mjs. Edit the JSDoc on the components instead. -->
 
 # Component reference
 
-Every piece of state has two components — one on the operator's board, one on air —
-and they meet at a path. That pairing is the whole mental model:
+Every piece of state has two components — one on the operator's dashboard, one on
+air — and they meet at a path. That pairing is the whole mental model:
 
-| What it is       | On the board                  | On air         | Lives under |
-| ---------------- | ----------------------------- | -------------- | ----------- |
-| Text             | \`Field\`                       | \`Variable\`     | \`variables\` |
-| Number           | \`Stepper\`                     | \`Variable\`     | \`variables\` |
-| One of a list    | \`Select\`, \`Cycle\`             | \`Variable\`     | \`variables\` |
-| Colour           | \`ColorPicker\`                 | \`Scene\` \`vars\` | \`variables\` |
-| A picture        | \`ImagePicker\`, \`ImageSelect\`  | \`Image\`        | \`variables\` |
-| Several pictures | \`ImageSelect\` \`multiple\`      | \`ImageList\`    | \`variables\` |
-| On or off        | \`ToggleButton\`, \`ImageToggle\` | \`Toggle\`       | \`toggles\`   |
-| Counting down    | \`Countdown\`, \`CountdownTo\`    | \`Timer\`        | \`timers\`    |
-| Counting up      | \`Stopwatch\`                   | \`Timer\`        | \`timers\`    |
-| Scrolling text   | \`Field\`                       | \`Ticker\`       | \`variables\` |
-| Wall clock       | —                             | \`Clock\`        | —           |
+| What it is       | Dashboard | Source |
+| ---------------- | --------- | ------ |
+| Text             | ${link('Field')} | ${link('Variable')} |
+| Number           | ${link('Stepper')} | ${link('Variable')} |
+| One of a list    | ${link('Select')}, ${link('Cycle')} | ${link('Variable')} |
+| A yes/no         | ${link('Cycle')} with one option | ${link('Variable')} |
+| Colour           | ${link('ColorPicker')} | ${link('Scene')} \`vars\` |
+| A picture        | ${link('ImagePicker')}, ${link('ImageSelect')} | ${link('Image')} |
+| Several pictures | ${link('ImageSelect')} \`multiple\` | ${link('ImageList')} |
+| On or off        | ${link('ToggleButton')}, ${link('ImageToggle')} | ${link('Toggle')} |
+| Counting down    | ${link('Countdown')}, ${link('CountdownTo')} | ${link('Timer')} |
+| Counting up      | ${link('Stopwatch')} | ${link('Timer')} |
+| A table          | ${link('Leaderboard')} | _yours_ |
+| Scrolling text   | ${link('Field')} | ${link('Ticker')} |
+| Wall clock       | — | ${link('Clock')} |
+| Grouping         | ${link('Panel')}, ${link('Break')} | ${link('Scene')} |
 
 Every component takes \`name\` plus a \`namespace\` that defaults to the right one, so a
 studio author writes \`name="home.score"\` and rarely thinks about namespaces at all.
+Values live under \`variables\`, except on/off ones under \`toggles\` and clocks under
+\`timers\` — each component's \`namespace\` row says which.
+
 Every component also passes anything it does not recognise through to the DOM, so
 \`style\`, \`data-*\` and the rest stay available.
 
-## On the board
+## Dashboard
+
+${AUTHORED.control.map((name) => `- ${link(name)}`).join('\n')}
 
 ${AUTHORED.control.map(render).join('\n')}
-## On air
+## Source
+
+${AUTHORED.source.map((name) => `- ${link(name)}`).join('\n')}
 
 ${AUTHORED.source.map(render).join('\n')}`
 

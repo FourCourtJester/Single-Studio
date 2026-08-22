@@ -13,7 +13,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Clear a set of paths back to nothing.
+ * Clear a set of values back to each source's own fallback. It unsets rather than
+ * writing empties, so a graphic falls back rather than going blank.
  *
  * Uses `unset` rather than writing empty strings, so the keys are removed and each
  * source falls back to its own default. Writing '' would leave the paths present
@@ -27,6 +28,13 @@ import { cx } from '../../toolkits/cx'
  * against a `namespace` that defaults to `variables`. `paths` still works and is
  * still the answer for reaching across namespaces in one press, clearing a toggle
  * and the value it was showing together.
+ *
+ * @example
+ * <ResetButton label="scores" names={['home.score', 'away.score']} />
+ *
+ * @example
+ * // Ask first, for something that would hurt mid-show
+ * <ResetButton label="the draft" names={['home.army', 'away.army']} confirm />
  *
  * @param {ResetButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */

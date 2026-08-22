@@ -3,25 +3,6 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { cx } from '../../toolkits/cx'
 import { Thumb } from './Thumb'
 
-/**
- * Pick a value by its picture rather than its name.
- *
- * <Select> with the options laid out as a grid of image tiles. Same path, same
- * stored value -- a source reading `variables.home.commander` cannot tell which
- * control wrote it -- but the operator recognises art instead of reading a list.
- *
- *   <ImageSelect name="home.faction" options={factions} />          one of
- *   <ImageSelect name="home.army" options={units} multiple max={5} />  several
- *
- * `multiple` stores an array in path order of selection, which is what an army
- * composition or a ban list is. `max` stops the grid at a fixed size rather than
- * silently dropping the overflow.
- *
- * Immediate by default, because a tile is a button. Pass `staged` for a pick that
- * should wait with the text fields for a save -- a draft being assembled off-air
- * and revealed on the cut.
- */
-
 const SIZES = { sm: 'h-10 w-10', md: 'h-14 w-14', lg: 'h-20 w-20' }
 
 const optionValue = (option) => (typeof option === 'string' ? option : option.value)
@@ -51,6 +32,31 @@ function toList(value) {
 const same = (a, b) => a.length === b.length && a.every((item, index) => item === b[index])
 
 /**
+ * Choose by picture rather than by name — a grid of tiles, which is what an
+ * operator can aim at inside a draft timer. `multiple` collects several.
+ *
+ * <Select> with the options laid out as a grid of image tiles. Same path, same
+ * stored value -- a source reading `variables.home.commander` cannot tell which
+ * control wrote it -- but the operator recognises art instead of reading a list.
+ *
+ *   <ImageSelect name="home.faction" options={factions} />          one of
+ *   <ImageSelect name="home.army" options={units} multiple max={5} />  several
+ *
+ * `multiple` stores an array in path order of selection, which is what an army
+ * composition or a ban list is. `max` stops the grid at a fixed size rather than
+ * silently dropping the overflow.
+ *
+ * Immediate by default, because a tile is a button. Pass `staged` for a pick that
+ * should wait with the text fields for a save -- a draft being assembled off-air
+ * and revealed on the cut.
+ *
+ * @example
+ * <ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
+ *
+ * @example
+ * // Several, capped, and held until saved
+ * <ImageSelect name="home.army" label="Army" options={UNITS} multiple max={8} staged />
+ *
  * @param {ImageSelectProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function ImageSelect({

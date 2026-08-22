@@ -16,7 +16,8 @@ import { Tooltip } from '../common/Tooltip'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Text input bound to a path, staged until saved.
+ * Text an operator types, bound to a path. Staged until saved, so a half-typed
+ * name never reaches air; `as="textarea"` takes several lines instead of one.
  *
  * Nothing here reaches air as you type. An operator types at their own pace and
  * revises mid-word; writing every keystroke through would put "Vand" on the lower
@@ -27,6 +28,16 @@ import { Tooltip } from '../common/Tooltip'
  * worker to fight the cursor. And while a field is dirty its staged value wins over
  * the store, so a remote change cannot yank text out from under an operator
  * mid-edit.
+ *
+ * @example
+ * <Field name="home.name" label="Home" placeholder="Home team" />
+ *
+ * @example
+ * <Field name="guest.bio" label="Guest bio" as="textarea" rows={4} />
+ *
+ * @example
+ * // Anywhere but the default namespace
+ * <Field name="headline" label="Headline" namespace="lowerthird" />
  *
  * @param {FieldProps & import("react").HTMLAttributes<HTMLElement>} props
  */

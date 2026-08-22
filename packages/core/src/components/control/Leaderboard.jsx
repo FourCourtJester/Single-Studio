@@ -16,7 +16,8 @@ import { Field } from './Field'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * A results board, editable two ways.
+ * A table an operator can paste into or edit row by row, stored as one delimited
+ * string. `fields` names the columns; the graphic parses it back out.
  *
  * **Paste view** is a textarea holding the raw delimited text. This is the one that
  * matters in practice: an operator copies a block of standings out of a spreadsheet
@@ -29,6 +30,13 @@ import { Field } from './Field'
  * path per cell, which keeps a paste a single atomic write instead of twenty racing
  * ones — and means the source component can render the whole board from one
  * subscription.
+ *
+ * @example
+ * <Leaderboard name="standings" fields={['Team', 'W', 'L']} rows={8} />
+ *
+ * @example
+ * // Pasted straight out of a spreadsheet
+ * <Leaderboard name="results" fields={['Driver', 'Time']} delimiter="\t" />
  *
  * @param {LeaderboardProps & import("react").HTMLAttributes<HTMLElement>} props
  */

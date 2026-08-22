@@ -7,11 +7,18 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Titled grouping for the control surface. Layout only, no state.
+ * A titled group of controls. Children wrap in a flex row, so a panel reflows to
+ * whatever width the dock has rather than needing a layout of its own.
  *
  * Children wrap responsively so the same board works in a narrow OBS dock and
  * full screen -- see `.ss-panel-body` in the stylesheet, and `--ss-control-min`
  * to retune where it wraps.
+ *
+ * @example
+ * <Panel title="Scores">
+ *   <Field name="home.name" label="Home" />
+ *   <Stepper name="home.score" label="Home score" />
+ * </Panel>
  *
  * @param {PanelProps & import("react").HTMLAttributes<HTMLElement>} props
  */

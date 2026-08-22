@@ -13,7 +13,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Numeric value with -/+ controls and a field you can type into.
+ * A number with minus and plus buttons, and a field to type into. The buttons add
+ * and subtract, so two operators pressing +1 at once come to +2 rather than +1.
  *
  * The buttons use the `increment`/`decrement` mutations rather than writing an
  * absolute value, which is what makes two operators tapping +1 at the same moment
@@ -35,6 +36,13 @@ import { cx } from '../../toolkits/cx'
  *
  * `step` sizes the buttons and the field's own arrow keys alike, so a stepper for
  * a sport scoring in threes is `step={3}` and nothing else changes.
+ *
+ * @example
+ * <Stepper name="home.score" label="Home score" />
+ *
+ * @example
+ * // A sport that scores in threes
+ * <Stepper name="home.score" label="Home score" step={3} />
  *
  * @param {StepperProps & import("react").HTMLAttributes<HTMLElement>} props
  */

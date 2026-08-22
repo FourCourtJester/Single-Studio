@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useAssetUrl } from '../../hooks/useAssets'
 import { useVelcroState } from '../../hooks/useVelcroValue'
@@ -6,58 +6,10 @@ import { cx } from '../../toolkits/cx'
 import { slugify } from '../../toolkits/slug'
 import { Transition } from '../common/Transition'
 
-/**
- * An image chosen by a value the operator controls.
- *
- * Two shapes, and both matter on a broadcast:
- *
- *   <Image name="home.name" src="/logos/:value:.svg" slug />   templated from a value
- *   <Image name="sponsor.logo" />                              the value *is* the URL
- *   <Image name="guest.photo" />                               ...or an `asset:<key>` entry
- *
- * The second is the default (`src` is `:value:`), so pasting a URL into a field
- * puts that image on air with no studio code at all. An `asset:<key>` reference --
- * what ImagePicker writes -- resolves through the library and then follows exactly
- * the same path, so nothing downstream knows whether the bytes came from a bundled
- * file, a remote host, or an operator's upload.
- *
- * What makes this different from an `<img>` tag is what happens between images.
- * A new URL is loaded and decoded off-screen first, and only swapped in once it is
- * ready to paint. The previous image stays up in the meantime. Swapping the src
- * directly leaves a hole on air for however long the network takes -- fine in a
- * web page, not fine over a live scene.
- *
- * `refresh` re-fetches on an interval for an image whose *contents* change behind a
- * stable URL -- a chart, a camera still, an externally generated card. Each poll is
- * cache-busted and, again, only swapped once decoded, so a slow or failed refresh
- * never blanks what is already showing.
- *
- * Two ways in, and only one of them is for a studio author. `name` reads a path,
- * which is what a graphic normally does. `value` hands it a string outright, for a
- * component that already holds one -- a row of a list, an entry being previewed --
- * and wants the loading, decoding and retry machinery without inventing a path to
- * park the value at. `value` wins when both are given.
- */
-
-const RETRY_BASE = 400
 const isAbsolute = (url) => /^[a-z][a-z0-9+.-]*:/i.test(url)
 
 /** Remote hosts commonly block hotlinking by Referer, and we never need to send one. */
 const REFERRER_POLICY = 'no-referrer'
-
-function bust(url, token) {
-  try {
-    const parsed = new URL(url, window.location.href)
-
-    parsed.searchParams.set('_ss', token)
-
-    return parsed.toString()
-  } catch {
-    // Not parseable as a URL (a bare relative path on an odd base); fall back to
-    // naive concatenation rather than dropping the refresh entirely.
-    return `${url}${url.includes('?') ? '&' : '?'}_ss=${token}`
-  }
-}
 
 /**
  * @typedef {object} ImageProps
@@ -67,8 +19,6 @@ function bust(url, token) {
  * @property {boolean} [slug] - Slugify the value first — "Boise State" becomes `boise-state`.
  * @property {string} [fallback] - URL used when the value is empty or fails to load.
  * @property {string} [alt] - Alt text.
- * @property {number} [refresh] - Re-fetch every N milliseconds, for a URL whose contents change.
- * @property {number} [retries] - Attempts before giving up. Defaults to `3`.
  * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -96,6 +46,41 @@ function preload(url) {
 }
 
 /**
+ * A picture chosen by a value the operator controls. Loads and decodes off-screen
+ * first and only swaps once ready, so a change never leaves a hole on air.
+ *
+ * Two shapes, and both matter on a broadcast:
+ *
+ *   <Image name="home.name" src="/logos/:value:.svg" slug />   templated from a value
+ *   <Image name="sponsor.logo" />                              the value *is* the URL
+ *   <Image name="guest.photo" />                               ...or an `asset:<key>` entry
+ *
+ * The second is the default (`src` is `:value:`), so pasting a URL into a field
+ * puts that image on air with no studio code at all. An `asset:<key>` reference --
+ * what ImagePicker writes -- resolves through the library and then follows exactly
+ * the same path, so nothing downstream knows whether the bytes came from a bundled
+ * file, a remote host, or an operator's upload.
+ *
+ * What makes this different from an `<img>` tag is what happens between images.
+ * A new URL is loaded and decoded off-screen first, and only swapped in once it is
+ * ready to paint. The previous image stays up in the meantime. Swapping the src
+ * directly leaves a hole on air for however long the network takes -- fine in a
+ * web page, not fine over a live scene.
+ *
+ * Two ways in, and only one of them is for a studio author. `name` reads a path,
+ * which is what a graphic normally does. `value` hands it a string outright, for a
+ * component that already holds one -- a row of a list, an entry being previewed --
+ * and wants the loading, decoding and retry machinery without inventing a path to
+ * park the value at. `value` wins when both are given.
+ *
+ * @example
+ * // The value is the URL, or an `asset:` key from the library
+ * <Image name="sponsor.logo" alt="" />
+ *
+ * @example
+ * // Templated from a value: "Boise State" resolves /logos/boise-state.svg
+ * <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/tbd.svg" />
+ *
  * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */
 export function Image({
@@ -105,8 +90,6 @@ export function Image({
   slug = false,
   fallback,
   alt = '',
-  refresh,
-  retries = 3,
   className,
   namespace = 'variables',
   ...rest
@@ -119,8 +102,6 @@ export function Image({
   const hydrated = literal !== undefined || loaded
   // What is on air. Only ever replaced by something already decoded.
   const [shown, setShown] = useState(null)
-  const attempt = useRef(0)
-  const timer = useRef(null)
 
   const templated = hydrated && src ? String(src).replace(/:value:/g, slug ? slugify(value) : String(value ?? '')) : null
   // An asset reference becomes an object URL here; everything else passes through.
@@ -128,9 +109,6 @@ export function Image({
   const usable = target && !/:value:|^\s*$/.test(target) && target !== 'undefined' && target !== 'null'
 
   useEffect(() => {
-    clearTimeout(timer.current)
-    attempt.current = 0
-
     if (!usable) {
       setShown(null)
       return undefined
@@ -149,53 +127,19 @@ export function Image({
       if (live) setShown(url)
     }
 
-    const load = (url) => {
-      preload(url).then(show, (err) => {
-        if (!live) return
+    preload(target).then(show, (err) => {
+      if (!live) return
 
-        attempt.current += 1
+      console.warn(`[single-studio] image failed: ${target}`, err?.message ?? err)
 
-        if (attempt.current <= retries) {
-          // A blip mid-show should not cost the graphic for the rest of the night.
-          timer.current = setTimeout(() => load(url), RETRY_BASE * 2 ** (attempt.current - 1))
-          return
-        }
-
-        console.warn(`[single-studio] image failed after ${retries} retries: ${url}`, err?.message ?? err)
-
-        if (fallback) preload(fallback).then(show, () => show(null))
-        else show(null)
-      })
-    }
-
-    load(target)
+      if (fallback) preload(fallback).then(show, () => show(null))
+      else show(null)
+    })
 
     return () => {
       live = false
-      clearTimeout(timer.current)
     }
-  }, [fallback, retries, target, usable])
-
-  // Polling for an image whose contents change behind a stable URL.
-  useEffect(() => {
-    if (!usable || !refresh) return undefined
-
-    const every = Number(refresh) * 1000
-
-    if (!Number.isFinite(every) || every <= 0) return undefined
-
-    const poll = setInterval(() => {
-      preload(bust(target, Date.now())).then(
-        (url) => setShown(url),
-        () => {
-          // Keep whatever is already on air. A failed refresh is not a reason to
-          // blank a graphic mid-show.
-        },
-      )
-    }, every)
-
-    return () => clearInterval(poll)
-  }, [refresh, target, usable])
+  }, [fallback, target, usable])
 
   if (!shown) return null
 

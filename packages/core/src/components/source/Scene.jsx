@@ -12,7 +12,9 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Root of a graphic. One Scene per OBS browser source.
+ * The root of a graphic — one per OBS browser source. `vars` maps CSS custom
+ * properties to values an operator controls, which is how a graphic follows input
+ * the framework has no component for.
  *
  * `vars` maps CSS custom properties to values an operator controls, so a graphic
  * can be driven by anything a stylesheet can express -- a team colour, a bar width,
@@ -34,6 +36,21 @@ import { cx } from '../../toolkits/cx'
  *
  * A value holding nothing is left unset rather than blanked, so the fallback in
  * `var()` still applies.
+ *
+ * @example
+ * export default function Scoreboard() {
+ *   return (
+ *     <Scene>
+ *       <Variable name="home.name" fallback="Home" />
+ *     </Scene>
+ *   )
+ * }
+ *
+ * @example
+ * // A team colour driving anything the stylesheet can express
+ * <Scene vars={{ '--home': 'home.color' }}>
+ *   <div style={{ background: 'var(--home, #0a3161)' }} />
+ * </Scene>
  *
  * @param {SceneProps & import("react").HTMLAttributes<HTMLElement>} props
  */

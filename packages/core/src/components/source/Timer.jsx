@@ -13,7 +13,9 @@ import { Transition } from '../common/Transition'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * A countdown. Derives from an absolute target time, so it needs no sync.
+ * A clock on air, reading whichever kind was stored — a countdown, a count-up, or
+ * a paused one. Shows 00:00 for a second when a countdown ends, then takes itself
+ * off air.
  *
  * The trigger is `active`, not the text -- the display ticks once a second and
  * animating each tick would be unreadable. Only starting and finishing animate.
@@ -35,6 +37,13 @@ import { Transition } from '../common/Transition'
  * (The first frame was already right, and is worth stating because the two look like
  * one problem. A countdown rounds *up*, so each digit holds for a full second and a
  * five-second timer opens on 00:05. See `formatDuration`.)
+ *
+ * @example
+ * <Timer name="round" fallback="--:--" />
+ *
+ * @example
+ * // Do something when the clock runs out
+ * <Timer name="break" onComplete={() => setScene("live")} />
  *
  * @param {TimerProps & import("react").HTMLAttributes<HTMLElement>} props
  */

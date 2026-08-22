@@ -15,7 +15,8 @@ import { Image } from './Image'
  * @property {string} [itemClassName] - Added to each image rather than to the list.
  */
 /**
- * A row of images from one multi-valued path.
+ * Several pictures from one value — what `ImageSelect multiple` writes. Each entry
+ * is templated exactly as `Image` templates one.
  *
  * <ImageSelect multiple> writes an array; this puts it on air. An army composition,
  * a ban list, the three sponsors running this segment -- one subscription, one
@@ -26,6 +27,13 @@ import { Image } from './Image'
  *
  * A string value is treated as a list of one, so a path that used to hold a single
  * pick keeps rendering after the control behind it grows a `multiple`.
+ *
+ * @example
+ * <ImageList name="home.army" src="/units/:value:.svg" slug />
+ *
+ * @example
+ * // Cap what goes on air, whatever the operator picked
+ * <ImageList name="home.army" limit={8} itemClassName="h-10 w-10" />
  *
  * @param {ImageListProps & import("react").HTMLAttributes<HTMLElement>} props
  */

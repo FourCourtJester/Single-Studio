@@ -12,7 +12,8 @@ import { cx } from '../../toolkits/cx'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Trade values pairwise -- teams changing ends, home/away flipping.
+ * Trade values pairwise — teams changing ends. The list is swapped outermost
+ * inwards, so a symmetrical row reads as one and needs no counting.
  *
  * The list is traded outermost inwards: the first swaps with the last, the second
  * with the second-last. So a symmetrical row reads as one, which is how somebody
@@ -21,6 +22,13 @@ import { cx } from '../../toolkits/cx'
  *   names={['home.name', 'home.score', 'away.score', 'away.name']}
  *
  * `paths` is still accepted for reaching across namespaces.
+ *
+ * @example
+ * <SwapButton label="sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
+ *
+ * @example
+ * // `paths` reaches across namespaces, which `names` cannot
+ * <SwapButton label="scenes" paths={['toggles.left', 'toggles.right']} />
  *
  * @param {SwapButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */

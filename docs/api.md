@@ -2,248 +2,421 @@
 
 # Component reference
 
-Every piece of state has two components — one on the operator's board, one on air —
-and they meet at a path. That pairing is the whole mental model:
+Every piece of state has two components — one on the operator's dashboard, one on
+air — and they meet at a path. That pairing is the whole mental model:
 
-| What it is       | On the board                  | On air         | Lives under |
-| ---------------- | ----------------------------- | -------------- | ----------- |
-| Text             | `Field`                       | `Variable`     | `variables` |
-| Number           | `Stepper`                     | `Variable`     | `variables` |
-| One of a list    | `Select`, `Cycle`             | `Variable`     | `variables` |
-| Colour           | `ColorPicker`                 | `Scene` `vars` | `variables` |
-| A picture        | `ImagePicker`, `ImageSelect`  | `Image`        | `variables` |
-| Several pictures | `ImageSelect` `multiple`      | `ImageList`    | `variables` |
-| On or off        | `ToggleButton`, `ImageToggle` | `Toggle`       | `toggles`   |
-| Counting down    | `Countdown`, `CountdownTo`    | `Timer`        | `timers`    |
-| Counting up      | `Stopwatch`                   | `Timer`        | `timers`    |
-| Scrolling text   | `Field`                       | `Ticker`       | `variables` |
-| Wall clock       | —                             | `Clock`        | —           |
+| What it is       | Dashboard | Source |
+| ---------------- | --------- | ------ |
+| Text             | [`Field`](#field) | [`Variable`](#variable) |
+| Number           | [`Stepper`](#stepper) | [`Variable`](#variable) |
+| One of a list    | [`Select`](#select), [`Cycle`](#cycle) | [`Variable`](#variable) |
+| A yes/no         | [`Cycle`](#cycle) with one option | [`Variable`](#variable) |
+| Colour           | [`ColorPicker`](#colorpicker) | [`Scene`](#scene) `vars` |
+| A picture        | [`ImagePicker`](#imagepicker), [`ImageSelect`](#imageselect) | [`Image`](#image) |
+| Several pictures | [`ImageSelect`](#imageselect) `multiple` | [`ImageList`](#imagelist) |
+| On or off        | [`ToggleButton`](#togglebutton), [`ImageToggle`](#imagetoggle) | [`Toggle`](#toggle) |
+| Counting down    | [`Countdown`](#countdown), [`CountdownTo`](#countdownto) | [`Timer`](#timer) |
+| Counting up      | [`Stopwatch`](#stopwatch) | [`Timer`](#timer) |
+| A table          | [`Leaderboard`](#leaderboard) | _yours_ |
+| Scrolling text   | [`Field`](#field) | [`Ticker`](#ticker) |
+| Wall clock       | — | [`Clock`](#clock) |
+| Grouping         | [`Panel`](#panel), [`Break`](#break) | [`Scene`](#scene) |
 
 Every component takes `name` plus a `namespace` that defaults to the right one, so a
 studio author writes `name="home.score"` and rarely thinks about namespaces at all.
+Values live under `variables`, except on/off ones under `toggles` and clocks under
+`timers` — each component's `namespace` row says which.
+
 Every component also passes anything it does not recognise through to the DOM, so
 `style`, `data-*` and the rest stay available.
 
-## On the board
+## Dashboard
+
+- [`Field`](#field)
+- [`Stepper`](#stepper)
+- [`Select`](#select)
+- [`Cycle`](#cycle)
+- [`ColorPicker`](#colorpicker)
+- [`ImagePicker`](#imagepicker)
+- [`ImageSelect`](#imageselect)
+- [`ImageToggle`](#imagetoggle)
+- [`ToggleButton`](#togglebutton)
+- [`SwapButton`](#swapbutton)
+- [`ResetButton`](#resetbutton)
+- [`Countdown`](#countdown)
+- [`CountdownTo`](#countdownto)
+- [`Stopwatch`](#stopwatch)
+- [`Leaderboard`](#leaderboard)
+- [`Panel`](#panel)
+- [`Break`](#break)
+- [`Confirm`](#confirm)
 
 ### `Field`
 
-Text input bound to a path, staged until saved.
+Text an operator types, bound to a path. Staged until saved, so a half-typed name never reaches air; `as="textarea"` takes several lines instead of one.
+
+```jsx
+<Field name="home.name" label="Home" placeholder="Home team" />
+```
+
+```jsx
+<Field name="guest.bio" label="Guest bio" as="textarea" rows={4} />
+```
+
+```jsx
+// Anywhere but the default namespace
+<Field name="headline" label="Headline" namespace="lowerthird" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. |
-| `placeholder` | `string` | Hint shown in the empty input. |
 | `as` | `'input' \| 'textarea'` | Defaults to `"input"`. |
-| `rows` | `number` | Height when `as="textarea"`. Defaults to `3`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `placeholder` | `string` | Hint shown in the empty input. |
+| `rows` | `number` | Height when `as="textarea"`. Defaults to `3`. |
 
 ### `Stepper`
 
-Numeric value with -/+ controls and a field you can type into.
+A number with minus and plus buttons, and a field to type into. The buttons add and subtract, so two operators pressing +1 at once come to +2 rather than +1.
+
+```jsx
+<Stepper name="home.score" label="Home score" />
+```
+
+```jsx
+// A sport that scores in threes
+<Stepper name="home.score" label="Home score" step={3} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. |
-| `step` | `number` | How much the -/+ buttons add, and the field's arrow keys. Defaults to `1`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `step` | `number` | How much the -/+ buttons add, and the field's arrow keys. Defaults to `1`. |
 
 ### `Select`
 
-Dropdown bound to a path, staged until saved.
+A dropdown of allowed values, staged until saved. Options are plain strings, or `{ value, label }` when what is stored differs from what is shown.
+
+```jsx
+<Select name="period" label="Period" options={['1st', '2nd', '3rd', 'OT']} />
+```
+
+```jsx
+<Select
+  name="round"
+  label="Round"
+  options={[
+    { value: 'qf', label: 'Quarter-final' },
+    { value: 'sf', label: 'Semi-final' },
+  ]}
+/>
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `children` | `ReactNode` | Options as JSX, instead of `options`. |
+| `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. Defaults to `"Select"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `options` | `Array<string \| { value: string, label: string }>` | What can be chosen. |
 | `placeholder` | `string` | The empty choice. Defaults to `"— none —"`. |
-| `children` | `ReactNode` | Options as JSX, instead of `options`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
-| `className` | `string` | Added to the component's own classes. |
 
 ### `Cycle`
 
-Step through a fixed list of options, wrapping back to unset.
+One button that steps through a list of values in order, wrapping back to unset at the end. With a single option it is a checkbox: press to set it, press again to clear it — which is what to reach for when a graphic only needs "on or the value, or nothing".
+
+```jsx
+<Cycle name="period" label="Game" options={['Game 1', 'Game 2', 'Tiebreak']} />
+```
+
+```jsx
+// One option, so it toggles between that value and nothing
+<Cycle name="status" label="Live" options={['LIVE']} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. |
-| `options` | `string[]` | Stepped through in order, wrapping back to unset. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `options` | `string[]` | Stepped through in order, wrapping back to unset. One option makes it a checkbox. |
 
 ### `ColorPicker`
 
+A colour, as a swatch to pick from and a hex field to type into. Pair it with `Scene`'s `vars` to drive anything a stylesheet can express.
 
+```jsx
+<ColorPicker name="home.color" label="Home colour" presets={['#0a3161', '#c8102e']} />
+```
+
+```jsx
+// and on the graphic
+<Scene vars={{ '--home': 'home.color' }}>
+  <div style={{ background: 'var(--home, #0a3161)' }} />
+</Scene>
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. Defaults to `"Color"`. |
-| `presets` | `string[]` | Swatches offered beside the picker. |
-| `fallback` | `string` | Shown when nothing is set. Defaults to `"#0ea5e9"`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `fallback` | `string` | Shown when nothing is set. Defaults to `"#0ea5e9"`. |
+| `label` | `string` | Shown above the control. Defaults to `"Color"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `presets` | `string[]` | Swatches offered beside the picker. |
 
 ### `ImagePicker`
 
+One image, chosen by name from the studio's library, with a preview beside the dropdown and a magnifier to open the library itself. Writes `asset:<key>`.
 
+```jsx
+<ImagePicker name="guest.photo" label="Guest photo" />
+```
+
+```jsx
+<ImagePicker name="sponsor.logo" label="Sponsor" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. Defaults to `"Image"`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. Defaults to `"Image"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 
 ### `ImageSelect`
 
+Choose by picture rather than by name — a grid of tiles, which is what an operator can aim at inside a draft timer. `multiple` collects several.
 
+```jsx
+<ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
+```
+
+```jsx
+// Several, capped, and held until saved
+<ImageSelect name="home.army" label="Army" options={UNITS} multiple max={8} staged />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. Defaults to `"Select"`. |
-| `options` | `Array<string \| { value: string, label?: string, image?: string }>` | What can be chosen, shown as pictures. |
-| `multiple` | `boolean` | Choose several. The value becomes a comma-separated list. |
-| `max` | `number` | Cap on how many, when `multiple`. |
-| `staged` | `boolean` | Hold the choice until saved, rather than writing on click. |
-| `size` | `'sm' \| 'md' \| 'lg'` | Tile size. Defaults to `"md"`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. Defaults to `"Select"`. |
+| `max` | `number` | Cap on how many, when `multiple`. |
+| `multiple` | `boolean` | Choose several. The value becomes a comma-separated list. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `options` | `Array<string \| { value: string, label?: string, image?: string }>` | What can be chosen, shown as pictures. |
+| `size` | `'sm' \| 'md' \| 'lg'` | Tile size. Defaults to `"md"`. |
+| `staged` | `boolean` | Hold the choice until saved, rather than writing on click. |
 
 ### `ImageToggle`
 
-<ToggleButton> with a picture on it.
+An on/off button with a picture on it. `group` makes a row of them behave like radio buttons, which is how a scene picker is usually built.
+
+```jsx
+<ImageToggle name="lowerthird" label="Lower third" image="/ui/lower-third.svg" />
+```
+
+```jsx
+// One at a time, and the picture comes from whatever the operator picked
+<ImageToggle name="replay" from="variables.replay.thumb" group={['replay', 'live']} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. |
-| `image` | `string` | The picture on the button. |
+| `className` | `string` | Added to the component's own classes. |
 | `from` | `string` | Read the picture from this path instead of `image`. |
 | `group` | `string[]` | Names that turn off when this turns on. |
-| `size` | `'sm' \| 'md' \| 'lg'` | Defaults to `"md"`. |
+| `image` | `string` | The picture on the button. |
+| `label` | `string` | Shown above the control. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
 | `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
-| `className` | `string` | Added to the component's own classes. |
+| `size` | `'sm' \| 'md' \| 'lg'` | Defaults to `"md"`. |
 
 ### `ToggleButton`
 
-On/off button. Pass `group` for radio-button behaviour across several paths.
+An on/off button for a path under `toggles`, which is what a graphic watches to know whether to be on air. `group` turns a set of them into radio buttons.
+
+```jsx
+<ToggleButton name="lowerthird" label="Lower third" />
+```
+
+```jsx
+// Exactly one of these can be on
+<ToggleButton name="stats" label="Stats" group={['stats', 'roster', 'bracket']} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. |
-| `group` | `string[]` | Names that turn off when this turns on — radio-button behaviour. |
 | `children` | `ReactNode` | Replaces the generated "Show <label>" text. |
-| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
 | `className` | `string` | Added to the component's own classes. |
+| `group` | `string[]` | Names that turn off when this turns on — radio-button behaviour. |
+| `label` | `string` | Shown on the button. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `lowerthird`. |
+| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
 
 ### `SwapButton`
 
-Trade values pairwise -- teams changing ends, home/away flipping.
+Trade values pairwise — teams changing ends. The list is swapped outermost inwards, so a symmetrical row reads as one and needs no counting.
+
+```jsx
+<SwapButton label="sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
+```
+
+```jsx
+// `paths` reaches across namespaces, which `names` cannot
+<SwapButton label="scenes" paths={['toggles.left', 'toggles.right']} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `names` | `string[]` | Traded outermost inwards: first with last, second with second-last. |
-| `paths` | `string[]` | Fully-qualified paths, for trading across namespaces. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
-| `label` | `string` | Shown above the control. Defaults to `"Swap"`. |
 | `children` | `ReactNode` | Replaces the generated text. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. Defaults to `"Swap"`. |
+| `names` | `string[]` | Traded outermost inwards: first with last, second with second-last. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `paths` | `string[]` | Fully-qualified paths, for trading across namespaces. |
 
 ### `ResetButton`
 
-Clear a set of paths back to nothing.
+Clear a set of values back to each source's own fallback. It unsets rather than writing empties, so a graphic falls back rather than going blank.
+
+```jsx
+<ResetButton label="scores" names={['home.score', 'away.score']} />
+```
+
+```jsx
+// Ask first, for something that would hurt mid-show
+<ResetButton label="the draft" names={['home.army', 'away.army']} confirm />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `names` | `string[]` | Cleared back to each source's own fallback. |
-| `paths` | `string[]` | Fully-qualified paths, for clearing across namespaces. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
-| `label` | `string` | Shown above the control. Defaults to `"Reset"`. |
-| `confirm` | `boolean` | Ask before clearing. |
 | `children` | `ReactNode` | Replaces the generated "Reset <label>" text. |
 | `className` | `string` | Added to the component's own classes. |
+| `confirm` | `boolean` | Ask before clearing. |
+| `label` | `string` | Shown above the control. Defaults to `"Reset"`. |
+| `names` | `string[]` | Cleared back to each source's own fallback. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `paths` | `string[]` | Fully-qualified paths, for clearing across namespaces. |
 
 ### `Countdown`
 
-Count down for a duration -- a break, a half, a stinger.
+Counts down a duration — a break, a half, a stinger. Without `duration` the operator types one; with it the control is a single press.
+
+```jsx
+<Countdown name="round" label="Round" />
+```
+
+```jsx
+// Always the same length, so one press starts it
+<Countdown name="break" label="break" duration="5:00" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. |
-| `duration` | `string \| number` | A fixed length, e.g. `"5:00"`. Without it the operator types one. |
-| `placeholder` | `string` | Hint in the duration field. Defaults to `"5:00"`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 | `className` | `string` | Added to the component's own classes. |
+| `duration` | `string \| number` | A fixed length, e.g. `"5:00"`. Without it the operator types one. |
+| `label` | `string` | Shown above the control. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
+| `placeholder` | `string` | Hint in the duration field. Defaults to `"5:00"`. |
 
 ### `CountdownTo`
 
-Count down to a wall-clock time rather than for a duration.
+Counts down to a time of day rather than a length — "we go live at 19:30". Rolls to tomorrow if the time has already passed today.
+
+```jsx
+<CountdownTo name="showtime" label="Doors open" />
+```
+
+```jsx
+// Something further out than today
+<CountdownTo name="finals" label="Finals" as="datetime-local" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. Defaults to `"Starts at"`. |
 | `as` | `'time' \| 'datetime-local'` | `"time"` takes HH:MM and rolls to tomorrow if past. Defaults to `"time"`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. Defaults to `"Starts at"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 
 ### `Stopwatch`
 
-A count-up clock: start, pause, reset.
+Counts up from when it was started, with pause and reset. Stores an origin rather than a running total, so every machine derives the same number.
+
+```jsx
+<Stopwatch name="match" label="Show elapsed" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. Defaults to `"Stopwatch"`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 | `className` | `string` | Added to the component's own classes. |
+| `label` | `string` | Shown above the control. Defaults to `"Stopwatch"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 
 ### `Leaderboard`
 
-A results board, editable two ways.
+A table an operator can paste into or edit row by row, stored as one delimited string. `fields` names the columns; the graphic parses it back out.
+
+```jsx
+<Leaderboard name="standings" fields={['Team', 'W', 'L']} rows={8} />
+```
+
+```jsx
+// Pasted straight out of a spreadsheet
+<Leaderboard name="results" fields={['Driver', 'Time']} delimiter="\t" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `label` | `string` | Shown above the control. Defaults to `"Leaderboard"`. |
-| `fields` | `string[]` | Column names, in order. |
-| `delimiter` | `string` | What separates columns in the stored string. |
-| `rows` | `number` | How many rows the table shows. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `delimiter` | `string` | What separates columns in the stored string. |
+| `fields` | `string[]` | Column names, in order. |
+| `label` | `string` | Shown above the control. Defaults to `"Leaderboard"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `rows` | `number` | How many rows the table shows. |
 
 ### `Panel`
 
-Titled grouping for the control surface. Layout only, no state.
+A titled group of controls. Children wrap in a flex row, so a panel reflows to whatever width the dock has rather than needing a layout of its own.
+
+```jsx
+<Panel title="Scores">
+  <Field name="home.name" label="Home" />
+  <Stepper name="home.score" label="Home score" />
+</Panel>
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `title` | `string` | Heading for the group. |
 | `children` | `ReactNode` | Controls, which wrap in a flex row. |
 | `className` | `string` | Added to the component's own classes. |
+| `title` | `string` | Heading for the group. |
 
 ### `Break`
 
-Forces a line break inside a `Panel`'s wrapping flex row.
+Forces a line break inside a `Panel`, for when the natural wrap puts related controls on different rows.
 
-| Prop | Type | |
-| --- | --- | --- |
-| `className` | `string` | Added to the component's own classes. |
-
-### `SaveButton`
-
-Commits every staged edit at once, and owns the Ctrl/Cmd+S binding.
+```jsx
+<Panel title="Scores">
+  <Stepper name="home.score" label="Home" />
+  <Break />
+  <Select name="period" options={PERIODS} />
+</Panel>
+```
 
 | Prop | Type | |
 | --- | --- | --- |
@@ -251,117 +424,218 @@ Commits every staged edit at once, and owns the Ctrl/Cmd+S binding.
 
 ### `Confirm`
 
+A destructive button that asks first, without a dialog: one click arms it, a second does it, and a few seconds of silence disarms it.
 
+```jsx
+<Confirm label="Remove all" onConfirm={() => library.removeAll()} />
+```
+
+```jsx
+<Confirm label="Disconnect" tone="quiet" onConfirm={leave} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `onConfirm` **·** required | `() => void, /** * - What the button says when idle. */ label?: string, /** * - What it says once armed. Defaults to `"Click to confirm"`. */ ask?: string, /** * - Defaults to `"danger"`. */ tone?: 'danger' \| 'quiet', /** * - Nothing happens on click. */ disabled?: boolean, /** * - Replaces `label` when idle. */ children?: ReactNode, /** * - Added to the component's own classes. */ className?: string,` | Called on the second click. |
-| `label` | `string` | What the button says when idle. |
 | `ask` | `string` | What it says once armed. Defaults to `"Click to confirm"`. |
-| `tone` | `'danger' \| 'quiet'` | Defaults to `"danger"`. |
-| `disabled` | `boolean` | Nothing happens on click. |
 | `children` | `ReactNode` | Replaces `label` when idle. |
 | `className` | `string` | Added to the component's own classes. |
+| `disabled` | `boolean` | Nothing happens on click. |
+| `label` | `string` | What the button says when idle. |
+| `onConfirm` **·** required | `() => void` | Called on the second click. |
+| `tone` | `'danger' \| 'quiet'` | Defaults to `"danger"`. |
 
-## On air
+## Source
+
+- [`Scene`](#scene)
+- [`Variable`](#variable)
+- [`Image`](#image)
+- [`ImageList`](#imagelist)
+- [`Toggle`](#toggle)
+- [`Timer`](#timer)
+- [`Ticker`](#ticker)
+- [`Clock`](#clock)
 
 ### `Scene`
 
-Root of a graphic. One Scene per OBS browser source.
+The root of a graphic — one per OBS browser source. `vars` maps CSS custom properties to values an operator controls, which is how a graphic follows input the framework has no component for.
+
+```jsx
+export default function Scoreboard() {
+  return (
+    <Scene>
+      <Variable name="home.name" fallback="Home" />
+    </Scene>
+  )
+}
+```
+
+```jsx
+// A team colour driving anything the stylesheet can express
+<Scene vars={{ '--home': 'home.color' }}>
+  <div style={{ background: 'var(--home, #0a3161)' }} />
+</Scene>
+```
 
 | Prop | Type | |
 | --- | --- | --- |
 | `children` | `ReactNode` | The graphic. |
-| `vars` | `Record<string, string>` | CSS custom property to value name, e.g. `{ "--accent": "home.color" }`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `vars` | `Record<string, string>` | CSS custom property to value name, e.g. `{ "--accent": "home.color" }`. |
 
 ### `Variable`
 
-A text value from the operator's board. The workhorse graphic.
+One value on air, as text. This is the component most graphics are mostly made of — a name, a score, a subtitle.
+
+```jsx
+<Variable name="home.name" fallback="Home" />
+```
+
+```jsx
+// Shrink to fit rather than overflow a fixed box
+<Variable name="guest.title" fallback="Guest" fit />
+```
+
+```jsx
+<Variable name="headline" namespace="lowerthird" fallback="" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | Shown when the value is empty. Defaults to `""`. |
 | `fit` | `boolean \| number` | Shrink the text to fit its box. A number caps how far. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
 | `namespace` | `string` | Where the value lives. Defaults to `variables`. |
-| `className` | `string` | Added to the component's own classes. |
 
 ### `Image`
 
+A picture chosen by a value the operator controls. Loads and decodes off-screen first and only swaps once ready, so a change never leaves a hole on air.
 
+```jsx
+// The value is the URL, or an `asset:` key from the library
+<Image name="sponsor.logo" alt="" />
+```
+
+```jsx
+// Templated from a value: "Boise State" resolves /logos/boise-state.svg
+<Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/tbd.svg" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `value` | `string` | A value outright rather than a path to one. Wins over `name`. |
-| `src` | `string` | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
-| `slug` | `boolean` | Slugify the value first — "Boise State" becomes `boise-state`. |
-| `fallback` | `string` | URL used when the value is empty or fails to load. |
 | `alt` | `string` | Alt text. |
-| `refresh` | `number` | Re-fetch every N milliseconds, for a URL whose contents change. |
-| `retries` | `number` | Attempts before giving up. Defaults to `3`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `fallback` | `string` | URL used when the value is empty or fails to load. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `slug` | `boolean` | Slugify the value first — "Boise State" becomes `boise-state`. |
+| `src` | `string` | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
+| `value` | `string` | A value outright rather than a path to one. Wins over `name`. |
 
 ### `ImageList`
 
-A row of images from one multi-valued path.
+Several pictures from one value — what `ImageSelect multiple` writes. Each entry is templated exactly as `Image` templates one.
+
+```jsx
+<ImageList name="home.army" src="/units/:value:.svg" slug />
+```
+
+```jsx
+// Cap what goes on air, whatever the operator picked
+<ImageList name="home.army" limit={8} itemClassName="h-10 w-10" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `src` | `string` | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
-| `slug` | `boolean` | Slugify each value first — "Boise State" becomes `boise-state`. |
-| `fallback` | `string` | URL used for an entry that fails to load. |
 | `alt` | `string` | Alt text for every image. |
-| `limit` | `number` | Render at most this many entries. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `fallback` | `string` | URL used for an entry that fails to load. |
 | `itemClassName` | `string` | Added to each image rather than to the list. |
+| `limit` | `number` | Render at most this many entries. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `slug` | `boolean` | Slugify each value first — "Boise State" becomes `boise-state`. |
+| `src` | `string` | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
 
 ### `Toggle`
 
-Show or hide a block of graphics on the operator's say-so.
+Shows its children while a toggle is on, and animates them in and out. This is how a whole graphic is put on and taken off air.
+
+```jsx
+<Toggle name="lowerthird">
+  <LowerThird />
+</Toggle>
+```
+
+```jsx
+<Toggle name="stats" transition="slide-up ease-back">
+  <StatsCard />
+</Toggle>
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
 | `children` | `ReactNode` | Shown while the toggle is on. |
-| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
 | `className` | `string` | Added to the component's own classes. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
 
 ### `Timer`
 
-A countdown. Derives from an absolute target time, so it needs no sync.
+A clock on air, reading whichever kind was stored — a countdown, a count-up, or a paused one. Shows 00:00 for a second when a countdown ends, then takes itself off air.
+
+```jsx
+<Timer name="round" fallback="--:--" />
+```
+
+```jsx
+// Do something when the clock runs out
+<Timer name="break" onComplete={() => setScene("live")} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `fallback` | `string` | Shown when no clock is set. Defaults to `"00:00"`. |
-| `onComplete` | `() => void, /** * - Where the value lives. Defaults to `timers`. */ namespace?: string, /** * - Added to the component's own classes. */ className?: string,` | Called once, when a countdown reaches zero. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 | `className` | `string` | Added to the component's own classes. |
+| `fallback` | `string` | Shown when no clock is set. Defaults to `"00:00"`. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
+| `onComplete` | `() => void` | Called once, when a countdown reaches zero. |
 
 ### `Ticker`
 
-Scrolling crawl.
+Text scrolling across the bottom of the screen, looping continuously. Speed is in pixels per second, so a long crawl and a short one read at the same pace.
+
+```jsx
+<Ticker name="headlines" />
+```
+
+```jsx
+<Ticker name="headlines" speed={60} fallback="" className="text-2xl" />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `fallback` | `string` | Shown when the value is empty. |
-| `speed` | `number` | Pixels per second. Defaults to `100`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `className` | `string` | Added to the component's own classes. |
+| `fallback` | `string` | Shown when the value is empty. |
+| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
+| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `speed` | `number` | Pixels per second. Defaults to `100`. |
 
 ### `Clock`
 
-Wall clock. Local to each machine by definition, so it never replicates.
+The time of day, from the machine the graphic is running on. Nothing replicates here — every browser source reads its own clock.
+
+```jsx
+<Clock />
+```
+
+```jsx
+<Clock locale="en-GB" options={{ hour: '2-digit', minute: '2-digit' }} />
+```
 
 | Prop | Type | |
 | --- | --- | --- |
+| `className` | `string` | Added to the component's own classes. |
 | `locale` | `string` | BCP 47 tag, e.g. `en-GB`. Defaults to the browser's. |
 | `options` | `Intl.DateTimeFormatOptions` | Passed to `Intl.DateTimeFormat`. |
-| `className` | `string` | Added to the component's own classes. |

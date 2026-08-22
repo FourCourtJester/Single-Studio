@@ -4,14 +4,23 @@ import { cx } from '../../toolkits/cx'
 
 /**
  * @typedef {object} ToggleButtonProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
- * @property {string} [label] - Shown above the control.
+ * @property {string} name - Path under `namespace`, e.g. `lowerthird`.
+ * @property {string} [label] - Shown on the button.
  * @property {string[]} [group] - Names that turn off when this turns on — radio-button behaviour.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Show <label>" text.
  * @property {string} [namespace] - Where the value lives. Defaults to `toggles`.
  * @property {string} [className] - Added to the component's own classes.
  */
-/** On/off button. Pass `group` for radio-button behaviour across several paths. *
+/**
+ * An on/off button for a path under `toggles`, which is what a graphic watches to
+ * know whether to be on air. `group` turns a set of them into radio buttons.
+ * @example
+ * <ToggleButton name="lowerthird" label="Lower third" />
+ *
+ * @example
+ * // Exactly one of these can be on
+ * <ToggleButton name="stats" label="Stats" group={['stats', 'roster', 'bracket']} />
+ *
  * @param {ToggleButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
 export function ToggleButton({ name, label, group, namespace = 'toggles', className, children, ...rest }) {

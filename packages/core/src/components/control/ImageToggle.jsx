@@ -15,7 +15,8 @@ import { Thumb } from './Thumb'
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * <ToggleButton> with a picture on it.
+ * An on/off button with a picture on it. `group` makes a row of them behave like
+ * radio buttons, which is how a scene picker is usually built.
  *
  * Same behaviour exactly -- on/off at a path, or radio behaviour across a `group` --
  * only the face is the thing being toggled rather than its name. For a board where
@@ -30,6 +31,13 @@ import { Thumb } from './Thumb'
  * for something the operator also *chooses* wants: the sponsor toggle should show
  * the sponsor they picked, not a placeholder that never changes. `image` stays as
  * the fallback for before anything is chosen.
+ *
+ * @example
+ * <ImageToggle name="lowerthird" label="Lower third" image="/ui/lower-third.svg" />
+ *
+ * @example
+ * // One at a time, and the picture comes from whatever the operator picked
+ * <ImageToggle name="replay" from="variables.replay.thumb" group={['replay', 'live']} />
  *
  * @param {ImageToggleProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
