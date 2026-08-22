@@ -38,6 +38,20 @@ browser-source URL with a copy button.
 2. Register it in `src/studio.js` under `sources`.
 3. It appears at `#/source/my-graphic` and in the browser-source list.
 
+A key may carry slashes, so graphics can be filed the way you think about them
+rather than flattened into one list:
+
+```js
+sources: {
+  'lower-thirds/single': () => import('./sources/LowerThirdSingle'),
+  'lower-thirds/double': () => import('./sources/LowerThirdDouble'),
+  'game/scoreboard': () => import('./sources/Scoreboard'),
+}
+```
+
+The group carries through to the name OBS gives the source — `SS - My Studio -
+Lower Thirds / Single` — so a scene list sorts the way the repo does.
+
 ## Deploy
 
 Switch **Settings &rarr; Pages &rarr; Source** to **GitHub Actions**, then push to the

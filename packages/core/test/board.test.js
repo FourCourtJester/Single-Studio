@@ -108,6 +108,14 @@ describe('slugify', () => {
 })
 
 describe('titleize', () => {
+  it('keeps a grouped key grouped', () => {
+    // A source key may carry slashes so a studio can file its graphics --
+    // `lower-thirds/single`, `game/scoreboard`. In an OBS scene list the group is
+    // the useful half, so it survives rather than being mashed into one word.
+    expect(titleize('lower-thirds/single')).toBe('Lower Thirds / Single')
+    expect(titleize('game/scoreboard')).toBe('Game / Scoreboard')
+  })
+
   // A source is registered under a key that has to survive a URL, so it is written
   // the way a URL wants it. What OBS shows in a scene list, and what an operator
   // reads on the board, is derived from that key rather than declared beside it --

@@ -1,6 +1,6 @@
 /**
  * Lowercase, ASCII-ish, hyphen-separated. Used to turn an operator's free text
- * into something that can appear in a filename -- "Boise State" -> "boise-state"
+ * into something that can appear in a filename -- "Single Studio" -> "single-studio"
  * for a logo lookup.
  */
 export function slugify(value) {
@@ -28,6 +28,16 @@ export function slugify(value) {
  * word it follows, so `week-1` is "Week 1" rather than "Week 1" with a stray break.
  */
 export function titleize(value) {
+  // A slash groups rather than joins: `lower-thirds/single` is two things, and an
+  // OBS scene list reads better keeping the group than mashing it into one word.
+  if (String(value ?? '').includes('/')) {
+    return String(value)
+      .split('/')
+      .filter(Boolean)
+      .map(titleize)
+      .join(' / ')
+  }
+
   return String(value ?? '')
     .replace(/[-_]+/g, ' ')
     .trim()

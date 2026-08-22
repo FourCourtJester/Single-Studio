@@ -13,7 +13,9 @@ import { NotFoundPage } from './NotFound'
  * transparent -- OBS composites this straight over the scene.
  */
 export function SourcePage() {
-  const { name } = useParams()
+  // The whole splat, not one segment: a key may be `lower-thirds/single`, and
+  // react-router hands a splat back under '*'.
+  const name = useParams()['*']
   const { studio, velcro } = useStudio()
   const [params] = useSearchParams()
   const [ready, setReady] = useState(false)

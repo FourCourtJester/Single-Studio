@@ -9,7 +9,7 @@ const NAMESPACE = 'variables'
  * @typedef {object} ImageListProps
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [src] - URL template; `:value:` is replaced by each entry. Defaults to `":value:"`.
- * @property {boolean} [slug] - Slugify each value first — "Boise State" becomes `boise-state`.
+ * @property {boolean} [slug] - Slugify each value first — "Single Studio" becomes `single-studio`.
  * @property {string} [fallback] - URL used for an entry that fails to load.
  * @property {string} [alt] - Alt text for every image.
  * @property {number} [limit] - Render at most this many entries.

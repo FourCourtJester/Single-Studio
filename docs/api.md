@@ -544,7 +544,7 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 ```
 
 ```jsx
-// Templated from a value: "Boise State" resolves /logos/boise-state.svg
+// Templated from a value: "Single Studio" resolves /logos/single-studio.svg
 <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/tbd.svg" />
 ```
 
@@ -554,7 +554,7 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 | `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | URL used when the value is empty or fails to load. |
 | `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
-| `slug` | `boolean` | Slugify the value first — "Boise State" becomes `boise-state`. |
+| `slug` | `boolean` | Slugify the value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
 | `value` | `string` | A value outright rather than a path to one. Wins over `name`. |
 
@@ -581,7 +581,7 @@ Several pictures from one value — what `ImageSelect multiple` writes. Each ent
 | `itemClassName` | `string` | Added to each image rather than to the list. |
 | `limit` | `number` | Render at most this many entries. |
 | `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
-| `slug` | `boolean` | Slugify each value first — "Boise State" becomes `boise-state`. |
+| `slug` | `boolean` | Slugify each value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
 
 ### `Toggle`

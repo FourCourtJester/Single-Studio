@@ -44,7 +44,7 @@ to undo:
 - **Shut somebody out** — a brand new key, which is a brand new room. Offered only
   on an encrypted show, because that is the only kind with a key to rotate.
 - **Reset this machine** — the show, the images, the room, your name, everything
-  this browser has stored, and then a reload. It leaves the room *before* it wipes
+  this browser has stored, and then a reload. It leaves the room _before_ it wipes
   anything, so the other machines keep the show. This is the one to reach for after
   a rebuild.
 
@@ -195,44 +195,44 @@ const mutate = useVelcroMutate()
 
 **Source** — what goes on air:
 
-| Component   | Reads              | Notes                                                                               |
-| ----------- | ------------------ | ----------------------------------------------------------------------------------- |
-| `Scene`     | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                      |
-| `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                         |
-| `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls. |
-| `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                        |
+| Component   | Reads              | Notes                                                                                                               |
+| ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `Scene`     | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                                                      |
+| `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                                                         |
+| `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls.                                 |
+| `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                                                        |
 | `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Shows 00:00, then clears itself. `onComplete` fires once it lands. |
-| `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.            |
-| `Clock`     | — (local)          | Wall clock. Never replicates.                                                       |
-| `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                              |
+| `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.                                            |
+| `Clock`     | — (local)          | Wall clock. Never replicates.                                                                                       |
+| `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                                                              |
 
 Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 [Transitions](#transitions).
 
 **Control** — the operator's board:
 
-| Component      | Writes             | Notes                                                            |
-| -------------- | ------------------ | ---------------------------------------------------------------- |
-| `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                     |
-| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.    |
-| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.           |
-| `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture. `from` reads the face off a path. |
-| `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.               |
-| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved.  |
-| `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.    |
-| `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright. |
-| `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                      |
-| `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                            |
-| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                         |
-| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.        |
+| Component      | Writes             | Notes                                                                     |
+| -------------- | ------------------ | ------------------------------------------------------------------------- |
+| `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                              |
+| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.             |
+| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                    |
+| `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture. `from` reads the face off a path.          |
+| `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.                        |
+| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved.           |
+| `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.             |
+| `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.   |
+| `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                               |
+| `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                                     |
+| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                                  |
+| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.                 |
 | `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
-| `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.      |
-| `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                |
-| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                  |
-| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.         |
-| `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.          |
-| `Panel`        | —                  | Titled group. Children wrap in a flex row.                       |
-| `Break`        | —                  | Forces a line break inside a `Panel`.                            |
+| `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.               |
+| `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                         |
+| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                           |
+| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                  |
+| `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.                   |
+| `Panel`        | —                  | Titled group. Children wrap in a flex row.                                |
+| `Break`        | —                  | Forces a line break inside a `Panel`.                                     |
 
 ## Working with other people
 
@@ -314,7 +314,7 @@ week is simply long past rather than something to clean up before going on air.
 
 Four ways in, all handled by the same component.
 
-Templated from a value — "Boise State" resolves `logos/boise-state.svg`:
+Templated from a value — "Single Studio" resolves `logos/single-studio.svg`:
 
 ```jsx
 <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/placeholder.svg" />
@@ -610,6 +610,65 @@ Two more things worth knowing before you build a scene around this:
   nothing to interpolate from. It teleports and then fades in place. `bounce` has an
   `ss-bounce-out` for this reason, and a custom keyframe variant needs one too.
 
+### Writing your own
+
+A variant is a class name and nothing else. `transition="stinger"` puts `ss-stinger`
+on the element; the state machine adds `ss-inactive`, `ss-exiting`, `ss-entering` or
+`ss-active` beside it, and never touches a transform itself. So a new motion is a
+rule in your own stylesheet:
+
+```css
+@layer components {
+  /* Off, and on the way out or in: where the element sits when not showing. */
+  .ss-stinger.ss-inactive,
+  .ss-stinger.ss-exiting,
+  .ss-stinger.ss-entering {
+    opacity: 0;
+    transform: translateX(-100%) skewX(-12deg);
+  }
+
+  /* On air: no transform, which is what everything animates towards. */
+  .ss-stinger.ss-active {
+    opacity: 1;
+    transform: none;
+  }
+}
+```
+
+```jsx
+<Toggle name="stinger" transition="stinger ease-sharp">
+  <StingerCard />
+</Toggle>
+```
+
+Three things make that work, and each is a mistake worth making once:
+
+- **`@layer components`, matching the framework's own rules.** Unlayered CSS beats
+  layered CSS regardless of specificity, so a variant written outside a layer would
+  outrank every Tailwind utility a studio uses on the same element.
+- **The same declarations for `inactive`, `exiting` and `entering`.** Those three are
+  one visual state — "not showing" — reached from three different directions. Giving
+  `entering` its own values makes the element jump at the moment it starts arriving.
+- **Only `active` is the resting state.** Set the transform to `none` there rather
+  than restating it, so the variant composes with `--ss-shift` and with whatever a
+  studio's own rule does.
+
+Tailwind can supply the values, since a variant is ordinary CSS:
+
+```css
+@layer components {
+  .ss-stinger.ss-inactive,
+  .ss-stinger.ss-exiting,
+  .ss-stinger.ss-entering {
+    @apply opacity-0 -translate-x-full;
+  }
+}
+```
+
+Easing and duration come from the modifiers and custom properties above, so a
+variant only has to describe where the element is — not how long it takes to get
+there. That split is why `stinger ease-back` works without you writing an easing.
+
 Pick per element rather than per scene. In the demo's scoreboard a name flips over,
 a score slides up and overshoots, and the badge plainly fades — because a logo
 swapping with a flourish reads as a mistake.
@@ -757,7 +816,9 @@ there is no duration prop to keep in sync — retune it any of three ways:
 } /* custom property */
 ```
 
-All of the framework's rules live in `@layer components` so any of these win.
+All of the framework's rules live in `@layer components` so any of these win, and
+your own rules should sit in the same layer for the same reason — see
+[Writing your own](#writing-your-own).
 That is load-bearing rather than tidy: unlayered declarations beat layered ones, so
 framework CSS outside a layer would silently outrank every Tailwind utility a studio
 wrote, and `duration-500` would quietly resolve to the default.

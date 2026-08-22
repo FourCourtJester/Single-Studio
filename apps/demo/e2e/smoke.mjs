@@ -571,7 +571,11 @@ check(cursors.name === 'text', 'a click-to-rename name says it can be edited ins
 // opens the same library as a modal, so a picker is a chooser without leaving the
 // board.
 const guest = await context.newPage()
-await guest.goto(`${BASE}/#/source/guest`)
+// A grouped key, with a slash in it. The route is a splat rather than a single
+// segment, so a studio can file its graphics the way it thinks about them --
+// `lower-thirds/guest`, `game/scoreboard` -- instead of flattening everything into
+// one list. This 404'd before the route changed.
+await guest.goto(`${BASE}/#/source/lower-thirds/guest`)
 await guest.waitForSelector('.ss-scene')
 
 const guestPicker = control.locator('.ss-image-picker').filter({ hasText: 'Headshot' })

@@ -19,7 +19,7 @@ const REFERRER_POLICY = 'no-referrer'
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [value] - A value outright rather than a path to one. Wins over `name`.
  * @property {string} [src] - URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works.
- * @property {boolean} [slug] - Slugify the value first — "Boise State" becomes `boise-state`.
+ * @property {boolean} [slug] - Slugify the value first — "Single Studio" becomes `single-studio`.
  * @property {string} [fallback] - URL used when the value is empty or fails to load.
  * @property {string} [alt] - Alt text.
  * @property {string} [className] - Added to the component's own classes.
@@ -80,7 +80,7 @@ function preload(url) {
  * <Image name="sponsor.logo" alt="" />
  *
  * @example
- * // Templated from a value: "Boise State" resolves /logos/boise-state.svg
+ * // Templated from a value: "Single Studio" resolves /logos/single-studio.svg
  * <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/tbd.svg" />
  *
  * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
