@@ -25,7 +25,7 @@
     "yjs": "^13.6.20"
   },
   "devDependencies": {
-    "vitest": "^2.1.8",
+    "vitest": "^3.2.6",
     "ws": "^8.21.3",
     "y-websocket": "^3.1.0"
   }

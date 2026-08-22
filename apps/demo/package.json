@@ -15,7 +15,7 @@
     "@single-studio/provider-supabase": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.18.2",
     "y-websocket": "^3.1.0",
     "yjs": "^13.6.32"
   },
@@ -26,6 +26,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "playwright": "^1.62.1",
     "tailwindcss": "^4.0.0",
-    "vite": "^6.0.3"
+    "vite": "^6.4.3"
   }
 }
