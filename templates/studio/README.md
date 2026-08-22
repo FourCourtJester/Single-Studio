@@ -34,23 +34,29 @@ browser-source URL with a copy button.
 
 ## Add a graphic
 
-1. Create `src/sources/MyGraphic.jsx` exporting a default component.
-2. Register it in `src/studio.js` under `sources`.
-3. It appears at `#/source/my-graphic` and in the browser-source list.
+Create `src/sources/MyGraphic.jsx` exporting a default component. That is the whole
+step — it appears at `#/source/my-graphic` and in the **Browser sources** list, with
+a copy button and the name OBS should give it.
 
-A key may carry slashes, so graphics can be filed the way you think about them
-rather than flattened into one list:
+The key comes from the path, and folders group:
 
-```js
-sources: {
-  'lower-thirds/single': () => import('./sources/LowerThirdSingle'),
-  'lower-thirds/double': () => import('./sources/LowerThirdDouble'),
-  'game/scoreboard': () => import('./sources/Scoreboard'),
-}
+```
+src/sources/Scoreboard.jsx              →  #/source/scoreboard
+src/sources/LowerThird.jsx              →  #/source/lower-third
+src/sources/lower-thirds/Single.jsx     →  #/source/lower-thirds/single
+src/sources/game/Scoreboard.jsx         →  #/source/game/scoreboard
 ```
 
 The group carries through to the name OBS gives the source — `SS - My Studio -
 Lower Thirds / Single` — so a scene list sorts the way the repo does.
+
+> **`src/sources/` is only for graphics.** Everything in it becomes a browser
+> source, so a shared plate, a hook or a helper belongs somewhere else —
+> `src/components/` is the obvious home. A file left in `sources/` by mistake turns
+> up in the operator's list and in OBS, which is a confusing way to find out.
+
+To name them by hand instead, pass a plain object to `sources` in `src/studio.js`;
+that file is the only place it matters.
 
 ## Deploy
 

@@ -143,9 +143,48 @@ src/
 
 ### Add a graphic
 
-1. `src/sources/MyGraphic.jsx`, default-exporting a component.
-2. Register it in `studio.js` under `sources`.
-3. It appears at `#/source/myGraphic` and on the control page's list.
+Create `src/sources/MyGraphic.jsx`, default-exporting a component. That is the whole
+step: it appears at `#/source/my-graphic` and in the control surface's **Browser
+sources** list, with a copy button and the name OBS should give it.
+
+The template registers sources by globbing that folder, so there is no registry to
+keep in step:
+
+```js
+sources: sourcesFrom(import.meta.glob('./sources/**/*.jsx')),
+```
+
+The key comes from the path, and folders group:
+
+| File                                  | URL                            |
+| ------------------------------------- | ------------------------------ |
+| `src/sources/Scoreboard.jsx`          | `#/source/scoreboard`          |
+| `src/sources/LowerThird.jsx`          | `#/source/lower-third`         |
+| `src/sources/lower-thirds/Single.jsx` | `#/source/lower-thirds/single` |
+| `src/sources/game/Scoreboard.jsx`     | `#/source/game/scoreboard`     |
+
+The group carries through to what OBS calls the source — `SS - My Studio - Lower
+Thirds / Single` — so a scene list sorts the way the repo does.
+
+> **`src/sources/` is only for graphics.** Everything in it becomes a browser
+> source, so a shared plate, a hook or a helper belongs somewhere else —
+> `src/components/` is the obvious home. A file left in `sources/` by mistake turns
+> up in the operator's list and in OBS, which is a confusing way to find out.
+
+`import.meta.glob` is resolved by Vite at build time rather than at runtime: it
+becomes a literal object of dynamic imports before any code runs, so every graphic
+is still statically known, still code-split into its own chunk, and still loaded
+only when it is opened. Nothing is discovered by a path the framework was handed.
+
+To name them by hand, pass a plain object instead — `sourcesFrom` is a convenience,
+not a requirement:
+
+```js
+sources: {
+  scoreboard: () => import('./sources/Scoreboard'),
+  'lower-thirds/single': () => import('./sources/LowerThirdSingle'),
+},
+```
 
 ### Add state
 

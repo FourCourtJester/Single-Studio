@@ -29,7 +29,7 @@
 // something has gone wrong.
 
 import { execFileSync } from 'node:child_process'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -175,6 +175,30 @@ try {
   run('pnpm', ['build'], project)
 
   if (!existsSync(join(project, 'dist/index.html'))) throw new Error('the template built without producing dist/index.html')
+
+  /**
+   * And that the source glob actually found the graphics.
+   *
+   * The template registers its sources with `sourcesFrom(import.meta.glob(...))`,
+   * and a glob that matches nothing is not an error -- it is an empty object. The
+   * build succeeds, the board comes up, and the Browser sources list is empty, which
+   * is a bad thing to discover from OBS.
+   *
+   * Vite code-splits each dynamic import into its own chunk named after the file, so
+   * a chunk per graphic is the evidence that the glob resolved and stayed lazy.
+   */
+  const graphics = readdirSync(join(root, 'templates/studio/src/sources')).filter((file) => file.endsWith('.jsx'))
+  const chunks = readdirSync(join(project, 'dist/assets'))
+
+  for (const graphic of graphics) {
+    const stem = graphic.replace('.jsx', '')
+
+    if (!chunks.some((chunk) => chunk.startsWith(`${stem}-`))) {
+      throw new Error(`${graphic} produced no chunk of its own, so the source glob did not reach it. The Browser sources list would be short by one.`)
+    }
+  }
+
+  console.log(`  the source glob found all ${graphics.length} graphic${graphics.length === 1 ? '' : 's'}, each code-split on its own`)
 
   /**
    * And that a TypeScript studio gets types out of the tarball.
