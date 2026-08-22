@@ -35,11 +35,12 @@ import { AssetLibraryDialog } from './AssetLibrary'
  * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
-/** An entry this machine cannot render says so where it is chosen. *
- * @param {ImagePickerProps & import("react").HTMLAttributes<HTMLElement>} props
- */
+/** An entry this machine cannot render says so where it is chosen. */
 const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
 
+/**
+ * @param {ImagePickerProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
 export function ImagePicker({ name, label = 'Image', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { value, dirty, onChange } = useDraftValue(path)

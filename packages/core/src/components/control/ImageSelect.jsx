@@ -40,9 +40,7 @@ const optionImage = (option) => (typeof option === 'string' ? undefined : option
  * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
-/** Stored values arrive as an array, a bare string, or nothing at all. *
- * @param {ImageSelectProps & import("react").HTMLAttributes<HTMLElement>} props
- */
+/** Stored values arrive as an array, a bare string, or nothing at all. */
 function toList(value) {
   if (Array.isArray(value)) return value
   if (value === undefined || value === null || value === '') return []
@@ -52,6 +50,9 @@ function toList(value) {
 
 const same = (a, b) => a.length === b.length && a.every((item, index) => item === b[index])
 
+/**
+ * @param {ImageSelectProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
 export function ImageSelect({
   name,
   label = 'Select',

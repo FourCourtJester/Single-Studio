@@ -30,11 +30,12 @@ const HEX = /^#[0-9a-f]{6}$/i
  * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
-/** The swatch input only accepts `#rrggbb`, so anything else shows as the default. *
- * @param {ColorPickerProps & import("react").HTMLAttributes<HTMLElement>} props
- */
+/** The swatch input only accepts `#rrggbb`, so anything else shows as the default. */
 const swatchValue = (value, fallback) => (HEX.test(String(value ?? '').trim()) ? String(value).trim() : fallback)
 
+/**
+ * @param {ColorPickerProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
 export function ColorPicker({ name, label = 'Color', presets = [], fallback = '#0ea5e9', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)

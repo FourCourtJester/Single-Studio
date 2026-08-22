@@ -74,7 +74,11 @@ function summarise(text) {
 
   const sentence = []
 
-  for (const line of body.slice(first)) {
+  for (const raw of body.slice(first)) {
+    // A one-line doc comment -- `/** Text. */` -- leaves a trailing asterisk once the
+    // leader is stripped, and it landed at the end of every summary taken from one.
+    const line = raw.replace(/\s*\*+\/?$/, '').trim()
+
     if (!line || line.startsWith('@')) break
 
     sentence.push(line)
@@ -96,15 +100,41 @@ function propsOf(source, component) {
   const props = []
 
   // Entries alternate: a doc comment, then the member it belongs to.
-  const pattern = /\/\*\*\s*\n((?:\s*\*.*\n)*?)\s*\*\/\s*\n\s*(\w+)(\??):\s*([^;]+);/g
+  //
+  // The type is read by balancing brackets rather than by stopping at the first
+  // semicolon, because an inline object type contains semicolons of its own. Doing
+  // it the easy way truncated `Array<string | { value: string, label: string }>` to
+  // `Array<string | { value: string` -- which still rendered, still looked like a
+  // type, and was wrong in a way only somebody who already knew the answer would
+  // catch.
+  const pattern = /\/\*\*\s*\n((?:\s*\*.*\n)*?)\s*\*\/\s*\n\s*(\w+)(\??):\s*/g
 
-  for (const [, comment, name, optional, kind] of block.matchAll(pattern)) {
+  for (const match of block.matchAll(pattern)) {
+    const [, comment, name, optional] = match
+    const from = match.index + match[0].length
+    let depth = 0
+    let at = from
+
+    while (at < block.length) {
+      const char = block[at]
+
+      if ('{([<'.includes(char)) depth += 1
+      else if ('})]>'.includes(char)) depth -= 1
+      else if (char === ';' && depth === 0) break
+
+      at += 1
+    }
+
     props.push({
       name,
       required: optional !== '?',
-      type: kind
+      type: block
+        .slice(from, at)
+        .replace(/\s*\n\s*/g, ' ')
         .replace(/\s+/g, ' ')
         .replace(/import\("react"\)\./g, '')
+        .replace(/; \}/g, ' }')
+        .replace(/;/g, ',')
         .trim(),
       description: comment
         .split('\n')

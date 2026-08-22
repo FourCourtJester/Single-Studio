@@ -60,7 +60,7 @@ Dropdown bound to a path, staged until saved.
 | --- | --- | --- |
 | `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
 | `label` | `string` | Shown above the control. Defaults to `"Select"`. |
-| `options` | `Array<string \| { value: string` | What can be chosen. |
+| `options` | `Array<string \| { value: string, label: string }>` | What can be chosen. |
 | `placeholder` | `string` | The empty choice. Defaults to `"— none —"`. |
 | `children` | `ReactNode` | Options as JSX, instead of `options`. |
 | `namespace` | `string` | Where the value lives. Defaults to `variables`. |
@@ -68,7 +68,7 @@ Dropdown bound to a path, staged until saved.
 
 ### `Cycle`
 
-Step through a fixed list of options, wrapping back to unset. *
+Step through a fixed list of options, wrapping back to unset.
 
 | Prop | Type | |
 | --- | --- | --- |
@@ -80,7 +80,7 @@ Step through a fixed list of options, wrapping back to unset. *
 
 ### `ColorPicker`
 
-- Added to the component's own classes.
+
 
 | Prop | Type | |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ Step through a fixed list of options, wrapping back to unset. *
 
 ### `ImagePicker`
 
-- Added to the component's own classes.
+
 
 | Prop | Type | |
 | --- | --- | --- |
@@ -104,13 +104,13 @@ Step through a fixed list of options, wrapping back to unset. *
 
 ### `ImageSelect`
 
-- Added to the component's own classes.
+
 
 | Prop | Type | |
 | --- | --- | --- |
 | `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
 | `label` | `string` | Shown above the control. Defaults to `"Select"`. |
-| `options` | `Array<string \| { value: string` | What can be chosen, shown as pictures. |
+| `options` | `Array<string \| { value: string, label?: string, image?: string }>` | What can be chosen, shown as pictures. |
 | `multiple` | `boolean` | Choose several. The value becomes a comma-separated list. |
 | `max` | `number` | Cap on how many, when `multiple`. |
 | `staged` | `boolean` | Hold the choice until saved, rather than writing on click. |
@@ -135,7 +135,7 @@ Step through a fixed list of options, wrapping back to unset. *
 
 ### `ToggleButton`
 
-On/off button. Pass `group` for radio-button behaviour across several paths. *
+On/off button. Pass `group` for radio-button behaviour across several paths.
 
 | Prop | Type | |
 | --- | --- | --- |
@@ -251,11 +251,11 @@ Commits every staged edit at once, and owns the Ctrl/Cmd+S binding.
 
 ### `Confirm`
 
-- Added to the component's own classes.
+
 
 | Prop | Type | |
 | --- | --- | --- |
-| `onConfirm` **·** required | `() => void` | Called on the second click. |
+| `onConfirm` **·** required | `() => void, /** * - What the button says when idle. */ label?: string, /** * - What it says once armed. Defaults to `"Click to confirm"`. */ ask?: string, /** * - Defaults to `"danger"`. */ tone?: 'danger' \| 'quiet', /** * - Nothing happens on click. */ disabled?: boolean, /** * - Replaces `label` when idle. */ children?: ReactNode, /** * - Added to the component's own classes. */ className?: string,` | Called on the second click. |
 | `label` | `string` | What the button says when idle. |
 | `ask` | `string` | What it says once armed. Defaults to `"Click to confirm"`. |
 | `tone` | `'danger' \| 'quiet'` | Defaults to `"danger"`. |
@@ -290,7 +290,7 @@ A text value from the operator's board. The workhorse graphic.
 
 ### `Image`
 
-- Added to the component's own classes.
+
 
 | Prop | Type | |
 | --- | --- | --- |
@@ -340,7 +340,7 @@ A countdown. Derives from an absolute target time, so it needs no sync.
 | --- | --- | --- |
 | `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
 | `fallback` | `string` | Shown when no clock is set. Defaults to `"00:00"`. |
-| `onComplete` | `() => void` | Called once, when a countdown reaches zero. |
+| `onComplete` | `() => void, /** * - Where the value lives. Defaults to `timers`. */ namespace?: string, /** * - Added to the component's own classes. */ className?: string,` | Called once, when a countdown reaches zero. |
 | `namespace` | `string` | Where the value lives. Defaults to `timers`. |
 | `className` | `string` | Added to the component's own classes. |
 
@@ -358,7 +358,7 @@ Scrolling crawl.
 
 ### `Clock`
 
-Wall clock. Local to each machine by definition, so it never replicates. *
+Wall clock. Local to each machine by definition, so it never replicates.
 
 | Prop | Type | |
 | --- | --- | --- |

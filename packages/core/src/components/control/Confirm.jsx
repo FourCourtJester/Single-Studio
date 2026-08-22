@@ -41,11 +41,12 @@ const ARMED = 4000
  * layouts around at the moment an operator is deciding something. The label already
  * said what it does and is still sitting under the cursor; the armed state only has
  * to say that a second click is what finishes it.
- *
- * @param {ConfirmProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
 const ASK = 'Click to confirm'
 
+/**
+ * @param {ConfirmProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
+ */
 export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled, className, children, ...rest }) {
   const [armed, setArmed] = useState(false)
   const timer = useRef(null)

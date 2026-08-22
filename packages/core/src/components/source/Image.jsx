@@ -77,8 +77,6 @@ function bust(url, token) {
  *
  * `decode()` rather than `onload` because onload fires before the bitmap is ready,
  * and painting then can still drop a frame on a large image.
- *
- * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */
 function preload(url) {
   return new Promise((resolve, reject) => {
@@ -97,6 +95,9 @@ function preload(url) {
   })
 }
 
+/**
+ * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
+ */
 export function Image({
   name,
   value: literal,
