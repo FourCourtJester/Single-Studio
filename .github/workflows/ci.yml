@@ -41,6 +41,12 @@ jobs:
       - name: Build demo studio
         run: pnpm demo:build
 
+      # The reference is generated from the shipped types, so a renamed prop that
+      # nobody thought to document is a red build rather than a page that quietly
+      # describes a component which no longer exists.
+      - name: Check the component reference is current
+        run: node scripts/api-reference.mjs --check
+
       # The starter template, built the way a stranger gets it: from packed
       # tarballs, in a directory with no workspace to fall back on. The demo cannot
       # answer this -- it resolves the framework through `workspace:*`, which
