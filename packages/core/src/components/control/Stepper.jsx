@@ -5,6 +5,14 @@ import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} StepperProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control.
+ * @property {number} [step] - How much the -/+ buttons add, and the field's arrow keys. Defaults to `1`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Numeric value with -/+ controls and a field you can type into.
  *
  * The buttons use the `increment`/`decrement` mutations rather than writing an
@@ -27,6 +35,8 @@ import { cx } from '../../toolkits/cx'
  *
  * `step` sizes the buttons and the field's own arrow keys alike, so a stepper for
  * a sport scoring in threes is `step={3}` and nothing else changes.
+ *
+ * @param {StepperProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Stepper({ name, label, step = 1, namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`

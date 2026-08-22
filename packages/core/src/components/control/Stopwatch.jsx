@@ -3,6 +3,13 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} StopwatchProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Stopwatch"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * A count-up clock: start, pause, reset.
  *
  * The third of the three clocks. <Countdown> counts down a duration, <CountdownTo>
@@ -12,6 +19,8 @@ import { cx } from '../../toolkits/cx'
  * Nothing here ticks. The mutation stores an origin and every peer derives the same
  * elapsed time from it, so a companion operator's stopwatch reads the same number as
  * the OBS machine's without either of them sending the other a single frame.
+ *
+ * @param {StopwatchProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Stopwatch({ name, label = 'Stopwatch', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`

@@ -176,6 +176,72 @@ try {
 
   if (!existsSync(join(project, 'dist/index.html'))) throw new Error('the template built without producing dist/index.html')
 
+  /**
+   * And that a TypeScript studio gets types out of the tarball.
+   *
+   * Shipping `.d.ts` files is not the same as a consumer resolving them. The
+   * `exports` map has to name them, and it has to name them *first* -- a `types`
+   * condition listed after `import` is one no resolver ever reaches, which fails
+   * silently and looks exactly like success from inside this repository, where
+   * everything resolves through the workspace anyway.
+   *
+   * So: a probe that uses the components the way a studio would, compiled with
+   * `strict` on against the installed package. Without types it does not merely
+   * lose autocomplete -- `noImplicitAny` refuses the import outright.
+   */
+  console.log('\n→ typechecking a consumer against the packed types')
+
+  writeFileSync(
+    join(project, 'probe.tsx'),
+    [
+      "import { Countdown, CountdownTo, Field, ResetButton, Scene, Stepper, Timer, Toggle, Variable } from '@single-studio/core'",
+      '',
+      'export const Board = () => (',
+      '  <>',
+      '    <Field name="home.name" label="Home" />',
+      '    <Stepper name="home.score" label="Home score" step={3} />',
+      '    <Countdown name="round" duration="5:00" />',
+      '    <CountdownTo name="showtime" as="time" />',
+      '    <ResetButton names={[\'home.score\']} label="scores" />',
+      '  </>',
+      ')',
+      '',
+      'export const Graphic = () => (',
+      "  <Scene vars={{ '--accent': 'home.color' }} style={{ opacity: 1 }}>",
+      '    <Variable name="home.name" fallback="Home" />',
+      '    <Timer name="round" onComplete={() => {}} />',
+      '    <Toggle name="lowerthird">shown while on</Toggle>',
+      '  </Scene>',
+      ')',
+      '',
+    ].join('\n'),
+  )
+
+  writeFileSync(
+    join(project, 'tsconfig.probe.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          strict: true,
+          noEmit: true,
+          jsx: 'react-jsx',
+          module: 'esnext',
+          moduleResolution: 'bundler',
+          target: 'es2022',
+          lib: ['es2022', 'dom'],
+          skipLibCheck: true,
+        },
+        files: ['probe.tsx'],
+      },
+      null,
+      2,
+    )}\n`,
+  )
+
+  run('node', [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(project, 'tsconfig.probe.json')], project)
+
+  console.log('  a TypeScript studio resolves the components and their props')
+
   console.log('\ntemplate builds against the packed packages')
 } finally {
   if (keep) console.log(`\nleft behind at ${project}`)

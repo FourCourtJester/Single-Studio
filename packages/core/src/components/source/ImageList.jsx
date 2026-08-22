@@ -3,6 +3,18 @@ import { cx } from '../../toolkits/cx'
 import { Image } from './Image'
 
 /**
+ * @typedef {object} ImageListProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [src] - URL template; `:value:` is replaced by each entry. Defaults to `":value:"`.
+ * @property {boolean} [slug] - Slugify each value first — "Boise State" becomes `boise-state`.
+ * @property {string} [fallback] - URL used for an entry that fails to load.
+ * @property {string} [alt] - Alt text for every image.
+ * @property {number} [limit] - Render at most this many entries.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ * @property {string} [itemClassName] - Added to each image rather than to the list.
+ */
+/**
  * A row of images from one multi-valued path.
  *
  * <ImageSelect multiple> writes an array; this puts it on air. An army composition,
@@ -14,6 +26,8 @@ import { Image } from './Image'
  *
  * A string value is treated as a list of one, so a path that used to hold a single
  * pick keeps rendering after the control behind it grows a `multiple`.
+ *
+ * @param {ImageListProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function ImageList({ name, src = ':value:', slug = false, fallback, alt = '', limit, className, itemClassName, namespace = 'variables', ...rest }) {
   const { value, loaded } = useVelcroState(name ? `${namespace}.${name}` : undefined)

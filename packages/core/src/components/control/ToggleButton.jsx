@@ -2,7 +2,18 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
-/** On/off button. Pass `group` for radio-button behaviour across several paths. */
+/**
+ * @typedef {object} ToggleButtonProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control.
+ * @property {string[]} [group] - Names that turn off when this turns on — radio-button behaviour.
+ * @property {import("react").ReactNode} [children] - Replaces the generated "Show <label>" text.
+ * @property {string} [namespace] - Where the value lives. Defaults to `toggles`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/** On/off button. Pass `group` for radio-button behaviour across several paths. *
+ * @param {ToggleButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
+ */
 export function ToggleButton({ name, label, group, namespace = 'toggles', className, children, ...rest }) {
   const path = `${namespace}.${name}`
   const active = Boolean(useVelcroValue(path, false))

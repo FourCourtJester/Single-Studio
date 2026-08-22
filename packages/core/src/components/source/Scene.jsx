@@ -5,6 +5,13 @@ import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} SceneProps
+ * @property {import("react").ReactNode} [children] - The graphic.
+ * @property {Record<string, string>} [vars] - CSS custom property to value name, e.g. `{ "--accent": "home.color" }`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Root of a graphic. One Scene per OBS browser source.
  *
  * `vars` maps CSS custom properties to values an operator controls, so a graphic
@@ -27,6 +34,8 @@ import { cx } from '../../toolkits/cx'
  *
  * A value holding nothing is left unset rather than blanked, so the fallback in
  * `var()` still applies.
+ *
+ * @param {SceneProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Scene({ children, className, vars, namespace = 'variables', style, ...rest }) {
   // Rebuilt only when the map's contents change, not on every render -- an inline

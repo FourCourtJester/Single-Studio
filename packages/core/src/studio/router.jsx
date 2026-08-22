@@ -17,6 +17,15 @@ import { StudioProvider } from './Provider'
 //
 // Hash routing stays: it is what lets a static GitHub Pages deploy serve deep
 // links without a 404 rewrite rule.
+/**
+ * @param {object} studio - a studio definition from `defineStudio`
+ * @returns {ReturnType<typeof createHashRouter>} the router to hand `RouterProvider`
+ *
+ * Annotated rather than inferred. The return type is react-router's `Router`, which
+ * lives at a pnpm-hashed path inside node_modules -- TypeScript can infer it but
+ * cannot *name* it portably, so the emitted declaration would either fail or bake in
+ * a path that is true of this machine and nowhere else.
+ */
 export function createStudioRouter(studio) {
   return createHashRouter(
     createRoutesFromElements(

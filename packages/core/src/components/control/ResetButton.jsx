@@ -3,6 +3,16 @@ import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} ResetButtonProps
+ * @property {string[]} [names] - Cleared back to each source's own fallback.
+ * @property {string[]} [paths] - Fully-qualified paths, for clearing across namespaces.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Reset"`.
+ * @property {boolean} [confirm] - Ask before clearing.
+ * @property {import("react").ReactNode} [children] - Replaces the generated "Reset <label>" text.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Clear a set of paths back to nothing.
  *
  * Uses `unset` rather than writing empty strings, so the keys are removed and each
@@ -17,6 +27,8 @@ import { cx } from '../../toolkits/cx'
  * against a `namespace` that defaults to `variables`. `paths` still works and is
  * still the answer for reaching across namespaces in one press, clearing a toggle
  * and the value it was showing together.
+ *
+ * @param {ResetButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
 export function ResetButton({ names = [], paths = [], namespace = 'variables', label = 'Reset', confirm = false, className, children, ...rest }) {
   const mutate = useVelcroMutate()

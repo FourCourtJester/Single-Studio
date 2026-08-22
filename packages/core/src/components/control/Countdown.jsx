@@ -6,6 +6,15 @@ import { parseDuration } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} CountdownProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control.
+ * @property {string|number} [duration] - A fixed length, e.g. `"5:00"`. Without it the operator types one.
+ * @property {string} [placeholder] - Hint in the duration field. Defaults to `"5:00"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Count down for a duration -- a break, a half, a stinger.
  *
  * Named for what an operator types into it: `Countdown` takes 5:00, `CountdownTo`
@@ -23,6 +32,8 @@ import { cx } from '../../toolkits/cx'
  *
  * Either way the entry is stored alongside the target, so the field repopulates
  * after a reload instead of coming back empty under a running clock.
+ *
+ * @param {CountdownProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Countdown({ name, label, duration, placeholder = '5:00', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`

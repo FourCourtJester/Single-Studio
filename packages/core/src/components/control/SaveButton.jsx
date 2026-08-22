@@ -9,6 +9,10 @@ import { Tooltip } from '../common/Tooltip'
 const isMac = () => typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
 
 /**
+ * @typedef {object} SaveButtonProps
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Commits every staged edit at once, and owns the Ctrl/Cmd+S binding.
  *
  * The shortcut is registered here rather than in the provider so it is only live
@@ -21,6 +25,8 @@ const isMac = () => typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.tes
  * words of similar length never did. The count of pending changes moves into the
  * tooltip, where it costs no width at all -- the dirty dots on the fields say
  * *which* edits are waiting, and the tooltip says how many.
+ *
+ * @param {SaveButtonProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function SaveButton({ className, ...rest }) {
   const { draft, save, revert } = useDraft()

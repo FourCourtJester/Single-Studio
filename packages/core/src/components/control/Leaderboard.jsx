@@ -6,6 +6,16 @@ import { DEFAULT_DELIMITER, DEFAULT_FIELDS, parseBoard, serializeBoard, sizeBoar
 import { Field } from './Field'
 
 /**
+ * @typedef {object} LeaderboardProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Leaderboard"`.
+ * @property {string[]} [fields] - Column names, in order.
+ * @property {string} [delimiter] - What separates columns in the stored string.
+ * @property {number} [rows] - How many rows the table shows.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * A results board, editable two ways.
  *
  * **Paste view** is a textarea holding the raw delimited text. This is the one that
@@ -19,6 +29,8 @@ import { Field } from './Field'
  * path per cell, which keeps a paste a single atomic write instead of twenty racing
  * ones — and means the source component can render the whole board from one
  * subscription.
+ *
+ * @param {LeaderboardProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Leaderboard({
   name,

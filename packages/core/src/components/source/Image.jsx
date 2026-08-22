@@ -60,10 +60,25 @@ function bust(url, token) {
 }
 
 /**
+ * @typedef {object} ImageProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [value] - A value outright rather than a path to one. Wins over `name`.
+ * @property {string} [src] - URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works.
+ * @property {boolean} [slug] - Slugify the value first — "Boise State" becomes `boise-state`.
+ * @property {string} [fallback] - URL used when the value is empty or fails to load.
+ * @property {string} [alt] - Alt text.
+ * @property {number} [refresh] - Re-fetch every N milliseconds, for a URL whose contents change.
+ * @property {number} [retries] - Attempts before giving up. Defaults to `3`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Load and decode before showing. Resolves to the URL once it is safe to paint.
  *
  * `decode()` rather than `onload` because onload fires before the bitmap is ready,
  * and painting then can still drop a frame on a large image.
+ *
+ * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */
 function preload(url) {
   return new Promise((resolve, reject) => {

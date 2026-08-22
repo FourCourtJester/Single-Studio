@@ -5,6 +5,14 @@ import { cx } from '../../toolkits/cx'
 import { Transition } from '../common/Transition'
 
 /**
+ * @typedef {object} TimerProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [fallback] - Shown when no clock is set. Defaults to `"00:00"`.
+ * @property {() => void} [onComplete] - Called once, when a countdown reaches zero.
+ * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * A countdown. Derives from an absolute target time, so it needs no sync.
  *
  * The trigger is `active`, not the text -- the display ticks once a second and
@@ -27,6 +35,8 @@ import { Transition } from '../common/Transition'
  * (The first frame was already right, and is worth stating because the two look like
  * one problem. A countdown rounds *up*, so each digit holds for a full second and a
  * five-second timer opens on 00:05. See `formatDuration`.)
+ *
+ * @param {TimerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Timer({ name, fallback = '00:00', onComplete, className, namespace = 'timers', ...rest }) {
   const { active, running, text, loaded } = useTimer(`${namespace}.${name}`)

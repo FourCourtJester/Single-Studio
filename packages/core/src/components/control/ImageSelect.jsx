@@ -28,7 +28,21 @@ const optionValue = (option) => (typeof option === 'string' ? option : option.va
 const optionLabel = (option) => (typeof option === 'string' ? option : (option.label ?? option.value))
 const optionImage = (option) => (typeof option === 'string' ? undefined : option.image)
 
-/** Stored values arrive as an array, a bare string, or nothing at all. */
+/**
+ * @typedef {object} ImageSelectProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Select"`.
+ * @property {Array<string | { value: string, label?: string, image?: string }>} [options] - What can be chosen, shown as pictures.
+ * @property {boolean} [multiple] - Choose several. The value becomes a comma-separated list.
+ * @property {number} [max] - Cap on how many, when `multiple`.
+ * @property {boolean} [staged] - Hold the choice until saved, rather than writing on click.
+ * @property {'sm'|'md'|'lg'} [size] - Tile size. Defaults to `"md"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/** Stored values arrive as an array, a bare string, or nothing at all. *
+ * @param {ImageSelectProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
 function toList(value) {
   if (Array.isArray(value)) return value
   if (value === undefined || value === null || value === '') return []

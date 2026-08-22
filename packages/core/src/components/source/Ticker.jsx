@@ -4,6 +4,14 @@ import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} TickerProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [fallback] - Shown when the value is empty.
+ * @property {number} [speed] - Pixels per second. Defaults to `100`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Scrolling crawl.
  *
  * The travel is measured, not expressed in percentages. A percentage transform
@@ -20,6 +28,8 @@ import { cx } from '../../toolkits/cx'
  * pixels per second, constant regardless of how much text there is.
  *
  * New text is staged and swapped between passes, never mid-scroll.
+ *
+ * @param {TickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Ticker({ name, fallback = '', speed = 100, className, namespace = 'variables', ...rest }) {
   const { value, loaded } = useVelcroState(`${namespace}.${name}`)

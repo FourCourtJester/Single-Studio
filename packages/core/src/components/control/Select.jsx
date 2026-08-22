@@ -4,6 +4,16 @@ import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} SelectProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Select"`.
+ * @property {Array<string | { value: string, label: string }>} [options] - What can be chosen.
+ * @property {string} [placeholder] - The empty choice. Defaults to `"— none —"`.
+ * @property {import("react").ReactNode} [children] - Options as JSX, instead of `options`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Dropdown bound to a path, staged until saved.
  *
  * Staged rather than immediate for consistency with the fields beside it: a board
@@ -12,6 +22,8 @@ import { cx } from '../../toolkits/cx'
  *
  * The empty option always exists so a choice can be cleared. Saving '' deletes the
  * key, which makes a source fall back to its own default rather than hold a blank.
+ *
+ * @param {SelectProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Select({ name, label = 'Select', options = [], children, placeholder = '— none —', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`

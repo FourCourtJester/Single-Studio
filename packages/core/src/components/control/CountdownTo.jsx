@@ -6,6 +6,14 @@ import { untilClockTime } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} CountdownToProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Starts at"`.
+ * @property {'time'|'datetime-local'} [as] - `"time"` takes HH:MM and rolls to tomorrow if past. Defaults to `"time"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Count down to a wall-clock time rather than for a duration.
  *
  * Named for what an operator types into it: `CountdownTo` takes 19:30, `Countdown`
@@ -21,6 +29,8 @@ import { cx } from '../../toolkits/cx'
  * The operator's raw entry is stored alongside the target so the field repopulates
  * after a reload — someone returning to the board mid-show should see what they
  * typed, not an empty input under a running clock.
+ *
+ * @param {CountdownToProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function CountdownTo({ name, label = 'Starts at', as = 'time', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`

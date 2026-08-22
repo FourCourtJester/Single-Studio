@@ -6,6 +6,16 @@ import { cx } from '../../toolkits/cx'
 import { Tooltip } from '../common/Tooltip'
 
 /**
+ * @typedef {object} FieldProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control.
+ * @property {string} [placeholder] - Hint shown in the empty input.
+ * @property {'input'|'textarea'} [as] - Defaults to `"input"`.
+ * @property {number} [rows] - Height when `as="textarea"`. Defaults to `3`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Text input bound to a path, staged until saved.
  *
  * Nothing here reaches air as you type. An operator types at their own pace and
@@ -17,6 +27,8 @@ import { Tooltip } from '../common/Tooltip'
  * worker to fight the cursor. And while a field is dirty its staged value wins over
  * the store, so a remote change cannot yank text out from under an operator
  * mid-edit.
+ *
+ * @param {FieldProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Field({ name, label, placeholder, as = 'input', rows = 3, namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`

@@ -1,11 +1,19 @@
 import { cx } from '../../toolkits/cx'
 
 /**
+ * @typedef {object} PanelProps
+ * @property {string} [title] - Heading for the group.
+ * @property {import("react").ReactNode} [children] - Controls, which wrap in a flex row.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * Titled grouping for the control surface. Layout only, no state.
  *
  * Children wrap responsively so the same board works in a narrow OBS dock and
  * full screen -- see `.ss-panel-body` in the stylesheet, and `--ss-control-min`
  * to retune where it wraps.
+ *
+ * @param {PanelProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Panel({ title, children, className, ...rest }) {
   return (

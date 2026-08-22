@@ -28,7 +28,16 @@ import { AssetLibraryDialog } from './AssetLibrary'
  * That split is what lets an operator line up the next guest mid-segment and commit
  * on the cut.
  */
-/** An entry this machine cannot render says so where it is chosen. */
+/**
+ * @typedef {object} ImagePickerProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control. Defaults to `"Image"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/** An entry this machine cannot render says so where it is chosen. *
+ * @param {ImagePickerProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
 const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
 
 export function ImagePicker({ name, label = 'Image', namespace = 'variables', className, ...rest }) {

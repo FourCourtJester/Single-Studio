@@ -30,12 +30,15 @@
     "src",
     "README.md"
   ],
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./worker": {
+      "types": "./dist/types/worker.d.ts",
       "import": "./dist/worker.js",
       "default": "./dist/worker.js"
     },
@@ -44,10 +47,11 @@
   },
   "scripts": {
     "prepack": "pnpm build",
-    "build": "vite build",
+    "build": "vite build && tsc -p tsconfig.json",
     "dev": "vite build --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "y-indexeddb": "^9.0.12",
@@ -63,6 +67,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
+    "typescript": "^7.0.2",
     "vite": "^6.0.3",
     "vitest": "^2.1.8"
   },

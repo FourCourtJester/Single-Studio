@@ -24,6 +24,16 @@ import { cx } from '../../toolkits/cx'
 const ARMED = 4000
 
 /**
+ * @typedef {object} ConfirmProps
+ * @property {() => void} onConfirm - Called on the second click.
+ * @property {string} [label] - What the button says when idle.
+ * @property {string} [ask] - What it says once armed. Defaults to `"Click to confirm"`.
+ * @property {'danger'|'quiet'} [tone] - Defaults to `"danger"`.
+ * @property {boolean} [disabled] - Nothing happens on click.
+ * @property {import("react").ReactNode} [children] - Replaces `label` when idle.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * What an armed button says, and it is the same everywhere on purpose.
  *
  * It used to repeat the action -- "Remove all 17? Click again" -- which made the
@@ -31,6 +41,8 @@ const ARMED = 4000
  * layouts around at the moment an operator is deciding something. The label already
  * said what it does and is still sitting under the cursor; the armed state only has
  * to say that a second click is what finishes it.
+ *
+ * @param {ConfirmProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
 const ASK = 'Click to confirm'
 

@@ -4,6 +4,17 @@ import { cx } from '../../toolkits/cx'
 import { Thumb } from './Thumb'
 
 /**
+ * @typedef {object} ImageToggleProps
+ * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} [label] - Shown above the control.
+ * @property {string} [image] - The picture on the button.
+ * @property {string} [from] - Read the picture from this path instead of `image`.
+ * @property {string[]} [group] - Names that turn off when this turns on.
+ * @property {'sm'|'md'|'lg'} [size] - Defaults to `"md"`.
+ * @property {string} [namespace] - Where the value lives. Defaults to `toggles`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
  * <ToggleButton> with a picture on it.
  *
  * Same behaviour exactly -- on/off at a path, or radio behaviour across a `group` --
@@ -19,6 +30,8 @@ import { Thumb } from './Thumb'
  * for something the operator also *chooses* wants: the sponsor toggle should show
  * the sponsor they picked, not a placeholder that never changes. `image` stays as
  * the fallback for before anything is chosen.
+ *
+ * @param {ImageToggleProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
 export function ImageToggle({ name, label, image, from, group, size = 'md', namespace = 'toggles', className, ...rest }) {
   const path = `${namespace}.${name}`
