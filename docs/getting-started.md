@@ -221,7 +221,7 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved.  |
 | `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.    |
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright. |
-| `Cycle`        | `variables.<name>` | Steps through `choices`, wrapping to unset.                      |
+| `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                      |
 | `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                            |
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first.                         |
 | `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.        |

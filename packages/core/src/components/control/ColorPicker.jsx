@@ -24,7 +24,7 @@ const HEX = /^#[0-9a-f]{6}$/i
 /** The swatch input only accepts `#rrggbb`, so anything else shows as the default. */
 const swatchValue = (value, fallback) => (HEX.test(String(value ?? '').trim()) ? String(value).trim() : fallback)
 
-export function ColorPicker({ name, label = 'Colour', presets = [], fallback = '#0ea5e9', namespace = 'variables', className, ...rest }) {
+export function ColorPicker({ name, label = 'Color', presets = [], fallback = '#0ea5e9', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const id = useId()

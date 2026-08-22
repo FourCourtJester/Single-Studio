@@ -31,6 +31,12 @@ import { Transition } from '../common/Transition'
  * stable URL -- a chart, a camera still, an externally generated card. Each poll is
  * cache-busted and, again, only swapped once decoded, so a slow or failed refresh
  * never blanks what is already showing.
+ *
+ * Two ways in, and only one of them is for a studio author. `name` reads a path,
+ * which is what a graphic normally does. `value` hands it a string outright, for a
+ * component that already holds one -- a row of a list, an entry being previewed --
+ * and wants the loading, decoding and retry machinery without inventing a path to
+ * park the value at. `value` wins when both are given.
  */
 
 const RETRY_BASE = 400

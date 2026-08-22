@@ -49,7 +49,7 @@ export default function Control() {
   return (
     <div className="flex flex-col gap-4">
       <Panel title="Match">
-        <Cycle name="period" label="Game" choices={['Game 1', 'Game 2', 'Game 3', 'Tiebreak']} />
+        <Cycle name="period" label="Game" options={['Game 1', 'Game 2', 'Game 3', 'Tiebreak']} />
         <SwapButton label="Swap sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
         <button
           type="button"

@@ -29,9 +29,9 @@ import { AssetLibraryDialog } from './AssetLibrary'
  * on the cut.
  */
 /** An entry this machine cannot render says so where it is chosen. */
-const label = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
+const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
 
-export function ImagePicker({ name, label: caption = 'Image', namespace = 'variables', className, ...rest }) {
+export function ImagePicker({ name, label = 'Image', namespace = 'variables', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { value, dirty, onChange } = useDraftValue(path)
   const { assets } = useAssetLibrary()
@@ -60,7 +60,7 @@ export function ImagePicker({ name, label: caption = 'Image', namespace = 'varia
   return (
     <section className={cx('ss-image-picker flex w-full flex-col gap-2', className)} {...rest}>
       <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-        {caption}
+        {label}
         {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
       </span>
 
@@ -81,20 +81,20 @@ export function ImagePicker({ name, label: caption = 'Image', namespace = 'varia
             <select
               value={known ? value : ''}
               onChange={(event) => onChange(event.target.value)}
-              aria-label={`${caption} selection`}
+              aria-label={`${label} selection`}
               className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500 focus:relative"
             >
               <option value="">— none —</option>
               {loose.map((entry) => (
                 <option key={entry.key} value={toAssetRef(entry.key)}>
-                  {label(entry, entry.key)}
+                  {describe(entry, entry.key)}
                 </option>
               ))}
               {grouped.map(([group, entries]) => (
                 <optgroup key={group} label={group}>
                   {entries.map((entry) => (
                     <option key={entry.key} value={toAssetRef(entry.key)}>
-                      {label(entry, leafOf(entry.key))}
+                      {describe(entry, leafOf(entry.key))}
                     </option>
                   ))}
                 </optgroup>
@@ -104,7 +104,7 @@ export function ImagePicker({ name, label: caption = 'Image', namespace = 'varia
               <button
                 type="button"
                 onClick={() => setBrowsing(true)}
-                aria-label={`Browse images for ${caption}`}
+                aria-label={`Browse images for ${label}`}
                 className="ss-browse -ml-px flex h-full shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
               >
                 <Icon name="search" />
