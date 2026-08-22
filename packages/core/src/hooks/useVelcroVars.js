@@ -7,6 +7,11 @@ import { useVelcro } from './useVelcro'
  *
  *   useVelcroVars({ '--home-color': 'variables.home.color' })
  *
+ * Full paths, because this is a hook. Components take a bare `name` and a
+ * `namespace`; hooks take the path those resolve to. `Scene` is the component
+ * around this one, and is what a graphic should normally use -- reach for this when
+ * a single scene needs custom properties from more than one namespace.
+ *
  * This is the general form of driving a graphic from operator input. `Variable`
  * templates text and `Image` templates a URL, but anything a stylesheet can express
  * -- a team colour, a bar width, a corner radius, an offset -- becomes controllable

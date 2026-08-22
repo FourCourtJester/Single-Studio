@@ -12,7 +12,7 @@ import { Image, Scene, Toggle, Variable } from '@single-studio/core'
  */
 export default function Sponsor() {
   return (
-    <Scene className="flex items-end justify-start p-12" vars={{ '--accent': 'variables.sponsor.color' }}>
+    <Scene className="flex items-end justify-start p-12" vars={{ '--accent': 'sponsor.color' }}>
       {/* Rises into frame from below the lower edge. */}
       <Toggle name="sponsor" transition="slide-up ease-out opaque" style={{ '--ss-shift': '14rem', '--ss-duration': '480ms' }}>
         <div className="flex items-center gap-4 rounded-lg bg-slate-950/90 p-4 ring-1 ring-white/10" style={{ borderLeft: '6px solid var(--accent, #0ea5e9)' }}>

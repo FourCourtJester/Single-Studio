@@ -38,7 +38,7 @@ function Draft({ side, title }) {
       <ImageSelect name={`${side}.faction`} label="Faction" options={FACTIONS} />
       <ImageSelect name={`${side}.commander`} label="Commander" options={COMMANDERS} />
       <ImageSelect name={`${side}.army`} label="Army" options={UNITS} multiple max={ARMY_SIZE} size="sm" />
-      <ResetButton label="draft" paths={[`variables.${side}.faction`, `variables.${side}.commander`, `variables.${side}.army`]} />
+      <ResetButton label="draft" names={[`${side}.faction`, `${side}.commander`, `${side}.army`]} />
     </Panel>
   )
 }
@@ -50,7 +50,7 @@ export default function Control() {
     <div className="flex flex-col gap-4">
       <Panel title="Match">
         <Cycle name="period" label="Game" choices={['Game 1', 'Game 2', 'Game 3', 'Tiebreak']} />
-        <SwapButton label="Swap sides" paths={['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name']} />
+        <SwapButton label="Swap sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
         <button
           type="button"
           onClick={() => mutate('demo:reset')}

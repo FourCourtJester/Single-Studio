@@ -14,10 +14,10 @@ export default function Control() {
       <Stepper name="home.score" label="Home score" />
       <Stepper name="away.score" label="Away score" />
       <Field name="away.name" label="Away" placeholder="Away team" />
-      <SwapButton label="sides" paths={['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name']} />
+      <SwapButton label="sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
       <Break />
       <Select name="period" label="Period" options={['1st', '2nd', '3rd', 'OT']} />
-      <ResetButton label="scores" paths={['variables.home.score', 'variables.away.score']} />
+      <ResetButton label="scores" names={['home.score', 'away.score']} />
     </Panel>
   )
 }

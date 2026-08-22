@@ -1,4 +1,5 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
+import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
 
 /**
@@ -11,9 +12,15 @@ import { cx } from '../../toolkits/cx'
  * `label` names what gets cleared, and the button says "Reset <label>" -- so
  * `label="draft"` reads "Reset draft" rather than a red button saying "draft",
  * which told an operator the colour was dangerous but not what it would do.
+ *
+ * Takes `names` the way every other component does -- `names={['home.score']}`
+ * against a `namespace` that defaults to `variables`. `paths` still works and is
+ * still the answer for reaching across namespaces in one press, clearing a toggle
+ * and the value it was showing together.
  */
-export function ResetButton({ paths = [], label = 'Reset', confirm = false, className, children, ...rest }) {
+export function ResetButton({ names = [], paths = [], namespace = 'variables', label = 'Reset', confirm = false, className, children, ...rest }) {
   const mutate = useVelcroMutate()
+  const targets = qualify({ names, paths, namespace })
 
   // A bare `label="Reset"` is the noun and the verb at once; anything else is just
   // the noun and needs the verb in front of it.
@@ -23,7 +30,7 @@ export function ResetButton({ paths = [], label = 'Reset', confirm = false, clas
     // Destructive and easy to hit by accident mid-show, so it can ask first.
     if (confirm && !window.confirm(`Reset ${label}?`)) return
 
-    mutate('unset', paths)
+    mutate('unset', targets)
   }
 
   return (
