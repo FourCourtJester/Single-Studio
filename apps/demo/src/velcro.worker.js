@@ -41,7 +41,9 @@ const connect = (context) => {
   // The provider knows when it is genuinely connected; the seam only guesses when
   // nothing tells it otherwise.
   provider.on('status', ({ status }) => report(status === 'connected' ? 'connected' : 'connecting'))
-  provider.on('connection-error', (event) => report('error', event?.message ?? 'relay unreachable'))
+  // y-websocket hands back a plain Event here, which carries no message of its own
+  // when the failure was a refused socket rather than a close frame.
+  provider.on('connection-error', (/** @type {Event & { message?: string }} */ event) => report('error', event?.message ?? 'relay unreachable'))
 
   return provider
 }

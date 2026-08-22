@@ -3,10 +3,10 @@ import { Image, Scene, Timer, Variable } from '@single-studio/core'
 /**
  * Add to OBS as a Browser source pointed at #/source/scoreboard
  *
- * The logos are driven by the team-name field: `slug` turns "Boise State" into
- * "boise-state" and looks up `logos/boise-state.svg`, so an operator typing a name
- * gets the badge without anyone maintaining a mapping. An unknown name falls back
- * to the placeholder rather than showing a broken image on air.
+ * The logos are driven by the team-name field: `slug` turns "Broncos" into
+ * "broncos" and looks up `logos/broncos.svg`, so an operator typing a name gets the
+ * badge without anyone maintaining a mapping. An unknown name falls back to the
+ * placeholder rather than showing a broken image on air.
  *
  * The transitions are deliberately different per element: a name flips over, a
  * score slides up and overshoots, and the badge fades because a logo swapping with

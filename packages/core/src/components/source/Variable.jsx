@@ -11,6 +11,7 @@ const NAMESPACE = 'variables'
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [fallback] - Shown when the value is empty. Defaults to `""`.
  * @property {boolean|number} [fit] - Shrink the text to fit its box. A number caps how far.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**

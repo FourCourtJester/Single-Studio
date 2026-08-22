@@ -64,8 +64,19 @@ const browser = await chromium.launch({ executablePath })
 // there, rather than only that it changed its label.
 const context = await browser.newContext({ reducedMotion: 'no-preference', permissions: ['clipboard-read', 'clipboard-write'] })
 
+/**
+ * Uncaught errors from any page in this context, failed at the end rather than logged.
+ *
+ * These used to be per-page `pageerror` handlers that only printed, on three of the
+ * dozen pages this test opens -- which meant a graphic could throw on air and the
+ * suite would still say every check passed. One listener on the context catches every
+ * page, including the ones opened later, and the assertion at the bottom is what makes
+ * it a test rather than a log line.
+ */
+const crashes = []
+context.on('weberror', (error) => crashes.push(`${new URL(error.page().url()).hash || '#/'} — ${error.error().message}`))
+
 const control = await context.newPage()
-control.on('pageerror', (e) => console.log('[control pageerror]', e.message))
 await control.goto(`${BASE}/#/`)
 await control.waitForSelector('text=Clocks')
 await control.waitForFunction(() => document.querySelectorAll('.ss-stepper input').length > 0)
@@ -88,7 +99,6 @@ const save = async () => {
 
 // A graphic in a separate tab: same browser, therefore same SharedWorker.
 const source = await context.newPage()
-source.on('pageerror', (e) => console.log('[source pageerror]', e.message))
 await source.goto(`${BASE}/#/source/scoreboard`)
 await source.waitForSelector('.ss-scene')
 await source.waitForTimeout(1200)
@@ -460,8 +470,16 @@ check(fromFolder, 'a folder files itself under its own name, with no typing at a
 await library.locator('input[aria-label="Asset name"]').fill('crests')
 await folderInput.setInputFiles(fileURLToPath(new URL('../public/factions', import.meta.url)))
 
+// Poll for the group being *finished*, not merely present. The heading appears as
+// soon as the first of the three files lands, so waiting on the heading and then
+// counting in the same tick is a race -- it read one name instead of three, which
+// looks like the rename having dropped files rather than the read having been early.
 check(
-  await becomes(control, () => [...document.querySelectorAll('.ss-asset-group h3')].some((heading) => heading.textContent.startsWith('crests'))),
+  await becomes(control, () => {
+    const section = [...document.querySelectorAll('.ss-asset-group')].find((group) => group.querySelector('h3')?.textContent.startsWith('crests'))
+
+    return section?.querySelectorAll('.ss-asset-name').length === 3
+  }),
   'a typed group appears as its own heading',
 )
 
@@ -623,7 +641,6 @@ check(await becomes(guest, () => (document.querySelector('.guest-photo img')?.sr
 // controls and the count-up clock have no other coverage -- a dropdown writing the
 // wrong path is obvious, a tile grid writing the wrong path is not.
 const match = await context.newPage()
-match.on('pageerror', (e) => console.log('[match pageerror]', e.message))
 await match.goto(`${BASE}/#/source/match`)
 await match.waitForSelector('.ss-scene')
 
@@ -1064,6 +1081,11 @@ const legacyText = await legacy.locator('body').innerText()
 check(/can.?t run/i.test(legacyText), 'guard shows a clear message on a browser without module shared workers')
 check(/114/.test(legacyText), 'guard names the minimum versions')
 check(!/Clocks/.test(legacyText), 'guard replaces the board rather than rendering a dead one')
+
+// The legacy page is the one place a throw would be expected, and its guard renders
+// rather than throwing -- so anything collected here is a real fault on a real page.
+for (const crash of crashes) console.log(`  ${crash}`)
+check(crashes.length === 0, `no page threw an uncaught error (${crashes.length} collected)`)
 
 await browser.close()
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed')

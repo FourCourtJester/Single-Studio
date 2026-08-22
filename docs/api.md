@@ -531,6 +531,7 @@ One value on air, as text. This is the component most graphics are mostly made o
 | `fallback` | `string` | Shown when the value is empty. Defaults to `""`. |
 | `fit` | `boolean \| number` | Shrink the text to fit its box. A number caps how far. |
 | `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
+| `transition` | `string` | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide. |
 
 ### `Image`
 
@@ -556,6 +557,7 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 | `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `slug` | `boolean` | Slugify the value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
+| `transition` | `string` | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide. |
 | `value` | `string` | A value outright rather than a path to one. Wins over `name`. |
 
 ### `ImageList`
@@ -583,6 +585,7 @@ Several pictures from one value — what `ImageSelect multiple` writes. Each ent
 | `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `slug` | `boolean` | Slugify each value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
+| `transition` | `string` | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide. |
 
 ### `Toggle`
 
@@ -607,6 +610,7 @@ Shows its children while a toggle is on, and animates them in and out. This is h
 | `children` | `ReactNode` | Shown while the toggle is on. |
 | `className` | `string` | Added to the component's own classes. |
 | `name` **·** required | `string` | Names a value under `toggles` — e.g. `lowerthird`. |
+| `transition` | `string` | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide. |
 
 ### `Timer`
 
@@ -629,6 +633,7 @@ A clock on air, reading whichever kind was stored — a countdown, a count-up, o
 | `fallback` | `string` | Shown when no clock is set. Defaults to `"00:00"`. |
 | `name` **·** required | `string` | Names a value under `timers` — e.g. `round`. |
 | `onComplete` | `() => void` | Called once, when a countdown reaches zero. |
+| `transition` | `string` | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide. |
 
 ### `Ticker`
 

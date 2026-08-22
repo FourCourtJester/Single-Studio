@@ -4,9 +4,14 @@ import { STUDIO_ID } from './config'
 
 // Everything the framework needs to know about this studio, declared once.
 //
-// `sources` is an explicit registry rather than a directory convention: each
-// entry is a dynamic import, so sources code-split automatically and a typo
-// fails loudly at the control page instead of at air time.
+// `sources` is written out by hand here, and deliberately so. The template globs
+// the folder -- `sourcesFrom(import.meta.glob('./sources/**/*.jsx'))` -- which is
+// what a studio should normally do, since adding a graphic is then adding a file.
+// Keeping the map here means both paths stay covered by something: the explicit one
+// through these end-to-end suites, and the globbed one through the chunk check in
+// scripts/verify-template.mjs.
+//
+// It also lets a key demonstrate grouping without renaming the file behind it.
 export const studio = defineStudio({
   name: 'Demo',
   id: STUDIO_ID,

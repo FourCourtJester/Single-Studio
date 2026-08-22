@@ -159,8 +159,22 @@ check(
 // URL, and anything in it would be true of everybody who opened it.
 check(!/[?&]clock=/.test(dockUrl), 'the clock role stays off the dock URL, so an invite cannot hand it out')
 
-const clockBox = async (machine) => {
+/**
+ * What the box reads once it has settled.
+ *
+ * The dialog fills itself in from what is already known each time it opens, which is
+ * an effect -- so reading the box the instant it exists races that effect. This read
+ * a false on the host while its localStorage plainly said `reference`, which looks
+ * exactly like the role having been lost rather than not yet having been painted.
+ *
+ * So it polls for the value being asserted, then reports what the box actually says.
+ * Waiting cannot make a wrong answer pass: a machine whose role is genuinely the
+ * other one times out and is then read as it stands, and fails on that.
+ */
+const clockBox = async (machine, expected) => {
   await openMenu(machine, 'collaborate')
+
+  await becomes(machine.page, (want) => document.querySelector('.ss-clock-role input[type="checkbox"]')?.checked === want, expected, 3000)
 
   const checked = await machine.page.locator('.ss-clock-role input[type="checkbox"]').isChecked()
 
@@ -169,8 +183,8 @@ const clockBox = async (machine) => {
   return checked
 }
 
-check(await clockBox(host), 'the machine that set the room up is the one everyone sets their watch by')
-check((await clockBox(operator)) === false, 'and a machine that arrived on a link is not')
+check(await clockBox(host, true), 'the machine that set the room up is the one everyone sets their watch by')
+check((await clockBox(operator, false)) === false, 'and a machine that arrived on a link is not')
 
 await host.page.waitForTimeout(1500)
 

@@ -41,6 +41,16 @@ const decode = (text) => Uint8Array.from(atob(text), (char) => char.charCodeAt(0
  * Reads the same three things an invite link already carries, so nothing else
  * changes: `url` is the Supabase project URL, `token` is its anon key, and `room`
  * is the show.
+ *
+ * @param {object} options
+ * @param {import('yjs').Doc} options.doc The document to keep in step.
+ * @param {string} options.url The Supabase project URL.
+ * @param {string} options.room The show, as a channel name.
+ * @param {string} options.token The project's publishable (or legacy anon) key.
+ * @param {(state: 'connecting' | 'connected' | 'error', detail?: string) => void} [options.report] Called as the connection changes, for the status light.
+ * @param {(plain: Uint8Array) => Promise<Uint8Array>} [options.seal] Encrypts a frame on its way out. Supply all three of these, or none.
+ * @param {(frame: Uint8Array) => Promise<Uint8Array>} [options.open] Decrypts a frame on its way in.
+ * @param {(frame: Uint8Array) => boolean} [options.isSealed] Whether an arriving frame was encrypted, so a plaintext one can be refused rather than applied.
  */
 export function connectSupabase({ doc, url, room, token, report, seal, open, isSealed }) {
   if (!url || !token) throw new Error('Supabase needs a project URL and its anon key')

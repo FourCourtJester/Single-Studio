@@ -28,7 +28,9 @@
   "files": [
     "dist",
     "src",
-    "README.md"
+    "css-vars.d.ts",
+    "README.md",
+    "LICENSE"
   ],
   "types": "./dist/types/index.d.ts",
   "exports": {
@@ -47,7 +49,7 @@
   },
   "scripts": {
     "prepack": "pnpm build",
-    "build": "vite build && tsc -p tsconfig.json",
+    "build": "vite build && tsc -p tsconfig.json && node ../../scripts/ship-css-vars.mjs",
     "dev": "vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -63,6 +65,8 @@
     "react-router-dom": ">=6.22"
   },
   "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

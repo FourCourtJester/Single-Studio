@@ -266,6 +266,51 @@ try {
 
   console.log('  a TypeScript studio resolves the components and their props')
 
+  /**
+   * And that the template's own sources still match the components they use.
+   *
+   * The probe above proves a consumer can *resolve* the types. This proves the code
+   * we hand people actually satisfies them -- which is a different failure. A studio
+   * passing a prop the framework has since removed builds, renders, and does nothing:
+   * React hands an unknown lowercase attribute straight to the DOM without a word.
+   * The demo lost a `retries` that way and nothing noticed until this ran.
+   *
+   * It checks against the installed tarball rather than the workspace, because that
+   * is what somebody generating a studio from this template will have.
+   */
+  console.log('\n→ typechecking the template against what it ships with')
+
+  writeFileSync(
+    join(project, 'tsconfig.template.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          allowJs: true,
+          checkJs: true,
+          noEmit: true,
+          jsx: 'react-jsx',
+          module: 'esnext',
+          moduleResolution: 'bundler',
+          target: 'es2022',
+          lib: ['es2022', 'dom', 'dom.iterable'],
+          // Same setting the template's own studios get: this is here to catch a
+          // prop that no longer exists, not to hold a broadcast studio to
+          // `strictNullChecks` on a `getElementById`.
+          strict: false,
+          skipLibCheck: true,
+          types: ['vite/client'],
+        },
+        include: ['src/**/*.js', 'src/**/*.jsx'],
+      },
+      null,
+      2,
+    )}\n`,
+  )
+
+  run('node', [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(project, 'tsconfig.template.json')], project)
+
+  console.log('  every graphic and control in the template still matches its component')
+
   console.log('\ntemplate builds against the packed packages')
 } finally {
   if (keep) console.log(`\nleft behind at ${project}`)

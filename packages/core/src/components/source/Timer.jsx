@@ -12,6 +12,7 @@ const NAMESPACE = 'timers'
  * @property {string} name - Names a value under `timers` — e.g. `round`.
  * @property {string} [fallback] - Shown when no clock is set. Defaults to `"00:00"`.
  * @property {() => void} [onComplete] - Called once, when a countdown reaches zero.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**

@@ -41,6 +41,14 @@ jobs:
       - name: Build demo studio
         run: pnpm demo:build
 
+      # The demo, typechecked against the framework's own types. It is the only
+      # thing that notices a studio still passing a prop the framework has removed:
+      # a lowercase one like `retries` is handed straight to the DOM by React with
+      # no warning at all, so it builds, renders, passes every end-to-end check, and
+      # does nothing.
+      - name: Typecheck the demo studio
+        run: node node_modules/typescript/bin/tsc -p apps/demo/tsconfig.json
+
       # The reference is generated from the shipped types, so a renamed prop that
       # nobody thought to document is a red build rather than a page that quietly
       # describes a component which no longer exists.

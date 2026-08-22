@@ -13,6 +13,7 @@ const NAMESPACE = 'variables'
  * @property {string} [fallback] - URL used for an entry that fails to load.
  * @property {string} [alt] - Alt text for every image.
  * @property {number} [limit] - Render at most this many entries.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
  * @property {string} [className] - Added to the component's own classes.
  * @property {string} [itemClassName] - Added to each image rather than to the list.
  */

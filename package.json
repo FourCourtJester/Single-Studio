@@ -19,6 +19,7 @@
     "e2e": "pnpm --filter @single-studio/demo e2e",
     "e2e:browser": "pnpm --filter @single-studio/demo exec playwright install chromium",
     "lint": "eslint .",
+    "typecheck": "pnpm --filter @single-studio/core build && node node_modules/typescript/bin/tsc -p apps/demo/tsconfig.json",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md,yaml,yml}\"",
     "test": "pnpm -r test",
     "verify:template": "node scripts/verify-template.mjs",

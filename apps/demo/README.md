@@ -13,11 +13,12 @@ It is modelled on a squad-based RTS broadcast, because that show happens to use
 every component at once: two drafts, a map, an army composition, and all three
 kinds of clock running together.
 
-| Route                                                                                                                       | What it is                           |
-| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `#/`                                                                                                                        | The operator's board                 |
-| `#/source/match`                                                                                                            | The whole show in one browser source |
-| `#/source/scoreboard`, `#/source/lowerthird`, `#/source/standings`, `#/source/sponsor`, `#/source/guest`, `#/source/ticker` | Single-purpose graphics              |
+| Route                                                                                                                              | What it is                           |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `#/`                                                                                                                               | The operator's board                 |
+| `#/source/match`                                                                                                                   | The whole show in one browser source |
+| `#/source/scoreboard`, `#/source/lower-third`, `#/source/standings`, `#/source/sponsor`, `#/source/ticker`                          | Single-purpose graphics              |
+| `#/source/lower-thirds/guest`                                                                                                      | A nested key, grouped under a folder |
 
 `#/source/match` is the one to look at first. Everything inside it is switched on
 and off from the board, which is how a small production actually runs: one browser

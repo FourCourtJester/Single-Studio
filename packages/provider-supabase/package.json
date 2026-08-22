@@ -22,14 +22,24 @@
   ],
   "type": "module",
   "files": [
+    "dist",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
-    ".": "./src/index.js",
-    "./mesh": "./src/mesh.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./mesh": {
+      "types": "./dist/types/mesh.d.ts",
+      "default": "./src/mesh.js"
+    }
   },
   "scripts": {
+    "prepack": "pnpm build",
+    "build": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
@@ -41,10 +51,12 @@
     "yjs": "^13.6.20"
   },
   "devDependencies": {
+    "typescript": "^5.7.2",
     "vitest": "^2.1.8",
     "yjs": "^13.6.20"
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "types": "./dist/types/index.d.ts"
 }

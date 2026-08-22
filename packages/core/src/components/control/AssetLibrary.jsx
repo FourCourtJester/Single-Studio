@@ -39,6 +39,11 @@ import { Tooltip } from '../common/Tooltip'
  *
  * Rendered inline as a panel, or inside AssetLibraryDialog as a modal. `onPick`
  * turns it into a chooser.
+ *
+ * @param {object} props
+ * @param {(entry: { key: string }) => void} [props.onPick] - turns the library into a chooser
+ * @param {string} [props.selected] - the `asset:<key>` currently chosen, when choosing
+ * @param {string} [props.className] - added to the component's own classes
  */
 export function AssetLibrary({ onPick, selected, className, ...rest }) {
   const { assets, addFiles, addUrl, remove, removeAll, rename } = useAssetLibrary()

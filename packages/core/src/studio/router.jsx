@@ -50,6 +50,10 @@ export function createStudioRouter(studio) {
  *
  * The provider sits outside the router so the Velcro client is created once for
  * the page rather than per navigation.
+ *
+ * @param {object} props
+ * @param {ReturnType<typeof import('./defineStudio').defineStudio>} props.studio - from `defineStudio`
+ * @param {import('react').ReactNode} [props.fallback] - shown while a page's chunk loads
  */
 export function StudioApp({ studio, fallback }) {
   return (

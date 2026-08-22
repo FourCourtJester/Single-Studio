@@ -6,7 +6,31 @@
 export const DEFAULT_FIELDS = ['name', 'score']
 export const DEFAULT_DELIMITER = '\t'
 
-/** Text to rows. Missing trailing columns come back as empty strings, not undefined. */
+/**
+ * One row of a board: the field names you asked for, mapped to strings.
+ *
+ * Every field is present and every value is a string -- a column an operator left
+ * blank is `''`, never `undefined` -- so a graphic can read `row.score` without
+ * guarding first.
+ *
+ * @typedef {Record<string, string>} BoardRow
+ */
+
+/**
+ * Options shared by every board helper.
+ *
+ * @typedef {object} BoardOptions
+ * @property {string[]} [fields] Column names, in the order they appear on each line. Defaults to `['name', 'score']`.
+ * @property {string} [delimiter] What separates the columns. Defaults to a tab, which is what a spreadsheet paste already uses.
+ */
+
+/**
+ * Text to rows. Missing trailing columns come back as empty strings, not undefined.
+ *
+ * @param {string} text
+ * @param {BoardOptions} [options]
+ * @returns {BoardRow[]}
+ */
 export function parseBoard(text, { fields = DEFAULT_FIELDS, delimiter = DEFAULT_DELIMITER } = {}) {
   if (!text) return []
 
@@ -24,6 +48,10 @@ export function parseBoard(text, { fields = DEFAULT_FIELDS, delimiter = DEFAULT_
  * Trailing blank rows are dropped so an operator clearing the bottom of the board
  * does not leave empty lines that render as gaps in the graphic. Blank rows in the
  * middle are kept, because those are usually deliberate spacing.
+ *
+ * @param {BoardRow[]} rows
+ * @param {BoardOptions} [options]
+ * @returns {string}
  */
 export function serializeBoard(rows, { fields = DEFAULT_FIELDS, delimiter = DEFAULT_DELIMITER } = {}) {
   const lines = rows.map((row) => fields.map((field) => row?.[field] ?? '').join(delimiter))
@@ -33,7 +61,14 @@ export function serializeBoard(rows, { fields = DEFAULT_FIELDS, delimiter = DEFA
   return lines.join('\n')
 }
 
-/** Pad or trim to a fixed row count, for a board with a set number of places. */
+/**
+ * Pad or trim to a fixed row count, for a board with a set number of places.
+ *
+ * @param {BoardRow[]} rows
+ * @param {number} count
+ * @param {BoardOptions} [options]
+ * @returns {BoardRow[]}
+ */
 export function sizeBoard(rows, count, { fields = DEFAULT_FIELDS } = {}) {
   const empty = () => fields.reduce((row, field) => ({ ...row, [field]: '' }), {})
   const sized = rows.slice(0, count)

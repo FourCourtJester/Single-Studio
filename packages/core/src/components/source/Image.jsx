@@ -22,6 +22,7 @@ const REFERRER_POLICY = 'no-referrer'
  * @property {boolean} [slug] - Slugify the value first — "Single Studio" becomes `single-studio`.
  * @property {string} [fallback] - URL used when the value is empty or fails to load.
  * @property {string} [alt] - Alt text.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
