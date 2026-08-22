@@ -5,7 +5,7 @@ import { cx } from '../../toolkits/cx'
 /**
  * A count-up clock: start, pause, reset.
  *
- * The third of the three clocks. <TimerButton> counts down a duration, <Countdown>
+ * The third of the three clocks. <Countdown> counts down a duration, <CountdownTo>
  * counts down to a wall-clock time, and this one counts up from the moment it was
  * started -- match length, segment length, "how long have we been on this map".
  *

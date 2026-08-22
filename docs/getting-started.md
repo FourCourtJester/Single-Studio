@@ -226,8 +226,8 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first.                         |
 | `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.        |
 | `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
-| `TimerButton`  | `timers.<name>`    | Duration countdown. Typed unless `duration` presets it.          |
-| `Countdown`    | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                |
+| `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.      |
+| `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                |
 | `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                  |
 | `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.         |
 | `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.          |
@@ -249,18 +249,18 @@ Three of them, because a broadcast asks three different questions:
 
 | Control       | Question                    | Stored as      |
 | ------------- | --------------------------- | -------------- |
-| `TimerButton` | "five more minutes"         | target instant |
-| `Countdown`   | "we go live at 19:00"       | target instant |
+| `Countdown`   | "five more minutes"         | target instant |
+| `CountdownTo` | "we go live at 19:00"       | target instant |
 | `Stopwatch`   | "how long have we been on?" | origin instant |
 
 ```jsx
-<TimerButton name="round" label="Round" />                 {/* operator types it */}
-<TimerButton name="break" label="break" duration="5:00" /> {/* a fixed preset */}
-<Countdown name="showtime" label="Doors open" as="time" />
+<Countdown name="round" label="Round" />                 {/* operator types it */}
+<Countdown name="break" label="break" duration="5:00" /> {/* a fixed preset */}
+<CountdownTo name="showtime" label="Doors open" />
 <Stopwatch name="match" label="Show elapsed" />
 ```
 
-`TimerButton` grows an input unless you hand it a `duration`, because a fixed five
+`Countdown` grows an input unless you hand it a `duration`, because a fixed five
 minutes is a guess about somebody else's show. The input takes whatever an operator
 would naturally type — `90`, `1:30`, `1:02:03` — rather than insisting on a format.
 Give it a `duration` when the length never varies and one press should start it.
@@ -663,7 +663,7 @@ be on screen.
 | **Discard** (red ✕)     | Abandon all staged edits  |
 
 Buttons — `Stepper`'s &minus;/+, `ToggleButton`, `ImageToggle`, `ImageSelect`, `SwapButton`,
-`ResetButton`, `TimerButton`, `Countdown`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
+`ResetButton`, `Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
 half-finished state to protect.
 
 `Stepper`'s **field** is the exception among them, and stages like the text ones do:

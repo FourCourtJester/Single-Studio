@@ -3,6 +3,7 @@ import {
   Break,
   ColorPicker,
   Countdown,
+  CountdownTo,
   Cycle,
   Field,
   ImagePicker,
@@ -13,7 +14,6 @@ import {
   Stepper,
   Stopwatch,
   SwapButton,
-  TimerButton,
   ToggleButton,
   useVelcroMutate,
 } from '@single-studio/core'
@@ -82,8 +82,8 @@ export default function Control() {
         {/* All three kinds, side by side. The round timer takes a typed duration --
             seconds or m:ss -- because five minutes is a guess about someone else's
             show. Pass `duration` instead to make it a one-press preset. */}
-        <TimerButton name="round" label="Round" placeholder="5:00" />
-        <Countdown name="showtime" label="Doors open" as="time" />
+        <Countdown name="round" label="Round" placeholder="5:00" />
+        <CountdownTo name="showtime" label="Doors open" />
         <Stopwatch name="match" label="Show elapsed" />
       </Panel>
 

@@ -2,87 +2,99 @@ import { useRef } from 'react'
 
 import { useTimer } from '../../hooks/useTimer'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
-import { untilClockTime } from '../../toolkits/time'
+import { parseDuration } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
 
 /**
- * Count down to a wall-clock time rather than for a duration.
+ * Count down for a duration -- a break, a half, a stinger.
  *
- * "We go live at 19:00" is a different question from "five more minutes", and it is
- * the one a pre-show countdown actually asks. `as="time"` takes `HH:MM` and rolls
- * to tomorrow if that time has already passed today; `as="datetime-local"` takes a
- * full date for something further out.
+ * Named for what an operator types into it: `Countdown` takes 5:00, `CountdownTo`
+ * takes 19:30. This was `TimerButton`, which said nothing about which of the two it
+ * was, while the wall-clock one held the name people reach for first.
  *
- * The operator's raw entry is stored alongside the target so the field repopulates
- * after a reload — someone returning to the board mid-show should see what they
- * typed, not an empty input under a running clock.
+ * Two shapes, chosen by whether a `duration` is given.
+ *
+ * With one, it is a single button: a preset, for a break that is always the same
+ * length. Without one, it grows an input, because a fixed five minutes is a
+ * guess about somebody else's show. The input takes what an operator would
+ * naturally type -- `90` for ninety seconds, `1:30`, or `1:02:03` -- rather than
+ * insisting on a format, since the one thing nobody has mid-broadcast is the
+ * patience to be corrected about punctuation.
+ *
+ * Either way the entry is stored alongside the target, so the field repopulates
+ * after a reload instead of coming back empty under a running clock.
  */
-export function Countdown({ name, label = 'Countdown', as = 'time', namespace = 'timers', className, ...rest }) {
+export function Countdown({ name, label, duration, placeholder = '5:00', namespace = 'timers', className, ...rest }) {
   const path = `${namespace}.${name}`
   const { active, text, input } = useTimer(path)
   const mutate = useVelcroMutate()
   const ref = useRef(null)
 
-  const start = () => {
-    const raw = ref.current?.value
-
-    if (!raw) return
-
-    // `HH:MM` is handed over as a *duration* rather than resolved to an epoch here,
-    // and that is the skew-correct thing to do. The mutation runs in the worker,
-    // where the room's clock is known; resolving it on this page would bake this
-    // machine's idea of now into the target, so a board four seconds fast would put
-    // a pre-show countdown four seconds late on the machine going to air. A full
-    // date is genuinely absolute and needs no such help.
-    const spec = as === 'time' ? { duration: untilClockTime(raw), input: raw } : { at: new Date(raw).getTime(), input: raw }
-    const at = spec.at ?? Date.now() + spec.duration
-
-    // A target in the past clears rather than starting a countdown that is
-    // instantly over. The mutation enforces this too; bailing here keeps the
-    // operator's entry in the field so they can correct it.
-    if (!Number.isFinite(at) || at <= Date.now()) return
-
-    mutate('timer', { [path]: spec })
-  }
-
   const stop = () => mutate('timer', { [path]: 0 })
+
+  const start = (raw) => {
+    const ms = parseDuration(raw)
+
+    // Nothing usable typed. Bailing here leaves the entry in the field to be
+    // corrected, rather than clearing it and making them start again.
+    if (!ms) return
+
+    mutate('timer', { [path]: { duration: ms, input: String(raw) } })
+  }
 
   if (active) {
     return (
       <button
         type="button"
         onClick={stop}
-        title={`Stop ${label}`}
+        aria-label={`Stop ${label ?? name}`}
         className={cx(
           'ss-countdown rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500',
           className,
         )}
         {...rest}
       >
-        {label} &middot; {text}
+        Stop {text}
+      </button>
+    )
+  }
+
+  if (duration !== undefined) {
+    return (
+      <button
+        type="button"
+        onClick={() => start(duration)}
+        className={cx(
+          'ss-countdown rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-medium tabular-nums text-slate-200 transition-colors hover:border-slate-500',
+          className,
+        )}
+        {...rest}
+      >
+        Start {label ?? name}
       </button>
     )
   }
 
   return (
     <div className={cx('ss-countdown flex flex-col gap-1', className)} {...rest}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
-      {/* Joined into one control, like every other entry-then-go pair on the board. */}
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label ?? name}</span>
       <div className="ss-input-group flex">
         <input
           ref={ref}
-          type={as}
           defaultValue={input ?? ''}
+          placeholder={placeholder}
+          aria-label={`${label ?? name} duration`}
+          spellCheck={false}
           onKeyDown={(event) => {
             if (event.key !== 'Enter') return
             event.preventDefault()
-            start()
+            start(ref.current?.value)
           }}
-          className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors focus:relative focus:border-sky-500"
+          className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 tabular-nums text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:relative focus:border-sky-500"
         />
         <button
           type="button"
-          onClick={start}
+          onClick={() => start(ref.current?.value)}
           className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500 focus:relative"
         >
           Start

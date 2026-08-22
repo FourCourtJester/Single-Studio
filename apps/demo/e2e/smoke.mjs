@@ -675,7 +675,7 @@ check((await sceneAttr('img[src*="maps"]')) === './maps/redline.svg', 'the map g
 
 // -- Three clocks ------------------------------------------------------------
 // Duration countdown.
-const round = control.locator('.ss-timer-button').filter({ hasText: 'Round' })
+const round = control.locator('.ss-countdown').filter({ hasText: 'Round' })
 await round.locator('input').fill('4:30')
 await round.locator('button:has-text("Start")').click()
 check(await becomes(match, () => /0[45]:\d\d/.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the duration countdown reaches the scene')
@@ -706,7 +706,7 @@ check(await becomes(match, () => /--:--/.test(document.querySelector('.ss-scene'
 
 await control.bringToFront()
 check(
-  await becomes(control, () => !!document.querySelector('.ss-timer-button input')),
+  await becomes(control, () => !!document.querySelector('.ss-countdown input')),
   'and the control is back to offering a fresh duration, with nothing left to dismiss',
 )
 
@@ -781,8 +781,8 @@ console.log(`  stopwatch: held ${held}, resumed ${resumed}`)
 check(seconds(resumed) > seconds(held), 'resuming carries on from the held time rather than restarting')
 
 // Wall-clock countdown.
-await control.locator('.ss-countdown input[type="time"]').fill('23:59')
-await control.locator('.ss-countdown button:has-text("Start")').click()
+await control.locator('.ss-countdown-to input[type="time"]').fill('23:59')
+await control.locator('.ss-countdown-to button:has-text("Start")').click()
 await control.locator('button:has-text("Show pre-show")').click()
 check(await becomes(match, () => /starting in/i.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the pre-show card appears')
 check(

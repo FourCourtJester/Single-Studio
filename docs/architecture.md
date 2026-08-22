@@ -192,8 +192,8 @@ Two families, one store.
 render on air. Each is a thin wrapper over `useVelcroValue`.
 
 **Control** (`Field`, `Select`, `ImageSelect`, `ImagePicker`, `Stepper`, `Cycle`,
-`ToggleButton`, `ImageToggle`, `SwapButton`, `ResetButton`, `Confirm`, `TimerButton`,
-`Countdown`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
+`ToggleButton`, `ImageToggle`, `SwapButton`, `ResetButton`, `Confirm`, `Countdown`,
+`CountdownTo`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
 it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
 
 `Transition` is the machine underneath every source component. It sets three phase
