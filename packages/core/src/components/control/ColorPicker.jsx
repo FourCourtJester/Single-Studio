@@ -3,15 +3,17 @@ import { useId } from 'react'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 const HEX = /^#[0-9a-f]{6}$/i
 
 /**
  * @typedef {object} ColorPickerProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Color"`.
  * @property {string[]} [presets] - Swatches offered beside the picker.
  * @property {string} [fallback] - Shown when nothing is set. Defaults to `"#0ea5e9"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /** The swatch input only accepts `#rrggbb`, so anything else shows as the default. */
@@ -45,8 +47,8 @@ const swatchValue = (value, fallback) => (HEX.test(String(value ?? '').trim()) ?
  *
  * @param {ColorPickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function ColorPicker({ name, label = 'Color', presets = [], fallback = '#0ea5e9', namespace = 'variables', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function ColorPicker({ name, label = 'Color', presets = [], fallback = '#0ea5e9', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const id = useId()
 

@@ -2,12 +2,14 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} CycleProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control.
  * @property {string[]} [options] - Stepped through in order, wrapping back to unset. One option makes it a checkbox.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -24,8 +26,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {CycleProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Cycle({ name, label, options = [], namespace = 'variables', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function Cycle({ name, label, options = [], className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const value = useVelcroValue(path, '')
   const mutate = useVelcroMutate()
 

@@ -2,11 +2,13 @@ import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 import { Transition } from '../common/Transition'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'toggles'
+
 /**
  * @typedef {object} ToggleProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
  * @property {import("react").ReactNode} [children] - Shown while the toggle is on.
- * @property {string} [namespace] - Where the value lives. Defaults to `toggles`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -28,8 +30,8 @@ import { Transition } from '../common/Transition'
  *
  * @param {ToggleProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Toggle({ name, children, className, namespace = 'toggles', ...rest }) {
-  const { value, loaded } = useVelcroState(`${namespace}.${name}`)
+export function Toggle({ name, children, className, ...rest }) {
+  const { value, loaded } = useVelcroState(`${NAMESPACE}.${name}`)
   const active = loaded && Boolean(value)
 
   return (

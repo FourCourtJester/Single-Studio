@@ -3,6 +3,9 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { cx } from '../../toolkits/cx'
 import { Thumb } from './Thumb'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 const SIZES = { sm: 'h-10 w-10', md: 'h-14 w-14', lg: 'h-20 w-20' }
 
 const optionValue = (option) => (typeof option === 'string' ? option : option.value)
@@ -11,14 +14,13 @@ const optionImage = (option) => (typeof option === 'string' ? undefined : option
 
 /**
  * @typedef {object} ImageSelectProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Select"`.
  * @property {Array<string | { value: string, label?: string, image?: string }>} [options] - What can be chosen, shown as pictures.
  * @property {boolean} [multiple] - Choose several. The value becomes a comma-separated list.
  * @property {number} [max] - Cap on how many, when `multiple`.
  * @property {boolean} [staged] - Hold the choice until saved, rather than writing on click.
  * @property {'sm'|'md'|'lg'} [size] - Tile size. Defaults to `"md"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /** Stored values arrive as an array, a bare string, or nothing at all. */
@@ -67,11 +69,10 @@ export function ImageSelect({
   max,
   staged = false,
   size = 'md',
-  namespace = 'variables',
   className,
   ...rest
 }) {
-  const path = `${namespace}.${name}`
+  const path = `${NAMESPACE}.${name}`
   const draft = useDraftValue(path, multiple ? [] : '')
   const mutate = useVelcroMutate()
 

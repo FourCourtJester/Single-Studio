@@ -5,14 +5,16 @@ import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 import { Tooltip } from '../common/Tooltip'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} FieldProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control.
  * @property {string} [placeholder] - Hint shown in the empty input.
  * @property {'input'|'textarea'} [as] - Defaults to `"input"`.
  * @property {number} [rows] - Height when `as="textarea"`. Defaults to `3`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -36,13 +38,13 @@ import { Tooltip } from '../common/Tooltip'
  * <Field name="guest.bio" label="Guest bio" as="textarea" rows={4} />
  *
  * @example
- * // Anywhere but the default namespace
- * <Field name="headline" label="Headline" namespace="lowerthird" />
+ * // A dotted name groups related values; nothing has to declare the group
+ * <Field name="lowerthird.headline" label="Headline" />
  *
  * @param {FieldProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Field({ name, label, placeholder, as = 'input', rows = 3, namespace = 'variables', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function Field({ name, label, placeholder, as = 'input', rows = 3, className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const busy = usePathPresence(path)
   const id = useId()

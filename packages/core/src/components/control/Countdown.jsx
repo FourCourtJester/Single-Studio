@@ -5,13 +5,15 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { parseDuration } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'timers'
+
 /**
  * @typedef {object} CountdownProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
- * @property {string} [label] - Shown above the control.
+ * @property {string} name - Names a value under `timers` — e.g. `round`.
+ * @property {string} [label] - Shown above the control, and on the running clock.
  * @property {string|number} [duration] - A fixed length, e.g. `"5:00"`. Without it the operator types one.
  * @property {string} [placeholder] - Hint in the duration field. Defaults to `"5:00"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -43,8 +45,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {CountdownProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Countdown({ name, label, duration, placeholder = '5:00', namespace = 'timers', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function Countdown({ name, label, duration, placeholder = '5:00', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { active, text, input } = useTimer(path)
   const mutate = useVelcroMutate()
   const ref = useRef(null)

@@ -4,12 +4,14 @@ import { useTimer } from '../../hooks/useTimer'
 import { cx } from '../../toolkits/cx'
 import { Transition } from '../common/Transition'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'timers'
+
 /**
  * @typedef {object} TimerProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `timers` — e.g. `round`.
  * @property {string} [fallback] - Shown when no clock is set. Defaults to `"00:00"`.
  * @property {() => void} [onComplete] - Called once, when a countdown reaches zero.
- * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -47,8 +49,8 @@ import { Transition } from '../common/Transition'
  *
  * @param {TimerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Timer({ name, fallback = '00:00', onComplete, className, namespace = 'timers', ...rest }) {
-  const { active, running, text, loaded } = useTimer(`${namespace}.${name}`)
+export function Timer({ name, fallback = '00:00', onComplete, className, ...rest }) {
+  const { active, running, text, loaded } = useTimer(`${NAMESPACE}.${name}`)
   const was = useRef(running)
 
   useEffect(() => {

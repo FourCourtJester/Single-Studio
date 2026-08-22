@@ -4,11 +4,13 @@ import { useVelcroVars } from '../../hooks/useVelcroVars'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} SceneProps
  * @property {import("react").ReactNode} [children] - The graphic.
  * @property {Record<string, string>} [vars] - CSS custom property to value name, e.g. `{ "--accent": "home.color" }`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -24,13 +26,12 @@ import { cx } from '../../toolkits/cx'
  *   <Scene vars={{ '--home-color': 'home.color' }}>
  *     <div style={{ background: 'var(--home-color, #0a3161)' }} />
  *
- * Names, not paths, and `namespace` picks where they live -- the same as every
- * other component. It used to take `variables.home.color` here while the component
- * beside it took `home.color`, which is one value written two ways on adjacent
- * lines.
+ * Names, not paths -- the same as every other component. It used to take
+ * `variables.home.color` here while the component beside it took `home.color`,
+ * which is one value written two ways on adjacent lines.
  *
- * A graphic needing custom properties from more than one namespace at once should
- * call `useVelcroVars` directly: the hook takes full paths, and that split is the
+ * A graphic needing a custom property from a toggle or a timer should call
+ * `useVelcroVars` directly: the hook takes full paths, and that split is the
  * framework's rule rather than an exception made here. Components take names;
  * hooks take paths.
  *
@@ -54,15 +55,15 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {SceneProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Scene({ children, className, vars, namespace = 'variables', style, ...rest }) {
+export function Scene({ children, className, vars, style, ...rest }) {
   // Rebuilt only when the map's contents change, not on every render -- an inline
   // object literal is a new object each time, and the hook subscribes off this.
   const signature = JSON.stringify(vars ?? {})
   const paths = useMemo(() => {
     const entries = Object.entries(JSON.parse(signature))
 
-    return Object.fromEntries(entries.map(([property, name]) => [property, qualify({ names: name, namespace }).at(0)]).filter(([, path]) => path))
-  }, [signature, namespace])
+    return Object.fromEntries(entries.map(([property, name]) => [property, qualify({ names: name, namespace: NAMESPACE }).at(0)]).filter(([, path]) => path))
+  }, [signature])
 
   const resolved = useVelcroVars(paths)
 

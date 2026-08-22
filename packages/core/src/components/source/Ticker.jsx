@@ -3,12 +3,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} TickerProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [fallback] - Shown when the value is empty.
  * @property {number} [speed] - Pixels per second. Defaults to `100`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -38,8 +40,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {TickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Ticker({ name, fallback = '', speed = 100, className, namespace = 'variables', ...rest }) {
-  const { value, loaded } = useVelcroState(`${namespace}.${name}`)
+export function Ticker({ name, fallback = '', speed = 100, className, ...rest }) {
+  const { value, loaded } = useVelcroState(`${NAMESPACE}.${name}`)
   const incoming = loaded ? (value ?? fallback) : ''
   const [text, setText] = useState('')
   const [metrics, setMetrics] = useState({ from: 0, to: 0, duration: 0 })

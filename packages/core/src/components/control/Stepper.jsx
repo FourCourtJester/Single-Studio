@@ -4,12 +4,14 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} StepperProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control.
  * @property {number} [step] - How much the -/+ buttons add, and the field's arrow keys. Defaults to `1`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -46,8 +48,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {StepperProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Stepper({ name, label, step = 1, namespace = 'variables', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function Stepper({ name, label, step = 1, className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const value = useVelcroValue(path, 0)
   const mutate = useVelcroMutate()
 

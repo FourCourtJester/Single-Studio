@@ -2,12 +2,14 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} ResetButtonProps
  * @property {string[]} [names] - Cleared back to each source's own fallback.
- * @property {string[]} [paths] - Fully-qualified paths, for clearing across namespaces.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
- * @property {string} [label] - Shown above the control. Defaults to `"Reset"`.
+ * @property {string[]} [paths] - Full paths, for clearing `toggles` or `timers` in the same press.
+ * @property {string} [label] - Names what gets cleared: the button reads "Reset <label>". Defaults to `"Reset"`.
  * @property {boolean} [confirm] - Ask before clearing.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Reset <label>" text.
  * @property {string} [className] - Added to the component's own classes.
@@ -24,10 +26,10 @@ import { cx } from '../../toolkits/cx'
  * `label="draft"` reads "Reset draft" rather than a red button saying "draft",
  * which told an operator the colour was dangerous but not what it would do.
  *
- * Takes `names` the way every other component does -- `names={['home.score']}`
- * against a `namespace` that defaults to `variables`. `paths` still works and is
- * still the answer for reaching across namespaces in one press, clearing a toggle
- * and the value it was showing together.
+ * Takes `names` the way every other component does. Those name values under
+ * `variables`, which is where a studio's own values live; `paths` is the way to
+ * reach anything else in the same press -- clearing a toggle and the value it was
+ * showing together, say.
  *
  * @example
  * <ResetButton label="scores" names={['home.score', 'away.score']} />
@@ -38,9 +40,9 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {ResetButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function ResetButton({ names = [], paths = [], namespace = 'variables', label = 'Reset', confirm = false, className, children, ...rest }) {
+export function ResetButton({ names = [], paths = [], label = 'Reset', confirm = false, className, children, ...rest }) {
   const mutate = useVelcroMutate()
-  const targets = qualify({ names, paths, namespace })
+  const targets = qualify({ names, paths, namespace: NAMESPACE })
 
   // A bare `label="Reset"` is the noun and the verb at once; anything else is just
   // the noun and needs the verb in front of it.

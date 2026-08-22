@@ -2,11 +2,13 @@ import { useTimer } from '../../hooks/useTimer'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'timers'
+
 /**
  * @typedef {object} StopwatchProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `timers` — e.g. `round`.
  * @property {string} [label] - Shown above the control. Defaults to `"Stopwatch"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -26,8 +28,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {StopwatchProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Stopwatch({ name, label = 'Stopwatch', namespace = 'timers', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function Stopwatch({ name, label = 'Stopwatch', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { running, active, text } = useTimer(path)
   const mutate = useVelcroMutate()
 

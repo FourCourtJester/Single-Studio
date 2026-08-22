@@ -3,15 +3,17 @@ import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 import { Thumb } from './Thumb'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'toggles'
+
 /**
  * @typedef {object} ImageToggleProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
  * @property {string} [label] - Shown above the control.
  * @property {string} [image] - The picture on the button.
  * @property {string} [from] - Read the picture from this path instead of `image`.
  * @property {string[]} [group] - Names that turn off when this turns on.
  * @property {'sm'|'md'|'lg'} [size] - Defaults to `"md"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `toggles`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -41,15 +43,15 @@ import { Thumb } from './Thumb'
  *
  * @param {ImageToggleProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function ImageToggle({ name, label, image, from, group, size = 'md', namespace = 'toggles', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function ImageToggle({ name, label, image, from, group, size = 'md', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const active = Boolean(useVelcroValue(path, false))
   const chosen = useVelcroValue(from, null)
   const mutate = useVelcroMutate()
 
   const onClick = () => {
     if (group?.length) {
-      mutate('only', { group: group.map((key) => `${namespace}.${key}`), active: active ? null : path })
+      mutate('only', { group: group.map((key) => `${NAMESPACE}.${key}`), active: active ? null : path })
       return
     }
 

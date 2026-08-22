@@ -3,14 +3,16 @@ import { useId } from 'react'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} SelectProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Select"`.
  * @property {Array<string | { value: string, label: string }>} [options] - What can be chosen.
  * @property {string} [placeholder] - The empty choice. Defaults to `"— none —"`.
  * @property {import("react").ReactNode} [children] - Options as JSX, instead of `options`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -39,8 +41,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {SelectProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Select({ name, label = 'Select', options = [], children, placeholder = '— none —', namespace = 'variables', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function Select({ name, label = 'Select', options = [], children, placeholder = '— none —', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const id = useId()
 

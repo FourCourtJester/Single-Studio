@@ -5,14 +5,16 @@ import { cx } from '../../toolkits/cx'
 import { DEFAULT_DELIMITER, DEFAULT_FIELDS, parseBoard, serializeBoard, sizeBoard } from '../../toolkits/board'
 import { Field } from './Field'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} LeaderboardProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Leaderboard"`.
  * @property {string[]} [fields] - Column names, in order.
  * @property {string} [delimiter] - What separates columns in the stored string.
  * @property {number} [rows] - How many rows the table shows.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -46,11 +48,10 @@ export function Leaderboard({
   fields = DEFAULT_FIELDS,
   delimiter = DEFAULT_DELIMITER,
   rows,
-  namespace = 'variables',
   className,
   ...rest
 }) {
-  const path = `${namespace}.${name}`
+  const path = `${NAMESPACE}.${name}`
   // Staged like any other text control: a half-pasted board must not reach air.
   const { value, dirty, onChange } = useDraftValue(path)
   const [tabular, setTabular] = useState(false)
@@ -133,7 +134,7 @@ export function Leaderboard({
         </div>
       ) : (
         <>
-          <Field name={name} namespace={namespace} label={null} as="textarea" rows={Math.max(3, entries.length || 3)} className="w-full" />
+          <Field name={name} label={null} as="textarea" rows={Math.max(3, entries.length || 3)} className="w-full" />
           <p className="text-xs text-slate-500">
             One row per line, {delimiter === '\t' ? 'tab' : `"${delimiter}"`}-separated: {fields.join(` ${delimiter === '\t' ? '⇥' : delimiter} `)}
           </p>

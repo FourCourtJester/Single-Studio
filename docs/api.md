@@ -22,12 +22,13 @@ air — and they meet at a path. That pairing is the whole mental model:
 | Wall clock       | — | [`Clock`](#clock) |
 | Grouping         | [`Panel`](#panel), [`Break`](#break) | [`Scene`](#scene) |
 
-Every component takes `name` plus a `namespace` that defaults to the right one, so a
-studio author writes `name="home.score"` and rarely thinks about namespaces at all.
-Values live under `variables`, except on/off ones under `toggles` and clocks under
-`timers` — each component's `namespace` row says which.
+Every component takes a `name`, and knows for itself where that name lives: values
+under `variables`, on/off ones under `toggles`, clocks under `timers`. So a studio
+author writes `name="home.score"` and never has to think about it — each component's
+`name` row says which. The two that act on several values at once, [`ResetButton`](#resetbutton) and
+[`SwapButton`](#swapbutton), take `paths` for the rare case of reaching outside `variables`.
 
-Every component also passes anything it does not recognise through to the DOM, so
+Every component passes anything it does not recognise through to the DOM, so
 `style`, `data-*` and the rest stay available.
 
 ## Dashboard
@@ -53,6 +54,8 @@ Every component also passes anything it does not recognise through to the DOM, s
 
 ### `Field`
 
+---
+
 Text an operator types, bound to a path. Staged until saved, so a half-typed name never reaches air; `as="textarea"` takes several lines instead of one.
 
 ```jsx
@@ -64,8 +67,8 @@ Text an operator types, bound to a path. Staged until saved, so a half-typed nam
 ```
 
 ```jsx
-// Anywhere but the default namespace
-<Field name="headline" label="Headline" namespace="lowerthird" />
+// A dotted name groups related values; nothing has to declare the group
+<Field name="lowerthird.headline" label="Headline" />
 ```
 
 | Prop | Type | |
@@ -73,12 +76,13 @@ Text an operator types, bound to a path. Staged until saved, so a half-typed nam
 | `as` | `'input' \| 'textarea'` | Defaults to `"input"`. |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `placeholder` | `string` | Hint shown in the empty input. |
 | `rows` | `number` | Height when `as="textarea"`. Defaults to `3`. |
 
 ### `Stepper`
+
+---
 
 A number with minus and plus buttons, and a field to type into. The buttons add and subtract, so two operators pressing +1 at once come to +2 rather than +1.
 
@@ -95,11 +99,12 @@ A number with minus and plus buttons, and a field to type into. The buttons add 
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `step` | `number` | How much the -/+ buttons add, and the field's arrow keys. Defaults to `1`. |
 
 ### `Select`
+
+---
 
 A dropdown of allowed values, staged until saved. Options are plain strings, or `{ value, label }` when what is stored differs from what is shown.
 
@@ -123,12 +128,13 @@ A dropdown of allowed values, staged until saved. Options are plain strings, or 
 | `children` | `ReactNode` | Options as JSX, instead of `options`. |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. Defaults to `"Select"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `options` | `Array<string \| { value: string, label: string }>` | What can be chosen. |
 | `placeholder` | `string` | The empty choice. Defaults to `"— none —"`. |
 
 ### `Cycle`
+
+---
 
 One button that steps through a list of values in order, wrapping back to unset at the end. With a single option it is a checkbox: press to set it, press again to clear it — which is what to reach for when a graphic only needs "on or the value, or nothing".
 
@@ -145,11 +151,12 @@ One button that steps through a list of values in order, wrapping back to unset 
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `options` | `string[]` | Stepped through in order, wrapping back to unset. One option makes it a checkbox. |
 
 ### `ColorPicker`
+
+---
 
 A colour, as a swatch to pick from and a hex field to type into. Pair it with `Scene`'s `vars` to drive anything a stylesheet can express.
 
@@ -169,11 +176,12 @@ A colour, as a swatch to pick from and a hex field to type into. Pair it with `S
 | `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | Shown when nothing is set. Defaults to `"#0ea5e9"`. |
 | `label` | `string` | Shown above the control. Defaults to `"Color"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `presets` | `string[]` | Swatches offered beside the picker. |
 
 ### `ImagePicker`
+
+---
 
 One image, chosen by name from the studio's library, with a preview beside the dropdown and a magnifier to open the library itself. Writes `asset:<key>`.
 
@@ -189,10 +197,11 @@ One image, chosen by name from the studio's library, with a preview beside the d
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. Defaults to `"Image"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 
 ### `ImageSelect`
+
+---
 
 Choose by picture rather than by name — a grid of tiles, which is what an operator can aim at inside a draft timer. `multiple` collects several.
 
@@ -211,13 +220,14 @@ Choose by picture rather than by name — a grid of tiles, which is what an oper
 | `label` | `string` | Shown above the control. Defaults to `"Select"`. |
 | `max` | `number` | Cap on how many, when `multiple`. |
 | `multiple` | `boolean` | Choose several. The value becomes a comma-separated list. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `options` | `Array<string \| { value: string, label?: string, image?: string }>` | What can be chosen, shown as pictures. |
 | `size` | `'sm' \| 'md' \| 'lg'` | Tile size. Defaults to `"md"`. |
 | `staged` | `boolean` | Hold the choice until saved, rather than writing on click. |
 
 ### `ImageToggle`
+
+---
 
 An on/off button with a picture on it. `group` makes a row of them behave like radio buttons, which is how a scene picker is usually built.
 
@@ -237,11 +247,12 @@ An on/off button with a picture on it. `group` makes a row of them behave like r
 | `group` | `string[]` | Names that turn off when this turns on. |
 | `image` | `string` | The picture on the button. |
 | `label` | `string` | Shown above the control. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
+| `name` **·** required | `string` | Names a value under `toggles` — e.g. `lowerthird`. |
 | `size` | `'sm' \| 'md' \| 'lg'` | Defaults to `"md"`. |
 
 ### `ToggleButton`
+
+---
 
 An on/off button for a path under `toggles`, which is what a graphic watches to know whether to be on air. `group` turns a set of them into radio buttons.
 
@@ -259,11 +270,12 @@ An on/off button for a path under `toggles`, which is what a graphic watches to 
 | `children` | `ReactNode` | Replaces the generated "Show <label>" text. |
 | `className` | `string` | Added to the component's own classes. |
 | `group` | `string[]` | Names that turn off when this turns on — radio-button behaviour. |
-| `label` | `string` | Shown on the button. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `lowerthird`. |
-| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
+| `label` | `string` | Names what is toggled: the button reads "Show <label>". |
+| `name` **·** required | `string` | Names a value under `toggles` — e.g. `lowerthird`. |
 
 ### `SwapButton`
+
+---
 
 Trade values pairwise — teams changing ends. The list is swapped outermost inwards, so a symmetrical row reads as one and needs no counting.
 
@@ -272,7 +284,7 @@ Trade values pairwise — teams changing ends. The list is swapped outermost inw
 ```
 
 ```jsx
-// `paths` reaches across namespaces, which `names` cannot
+// `paths` reaches outside `variables`, which `names` does not
 <SwapButton label="scenes" paths={['toggles.left', 'toggles.right']} />
 ```
 
@@ -280,12 +292,13 @@ Trade values pairwise — teams changing ends. The list is swapped outermost inw
 | --- | --- | --- |
 | `children` | `ReactNode` | Replaces the generated text. |
 | `className` | `string` | Added to the component's own classes. |
-| `label` | `string` | Shown above the control. Defaults to `"Swap"`. |
+| `label` | `string` | Names what gets traded, on the button. Defaults to `"Swap"`. |
 | `names` | `string[]` | Traded outermost inwards: first with last, second with second-last. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
-| `paths` | `string[]` | Fully-qualified paths, for trading across namespaces. |
+| `paths` | `string[]` | Full paths, for trading values outside `variables`. |
 
 ### `ResetButton`
+
+---
 
 Clear a set of values back to each source's own fallback. It unsets rather than writing empties, so a graphic falls back rather than going blank.
 
@@ -303,12 +316,13 @@ Clear a set of values back to each source's own fallback. It unsets rather than 
 | `children` | `ReactNode` | Replaces the generated "Reset <label>" text. |
 | `className` | `string` | Added to the component's own classes. |
 | `confirm` | `boolean` | Ask before clearing. |
-| `label` | `string` | Shown above the control. Defaults to `"Reset"`. |
+| `label` | `string` | Names what gets cleared: the button reads "Reset <label>". Defaults to `"Reset"`. |
 | `names` | `string[]` | Cleared back to each source's own fallback. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
-| `paths` | `string[]` | Fully-qualified paths, for clearing across namespaces. |
+| `paths` | `string[]` | Full paths, for clearing `toggles` or `timers` in the same press. |
 
 ### `Countdown`
+
+---
 
 Counts down a duration — a break, a half, a stinger. Without `duration` the operator types one; with it the control is a single press.
 
@@ -325,12 +339,13 @@ Counts down a duration — a break, a half, a stinger. Without `duration` the op
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `duration` | `string \| number` | A fixed length, e.g. `"5:00"`. Without it the operator types one. |
-| `label` | `string` | Shown above the control. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
+| `label` | `string` | Shown above the control, and on the running clock. |
+| `name` **·** required | `string` | Names a value under `timers` — e.g. `round`. |
 | `placeholder` | `string` | Hint in the duration field. Defaults to `"5:00"`. |
 
 ### `CountdownTo`
+
+---
 
 Counts down to a time of day rather than a length — "we go live at 19:30". Rolls to tomorrow if the time has already passed today.
 
@@ -348,10 +363,11 @@ Counts down to a time of day rather than a length — "we go live at 19:30". Rol
 | `as` | `'time' \| 'datetime-local'` | `"time"` takes HH:MM and rolls to tomorrow if past. Defaults to `"time"`. |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. Defaults to `"Starts at"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
+| `name` **·** required | `string` | Names a value under `timers` — e.g. `round`. |
 
 ### `Stopwatch`
+
+---
 
 Counts up from when it was started, with pause and reset. Stores an origin rather than a running total, so every machine derives the same number.
 
@@ -363,10 +379,11 @@ Counts up from when it was started, with pause and reset. Stores an origin rathe
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `label` | `string` | Shown above the control. Defaults to `"Stopwatch"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
+| `name` **·** required | `string` | Names a value under `timers` — e.g. `round`. |
 
 ### `Leaderboard`
+
+---
 
 A table an operator can paste into or edit row by row, stored as one delimited string. `fields` names the columns; the graphic parses it back out.
 
@@ -385,11 +402,12 @@ A table an operator can paste into or edit row by row, stored as one delimited s
 | `delimiter` | `string` | What separates columns in the stored string. |
 | `fields` | `string[]` | Column names, in order. |
 | `label` | `string` | Shown above the control. Defaults to `"Leaderboard"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `rows` | `number` | How many rows the table shows. |
 
 ### `Panel`
+
+---
 
 A titled group of controls. Children wrap in a flex row, so a panel reflows to whatever width the dock has rather than needing a layout of its own.
 
@@ -408,6 +426,8 @@ A titled group of controls. Children wrap in a flex row, so a panel reflows to w
 
 ### `Break`
 
+---
+
 Forces a line break inside a `Panel`, for when the natural wrap puts related controls on different rows.
 
 ```jsx
@@ -423,6 +443,8 @@ Forces a line break inside a `Panel`, for when the natural wrap puts related con
 | `className` | `string` | Added to the component's own classes. |
 
 ### `Confirm`
+
+---
 
 A destructive button that asks first, without a dialog: one click arms it, a second does it, and a few seconds of silence disarms it.
 
@@ -457,6 +479,8 @@ A destructive button that asks first, without a dialog: one click arms it, a sec
 
 ### `Scene`
 
+---
+
 The root of a graphic — one per OBS browser source. `vars` maps CSS custom properties to values an operator controls, which is how a graphic follows input the framework has no component for.
 
 ```jsx
@@ -480,10 +504,11 @@ export default function Scoreboard() {
 | --- | --- | --- |
 | `children` | `ReactNode` | The graphic. |
 | `className` | `string` | Added to the component's own classes. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
 | `vars` | `Record<string, string>` | CSS custom property to value name, e.g. `{ "--accent": "home.color" }`. |
 
 ### `Variable`
+
+---
 
 One value on air, as text. This is the component most graphics are mostly made of — a name, a score, a subtitle.
 
@@ -497,7 +522,7 @@ One value on air, as text. This is the component most graphics are mostly made o
 ```
 
 ```jsx
-<Variable name="headline" namespace="lowerthird" fallback="" />
+<Variable name="lowerthird.headline" fallback="" />
 ```
 
 | Prop | Type | |
@@ -505,10 +530,11 @@ One value on air, as text. This is the component most graphics are mostly made o
 | `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | Shown when the value is empty. Defaults to `""`. |
 | `fit` | `boolean \| number` | Shrink the text to fit its box. A number caps how far. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 
 ### `Image`
+
+---
 
 A picture chosen by a value the operator controls. Loads and decodes off-screen first and only swaps once ready, so a change never leaves a hole on air.
 
@@ -527,13 +553,14 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 | `alt` | `string` | Alt text. |
 | `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | URL used when the value is empty or fails to load. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `slug` | `boolean` | Slugify the value first — "Boise State" becomes `boise-state`. |
 | `src` | `string` | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
 | `value` | `string` | A value outright rather than a path to one. Wins over `name`. |
 
 ### `ImageList`
+
+---
 
 Several pictures from one value — what `ImageSelect multiple` writes. Each entry is templated exactly as `Image` templates one.
 
@@ -553,12 +580,13 @@ Several pictures from one value — what `ImageSelect multiple` writes. Each ent
 | `fallback` | `string` | URL used for an entry that fails to load. |
 | `itemClassName` | `string` | Added to each image rather than to the list. |
 | `limit` | `number` | Render at most this many entries. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `slug` | `boolean` | Slugify each value first — "Boise State" becomes `boise-state`. |
 | `src` | `string` | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
 
 ### `Toggle`
+
+---
 
 Shows its children while a toggle is on, and animates them in and out. This is how a whole graphic is put on and taken off air.
 
@@ -578,10 +606,11 @@ Shows its children while a toggle is on, and animates them in and out. This is h
 | --- | --- | --- |
 | `children` | `ReactNode` | Shown while the toggle is on. |
 | `className` | `string` | Added to the component's own classes. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `toggles`. |
+| `name` **·** required | `string` | Names a value under `toggles` — e.g. `lowerthird`. |
 
 ### `Timer`
+
+---
 
 A clock on air, reading whichever kind was stored — a countdown, a count-up, or a paused one. Shows 00:00 for a second when a countdown ends, then takes itself off air.
 
@@ -598,11 +627,12 @@ A clock on air, reading whichever kind was stored — a countdown, a count-up, o
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | Shown when no clock is set. Defaults to `"00:00"`. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `timers`. |
+| `name` **·** required | `string` | Names a value under `timers` — e.g. `round`. |
 | `onComplete` | `() => void` | Called once, when a countdown reaches zero. |
 
 ### `Ticker`
+
+---
 
 Text scrolling across the bottom of the screen, looping continuously. Speed is in pixels per second, so a long crawl and a short one read at the same pace.
 
@@ -618,11 +648,12 @@ Text scrolling across the bottom of the screen, looping continuously. Speed is i
 | --- | --- | --- |
 | `className` | `string` | Added to the component's own classes. |
 | `fallback` | `string` | Shown when the value is empty. |
-| `name` **·** required | `string` | Path under `namespace`, e.g. `home.score`. |
-| `namespace` | `string` | Where the value lives. Defaults to `variables`. |
+| `name` **·** required | `string` | Names a value under `variables` — e.g. `home.score`. |
 | `speed` | `number` | Pixels per second. Defaults to `100`. |
 
 ### `Clock`
+
+---
 
 The time of day, from the machine the graphic is running on. Nothing replicates here — every browser source reads its own clock.
 

@@ -6,6 +6,9 @@ import { cx } from '../../toolkits/cx'
 import { slugify } from '../../toolkits/slug'
 import { Transition } from '../common/Transition'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 const isAbsolute = (url) => /^[a-z][a-z0-9+.-]*:/i.test(url)
 
 /** Remote hosts commonly block hotlinking by Referer, and we never need to send one. */
@@ -13,13 +16,12 @@ const REFERRER_POLICY = 'no-referrer'
 
 /**
  * @typedef {object} ImageProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [value] - A value outright rather than a path to one. Wins over `name`.
  * @property {string} [src] - URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works.
  * @property {boolean} [slug] - Slugify the value first — "Boise State" becomes `boise-state`.
  * @property {string} [fallback] - URL used when the value is empty or fails to load.
  * @property {string} [alt] - Alt text.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -91,10 +93,9 @@ export function Image({
   fallback,
   alt = '',
   className,
-  namespace = 'variables',
   ...rest
 }) {
-  const { value: stored, loaded } = useVelcroState(name ? `${namespace}.${name}` : undefined)
+  const { value: stored, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
   // A literal value stands in for the store, so a component that already holds a
   // value -- one row of a list, say -- can reuse all of the loading machinery below
   // without inventing a path to put it at.

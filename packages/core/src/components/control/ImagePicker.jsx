@@ -9,11 +9,13 @@ import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
 import { AssetLibraryDialog } from './AssetLibrary'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} ImagePickerProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Image"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /** An entry this machine cannot render says so where it is chosen. */
@@ -47,8 +49,8 @@ const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
  *
  * @param {ImagePickerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function ImagePicker({ name, label = 'Image', namespace = 'variables', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function ImagePicker({ name, label = 'Image', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { value, dirty, onChange } = useDraftValue(path)
   const { assets } = useAssetLibrary()
   const owner = useOwner()

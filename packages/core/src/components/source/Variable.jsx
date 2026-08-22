@@ -3,12 +3,14 @@ import { cx } from '../../toolkits/cx'
 import { Fit } from '../common/Fit'
 import { Transition } from '../common/Transition'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'variables'
+
 /**
  * @typedef {object} VariableProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [fallback] - Shown when the value is empty. Defaults to `""`.
  * @property {boolean|number} [fit] - Shrink the text to fit its box. A number caps how far.
- * @property {string} [namespace] - Where the value lives. Defaults to `variables`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -29,12 +31,12 @@ import { Transition } from '../common/Transition'
  * <Variable name="guest.title" fallback="Guest" fit />
  *
  * @example
- * <Variable name="headline" namespace="lowerthird" fallback="" />
+ * <Variable name="lowerthird.headline" fallback="" />
  *
  * @param {VariableProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Variable({ name, fallback = '', fit = false, className, namespace = 'variables', ...rest }) {
-  const { value, loaded } = useVelcroState(name ? `${namespace}.${name}` : undefined)
+export function Variable({ name, fallback = '', fit = false, className, ...rest }) {
+  const { value, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
   const text = value === undefined || value === '' ? fallback : String(value)
 
   return (

@@ -209,7 +209,7 @@ function render(component) {
   // nothing to somebody trying to remember whether it is `slug` or `slugify`.
   const props = (propsOf(source, component) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
 
-  const lines = [`### \`${component}\``, '', summary]
+  const lines = [`### \`${component}\``, '', '---', '', summary]
 
   for (const example of examples) lines.push('', '```jsx', example, '```')
 
@@ -253,12 +253,13 @@ air — and they meet at a path. That pairing is the whole mental model:
 | Wall clock       | — | ${link('Clock')} |
 | Grouping         | ${link('Panel')}, ${link('Break')} | ${link('Scene')} |
 
-Every component takes \`name\` plus a \`namespace\` that defaults to the right one, so a
-studio author writes \`name="home.score"\` and rarely thinks about namespaces at all.
-Values live under \`variables\`, except on/off ones under \`toggles\` and clocks under
-\`timers\` — each component's \`namespace\` row says which.
+Every component takes a \`name\`, and knows for itself where that name lives: values
+under \`variables\`, on/off ones under \`toggles\`, clocks under \`timers\`. So a studio
+author writes \`name="home.score"\` and never has to think about it — each component's
+\`name\` row says which. The two that act on several values at once, ${link('ResetButton')} and
+${link('SwapButton')}, take \`paths\` for the rare case of reaching outside \`variables\`.
 
-Every component also passes anything it does not recognise through to the DOM, so
+Every component passes anything it does not recognise through to the DOM, so
 \`style\`, \`data-*\` and the rest stay available.
 
 ## Dashboard

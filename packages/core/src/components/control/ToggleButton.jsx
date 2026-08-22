@@ -2,13 +2,15 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'toggles'
+
 /**
  * @typedef {object} ToggleButtonProps
- * @property {string} name - Path under `namespace`, e.g. `lowerthird`.
- * @property {string} [label] - Shown on the button.
+ * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
+ * @property {string} [label] - Names what is toggled: the button reads "Show <label>".
  * @property {string[]} [group] - Names that turn off when this turns on — radio-button behaviour.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Show <label>" text.
- * @property {string} [namespace] - Where the value lives. Defaults to `toggles`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -23,14 +25,14 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {ToggleButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function ToggleButton({ name, label, group, namespace = 'toggles', className, children, ...rest }) {
-  const path = `${namespace}.${name}`
+export function ToggleButton({ name, label, group, className, children, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const active = Boolean(useVelcroValue(path, false))
   const mutate = useVelcroMutate()
 
   const onClick = () => {
     if (group?.length) {
-      mutate('only', { group: group.map((key) => `${namespace}.${key}`), active: active ? null : path })
+      mutate('only', { group: group.map((key) => `${NAMESPACE}.${key}`), active: active ? null : path })
       return
     }
 

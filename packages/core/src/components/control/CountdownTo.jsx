@@ -5,12 +5,14 @@ import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { untilClockTime } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
 
+/** Where this component's values live. Not a prop: a studio never needs another. */
+const NAMESPACE = 'timers'
+
 /**
  * @typedef {object} CountdownToProps
- * @property {string} name - Path under `namespace`, e.g. `home.score`.
+ * @property {string} name - Names a value under `timers` — e.g. `round`.
  * @property {string} [label] - Shown above the control. Defaults to `"Starts at"`.
  * @property {'time'|'datetime-local'} [as] - `"time"` takes HH:MM and rolls to tomorrow if past. Defaults to `"time"`.
- * @property {string} [namespace] - Where the value lives. Defaults to `timers`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -40,8 +42,8 @@ import { cx } from '../../toolkits/cx'
  *
  * @param {CountdownToProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function CountdownTo({ name, label = 'Starts at', as = 'time', namespace = 'timers', className, ...rest }) {
-  const path = `${namespace}.${name}`
+export function CountdownTo({ name, label = 'Starts at', as = 'time', className, ...rest }) {
+  const path = `${NAMESPACE}.${name}`
   const { active, text, input } = useTimer(path)
   const mutate = useVelcroMutate()
   const ref = useRef(null)
