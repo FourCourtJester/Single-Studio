@@ -1,23 +1,9 @@
-// Your studio's own mutations. They join the built-ins in one registry and are
-// dispatched the same way: useVelcroMutate()('my:reset').
+// Two examples that ship with the template, to be kept, edited or deleted.
 //
-// A mutation is one transaction, so however many paths it touches, the graphics on
-// air see one change rather than a sequence of them. That is the main reason to
-// write one instead of calling `set` three times from a click handler.
-//
-//   ctx.read(path)         current value
-//   ctx.collect(prefix)    a collection, as { key: value }
-//   ctx.list(prefix, opts) the same, ordered, as [key, value] entries
-//   ctx.write(pairs)       set values, deleting the empty ones
-//   ctx.add(path, n)       add to a counter (safe under concurrent operators)
-//   ctx.now()              the time in the room, not on this machine
-//   ctx.set/append/push/…  any built-in operation
-//   ctx.run(name, payload) any mutation, including your own
-//
-// See docs/data.md for the whole surface, and for how to choose between an array
-// at one path and a collection when more than one person edits the same list.
+// Your own belong in custom.js, or in a file per area of the show as it grows --
+// mutations/index.js merges them. See docs/data.md for the whole surface.
 
-export const mutations = {
+export const show = {
   /** Fresh series: zero the scores, drop the round clock. One change on air. */
   'my:reset'(ctx) {
     ctx.write([

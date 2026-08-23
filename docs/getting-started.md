@@ -136,7 +136,10 @@ src/
   config.js          STUDIO_ID -- shared by the worker and the studio definition
   studio.js          defineStudio(): name, worker, control, sources
   velcro.worker.js   createVelcroHost(): your mutations
-  mutations.js       your own named mutations
+  mutations/
+    index.js         the registry the worker is handed
+    show.js          the examples that ship -- keep, edit or delete
+    custom.js        yours, starting as a no-op to fill in
   control/Control.jsx
   sources/*.jsx
 ```
@@ -217,7 +220,7 @@ means.
 ### Add a mutation
 
 ```js
-// src/mutations.js
+// src/mutations/custom.js
 export const mutations = {
   'my:new-period'(ctx) {
     ctx.write([['variables.period', String(Number(ctx.read('variables.period') || 0) + 1)]])

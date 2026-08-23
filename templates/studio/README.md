@@ -93,6 +93,6 @@ for the Supabase steps and what to do when somebody has to be shut out.
 | `src/studio.js`           | The registry: name, id, control surface, one entry per graphic |
 | `src/config.js`           | `STUDIO_ID` — names the IndexedDB store and every channel      |
 | `src/velcro.worker.js`    | The SharedWorker that owns state. No React in here             |
-| `src/mutations.js`        | Your own state changes, alongside the built-in ones            |
+| `src/mutations/`          | Your own state changes, alongside the built-in ones            |
 | `src/control/Control.jsx` | The operator's board                                           |
 | `src/sources/`            | One component per graphic                                      |

@@ -16,12 +16,14 @@ pulling data in from somewhere that is not a person.
 - [The built-in operations](#the-built-in-operations)
 - [Data from somewhere else](#data-from-somewhere-else)
 - [Nothing is written twice](#nothing-is-written-twice)
+- [Worked examples](#worked-examples)
+- [Conventions worth following](#conventions-worth-following)
 - [Sets and maps](#sets-and-maps)
 
 ## The shortest version
 
 ```js
-// src/mutations.js
+// src/mutations/custom.js
 export const mutations = {
   'my:new-period'(ctx) {
     const period = Number(ctx.read('variables.period') ?? 0)
@@ -69,6 +71,21 @@ what you want and usually a mistake, so prefix them: `my:`, `nfl:`, `feed:`.
 
 Nothing is discovered by scanning folders. If it is not in that object, it does
 not exist, and there is no conventional path a file has to sit at.
+
+As a show grows, split them by area and merge in one place. The template starts
+this way, with a no-op in `custom.js` waiting to be filled in:
+
+```js
+// src/mutations/index.js
+import { custom } from './custom'
+import { roster } from './roster'
+import { scoring } from './scoring'
+
+export const mutations = { ...roster, ...scoring, ...custom }
+```
+
+It is still one object. This file is then the list of everything your studio can
+do, which is a useful thing to be able to read in one screen.
 
 ## What a mutation is given
 
@@ -316,7 +333,7 @@ createVelcroHost({
 ```
 
 ```js
-// src/mutations.js
+// src/mutations/custom.js
 export const mutations = {
   'feed:game'(ctx, game) {
     // Fields the feed owns. An operator's own edits to other paths are untouched.
@@ -415,6 +432,242 @@ The one deliberate exception is an absolute write to a **counter**. Setting a
 counter to the value it already reads still clears the per-writer subtotals,
 because that is what "the score is 3 now" means — skipping it would leave a
 concurrent `+1` resolving against the structure you meant to clear.
+
+## Worked examples
+
+Three pieces of custom work, each end to end: the mutation, the control an
+operator drives it with, and the graphic that goes on air. They are written the
+way a studio should be written, and between them they use every pattern this page
+recommends.
+
+### A roster several operators build
+
+A production assistant is adding players while the director is fixing a spelling.
+Both are editing one list at the same time, which is the case a collection exists
+for.
+
+```js
+// src/mutations/roster.js
+export const roster = {
+  /**
+   * `mutate('roster:add', { name: 'Ada Lovelace', seed: 3 })`
+   *
+   * A generated key, because two people adding different players at the same
+   * moment must both survive -- and neither of them has an id to offer.
+   */
+  'roster:add'(ctx, player) {
+    if (!player?.name) return
+
+    ctx.append({ path: 'variables.roster', value: { name: player.name, seed: player.seed ?? null } })
+  },
+
+  /** `mutate('roster:drop', 'ky3m…')` -- a member is just a path. */
+  'roster:drop'(ctx, key) {
+    ctx.unset(`variables.roster.${key}`)
+  },
+
+  /**
+   * `mutate('roster:rename', { key: 'ky3m…', name: 'Ada King' })`
+   *
+   * `patch` rather than `append` with the same key: it merges, so a seed set by
+   * somebody else a second ago is still there afterwards.
+   */
+  'roster:rename'(ctx, { key, name }) {
+    ctx.patch({ path: `variables.roster.${key}`, value: { name } })
+  },
+}
+```
+
+The control. `useVelcroList` gives entries, so the key needed to drop a row is
+right there beside the row:
+
+```jsx
+// src/control/Roster.jsx
+import { Panel, useVelcroList, useVelcroMutate } from '@single-studio/core'
+import { useState } from 'react'
+
+export function Roster() {
+  const players = useVelcroList('variables.roster', { by: 'seed' })
+  const mutate = useVelcroMutate()
+  const [name, setName] = useState('')
+
+  const add = () => {
+    mutate('roster:add', { name })
+    setName('')
+  }
+
+  return (
+    <Panel title="Roster">
+      <div className="flex gap-2">
+        <input value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && add()} />
+        <button onClick={add}>Add</button>
+      </div>
+
+      <ol>
+        {players.map(([key, player]) => (
+          <li key={key}>
+            {player.name}
+            <button onClick={() => mutate('roster:drop', key)} aria-label={`Remove ${player.name}`}>
+              ×
+            </button>
+          </li>
+        ))}
+      </ol>
+    </Panel>
+  )
+}
+```
+
+And the graphic, sorted the same way by the same function, so the two cannot
+disagree about the order:
+
+```jsx
+// src/sources/Roster.jsx
+import { Scene, Toggle, useVelcroList } from '@single-studio/core'
+
+export default function Roster() {
+  const players = useVelcroList('variables.roster', { by: 'seed' })
+
+  return (
+    <Scene className="flex items-end p-12">
+      <Toggle name="roster" transition="slide-up ease-back">
+        <ol className="rounded-lg bg-slate-950/90 p-4 text-white">
+          {players.map(([key, player]) => (
+            <li key={key}>{player.name}</li>
+          ))}
+        </ol>
+      </Toggle>
+    </Scene>
+  )
+}
+```
+
+Note what the graphic does *not* do: no `namespace`, no store wiring, no loading
+flag. `Toggle` holds it off air until an operator asks for it, and the list is
+whatever the store says at that instant.
+
+### A sponsor queue one operator runs
+
+The opposite shape, and the reason both exist. One person owns the running order
+of the sponsor bumpers. Nobody else is editing it, order is the whole point, and
+an array at one path is simpler than a collection in every way that matters here.
+
+```js
+// src/mutations/sponsors.js
+export const sponsors = {
+  /** `mutate('sponsors:queue', 'asset:acme-logo')` */
+  'sponsors:queue'(ctx, slot) {
+    ctx.push({ path: 'variables.sponsors', value: slot })
+  },
+
+  /** `mutate('sponsors:drop', 2)` */
+  'sponsors:drop'(ctx, at) {
+    ctx.pull({ path: 'variables.sponsors', at })
+  },
+
+  /** `mutate('sponsors:move', { from: 3, to: 0 })` -- drag to reorder. */
+  'sponsors:move'(ctx, { from, to }) {
+    ctx.move({ path: 'variables.sponsors', from, to })
+  },
+
+  /**
+   * `mutate('sponsors:advance')`
+   *
+   * Rotate the queue and put the new front slot on air. Two paths, one mutation,
+   * so the graphic swaps once rather than blanking and then filling.
+   */
+  'sponsors:advance'(ctx) {
+    const queue = ctx.read('variables.sponsors') ?? []
+
+    if (queue.length < 2) return
+
+    const rotated = [...queue.slice(1), queue[0]]
+
+    ctx.write([
+      ['variables.sponsors', rotated],
+      ['variables.sponsor.current', rotated[0]],
+    ])
+  },
+}
+```
+
+If a second person ever does start editing that queue, this is the shape that
+loses one of their edits — and the fix is `append` into a collection, not a
+cleverer array.
+
+### A scoring play that changes four things
+
+The pattern to copy when an operator presses one button and the show has to change
+in several ways at once.
+
+```js
+// src/mutations/scoring.js
+export const scoring = {
+  /**
+   * `mutate('game:score', { team: 'home', points: 3 })`
+   *
+   * Four changes, one transaction, so the scoreboard, the clock and the play log
+   * reach air together instead of over the next half-second.
+   */
+  'game:score'(ctx, { team, points = 1 }) {
+    // A counter, not a read-add-write. Two operators both crediting a basket
+    // inside the replication window have to make six points, not three.
+    ctx.add(`variables.${team}.score`, points)
+
+    // Stop the game clock where it stands.
+    ctx.stopwatch({ 'timers.game': 'pause' })
+
+    // Log it. A collection, because the log is a list that grows and the OBS
+    // machine may be appending a feed event to it at the same moment.
+    ctx.append({
+      path: 'variables.plays',
+      value: { team, points, at: ctx.now(), period: ctx.read('variables.period') ?? '1' },
+    })
+
+    // And light the graphic that celebrates it.
+    ctx.set({ 'toggles.bigplay': true })
+  },
+}
+```
+
+```jsx
+<button onClick={() => mutate('game:score', { team: 'home', points: 3 })}>+3 Home</button>
+```
+
+Three things in there are the habits worth taking:
+
+- **`ctx.add`, never read-then-write.** `ctx.write([['…score', ctx.read('…score') + 3]])` looks identical and quietly turns a counter back into last-write-wins — two operators crediting at once and one of the baskets vanishes.
+- **`ctx.now()`, never `Date.now()`.** The stamp on that play means the same instant on every machine in the room, including the one whose clock is four seconds out.
+- **The name is the operator's intent.** `game:score`, not `set-score-and-pause-and-log`. When the celebration graphic changes next season, the button does not.
+
+## Conventions worth following
+
+**Name them `area:verb`.** `roster:add`, `game:score`, `feed:game`. The prefix
+keeps a studio's mutations from colliding with the built-ins — which is legal, and
+almost never what somebody meant.
+
+**Payloads follow the built-ins.** Writing paths takes `{ path: value }`, the same
+shape as `set`. Everything else takes named arguments — `{ path, from, to }` —
+because positional arguments stop being readable at the second one and cannot grow
+a third without breaking every caller.
+
+**A payload is data, never a function.** It is structured-cloned into the
+SharedWorker. Functions, class instances, and DOM nodes do not survive the trip.
+
+**Nothing but the store.** No `fetch`, no `Date.now()`, no writing to
+`localStorage` inside a mutation. A mutation runs inside a Yjs transaction and its
+whole job is to change state; anything with a wait in it belongs in the worker's
+`onReady`, which then calls the mutation with the result. `ctx.now()` is the one
+piece of the outside world it is given, because the value it produces is stored
+rather than recomputed.
+
+**Return early rather than writing rubbish.** `if (!player?.name) return` is a
+better guard than a validation layer, because the operator sees nothing happen and
+tries again, and the show never held a nameless player.
+
+**One button, one mutation.** If a click handler calls `mutate` twice, those are
+two changes on air and the graphics will show the gap. Make it one mutation that
+does both things.
 
 ## Sets and maps
 
