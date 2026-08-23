@@ -32,7 +32,7 @@ clock.
 | `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                                                                                                                                                   |
 | `templates/studio`           | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                                                                                      |
 | `apps/demo`                  | A working studio, and the integration test for the package boundary                                                                                                                                                                                        |
-| `docs/`                      | [Architecture](docs/architecture.md) · [Getting started](docs/getting-started.md) · [Working with other people](docs/collaborating.md) · [Component reference](docs/api.md) · [Collaboration plan](docs/collaboration.md) · [Releasing](docs/releasing.md) |
+| `docs/`                      | [Architecture](docs/architecture.md) · [Getting started](docs/getting-started.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) · [Component reference](docs/api.md) · [Collaboration plan](docs/collaboration.md) · [Releasing](docs/releasing.md) |
 
 A studio is its own repo that depends on `@single-studio/core`, with its own build
 and its own Pages deployment. Framework upgrades are a version bump, not a merge.

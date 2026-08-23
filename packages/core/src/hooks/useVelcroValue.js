@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+
+import { ordered } from '../toolkits/order'
 
 import { useVelcro } from './useVelcro'
 
@@ -52,6 +54,26 @@ export function useVelcroCollection(prefix) {
   const { value, loaded } = useVelcroState(prefix ? `${prefix}.*` : undefined)
 
   return { value: value ?? EMPTY, loaded }
+}
+
+/**
+ * A collection in order, as `[key, value]` entries.
+ *
+ *   const roster = useVelcroList('variables.roster', { by: 'rank' })
+ *   roster.map(([key, player]) => <li key={key}>{player.name}</li>)
+ *
+ * Same data as `useVelcroCollection`, sorted the same way a mutation reading it in
+ * the worker would sort it -- one function, so a graphic and the studio logic
+ * behind it never disagree about what "first" means.
+ *
+ * Ordered by member key when `by` is omitted, which is the order things were
+ * appended in. Pass `by` to sort on a field of each member instead, and `desc` to
+ * turn the list around.
+ */
+export function useVelcroList(prefix, { by, desc = false } = {}) {
+  const { value } = useVelcroCollection(prefix)
+
+  return useMemo(() => ordered(value, { by, desc }), [value, by, desc])
 }
 
 const EMPTY = {}

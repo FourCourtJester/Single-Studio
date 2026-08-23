@@ -1,6 +1,6 @@
 export { useVelcro } from './useVelcro'
 export { useVelcroMutate } from './useVelcroMutate'
-export { useVelcroCollection, useVelcroState, useVelcroValue } from './useVelcroValue'
+export { useVelcroCollection, useVelcroList, useVelcroState, useVelcroValue } from './useVelcroValue'
 export { useVelcroVars } from './useVelcroVars'
 export { useAssetLibrary, useAssetStore, useAssetUrl } from './useAssets'
 export { usePageTitle } from './usePageTitle'

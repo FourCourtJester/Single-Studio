@@ -1,6 +1,7 @@
 import * as Counter from './counter'
 import * as Doc from './doc'
-import { isNullable, isUnder, normalize, toEntries, toPaths } from './paths'
+import { equal } from './equal'
+import { isNullable, isUnder, normalize, SEPARATOR, toEntries, toPaths } from './paths'
 
 // Mutations replace the old Redux reducers. Same ergonomics -- a named function
 // that receives a payload and changes state -- but it operates on a Yjs
@@ -15,16 +16,25 @@ import { isNullable, isUnder, normalize, toEntries, toPaths } from './paths'
 //   ctx.doc          the Y.Doc
 //   ctx.state        flat Y.Map of plain values
 //   ctx.clientId     this host's Yjs clientID -- the counter's writer identity
-//   ctx.read(path)   current value at a path
-//   ctx.write(pairs) apply [path, value] pairs, pruning empty values
-//   ctx.add(path, n) add to a counter, promoting the path if needed
-//   ctx.now()        what time it is *in the room* -- see below
+//   ctx.read(path)      current value at a path
+//   ctx.write(pairs)    apply [path, value] pairs, pruning empty values
+//   ctx.add(path, n)    add to a counter, promoting the path if needed
+//   ctx.collect(prefix) every member of a collection, keyed by member
+//   ctx.list(prefix)    the same, as a sorted array
+//   ctx.now()           what time it is *in the room* -- see below
 
 /** Write a plain value, deleting the key when the value means "nothing". */
 function writeOne(ctx, path, value) {
   const key = normalize(path)
 
   // Already a counter? An absolute write parks the value in its base.
+  //
+  // Deliberately not skipped when the sum already matches. A counter's value is
+  // base plus every writer's subtotal, and a reset means "this is the number now"
+  // -- it parks the value in the base and drops the subtotals. Skipping a reset
+  // that happens to agree with the current sum would leave those subtotals in
+  // place, so the next concurrent add would resolve against a structure the
+  // operator believes they cleared.
   if (Counter.exists(ctx.bases, key)) {
     if (isNullable(value)) Counter.remove(ctx.bases, ctx.deltas, key)
     else Counter.reset(ctx.bases, ctx.deltas, key, Number(value))
@@ -36,7 +46,62 @@ function writeOne(ctx, path, value) {
     return
   }
 
+  // Nothing to say, so say nothing. Setting a key to what it already holds is a
+  // real write to Yjs: a document item, an update frame to every peer, an
+  // IndexedDB write, and an observer notification that re-renders every graphic
+  // subscribed to the path. See equal.js.
+  if (ctx.state.has(key) && equal(ctx.state.get(key), value)) return
+
   ctx.state.set(key, value)
+}
+
+/**
+ * The array at a path, for the mutations that grow and shrink one.
+ *
+ * An absent path is an empty list, so the first `push` onto a cold document works
+ * without anybody seeding it. Anything else that is not an array is a mistake
+ * worth naming: silently replacing a score with `[3]` would look like it worked.
+ */
+function asArray(ctx, key, verb) {
+  const current = ctx.read(key)
+
+  if (current === undefined) return []
+  if (Array.isArray(current)) return current
+
+  throw new TypeError(`${verb} expected an array at ${key}, found ${current === null ? 'null' : typeof current}`)
+}
+
+/**
+ * A collection key that sorts back into the order things were appended.
+ *
+ * Zero-padded so it keeps sorting that way as a string: unpadded, the day the
+ * timestamp gains a digit every new key would sort *before* every old one, which
+ * is a list quietly reversing itself years after anybody touched this file.
+ *
+ * The client id and sequence are only there to break ties, but they are part of
+ * the stored key, so every peer sorts the identical strings and lands on the
+ * identical order without exchanging anything.
+ */
+const KEY_WIDTH = 10
+
+/**
+ * Deliberately not on the context.
+ *
+ * A context is built per transaction, so a counter living there restarts at zero
+ * for every mutation -- and two appends in the same millisecond on the same
+ * machine would then be handed the identical key, the second one overwriting the
+ * first with no error and no trace. This counter outlives the transaction, which
+ * is the only scope at which it does its job.
+ *
+ * A worker restart takes it back to zero, and cannot collide: a fresh Y.Doc gets a
+ * fresh client id, and that is in the key too.
+ */
+let sequence = 0
+
+function stampKey(ctx) {
+  sequence += 1
+
+  return `${ctx.now().toString(36).padStart(KEY_WIDTH, '0')}-${ctx.clientId.toString(36)}-${sequence.toString(36)}`
 }
 
 export const mutations = {
@@ -175,6 +240,142 @@ export const mutations = {
   },
 
   /**
+   * Append to an array held at one path. `{ path, value }` or `{ path, values }`
+   *
+   * For a list with one author -- a feed a studio polls, a queue one operator
+   * runs, a paste from a spreadsheet. It is last-write-wins on the whole array, so
+   * two operators appending inside the replication window keep one append and lose
+   * the other, exactly as `+1` and `+1` used to make `+1` before counters existed.
+   * When several people add to the same list independently, that is a collection
+   * and `append` is the mutation you want.
+   */
+  push(ctx, { path, value, values } = {}) {
+    const key = normalize(path)
+    const current = asArray(ctx, key, 'push')
+    const incoming = values ?? [value]
+
+    writeOne(ctx, key, [...current, ...incoming])
+  },
+
+  /**
+   * Take entries out of an array held at one path.
+   *
+   *   { path, at: 2 }                  by index
+   *   { path, where: { id: 'a7' } }    every entry whose fields all match
+   *   { path, value: 'Ada' }           every entry equal to this
+   *
+   * `where` rather than a predicate function because a payload crosses into the
+   * SharedWorker by structured clone, and a function does not survive that. A
+   * plain object of fields to match does, and covers what a predicate was going to
+   * be used for anyway.
+   */
+  pull(ctx, { path, at, where, value } = {}) {
+    const key = normalize(path)
+    const current = asArray(ctx, key, 'pull')
+
+    if (at !== undefined) {
+      const index = Number(at)
+
+      writeOne(ctx, key, current.filter((_, i) => i !== index))
+      return
+    }
+
+    if (where !== undefined) {
+      writeOne(
+        ctx,
+        key,
+        current.filter((entry) => !Object.entries(where).every(([field, wanted]) => equal(entry?.[field], wanted))),
+      )
+      return
+    }
+
+    writeOne(
+      ctx,
+      key,
+      current.filter((entry) => !equal(entry, value)),
+    )
+  },
+
+  /** Reorder within an array held at one path. `{ path, from: 0, to: 3 }` */
+  move(ctx, { path, from, to } = {}) {
+    const key = normalize(path)
+    const current = asArray(ctx, key, 'move')
+    const next = [...current]
+    const [entry] = next.splice(Number(from), 1)
+
+    if (entry === undefined && next.length === current.length) return
+
+    next.splice(Number(to), 0, entry)
+
+    writeOne(ctx, key, next)
+  },
+
+  /**
+   * Merge fields into the object at a path, leaving the rest alone.
+   * `{ path: 'variables.feed', value: { home: 3 } }`
+   *
+   * One level deep, and on purpose. A deep merge has to guess what a nested object
+   * means -- replace it, or merge into it, and there is no answer that is right for
+   * both a settings blob and a list of players. Velcro's own answer to nesting is
+   * the path: `variables.feed.home` is its own key, and keys merge without anybody
+   * choosing a strategy.
+   */
+  patch(ctx, { path, value } = {}) {
+    const key = normalize(path)
+    const current = ctx.read(key)
+
+    if (current !== undefined && (typeof current !== 'object' || Array.isArray(current) || current === null)) {
+      throw new TypeError(`patch expected an object at ${key}, found ${Array.isArray(current) ? 'an array' : typeof current}`)
+    }
+
+    writeOne(ctx, key, { ...current, ...value })
+  },
+
+  /**
+   * Add a member to a collection: one path per member, so concurrent adds merge.
+   * `{ path: 'variables.roster', value: {...} }`, or with `key` to name it.
+   *
+   * This is the shape to reach for when more than one person adds to the same list.
+   * A generated key carries a zero-padded timestamp, this host's client id and a
+   * counter, which makes it unique across peers and sortable back into the order
+   * things were added -- see Doc.list.
+   *
+   * Passing `key` yourself makes the add idempotent, which is what a studio syncing
+   * from a third-party feed wants: the same record arriving twice lands on the same
+   * path, and the second one writes nothing because the value has not changed.
+   */
+  append(ctx, { path, value, key } = {}) {
+    const prefix = normalize(path)
+    const member = key ? String(key) : stampKey(ctx)
+
+    if (member.includes(SEPARATOR)) throw new TypeError(`A collection key cannot contain "${SEPARATOR}": ${member}`)
+
+    writeOne(ctx, `${prefix}${SEPARATOR}${member}`, value)
+  },
+
+  /**
+   * Make a collection match the members given, and write nothing else.
+   * `{ path: 'variables.standings', values: { ada: {...}, grace: {...} } }`
+   *
+   * The mutation for data that arrives from somewhere else -- a scoring API, a
+   * bracket, a spreadsheet import. Members that changed are written, members that
+   * vanished are deleted, and members that are byte-for-byte what is already there
+   * cost nothing at all: no update frame, no persistence write, and no re-render of
+   * whatever is holding them on air. Polling an unchanged feed every second is then
+   * genuinely free, which is what makes polling a reasonable thing to do.
+   */
+  replace(ctx, { path, values = {} } = {}) {
+    const prefix = normalize(path)
+    const present = ctx.collect(prefix)
+
+    for (const member of Object.keys(present)) {
+      if (!Object.hasOwn(values, member)) writeOne(ctx, `${prefix}${SEPARATOR}${member}`, undefined)
+    }
+
+    for (const [member, value] of Object.entries(values)) writeOne(ctx, `${prefix}${SEPARATOR}${member}`, value)
+  },
+
+  /**
    * Wipe everything, or everything under a prefix. `{ prefix: 'variables' }`
    *
    * `except` spares one or more prefixes, and exists for the one clear an operator
@@ -200,7 +401,7 @@ export const mutations = {
 }
 
 /** Build the transaction context handed to every mutation. */
-export function createContext(doc, now = Date.now) {
+export function createContext(doc, now = Date.now, registry = mutations) {
   const bases = Doc.basesOf(doc)
   const deltas = Doc.deltasOf(doc)
 
@@ -223,10 +424,44 @@ export function createContext(doc, now = Date.now) {
      */
     now,
     read: (path) => Doc.read(doc, path),
+    collect: (prefix) => Doc.collect(doc, prefix),
+    list: (prefix, options) => Doc.list(doc, prefix, options),
     add: (path, amount) => Counter.add(bases, deltas, Doc.asCounter(doc, path), doc.clientID, amount),
     write: (entries) => {
       for (const [path, value] of entries) writeOne(ctx, path, value)
     },
+    /**
+     * Run another mutation inside this one, in the same transaction.
+     *
+     * Reaches the whole registry, so a studio's mutation can build on its own as
+     * well as on the built-ins -- `ctx.run('feed:teams', data)` from inside
+     * `feed:game`. Still one transaction, so however many it calls, the graphics
+     * see one change.
+     */
+    run: (name, payload) => {
+      const mutation = registry[name]
+
+      if (!mutation) throw new Error(`Unknown Velcro mutation: ${name}`)
+
+      return mutation(ctx, payload)
+    },
+  }
+
+  /**
+   * Every built-in, callable straight off the context.
+   *
+   * `ctx.append({ ... })` rather than importing the built-ins and threading `ctx`
+   * through by hand. These are the operations a studio composes with -- a mutation
+   * of your own is usually two or three of them under one name -- and making a
+   * studio import framework internals to reach them would be a poor trade for the
+   * one line it saves here.
+   *
+   * Bound from `mutations` rather than the registry so a studio that names its own
+   * mutation `set` shadows nothing: `ctx.set` is always the built-in, and the
+   * studio's own is a `ctx.run('set')` away.
+   */
+  for (const [name, mutation] of Object.entries(mutations)) {
+    ctx[name] = (payload) => mutation(ctx, payload)
   }
 
   return ctx
@@ -244,7 +479,7 @@ export function apply(doc, registry, name, payload, origin = 'local', now = Date
   let result
 
   doc.transact(() => {
-    result = mutation(createContext(doc, now), payload)
+    result = mutation(createContext(doc, now, registry), payload)
   }, origin)
 
   return result

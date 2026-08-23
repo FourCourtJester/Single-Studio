@@ -195,8 +195,9 @@ Nothing to declare. Write to any path and read it back:
 <Variable name="home.name" fallback="Home" />  {/* reads it */}
 ```
 
-Namespaces (`variables`, `toggles`, `timers`) are convention, set per component
-with the `namespace` prop.
+Namespaces (`variables`, `toggles`, `timers`) are fixed per component: `Variable`
+reads `variables`, `Toggle` reads `toggles`, `Timer` reads `timers`. You never pass
+one -- the name you give a component is the part after it.
 
 ### Use a counter
 
@@ -229,6 +230,12 @@ export const mutations = {
 const mutate = useVelcroMutate()
 <button onClick={() => mutate('my:new-period')}>New period</button>
 ```
+
+A mutation is one transaction, so however many paths it touches, the graphics see
+one change rather than a sequence of them. **[Your own data](data.md)** covers the
+rest: what `ctx` gives you, how to store a list that two operators can both add to
+without one of them losing an entry, and how to pull data in from a scoring API or
+a socket rather than a person.
 
 ## Component reference
 

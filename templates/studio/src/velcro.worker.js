@@ -38,4 +38,39 @@ createVelcroHost({
   name: STUDIO_ID,
   mutations,
   sync: { connect },
+
+  /**
+   * Runs once the show has been read back from disk, before anything is on air.
+   *
+   * `mutate` is the same dispatcher a board gets from `useVelcroMutate`, so data a
+   * studio owns rather than an operator -- a scoring feed, a socket, a clock of
+   * your own -- lands through the same registry and replicates the same way.
+   *
+   * Here rather than on a page because there is one worker and there may be five
+   * open boards: a poll started on a page runs once per tab, five fetches racing
+   * for the same paths. Delete this if nothing but people writes to your show.
+   */
+  onReady({ mutate, owns }) {
+    if (!import.meta.env.VITE_FEED_URL) return
+
+    setInterval(async () => {
+      // One machine talks to the outside world. `owns()` goes false once somebody
+      // else in the room has ticked "This machine runs OBS", and they are then the
+      // one polling -- everyone else gets the same data through replication a
+      // moment later. Without this a five-operator show is five times the API
+      // quota and five writers racing on the same paths, and it looks perfect in
+      // testing because you test it alone.
+      if (!owns()) return
+
+      try {
+        const response = await fetch(import.meta.env.VITE_FEED_URL)
+
+        mutate('my:feed', await response.json())
+      } catch (error) {
+        // A feed that is down must not take the show with it. The last values it
+        // sent are still on air, which is the right thing for them to be.
+        console.warn('[studio] feed unreachable', error)
+      }
+    }, 5000)
+  },
 })

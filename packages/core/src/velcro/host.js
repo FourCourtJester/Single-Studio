@@ -275,7 +275,7 @@ export function createVelcroHost(config = {}) {
       // top of remote state; both read as data loss to whoever is watching.
       if (sync.configured && sync.autoConnect) sync.attach()
 
-      return onReady?.({ doc, registry })
+      return onReady?.({ doc, registry, mutate, owns, sync })
     })
     .catch((err) => {
       // Persistence failing must not take the show down: an in-memory doc still
@@ -284,6 +284,45 @@ export function createVelcroHost(config = {}) {
       ready = true
       status.postMessage({ type: READY, name, degraded: true })
     })
+
+  /**
+   * Dispatch a mutation from inside the worker.
+   *
+   * The same call a board makes through `useVelcroMutate`, available to the studio
+   * itself. This is what a studio that owns data nobody types needs: poll a scoring
+   * API, listen to a socket, run a clock of your own, and land the result through
+   * the same registry, in the same transaction, replicated to every peer and every
+   * tab exactly like an operator's edit.
+   *
+   * It belongs in the worker rather than on a board because there is one worker and
+   * there may be five boards. A poll started on the page would run once per tab,
+   * five writes racing for the same paths; started here it runs once, because the
+   * SharedWorker is the one thing a studio has exactly one of.
+   */
+  function mutate(name, payload) {
+    return apply(doc, registry, name, payload, 'local', sync.now)
+  }
+
+  /**
+   * Whether this machine should be the one talking to the outside world.
+   *
+   * False once somebody else in the room has claimed the OBS role. Ingress needs a
+   * single owner and this is the one already known: five operators each polling the
+   * same scoring API is five times the quota and five writers racing on the same
+   * paths, and the machine that has to *display* the show is the obvious one to be
+   * doing it. Everybody else reads the replicated result, which is the same show a
+   * moment later and none of the cost.
+   *
+   * True on a studio that never joined a room, so a one-machine show is always its
+   * own owner and nothing here can lock anybody out of their own board.
+   *
+   * A predicate rather than a value because the answer changes: a studio starts up
+   * alone, joins a room a moment later, and the machine holding the role can leave
+   * mid-show. Ask again each time round.
+   */
+  function owns() {
+    return !sync.delegated
+  }
 
   function handle(port, portId, message) {
     const { type } = message ?? {}
@@ -420,5 +459,5 @@ export function createVelcroHost(config = {}) {
     self.onconnect = (event) => connect(event.ports[0])
   }
 
-  return { doc, registry, connect, started, subscriptions, sync }
+  return { doc, registry, mutate, owns, connect, started, subscriptions, sync }
 }

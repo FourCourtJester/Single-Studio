@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
 
+import { ordered } from '../toolkits/order'
 import * as Counter from './counter'
 import { normalize, SEPARATOR } from './paths'
 
@@ -66,6 +67,16 @@ export function collect(doc, prefix) {
       .map((key) => [key.slice(under.length), read(doc, key)]),
   )
 }
+
+/**
+ * A collection in order, as `[key, value]` entries. See toolkits/order.
+ *
+ * Sorted by member key by default, which is insertion order for anything `append`
+ * made: its keys begin with a zero-padded timestamp precisely so that sorting them
+ * as strings puts them back in the order they happened -- on every peer, with no
+ * agreement needed beyond the keys themselves.
+ */
+export const list = (doc, prefix, options) => ordered(collect(doc, prefix), options)
 
 /**
  * Promote a path into the counter maps, seeding the base from whatever plain
