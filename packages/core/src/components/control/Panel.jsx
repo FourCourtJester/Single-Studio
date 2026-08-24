@@ -3,16 +3,18 @@ import { cx } from '../../toolkits/cx'
 /**
  * @typedef {object} PanelProps
  * @property {string} [title] - Heading for the group.
- * @property {import("react").ReactNode} [children] - Controls, which wrap in a flex row.
+ * @property {import("react").ReactNode} [children] - Controls. They sit side by side and wrap onto the next line as needed.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * A titled group of controls. Children wrap in a flex row, so a panel reflows to
- * whatever width the dock has rather than needing a layout of its own.
+ * A titled group of controls that arranges itself. The controls sit side by side
+ * and drop onto the next line when they run out of room, so one board works both in
+ * a narrow OBS dock and full screen on a second monitor without you writing a layout
+ * for either.
  *
- * Children wrap responsively so the same board works in a narrow OBS dock and
- * full screen -- see `.ss-panel-body` in the stylesheet, and `--ss-control-min`
- * to retune where it wraps.
+ * To change how early they wrap, set `--ss-control-min` — it is the narrowest a
+ * control is allowed to get before the row breaks. The panel's own box is
+ * `.ss-panel-body` in the stylesheet if you want to take it further.
  *
  * @example
  * <Panel title="Scores">

@@ -282,10 +282,20 @@ Every component passes anything it does not recognise through to the DOM, so
 
 ## Dashboard
 
+What the operator drives the show from. These render in \`src/control/Control.jsx\`,
+which is an ordinary React component — put controls in a ${link('Panel')} and it arranges
+them. Anything you *type* stages until you save, so a half-finished name never
+reaches air; anything you *press* takes effect at once. Each entry below says which.
+
 ${AUTHORED.control.map((name) => `- ${link(name)}`).join('\n')}
 
 ${AUTHORED.control.map(render).join('\n')}
 ## Source
+
+What goes on air. Each of these lives in a graphic under \`src/sources/\`, one file
+per OBS browser source, wrapped in a ${link('Scene')}. They read the same paths the
+dashboard writes and render nothing until the value has arrived, so a graphic
+reopening mid-show never flashes a placeholder over the programme.
 
 ${AUTHORED.source.map((name) => `- ${link(name)}`).join('\n')}
 

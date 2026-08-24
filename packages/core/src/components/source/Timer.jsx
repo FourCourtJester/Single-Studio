@@ -19,8 +19,8 @@ const NAMESPACE = 'timers'
  */
 /**
  * A clock on air, reading whichever kind was stored — a countdown, a count-up, or
- * a paused one. Shows 00:00 for a second when a countdown ends, then takes itself
- * off air.
+ * a paused one. A finished countdown takes itself off air; nobody has to remember
+ * to clear it mid-show.
  *
  * The trigger is `active`, not the text -- the display ticks once a second and
  * animating each tick would be unreadable. Only starting and finishing animate.

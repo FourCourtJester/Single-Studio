@@ -28,7 +28,9 @@ const ASK = 'Click to confirm'
 
 /**
  * A destructive button that asks first, without a dialog: one click arms it, a
- * second does it, and a few seconds of silence disarms it.
+ * second does it, and a few seconds of silence disarms it. Exported for actions of
+ * your own — the built-in controls that destroy something already ask on their own,
+ * so reach for this when a mutation you wrote needs the same care.
  *
  * One click arms it and it says what it is about to do; a second click does it. A
  * few seconds of silence disarms it, so a board left alone never sits with a live
@@ -45,6 +47,12 @@ const ASK = 'Click to confirm'
  * It is also the better interaction. The question is asked where the answer is
  * given, the second click lands in the same place as the first, and there is no
  * modal to focus-trap or dismiss mid-show.
+ *
+ * **Check whether you need it first.** `ResetButton` takes `confirm` and asks
+ * through this component; the image library and the reset dialog both ask before
+ * they act. What is left over is the button the framework does not have — a mutation
+ * of your own that ends a game, clears a bracket, or hands the show to another
+ * machine.
  *
  * `tone` says what the button means rather than what colour it is, and the five
  * are shared with every other control that takes one — see `TONES`. A studio with

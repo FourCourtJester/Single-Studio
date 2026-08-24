@@ -4,6 +4,7 @@ import { relayLink, useRelay } from '../../hooks/useRelay'
 import { useSyncStatus } from '../../hooks/useSync'
 import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
+import { Confirm } from './Confirm'
 import { Tooltip } from '../common/Tooltip'
 
 /**
@@ -184,20 +185,23 @@ export function RelayAdmin({ label = 'Operators', className, ...rest }) {
                 {token.revokedAt ? (
                   <span className="ml-auto text-[0.65rem] uppercase tracking-wide text-slate-600">removed</span>
                 ) : (
+                  // Armed rather than a native prompt. In an OBS dock `window.confirm`
+                  // returns false without ever drawing anything, so removing an operator
+                  // quietly did nothing -- on the one control whose whole job is taking
+                  // somebody's access away. See Confirm.
                   <Tooltip label="Remove them from this room now" align="end" className="ml-auto">
-                    <button
-                      type="button"
+                    <Confirm
                       disabled={busy}
-                      onClick={async () => {
-                        if (!window.confirm(`Remove ${token.name || 'this operator'}? They are disconnected immediately.`)) return
+                      ask="Again to remove"
+                      onConfirm={async () => {
                         await call(`/${token.id}`, { method: 'DELETE' })
                         refresh()
                       }}
                       aria-label={`Remove ${token.name || token.id}`}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-rose-600 hover:text-white disabled:opacity-40"
+                      className="flex h-7 w-7 items-center justify-center !px-0 text-slate-500 hover:bg-rose-600 hover:text-white"
                     >
                       <Icon name="close" />
-                    </button>
+                    </Confirm>
                   </Tooltip>
                 )}
               </li>

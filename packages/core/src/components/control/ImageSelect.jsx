@@ -16,7 +16,7 @@ const optionImage = (option) => (typeof option === 'string' ? undefined : option
  * @typedef {object} ImageSelectProps
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Select"`.
- * @property {Array<string | { value: string, label?: string, image?: string }>} [options] - What can be chosen, shown as pictures.
+ * @property {Array<string | { label?: string, value: string, image?: string }>} [options] - What can be chosen, shown as pictures. A bare string is all three.
  * @property {boolean} [multiple] - Choose several. The value becomes a comma-separated list.
  * @property {number} [max] - Cap on how many, when `multiple`.
  * @property {boolean} [staged] - Hold the choice until saved, rather than writing on click.
@@ -42,15 +42,7 @@ const same = (a, b) => a.length === b.length && a.every((item, index) => item ==
  * control wrote it -- but the operator recognises art instead of reading a list.
  *
  * Each option is `{ label, value, image }`: the label names it, the value is what
- * lands on air, and the image is the tile. Keep the list in a module of its own and
- * import it into both the board and the graphic, so the value the control writes
- * and the file the scene looks up cannot drift apart:
- *
- *   // src/roster.js
- *   export const FACTIONS = [
- *     { label: 'Vanguard', value: 'vanguard', image: './factions/vanguard.svg' },
- *     { label: 'Syndicate', value: 'syndicate', image: './factions/syndicate.svg' },
- *   ]
+ * lands on air, and the image is the tile. A bare string is all three at once.
  *
  * `multiple` stores an array in order of selection, which is what an army
  * composition, a ban list or a running order is. `max` stops the grid at a fixed
@@ -61,11 +53,17 @@ const same = (a, b) => a.length === b.length && a.every((item, index) => item ==
  * and revealed on the cut.
  *
  * @example
- * // FACTIONS is [{ label, value, image }, ...] — see above
+ * const FACTIONS = [
+ *   { label: 'Vanguard', value: 'vanguard', image: './factions/vanguard.svg' },
+ *   { label: 'Syndicate', value: 'syndicate', image: './factions/syndicate.svg' },
+ * ]
+ *
  * <ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
  *
  * @example
- * // The graphic reads the same path, and templates the value into a file name
+ * // The other half of the pair, in a graphic rather than on the board: the value
+ * // this control writes ('vanguard') is what <Image> templates into a file name.
+ * // Keep the list in one module and import it into both, so the two cannot drift.
  * <Image name="home.faction" src="./factions/:value:.svg" alt="" />
  *
  * @example

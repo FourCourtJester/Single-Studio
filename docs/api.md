@@ -33,6 +33,11 @@ Every component passes anything it does not recognise through to the DOM, so
 
 ## Dashboard
 
+What the operator drives the show from. These render in `src/control/Control.jsx`,
+which is an ordinary React component — put controls in a [`Panel`](#panel) and it arranges
+them. Anything you *type* stages until you save, so a half-finished name never
+reaches air; anything you *press* takes effect at once. Each entry below says which.
+
 - [`Field`](#field)
 - [`TextArea`](#textarea)
 - [`Stepper`](#stepper)
@@ -224,12 +229,18 @@ One image, chosen by name from the studio's library, with a preview beside the d
 Choose by picture rather than by name — a grid of tiles, which is what an operator can aim at inside a draft timer. `multiple` collects several. Writes immediately, or `staged` to hold it for a save.
 
 ```jsx
-// FACTIONS is [{ label, value, image }, ...] — see above
+const FACTIONS = [
+  { label: 'Vanguard', value: 'vanguard', image: './factions/vanguard.svg' },
+  { label: 'Syndicate', value: 'syndicate', image: './factions/syndicate.svg' },
+]
+
 <ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
 ```
 
 ```jsx
-// The graphic reads the same path, and templates the value into a file name
+// The other half of the pair, in a graphic rather than on the board: the value
+// this control writes ('vanguard') is what <Image> templates into a file name.
+// Keep the list in one module and import it into both, so the two cannot drift.
 <Image name="home.faction" src="./factions/:value:.svg" alt="" />
 ```
 
@@ -245,7 +256,7 @@ Choose by picture rather than by name — a grid of tiles, which is what an oper
 | `max` | `number` |  | Cap on how many, when `multiple`. |
 | `multiple` | `boolean` |  | Choose several. The value becomes a comma-separated list. |
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
-| `options` | `Array<string \| { value: string, label?: string, image?: string }>` |  | What can be chosen, shown as pictures. |
+| `options` | `Array<string \| { label?: string, value: string, image?: string }>` |  | What can be chosen, shown as pictures. A bare string is all three. |
 | `size` | `'sm' \| 'md' \| 'lg'` |  | Tile size. Defaults to `"md"`. |
 | `staged` | `boolean` |  | Hold the choice until saved, rather than writing on click. |
 
@@ -260,10 +271,10 @@ An on/off button with a picture on it. `group` makes a row of them behave like r
 ```
 
 ```jsx
-// One at a time. Every button in the row gets this same list, itself included
-<ImageToggle name="replay" image="/ui/replay.svg" group={['replay', 'live', 'stats']} />
-<ImageToggle name="live" image="/ui/live.svg" group={['replay', 'live', 'stats']} />
-<ImageToggle name="stats" image="/ui/stats.svg" group={['replay', 'live', 'stats']} />
+// One at a time. Same group name on each; nothing lists the others
+<ImageToggle name="replay" image="/ui/replay.svg" group="feed" />
+<ImageToggle name="live" image="/ui/live.svg" group="feed" />
+<ImageToggle name="stats" image="/ui/stats.svg" group="feed" />
 ```
 
 ```jsx
@@ -275,7 +286,7 @@ An on/off button with a picture on it. `group` makes a row of them behave like r
 | --- | --- | --- | --- |
 | `className` | `string` |  | Added to the component's own classes. |
 | `from` | `string` |  | Read the picture from this path instead of `image`. |
-| `group` | `string[]` |  | Every name in this one radio group, including this one. |
+| `group` | `string` |  | A group's name. Buttons sharing one behave as radio buttons. |
 | `image` | `string` |  | The picture on the button. |
 | `label` | `string` |  | Shown above the control. |
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
@@ -292,15 +303,17 @@ An on/off button for a path under `toggles`, which is what a graphic watches to 
 ```
 
 ```jsx
-// Exactly one of these can be on
-<ToggleButton name="stats" label="Stats" group={['stats', 'roster', 'bracket']} />
+// Exactly one of these can be on at a time
+<ToggleButton name="stats" label="Stats" group="panels" />
+<ToggleButton name="roster" label="Roster" group="panels" />
+<ToggleButton name="bracket" label="Bracket" group="panels" />
 ```
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | Replaces the generated "Show <label>" text. |
 | `className` | `string` |  | Added to the component's own classes. |
-| `group` | `string[]` |  | Every name in this one radio group, including this one. |
+| `group` | `string` |  | A group's name. Buttons sharing one behave as radio buttons. |
 | `label` | `string` |  | Names what is toggled: the button reads "Show <label>". |
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
 
@@ -354,7 +367,7 @@ Clear a set of values back to each source's own fallback. It unsets rather than 
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | Replaces the generated "Reset <label>" text. |
 | `className` | `string` |  | Added to the component's own classes. |
-| `confirm` | `boolean` |  | Ask before clearing. |
+| `confirm` | `boolean` |  | Arm on the first press, clear on the second. |
 | `label` | `string` |  | Names what gets cleared: the button reads "Reset <label>". Defaults to `"Reset"`. |
 | `names` | `string[]` |  | Cleared back to each source's own fallback. |
 | `paths` | `string[]` |  | Full paths, for clearing `toggles` or `timers` in the same press. |
@@ -448,7 +461,7 @@ A table an operator can paste into or edit row by row, stored as one delimited s
 
 ---
 
-A titled group of controls. Children wrap in a flex row, so a panel reflows to whatever width the dock has rather than needing a layout of its own.
+A titled group of controls that arranges itself. The controls sit side by side and drop onto the next line when they run out of room, so one board works both in a narrow OBS dock and full screen on a second monitor without you writing a layout for either.
 
 ```jsx
 <Panel title="Scores">
@@ -459,7 +472,7 @@ A titled group of controls. Children wrap in a flex row, so a panel reflows to w
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | Controls, which wrap in a flex row. |
+| `children` | `ReactNode` |  | Controls. They sit side by side and wrap onto the next line as needed. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `title` | `string` |  | Heading for the group. |
 
@@ -485,7 +498,7 @@ Forces a line break inside a `Panel`, for when the natural wrap puts related con
 
 ---
 
-A destructive button that asks first, without a dialog: one click arms it, a second does it, and a few seconds of silence disarms it.
+A destructive button that asks first, without a dialog: one click arms it, a second does it, and a few seconds of silence disarms it. Exported for actions of your own — the built-in controls that destroy something already ask on their own, so reach for this when a mutation you wrote needs the same care.
 
 ```jsx
 <Confirm label="Remove all" onConfirm={() => library.removeAll()} />
@@ -519,6 +532,11 @@ A destructive button that asks first, without a dialog: one click arms it, a sec
 | `tone` | `'danger' \| 'warn' \| 'go' \| 'primary' \| 'quiet'` |  | What the button means. Defaults to `"danger"`. |
 
 ## Source
+
+What goes on air. Each of these lives in a graphic under `src/sources/`, one file
+per OBS browser source, wrapped in a [`Scene`](#scene). They read the same paths the
+dashboard writes and render nothing until the value has arrived, so a graphic
+reopening mid-show never flashes a placeholder over the programme.
 
 - [`Scene`](#scene)
 - [`Variable`](#variable)
@@ -602,8 +620,11 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 ```
 
 ```jsx
-// `value` instead of `name`, for a row that already holds its own string
-<Image value={entry.logo} alt={entry.name} />
+// `value` instead of `name`: a plain string, not a path. Nothing is read from
+// the store, so this is for a component already holding the value itself.
+<Image value="https://cdn.example.com/acme.svg" alt="Acme" />
+<Image value="asset:acme-logo" alt="Acme" />
+<Image value="vanguard" src="./factions/:value:.svg" alt="Vanguard" />
 ```
 
 | Prop | Type | Required | Description |
@@ -673,7 +694,7 @@ Shows its children while a toggle is on, and animates them in and out. This is h
 
 ---
 
-A clock on air, reading whichever kind was stored — a countdown, a count-up, or a paused one. Shows 00:00 for a second when a countdown ends, then takes itself off air.
+A clock on air, reading whichever kind was stored — a countdown, a count-up, or a paused one. A finished countdown takes itself off air; nobody has to remember to clear it mid-show.
 
 ```jsx
 <Timer name="round" fallback="--:--" />

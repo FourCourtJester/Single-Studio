@@ -497,13 +497,36 @@ check(
   'and they appear in the list',
 )
 
-host.page.on('dialog', (dialog) => dialog.accept())
-await host.page.locator('.ss-relay-admin button[aria-label^="Remove"]').first().click()
+// Taking somebody's access away asks first, and asks *in the page*. It used to be
+// window.confirm, which an OBS dock never draws and reports as "they said no" -- so
+// the control whose whole job is revoking access quietly did nothing there. A dialog
+// handler is left registered here deliberately: if a native prompt ever comes back,
+// accepting it would hide the regression, and nothing should be arriving for it.
+let prompted = 0
+host.page.on('dialog', (dialog) => {
+  prompted += 1
+  dialog.accept()
+})
+
+const remove = host.page.locator('.ss-relay-admin .ss-confirm[aria-label^="Remove"]').first()
+
+await remove.click()
+check(
+  await becomes(host.page, () => Boolean(document.querySelector('.ss-operator-token .ss-confirm[data-armed]'))),
+  'removing an operator arms rather than removing them outright',
+)
+check(
+  !(await host.page.evaluate(() => [...document.querySelectorAll('.ss-operator-token')].some((row) => /removed/i.test(row.textContent)))),
+  'and nobody is removed on that first click',
+)
+
+await remove.click()
 
 check(
   await becomes(host.page, () => [...document.querySelectorAll('.ss-operator-token')].some((row) => /removed/i.test(row.textContent))),
   'removing them marks them removed rather than quietly forgetting them',
 )
+check(prompted === 0, 'and it never reached for a native dialog, which a dock would not draw')
 
 // -- Handing it to somebody -------------------------------------------------
 // The invite is eighty characters of base64 in a dock the width of a sidebar, which

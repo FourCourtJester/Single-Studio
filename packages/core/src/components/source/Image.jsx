@@ -103,8 +103,11 @@ function preload(url) {
  * <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/tbd.svg" />
  *
  * @example
- * // `value` instead of `name`, for a row that already holds its own string
- * <Image value={entry.logo} alt={entry.name} />
+ * // `value` instead of `name`: a plain string, not a path. Nothing is read from
+ * // the store, so this is for a component already holding the value itself.
+ * <Image value="https://cdn.example.com/acme.svg" alt="Acme" />
+ * <Image value="asset:acme-logo" alt="Acme" />
+ * <Image value="vanguard" src="./factions/:value:.svg" alt="Vanguard" />
  *
  * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */
