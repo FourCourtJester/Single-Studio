@@ -115,3 +115,82 @@ jobs:
             (cd "$dir" && npm publish --access public $provenance)
             echo "::endgroup::"
           done
+
+  # Push templates/studio to the template repository, so what people click "Use this
+  # template" on is what CI just verified.
+  #
+  # The template is not independent of the framework the way the demo is: its source
+  # calls the components by name, so an API change here forces a change there. 0.2.0
+  # alone moved every import to /control and /source, renamed ToggleButton, and
+  # changed what `swap` and `group` mean. A template repository that missed any of
+  # that would hand somebody a studio that does not compile, and nothing would say
+  # so -- verify-template.mjs would keep passing here, against the copy nobody uses.
+  #
+  # So it is copied on release rather than by hand. This repository stays
+  # authoritative; the template repository is a published mirror.
+  template:
+    # Only once the packages are actually on npm. A template pinned to a version
+    # that does not exist is worse than one that is a release behind.
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # A token with write access to the template repository, which GITHUB_TOKEN is
+      # not -- it is scoped to this repository alone.
+      #
+      # It also needs the `workflow` scope, and that one is easy to miss until it
+      # fails: the template contains .github/workflows/pages.yml, and GitHub refuses
+      # any push that creates or changes a workflow file unless the credential
+      # carries that scope. A classic PAT needs `repo` + `workflow`; a fine-grained
+      # one needs Contents: write and Workflows: write on the template repository.
+      - name: Check the token is there before doing anything
+        env:
+          TOKEN: ${{ secrets.TEMPLATE_PUSH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::TEMPLATE_PUSH_TOKEN is not set. The packages published; the template was not synced. See docs/internal/releasing.md."
+            exit 1
+          fi
+
+      - name: Check out the template repository
+        uses: actions/checkout@v5
+        with:
+          repository: FourCourtJester/Single-Studio-Template
+          token: ${{ secrets.TEMPLATE_PUSH_TOKEN }}
+          path: .mirror
+
+      # Replace the contents rather than merge them, so a file deleted here is
+      # deleted there. `.git` is held back for the obvious reason, and `cp -a` of
+      # `.` rather than `*` is what carries .gitignore and .github across.
+      - name: Copy the template across
+        run: |
+          find .mirror -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a templates/studio/. .mirror/
+
+      - name: Commit, push, and tag
+        working-directory: .mirror
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+
+          # An unchanged template is the normal case between releases that only
+          # touch the framework's internals, and an empty commit every time would
+          # bury the ones that mean something.
+          if git diff --cached --quiet; then
+            echo "template unchanged since the last release"
+          else
+            git commit -m "Sync from Single-Studio ${VERSION}"
+            # Never force. The template repository's history is its own -- v0-cra
+            # holds the create-react-app generation, and this only ever adds to it.
+            git push origin HEAD:main
+          fi
+
+          # Tagged either way, so "which template goes with 0.2.0" has an answer
+          # even when the template did not change between releases.
+          git tag -f "$VERSION"
+          git push -f origin "refs/tags/$VERSION"

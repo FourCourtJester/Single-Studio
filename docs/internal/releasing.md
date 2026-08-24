@@ -163,6 +163,53 @@ Worth knowing while it stays private: the published packages are public and thei
 not broken, but it is a dead link on two public npm pages, and anybody evaluating
 the package cannot read the source before installing it.
 
+## The template repository is synced by the release
+
+`templates/studio` here is authoritative. The
+[template repository](https://github.com/FourCourtJester/Single-Studio-Template) is a
+mirror, pushed by the `template` job in `release.yml` once the packages are actually
+on npm.
+
+It works this way because the template is coupled to the framework in a way the demo
+is not. Its source calls the components by name, so an API change here forces a
+change there — 0.2.0 alone moved every import to `/control` and `/source`, renamed
+`ToggleButton`, and changed what `swap` and `group` mean. A template repository that
+missed any of it would hand somebody a studio that does not compile, and nothing
+would say so: `verify-template.mjs` would keep passing here, against the copy nobody
+uses.
+
+The job replaces the mirror's contents rather than merging, so a file deleted here is
+deleted there. It never force-pushes the branch, and it skips the commit entirely when
+nothing changed — but it tags every release either way, so "which template goes with
+0.2.0" has an answer even when the template did not move.
+
+### The token, and the scope everyone forgets
+
+The job needs a secret called **`TEMPLATE_PUSH_TOKEN`** with write access to the
+template repository. `GITHUB_TOKEN` cannot do it: it is scoped to this repository
+alone.
+
+**It also needs the `workflow` scope**, and this is the part that fails first if you
+miss it. The template contains `.github/workflows/pages.yml`, and GitHub refuses any
+push that creates or updates a workflow file unless the credential carries that
+scope:
+
+```
+! [remote rejected] main -> main (refusing to allow an OAuth App to create or
+  update workflow `.github/workflows/pages.yml` without `workflow` scope)
+```
+
+- **Classic PAT** — tick `repo` and `workflow`.
+- **Fine-grained PAT** — Contents: read and write, **and** Workflows: read and write,
+  scoped to `Single-Studio-Template`.
+
+Add it under Settings → Secrets and variables → Actions.
+
+Without the secret the job stops before touching anything and says so. That failure
+mode is deliberate: the packages are already published by then, so the honest outcome
+is a red release with a clear reason rather than a silent skip that leaves the
+template a version behind.
+
 ## Versioning
 
 Both packages move together and share a version. They are two halves of one release
