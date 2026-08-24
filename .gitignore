@@ -45,6 +45,23 @@ test-results
 # Matches at any depth -- note it is `studios` plural, so templates/studio stays.
 **/studios/
 
+# Keys and certificates, none of which this repository has any reason to hold.
+#
+# Belt and braces rather than a rule anybody has to remember: the template sync
+# uses an SSH deploy key, and releasing.md says to generate it in a temporary
+# directory -- but the failure mode if somebody generates one here instead is a
+# private key offered up by `git add -A`, which is not a mistake worth leaving
+# available. `*.pub` is deliberately included: a public half in the tree is a
+# reliable sign the private half is beside it.
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ecdsa*
+id_ed25519*
+*.pub
+
 # Material from the pre-rewrite version, kept locally for reference. The old tree
 # is at tag v0-cra if you need it; copies dropped in here are for reading, not for
 # carrying forward, and should never end up back in this history.

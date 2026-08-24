@@ -189,8 +189,13 @@ The job needs a secret called **`TEMPLATE_DEPLOY_KEY`** in _this_ repository, ho
 the **private half** of an SSH keypair whose public half is a write-enabled deploy key
 on the template repository.
 
+Generate it somewhere that is **not a git repository** — an absolute path into a
+temporary directory, so there is no chance of a private key landing next to files you
+are about to commit:
+
 ```bash
-ssh-keygen -t ed25519 -C "single-studio template sync" -f template-sync -N ""
+cd "$(mktemp -d)" && pwd            # prints where you are; the keys land here
+ssh-keygen -t ed25519 -C "single-studio template sync" -f "$PWD/template-sync" -N ""
 ```
 
 - **Public half** (`template-sync.pub`) → Single-Studio-**Template** → Settings →
@@ -198,8 +203,20 @@ ssh-keygen -t ed25519 -C "single-studio template sync" -f template-sync -N ""
 - **Private half** (`template-sync`) → Single-**Studio** → Settings → Secrets and
   variables → Actions → `TEMPLATE_DEPLOY_KEY`
 
-Then delete both files from your machine. The private half exists in the secret; a
-copy in your downloads folder is a copy that can leak.
+Paste the private half whole, including the `-----BEGIN OPENSSH PRIVATE KEY-----` and
+`-----END-----` lines and the trailing newline.
+
+Then delete both files. The private half lives in the secret now, and a copy left in
+a working directory is a copy that can leak:
+
+```bash
+shred -u template-sync template-sync.pub 2>/dev/null || rm -f template-sync template-sync.pub
+```
+
+If you generated them inside a repository by mistake, deleting the file is not
+enough on its own — check `git status` first, and if the private half was ever
+committed, remove the deploy key from GitHub and generate a new pair rather than
+trying to scrub the history.
 
 **Why not a personal access token.** Three reasons, and the third decides it:
 
