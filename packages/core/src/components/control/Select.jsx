@@ -10,32 +10,36 @@ const NAMESPACE = 'variables'
  * @typedef {object} SelectProps
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control. Defaults to `"Select"`.
- * @property {Array<string | { value: string, label: string }>} [options] - What can be chosen.
+ * @property {Array<string | { label: string, value: string }>} [options] - What can be chosen. A bare string is both.
  * @property {string} [placeholder] - The empty choice. Defaults to `"— none —"`.
  * @property {import("react").ReactNode} [children] - Options as JSX, instead of `options`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * A dropdown of allowed values, staged until saved. Options are plain strings, or
- * `{ value, label }` when what is stored differs from what is shown.
+ * A dropdown of allowed values. Staged until saved.
  *
- * Staged rather than immediate for consistency with the fields beside it: a board
- * where some controls are live and others are not is worse than one where the rule
- * is simply "typing and picking need a save, buttons do not".
+ * Options are plain strings when the thing shown is the thing stored, or
+ * `{ label, value }` when they differ — the label is what the operator reads, the
+ * value is what lands on air.
  *
  * The empty option always exists so a choice can be cleared. Saving '' deletes the
  * key, which makes a source fall back to its own default rather than hold a blank.
+ *
+ * Staged until saved, for consistency with the fields beside it: a board where some
+ * controls are live and others are not is worse than one where the rule is simply
+ * "typing and picking need a save, buttons do not".
  *
  * @example
  * <Select name="period" label="Period" options={['1st', '2nd', '3rd', 'OT']} />
  *
  * @example
+ * // What the operator reads, and what the graphic gets
  * <Select
  *   name="round"
  *   label="Round"
  *   options={[
- *     { value: 'qf', label: 'Quarter-final' },
- *     { value: 'sf', label: 'Semi-final' },
+ *     { label: 'Quarter-final', value: 'qf' },
+ *     { label: 'Semi-final', value: 'sf' },
  *   ]}
  * />
  *

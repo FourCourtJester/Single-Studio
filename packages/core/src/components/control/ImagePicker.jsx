@@ -23,7 +23,7 @@ const describe = (entry, text) => (entry.here ? text : `${text} (elsewhere)`)
 
 /**
  * One image, chosen by name from the studio's library, with a preview beside the
- * dropdown and a magnifier to open the library itself. Writes `asset:<key>`.
+ * dropdown and a magnifier to open the library itself. Writes `asset:<key>`. Staged until saved.
  *
  * A preview of what is selected, a dropdown of the library's keys for a quick
  * swap, and a magnifier that opens the library itself for adding, renaming and

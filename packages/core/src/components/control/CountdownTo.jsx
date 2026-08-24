@@ -17,7 +17,7 @@ const NAMESPACE = 'timers'
  */
 /**
  * Counts down to a time of day rather than a length — "we go live at 19:30".
- * Rolls to tomorrow if the time has already passed today.
+ * Rolls to tomorrow if the time has already passed today. Writes immediately.
  *
  * Named for what an operator types into it: `CountdownTo` takes 19:30, `Countdown`
  * takes 5:00. It was called `Countdown` and the duration one was called

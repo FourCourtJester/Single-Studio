@@ -35,25 +35,38 @@ const same = (a, b) => a.length === b.length && a.every((item, index) => item ==
 
 /**
  * Choose by picture rather than by name — a grid of tiles, which is what an
- * operator can aim at inside a draft timer. `multiple` collects several.
+ * operator can aim at inside a draft timer. `multiple` collects several. Writes immediately, or `staged` to hold it for a save.
  *
  * <Select> with the options laid out as a grid of image tiles. Same path, same
- * stored value -- a source reading `variables.home.commander` cannot tell which
+ * stored value -- a source reading `variables.home.faction` cannot tell which
  * control wrote it -- but the operator recognises art instead of reading a list.
  *
- *   <ImageSelect name="home.faction" options={factions} />          one of
- *   <ImageSelect name="home.army" options={units} multiple max={5} />  several
+ * Each option is `{ label, value, image }`: the label names it, the value is what
+ * lands on air, and the image is the tile. Keep the list in a module of its own and
+ * import it into both the board and the graphic, so the value the control writes
+ * and the file the scene looks up cannot drift apart:
  *
- * `multiple` stores an array in path order of selection, which is what an army
- * composition or a ban list is. `max` stops the grid at a fixed size rather than
- * silently dropping the overflow.
+ *   // src/roster.js
+ *   export const FACTIONS = [
+ *     { label: 'Vanguard', value: 'vanguard', image: './factions/vanguard.svg' },
+ *     { label: 'Syndicate', value: 'syndicate', image: './factions/syndicate.svg' },
+ *   ]
+ *
+ * `multiple` stores an array in order of selection, which is what an army
+ * composition, a ban list or a running order is. `max` stops the grid at a fixed
+ * size rather than silently dropping the overflow.
  *
  * Immediate by default, because a tile is a button. Pass `staged` for a pick that
  * should wait with the text fields for a save -- a draft being assembled off-air
  * and revealed on the cut.
  *
  * @example
+ * // FACTIONS is [{ label, value, image }, ...] — see above
  * <ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
+ *
+ * @example
+ * // The graphic reads the same path, and templates the value into a file name
+ * <Image name="home.faction" src="./factions/:value:.svg" alt="" />
  *
  * @example
  * // Several, capped, and held until saved

@@ -28,7 +28,7 @@ export default function Control() {
       <Stepper name="home.score" label="Home score" />
       <Stepper name="away.score" label="Away score" />
       <Field name="away.name" label="Away" placeholder="Away team" />
-      <SwapButton label="sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
+      <SwapButton label="sides" names={['home.name', 'home.score', 'away.name', 'away.score']} />
       <Break />
       <Select name="period" label="Period" options={['1st', '2nd', '3rd', 'OT']} />
       <ResetButton label="scores" names={['home.score', 'away.score']} />

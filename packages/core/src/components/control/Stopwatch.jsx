@@ -13,7 +13,7 @@ const NAMESPACE = 'timers'
  */
 /**
  * Counts up from when it was started, with pause and reset. Stores an origin
- * rather than a running total, so every machine derives the same number.
+ * rather than a running total, so every machine derives the same number. Writes immediately.
  *
  * The third of the three clocks. <Countdown> counts down a duration, <CountdownTo>
  * counts down to a wall-clock time, and this one counts up from the moment it was

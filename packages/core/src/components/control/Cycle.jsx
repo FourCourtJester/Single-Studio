@@ -16,7 +16,8 @@ const NAMESPACE = 'variables'
  * One button that steps through a list of values in order, wrapping back to unset
  * at the end. With a single option it is a checkbox: press to set it, press again
  * to clear it — which is what to reach for when a graphic only needs "on or the
- * value, or nothing".
+ * value, or nothing". Writes immediately.
+ *
  * @example
  * <Cycle name="period" label="Game" options={['Game 1', 'Game 2', 'Tiebreak']} />
  *

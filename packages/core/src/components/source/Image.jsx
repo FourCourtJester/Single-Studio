@@ -19,10 +19,10 @@ const REFERRER_POLICY = 'no-referrer'
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [value] - A value outright rather than a path to one. Wins over `name`.
  * @property {string} [src] - URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works.
- * @property {boolean} [slug] - Slugify the value first — "Single Studio" becomes `single-studio`.
+ * @property {boolean} [slug] - [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) the value first — "Single Studio" becomes `single-studio`.
  * @property {string} [fallback] - URL used when the value is empty or fails to load.
  * @property {string} [alt] - Alt text.
- * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -70,19 +70,41 @@ function preload(url) {
  * directly leaves a hole on air for however long the network takes -- fine in a
  * web page, not fine over a live scene.
  *
- * Two ways in, and only one of them is for a studio author. `name` reads a path,
- * which is what a graphic normally does. `value` hands it a string outright, for a
- * component that already holds one -- a row of a list, an entry being previewed --
- * and wants the loading, decoding and retry machinery without inventing a path to
- * park the value at. `value` wins when both are given.
+ * **Where the URL comes from, in order.** Three props decide it and they resolve
+ * the same way every time:
+ *
+ *   1. `value`, if given, is the value -- used as-is, ignoring `name`. This is for
+ *      a component that already holds a string (one row of a list, an entry being
+ *      previewed) and wants the loading and decoding without inventing a path to
+ *      park it at. A studio author writing a graphic almost never passes this.
+ *   2. Otherwise `name` reads a path under `variables`, which is what a graphic
+ *      normally does.
+ *   3. Whichever of those produced a value is then substituted into `src` wherever
+ *      `:value:` appears, after `slug` has had its say. `src` defaults to
+ *      `":value:"`, so with no `src` at all the value *is* the URL.
+ *   4. If the result is empty, or the image fails to load, `fallback` is used.
+ *
+ * So `<Image name="sponsor.logo" />` puts a pasted URL on air with no studio code,
+ * and `<Image name="home.name" src="/logos/:value:.svg" slug />` turns a typed team
+ * name into a badge lookup. Both are the same four steps with different props left
+ * out.
+ *
+ * An `asset:<key>` value -- what ImagePicker writes -- is resolved through the
+ * library at step 3 and then follows exactly the same path, so nothing downstream
+ * knows whether the bytes came from a bundled file, a remote host, or a file an
+ * operator dropped on the board.
  *
  * @example
- * // The value is the URL, or an `asset:` key from the library
+ * // No `src`: the stored value is the URL, or an `asset:` key from the library
  * <Image name="sponsor.logo" alt="" />
  *
  * @example
- * // Templated from a value: "Single Studio" resolves /logos/single-studio.svg
+ * // Templated: "Single Studio" resolves /logos/single-studio.svg
  * <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/tbd.svg" />
+ *
+ * @example
+ * // `value` instead of `name`, for a row that already holds its own string
+ * <Image value={entry.logo} alt={entry.name} />
  *
  * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */

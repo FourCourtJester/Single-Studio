@@ -9,7 +9,7 @@ const NAMESPACE = 'toggles'
  * @typedef {object} ToggleProps
  * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
  * @property {import("react").ReactNode} [children] - Shown while the toggle is on.
- * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
  */
 /**

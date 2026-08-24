@@ -14,6 +14,7 @@ import {
   Stepper,
   Stopwatch,
   SwapButton,
+  TextArea,
   ToggleButton,
   useVelcroMutate,
 } from '@single-studio/core'
@@ -50,7 +51,7 @@ export default function Control() {
     <div className="flex flex-col gap-4">
       <Panel title="Match">
         <Cycle name="period" label="Game" options={['Game 1', 'Game 2', 'Game 3', 'Tiebreak']} />
-        <SwapButton label="Swap sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
+        <SwapButton label="Swap sides" names={['home.name', 'home.score', 'away.name', 'away.score']} />
         <button
           type="button"
           onClick={() => mutate('demo:reset')}
@@ -119,7 +120,7 @@ export default function Control() {
       </Panel>
 
       <Panel title="Ticker">
-        <Field name="ticker" label="Crawl text" as="textarea" rows={2} className="basis-full" />
+        <TextArea name="ticker" label="Crawl text" rows={2} className="basis-full" />
       </Panel>
 
       <Panel title="Images">

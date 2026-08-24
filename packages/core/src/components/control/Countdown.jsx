@@ -18,7 +18,7 @@ const NAMESPACE = 'timers'
  */
 /**
  * Counts down a duration — a break, a half, a stinger. Without `duration` the
- * operator types one; with it the control is a single press.
+ * operator types one; with it the control is a single press. Writes immediately.
  *
  * Named for what an operator types into it: `Countdown` takes 5:00, `CountdownTo`
  * takes 19:30. This was `TimerButton`, which said nothing about which of the two it

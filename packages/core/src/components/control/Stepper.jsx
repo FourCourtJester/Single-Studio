@@ -16,7 +16,7 @@ const NAMESPACE = 'variables'
  */
 /**
  * A number with minus and plus buttons, and a field to type into. The buttons add
- * and subtract, so two operators pressing +1 at once come to +2 rather than +1.
+ * and subtract, so two operators pressing +1 at once come to +2 rather than +1. Writes immediately.
  *
  * The buttons use the `increment`/`decrement` mutations rather than writing an
  * absolute value, which is what makes two operators tapping +1 at the same moment

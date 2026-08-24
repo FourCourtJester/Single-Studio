@@ -16,7 +16,7 @@ const NAMESPACE = 'variables'
  */
 /**
  * Clear a set of values back to each source's own fallback. It unsets rather than
- * writing empties, so a graphic falls back rather than going blank.
+ * writing empties, so a graphic falls back rather than going blank. Writes immediately.
  *
  * Uses `unset` rather than writing empty strings, so the keys are removed and each
  * source falls back to its own default. Writing '' would leave the paths present

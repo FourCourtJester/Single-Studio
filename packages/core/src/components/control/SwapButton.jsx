@@ -7,26 +7,37 @@ const NAMESPACE = 'variables'
 
 /**
  * @typedef {object} SwapButtonProps
- * @property {string[]} [names] - Traded outermost inwards: first with last, second with second-last.
+ * @property {string[]} [names] - One side, then the other, spelled the same way. Cut in half and traded.
  * @property {string[]} [paths] - Full paths, for trading values outside `variables`.
  * @property {string} [label] - Names what gets traded, on the button. Defaults to `"Swap"`.
  * @property {import("react").ReactNode} [children] - Replaces the generated text.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Trade values pairwise — teams changing ends. The list is swapped outermost
- * inwards, so a symmetrical row reads as one and needs no counting.
+ * Trade two sides of the board — teams changing ends. Writes immediately.
  *
- * The list is traded outermost inwards: the first swaps with the last, the second
- * with the second-last. So a symmetrical row reads as one, which is how somebody
- * checks they have it right without counting:
+ * List one side, then the other, in the same order. The list is cut down the middle
+ * and the halves trade position for position:
  *
- *   names={['home.name', 'home.score', 'away.score', 'away.name']}
+ *   names={['home.name', 'home.score', 'away.name', 'away.score']}
+ *           ^--------- one side ----^  ^--------- the other ---^
  *
- * `paths` reaches values outside `variables`, which `names` does not.
+ * Writing both halves the same way round is what makes it checkable at a glance:
+ * read down one half, read down the other, and they should say the same words. An
+ * odd number of names has no halves and throws rather than dropping one.
+ *
+ * `paths` reaches values outside `variables`, which `names` does not. The two are
+ * concatenated, so a swap that mixes namespaces still has to add up to two halves.
  *
  * @example
- * <SwapButton label="sides" names={['home.name', 'home.score', 'away.score', 'away.name']} />
+ * <SwapButton label="sides" names={['home.name', 'home.score', 'away.name', 'away.score']} />
+ *
+ * @example
+ * // Longer sides stay readable, because neither half is written backwards
+ * <SwapButton
+ *   label="sides"
+ *   names={['home.name', 'home.city', 'home.colour', 'away.name', 'away.city', 'away.colour']}
+ * />
  *
  * @example
  * // `paths` reaches outside `variables`, which `names` does not

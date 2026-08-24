@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 import { DEFAULT_DELIMITER, DEFAULT_FIELDS, parseBoard, serializeBoard, sizeBoard } from '../../toolkits/board'
-import { Field } from './Field'
+import { TextArea } from './Field'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -19,7 +19,7 @@ const NAMESPACE = 'variables'
  */
 /**
  * A table an operator can paste into or edit row by row, stored as one delimited
- * string. `fields` names the columns; the graphic parses it back out.
+ * string. `fields` names the columns; the graphic parses it back out. Staged until saved.
  *
  * **Paste view** is a textarea holding the raw delimited text. This is the one that
  * matters in practice: an operator copies a block of standings out of a spreadsheet
@@ -134,7 +134,7 @@ export function Leaderboard({
         </div>
       ) : (
         <>
-          <Field name={name} label={null} as="textarea" rows={Math.max(3, entries.length || 3)} className="w-full" />
+          <TextArea name={name} label={null} rows={Math.max(3, entries.length || 3)} className="w-full" />
           <p className="text-xs text-slate-500">
             One row per line, {delimiter === '\t' ? 'tab' : `"${delimiter}"`}-separated: {fields.join(` ${delimiter === '\t' ? '⇥' : delimiter} `)}
           </p>

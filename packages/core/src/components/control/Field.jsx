@@ -13,29 +13,36 @@ const NAMESPACE = 'variables'
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [label] - Shown above the control.
  * @property {string} [placeholder] - Hint shown in the empty input.
- * @property {'input'|'textarea'} [as] - Defaults to `"input"`.
- * @property {number} [rows] - Height when `as="textarea"`. Defaults to `3`.
  * @property {string} [className] - Added to the component's own classes.
  */
+
 /**
- * Text an operator types, bound to a path. Staged until saved, so a half-typed
- * name never reaches air; `as="textarea"` takes several lines instead of one.
+ * @typedef {object} TextAreaProps
+ * @property {string} name - Names a value under `variables` — e.g. `home.score`.
+ * @property {string} [label] - Shown above the control.
+ * @property {string} [placeholder] - Hint shown in the empty box.
+ * @property {number} [rows] - How many lines tall. Defaults to `3`.
+ * @property {string} [className] - Added to the component's own classes.
+ */
+
+/**
+ * One line of text an operator types, bound to a path. Staged until saved.
  *
- * Nothing here reaches air as you type. An operator types at their own pace and
- * revises mid-word; writing every keystroke through would put "Vand" on the lower
- * third while somebody was still thinking. Save commits it — button, Ctrl/Cmd+S,
- * or Enter. Escape abandons this field's edit.
+ * For several lines — a bio, a crawl, a block of notes — use <TextArea>, which is
+ * this component with a taller box and nothing else different.
  *
  * Controlled is safe now that edits are local: there is no round-trip through the
  * worker to fight the cursor. And while a field is dirty its staged value wins over
  * the store, so a remote change cannot yank text out from under an operator
  * mid-edit.
  *
- * @example
- * <Field name="home.name" label="Home" placeholder="Home team" />
+ * Staged until saved, so a half-typed name never reaches air. An operator types at
+ * their own pace and revises mid-word; writing every keystroke through would put
+ * "Vand" on the lower third while somebody was still thinking. Save commits it —
+ * button, Ctrl/Cmd+S, or Enter. Escape abandons this field's edit.
  *
  * @example
- * <Field name="guest.bio" label="Guest bio" as="textarea" rows={4} />
+ * <Field name="home.name" label="Home" placeholder="Home team" />
  *
  * @example
  * // A dotted name groups related values; nothing has to declare the group
@@ -43,12 +50,65 @@ const NAMESPACE = 'variables'
  *
  * @param {FieldProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Field({ name, label, placeholder, as = 'input', rows = 3, className, ...rest }) {
+export function Field(props) {
+  return <Input {...props} as="input" />
+}
+
+/**
+ * Several lines of text an operator types, bound to a path. Staged until saved.
+ *
+ * <Field> with a taller box: same path, same staging, same unsaved marker, and a
+ * source reading the value cannot tell which of the two wrote it. Reach for this
+ * where the text has its own line breaks — a guest bio, a ticker crawl, a block of
+ * notes — and for anything that fits on one line reach for <Field>.
+ *
+ * Staged until saved, exactly as <Field> is. Enter inserts a line break here rather
+ * than committing — a multi-line box that cannot take a line break is not one — so
+ * saving is Ctrl/Cmd+S or the save button. Escape still abandons the edit.
+ *
+ * @example
+ * <TextArea name="guest.bio" label="Guest bio" rows={4} />
+ *
+ * @example
+ * <TextArea name="ticker" label="Crawl text" rows={2} placeholder="One item per line" />
+ *
+ * @param {TextAreaProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
+export function TextArea({ rows = 3, ...props }) {
+  return <Input {...props} as="textarea" rows={rows} />
+}
+
+/**
+ * The shared implementation.
+ *
+ * `as` lives here rather than on <Field> deliberately. It was a prop, and a prop
+ * that changes which element renders is a prop every reader has to check before
+ * they know what they are looking at -- and the only two answers were worth a name
+ * each. Two components, no attribute, and the one people reach for most is the
+ * one with the shortest call.
+ */
+function Input({ name, label, placeholder, as = 'input', rows, className, ...rest }) {
   const path = `${NAMESPACE}.${name}`
   const { value, dirty, onChange, onKeyDown } = useDraftValue(path)
   const busy = usePathPresence(path)
   const id = useId()
-  const Tag = as === 'textarea' ? 'textarea' : 'input'
+  const multiline = as === 'textarea'
+  const Tag = multiline ? 'textarea' : 'input'
+
+  /**
+   * Enter makes a new line in a box that has lines, and saves in one that does not.
+   *
+   * The draft handler commits on Enter, which is right for a one-line field -- type
+   * a name, press Enter, it is on air. In a textarea it made the newline key
+   * unreachable: an operator typing a second line of a bio committed the first
+   * instead, and the only way to get a line break was a chord nothing told them
+   * about. A multi-line box that cannot take a line break is not one.
+   *
+   * Nothing is lost by it. Ctrl/Cmd+S is a window listener, so it saves from
+   * anywhere including here, the save button is on the page, and Escape still
+   * abandons the edit.
+   */
+  const keys = multiline ? (event) => (event.key === 'Enter' ? undefined : onKeyDown(event)) : onKeyDown
 
   return (
     <label className={cx('ss-field flex flex-col gap-1', className)} htmlFor={id}>
@@ -81,11 +141,11 @@ export function Field({ name, label, placeholder, as = 'input', rows = 3, classN
       ) : null}
       <Tag
         id={id}
-        rows={as === 'textarea' ? rows : undefined}
+        rows={multiline ? rows : undefined}
         placeholder={placeholder ?? label ?? name}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
-        onKeyDown={onKeyDown}
+        onKeyDown={keys}
         data-dirty={dirty ? '' : undefined}
         className={cx(
           'rounded-md border bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors placeholder:text-slate-600',

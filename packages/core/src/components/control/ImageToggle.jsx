@@ -12,13 +12,18 @@ const NAMESPACE = 'toggles'
  * @property {string} [label] - Shown above the control.
  * @property {string} [image] - The picture on the button.
  * @property {string} [from] - Read the picture from this path instead of `image`.
- * @property {string[]} [group] - Names that turn off when this turns on.
+ * @property {string[]} [group] - Every name in this one radio group, including this one.
  * @property {'sm'|'md'|'lg'} [size] - Defaults to `"md"`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
  * An on/off button with a picture on it. `group` makes a row of them behave like
- * radio buttons, which is how a scene picker is usually built.
+ * radio buttons, which is how a scene picker is usually built. Writes immediately.
+ *
+ * **`group` is one group, not a list of groups.** List every name that belongs to
+ * it, this component's own included, and give the same list to each button in the
+ * row — turning one on turns the rest off. Two buttons with different lists are two
+ * separate groups, which is how you build two rows that do not interfere.
  *
  * Same behaviour exactly -- on/off at a path, or radio behaviour across a `group` --
  * only the face is the thing being toggled rather than its name. For a board where
@@ -38,8 +43,14 @@ const NAMESPACE = 'toggles'
  * <ImageToggle name="lowerthird" label="Lower third" image="/ui/lower-third.svg" />
  *
  * @example
- * // One at a time, and the picture comes from whatever the operator picked
- * <ImageToggle name="replay" from="variables.replay.thumb" group={['replay', 'live']} />
+ * // One at a time. Every button in the row gets this same list, itself included
+ * <ImageToggle name="replay" image="/ui/replay.svg" group={['replay', 'live', 'stats']} />
+ * <ImageToggle name="live" image="/ui/live.svg" group={['replay', 'live', 'stats']} />
+ * <ImageToggle name="stats" image="/ui/stats.svg" group={['replay', 'live', 'stats']} />
+ *
+ * @example
+ * // The picture comes from whatever the operator picked, not a fixed file
+ * <ImageToggle name="sponsor" from="variables.sponsor.logo" image="/ui/sponsor.svg" />
  *
  * @param {ImageToggleProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */

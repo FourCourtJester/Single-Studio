@@ -135,6 +135,63 @@ await control.locator('button[aria-label="Increase Home score"]').click()
 check(await becomes(control, () => document.querySelector('.ss-stepper input')?.value === '2'), 'two increments read as 2 on the control surface')
 check(await becomes(source, sceneHas, '2'), 'button presses reach the graphic with no save')
 
+// -- A textarea has to take a line break -------------------------------------
+// The draft handler commits on Enter, which is right for a one-line field and made
+// the newline key unreachable in a box that has lines. An operator typing a second
+// line of a crawlBox committed the first instead.
+const crawlBox = control.locator('.ss-field:has-text("Crawl text") textarea')
+
+await crawlBox.fill('first line')
+await crawlBox.press('Enter')
+await crawlBox.type('second line')
+
+check((await crawlBox.inputValue()).includes('\n'), 'Enter inserts a line break in a TextArea rather than saving')
+check((await crawlBox.inputValue()) === 'first line\nsecond line', 'and the text either side of it survives')
+check((await saveButton.getAttribute('data-pending')) === 'true', 'the edit is still staged, not committed by the Enter')
+
+// Escape still abandons it, and Ctrl+S still commits -- a textarea loses one way to
+// save, not the ability to save.
+await crawlBox.press('Escape')
+check(await becomes(control, () => !document.querySelector('.ss-field textarea')?.value?.includes('second line')), 'Escape still abandons a multi-line edit')
+
+// And a one-line field keeps committing on Enter, which is the whole reason the two
+// behave differently.
+await homeName.fill('Broncos')
+await homeName.press('Enter')
+check(await becomes(source, sceneHas, 'broncos'), 'Enter still commits in a single-line Field')
+
+// -- Swapping sides ----------------------------------------------------------
+// Locators, not evaluate: `:has-text()` is a Playwright selector and means nothing
+// to document.querySelector, which throws rather than returning null.
+const awayName = control.locator('.ss-field:has-text("Away") input').first()
+// Both halves of the list are written the same way round, and the halves trade
+// position for position. Getting this backwards puts a name onto a score.
+await awayName.fill('Vandals')
+await save()
+await control.locator('button[aria-label="Increase Away score"]').click()
+
+const sides = async () => ({
+  home: await homeName.inputValue(),
+  away: await awayName.inputValue(),
+  homeScore: await control.locator('.ss-stepper input').nth(0).inputValue(),
+  awayScore: await control.locator('.ss-stepper input').nth(1).inputValue(),
+})
+
+const sidesBefore = await sides()
+await control.locator('.ss-swap').click()
+await control.waitForTimeout(600)
+const sidesAfter = await sides()
+
+console.log(`  swap: ${JSON.stringify(sidesBefore)} -> ${JSON.stringify(sidesAfter)}`)
+check(sidesAfter.home === sidesBefore.away && sidesAfter.away === sidesBefore.home, 'swapping trades the two names')
+check(sidesAfter.homeScore === sidesBefore.awayScore && sidesAfter.awayScore === sidesBefore.homeScore, 'and the two scores, not a name onto a score')
+
+// Back again, which both proves it is its own inverse and leaves the board as this
+// section found it -- everything below reads the same values.
+await control.locator('.ss-swap').click()
+await control.waitForTimeout(600)
+check(JSON.stringify(await sides()) === JSON.stringify(sidesBefore), 'and swapping again puts every value back where it started')
+
 // -- Transition ordering -----------------------------------------------------
 // The regression that matters: content must swap at the *bottom* of the cycle. If
 // it swaps on the way out, the new value shows inside the old value's outgoing

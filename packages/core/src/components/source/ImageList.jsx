@@ -9,11 +9,11 @@ const NAMESPACE = 'variables'
  * @typedef {object} ImageListProps
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [src] - URL template; `:value:` is replaced by each entry. Defaults to `":value:"`.
- * @property {boolean} [slug] - Slugify each value first — "Single Studio" becomes `single-studio`.
+ * @property {boolean} [slug] - [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) each value first — "Single Studio" becomes `single-studio`.
  * @property {string} [fallback] - URL used for an entry that fails to load.
  * @property {string} [alt] - Alt text for every image.
  * @property {number} [limit] - Render at most this many entries.
- * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See the transitions guide.
+ * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
  * @property {string} [itemClassName] - Added to each image rather than to the list.
  */

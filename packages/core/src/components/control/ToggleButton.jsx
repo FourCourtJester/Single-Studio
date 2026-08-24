@@ -9,13 +9,15 @@ const NAMESPACE = 'toggles'
  * @typedef {object} ToggleButtonProps
  * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
  * @property {string} [label] - Names what is toggled: the button reads "Show <label>".
- * @property {string[]} [group] - Names that turn off when this turns on — radio-button behaviour.
+ * @property {string[]} [group] - Every name in this one radio group, including this one.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Show <label>" text.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
  * An on/off button for a path under `toggles`, which is what a graphic watches to
  * know whether to be on air. `group` turns a set of them into radio buttons.
+ * Writes immediately.
+ *
  * @example
  * <ToggleButton name="lowerthird" label="Lower third" />
  *

@@ -269,7 +269,7 @@ Every one of these is available from `mutate(name, payload)` on a board and as
 | `unset` | `'toggles.lower'` or `['a', 'b']` | Delete paths. |
 | `toggle` | `'toggles.lower'` | Flip a boolean. |
 | `only` | `{ group: [...], active: 'x' }` | Turn one on, the rest off. |
-| `swap` | `['home.name', 'home.score', 'away.score', 'away.name']` | Trade values pairwise, outermost first. |
+| `swap` | `['home.name', 'home.score', 'away.name', 'away.score']` | Cut the list in half; the halves trade position for position. |
 | `clear` | `{ prefix, except }` | Wipe everything, or everything under a prefix. |
 
 ### Counters

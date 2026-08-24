@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { cx } from '../../toolkits/cx'
+import { ARMED_TONE, toneClass } from '../../toolkits/tone'
 
 const ARMED = 4000
 
@@ -9,7 +10,7 @@ const ARMED = 4000
  * @property {() => void} onConfirm - Called on the second click.
  * @property {string} [label] - What the button says when idle.
  * @property {string} [ask] - What it says once armed. Defaults to `"Click to confirm"`.
- * @property {'danger'|'quiet'} [tone] - Defaults to `"danger"`.
+ * @property {'danger'|'warn'|'go'|'primary'|'quiet'} [tone] - What the button means. Defaults to `"danger"`.
  * @property {boolean} [disabled] - Nothing happens on click.
  * @property {import("react").ReactNode} [children] - Replaces `label` when idle.
  * @property {string} [className] - Added to the component's own classes.
@@ -45,11 +46,26 @@ const ASK = 'Click to confirm'
  * given, the second click lands in the same place as the first, and there is no
  * modal to focus-trap or dismiss mid-show.
  *
+ * `tone` says what the button means rather than what colour it is, and the five
+ * are shared with every other control that takes one — see `TONES`. A studio with
+ * its own palette restyles `.ss-tone-danger` once instead of hunting buttons.
+ *
  * @example
  * <Confirm label="Remove all" onConfirm={() => library.removeAll()} />
  *
  * @example
- * <Confirm label="Disconnect" tone="quiet" onConfirm={leave} />
+ * // Reversible, so it warns rather than alarms, and says its own thing when armed
+ * <Confirm label="Disconnect" tone="warn" ask="Leave the room?" onConfirm={leave} />
+ *
+ * @example
+ * // Ordinary enough not to shout, and off while there is nothing to do
+ * <Confirm label="Clear queue" tone="quiet" disabled={!queue.length} onConfirm={clear} />
+ *
+ * @example
+ * // The children form, for a button that is an icon rather than a sentence
+ * <Confirm tone="danger" ask="Again to delete" onConfirm={remove} aria-label="Delete">
+ *   <Icon name="trash" />
+ * </Confirm>
  *
  * @param {ConfirmProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
@@ -84,10 +100,7 @@ export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled
     onConfirm?.()
   }
 
-  const looks =
-    tone === 'quiet'
-      ? 'border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:text-slate-100'
-      : 'border border-rose-500/50 bg-rose-500/10 text-rose-300 hover:border-rose-400 hover:text-rose-200'
+  const looks = toneClass(tone)
 
   return (
     <button
@@ -98,7 +111,7 @@ export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled
       data-armed={armed ? '' : undefined}
       className={cx(
         'ss-confirm rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-        armed ? 'border-amber-400 bg-amber-500/15 text-amber-200' : looks,
+        armed ? ARMED_TONE : looks,
         className,
       )}
       {...rest}

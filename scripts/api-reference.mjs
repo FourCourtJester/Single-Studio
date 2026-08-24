@@ -40,6 +40,7 @@ if (!existsSync(types)) {
 const AUTHORED = {
   control: [
     'Field',
+    'TextArea',
     'Stepper',
     'Select',
     'Cycle',
@@ -186,18 +187,31 @@ function propsOf(source, component) {
   return props
 }
 
+/**
+ * Component name -> the declarations that contain it.
+ *
+ * Keyed by what each file *declares* rather than by what it is called, because the
+ * two stopped agreeing: <TextArea> is <Field> with a taller box and lives beside it
+ * in Field.jsx. Keying by filename quietly rendered "Not found in dist/types" for a
+ * component that was right there, which reads like a rename gone wrong rather than
+ * a lookup that was never going to find it.
+ */
 const files = new Map()
 
 for (const kind of ['control', 'source']) {
   for (const file of readdirSync(join(types, kind))) {
-    if (file.endsWith('.d.ts')) files.set(file.replace('.d.ts', ''), readFileSync(join(types, kind, file), 'utf8'))
+    if (!file.endsWith('.d.ts')) continue
+
+    const source = readFileSync(join(types, kind, file), 'utf8')
+
+    for (const [, name] of source.matchAll(/export declare function (\w+)\s*\(/g)) files.set(name, source)
   }
 }
 
 function render(component) {
   const source = files.get(component)
 
-  if (!source) return `### \`${component}\`\n\n_Not found in dist/types — was it renamed?_\n`
+  if (!source) return `### ${component}\n\n_Not found in dist/types — was it renamed?_\n`
 
   const declaration = source.indexOf(`export declare function ${component}(`)
   const before = source.lastIndexOf('/**', declaration)
@@ -209,18 +223,22 @@ function render(component) {
   // nothing to somebody trying to remember whether it is `slug` or `slugify`.
   const props = (propsOf(source, component) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
 
-  const lines = [`### \`${component}\``, '', '---', '', summary]
+  const lines = [`### ${component}`, '', '---', '', summary]
 
   for (const example of examples) lines.push('', '```jsx', example, '```')
 
   if (props.length) {
     lines.push(
       '',
-      '| Prop | Type | |',
-      '| --- | --- | --- |',
+      '| Prop | Type | Required | Description |',
+      '| --- | --- | --- | --- |',
       // A union type contains pipes, and a pipe inside a markdown table cell ends
       // the cell. Escaped rather than reformatted, so the type printed is the type.
-      ...props.map((p) => `| \`${p.name}\`${p.required ? ' **·** required' : ''} | \`${p.type.replace(/\|/g, '\\|')}\` | ${p.description} |`),
+      //
+      // Required gets a column of its own rather than a marker beside the name. It
+      // is the first thing somebody needs from the table -- what do I have to pass
+      // -- and appended to the name it competed with the name for the same glance.
+      ...props.map((p) => `| \`${p.name}\` | \`${p.type.replace(/\|/g, '\\|')}\` | ${p.required ? 'Yes' : ''} | ${p.description} |`),
     )
   }
 
@@ -238,7 +256,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 
 | What it is       | Dashboard | Source |
 | ---------------- | --------- | ------ |
-| Text             | ${link('Field')} | ${link('Variable')} |
+| Text             | ${link('Field')}, ${link('TextArea')} | ${link('Variable')} |
 | Number           | ${link('Stepper')} | ${link('Variable')} |
 | One of a list    | ${link('Select')}, ${link('Cycle')} | ${link('Variable')} |
 | A yes/no         | ${link('Cycle')} with one option | ${link('Variable')} |
@@ -249,7 +267,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | Counting down    | ${link('Countdown')}, ${link('CountdownTo')} | ${link('Timer')} |
 | Counting up      | ${link('Stopwatch')} | ${link('Timer')} |
 | A table          | ${link('Leaderboard')} | _yours_ |
-| Scrolling text   | ${link('Field')} | ${link('Ticker')} |
+| Scrolling text   | ${link('TextArea')} | ${link('Ticker')} |
 | Wall clock       | — | ${link('Clock')} |
 | Grouping         | ${link('Panel')}, ${link('Break')} | ${link('Scene')} |
 

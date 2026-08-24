@@ -21,7 +21,7 @@ const swatchValue = (value, fallback) => (HEX.test(String(value ?? '').trim()) ?
 
 /**
  * A colour, as a swatch to pick from and a hex field to type into. Pair it with
- * `Scene`'s `vars` to drive anything a stylesheet can express.
+ * `Scene`'s `vars` to drive anything a stylesheet can express. Staged until saved.
  *
  * A `Scene`'s `vars` can map any path onto a CSS custom property, which makes an
  * operator-chosen colour drive anything a stylesheet can express. That is only

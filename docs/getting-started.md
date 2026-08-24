@@ -262,12 +262,13 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 
 | Component      | Writes             | Notes                                                                     |
 | -------------- | ------------------ | ------------------------------------------------------------------------- |
-| `Field`        | `variables.<name>` | Text or `as="textarea"`. Staged until saved.                              |
+| `Field`        | `variables.<name>` | One line of text. Staged until saved.                                     |
+| `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; Ctrl/Cmd+S saves.                |
 | `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.             |
 | `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                    |
 | `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture. `from` reads the face off a path.          |
 | `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.                        |
-| `Select`       | `variables.<name>` | `options` of strings or `{ value, label }`. Staged until saved.           |
+| `Select`       | `variables.<name>` | `options` of strings or `{ label, value }`. Staged until saved.           |
 | `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.             |
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.   |
 | `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                               |

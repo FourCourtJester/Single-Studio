@@ -145,17 +145,33 @@ export const mutations = {
   },
 
   /**
-   * Swap values pairwise: the first half of the list trades with the second,
-   * outermost pair first. `['home.name', 'home.score', 'away.score', 'away.name']`
-   * swaps name<->name and score<->score.
+   * Swap two halves of a list, position for position.
+   *
+   *   ['home.name', 'home.score', 'away.name', 'away.score']
+   *     ^-------- one side -----^  ^------ the other ------^
+   *
+   * The list is cut down the middle and the halves trade: first with first, second
+   * with second. Both halves are written in the same order, which is the property
+   * that makes it checkable -- one side, then the other side spelled the same way.
+   *
+   * It used to trade outermost inwards, so the second half had to be written
+   * backwards for the pairs to line up. That reads fine with four paths and stops
+   * being checkable at six: a mirrored list is one somebody has to trace with a
+   * finger, and getting it wrong swaps a name onto a score with nothing to say so.
+   *
+   * An odd number of paths has no halves, and is a mistake rather than a shape with
+   * a sensible reading -- so it says so instead of dropping the middle one.
    */
   swap(ctx, payload) {
     const paths = toPaths(payload)
-    const half = Math.floor(paths.length / 2)
+
+    if (paths.length % 2) throw new TypeError(`swap needs an even number of paths to cut in half, got ${paths.length}: ${paths.join(', ')}`)
+
+    const half = paths.length / 2
 
     for (let i = 0; i < half; i += 1) {
       const from = paths.at(i)
-      const to = paths.at(-i - 1)
+      const to = paths.at(i + half)
       const a = ctx.read(from)
       const b = ctx.read(to)
 

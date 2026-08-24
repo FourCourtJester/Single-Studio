@@ -97,14 +97,40 @@ describe('mutations', () => {
   })
 
   describe('swap', () => {
-    it('trades values pairwise, outermost first', () => {
-      run(doc, 'set', { 'variables.home.name': 'Broncos', 'variables.home.score': 3, 'variables.away.score': 1, 'variables.away.name': 'Vandals' })
-      run(doc, 'swap', ['variables.home.name', 'variables.home.score', 'variables.away.score', 'variables.away.name'])
+    it('cuts the list in half and trades position for position', () => {
+      run(doc, 'set', { 'variables.home.name': 'Broncos', 'variables.home.score': 3, 'variables.away.name': 'Vandals', 'variables.away.score': 1 })
+      // Both halves spelled the same way round -- name then score, name then score.
+      run(doc, 'swap', ['variables.home.name', 'variables.home.score', 'variables.away.name', 'variables.away.score'])
 
       expect(Doc.read(doc, 'variables.home.name')).toBe('Vandals')
       expect(Doc.read(doc, 'variables.away.name')).toBe('Broncos')
       expect(Doc.read(doc, 'variables.home.score')).toBe(1)
       expect(Doc.read(doc, 'variables.away.score')).toBe(3)
+    })
+
+    it('keeps lining up as the halves get longer', () => {
+      run(doc, 'set', {
+        'variables.home.name': 'Broncos',
+        'variables.home.city': 'Boise',
+        'variables.home.colour': 'orange',
+        'variables.away.name': 'Vandals',
+        'variables.away.city': 'Moscow',
+        'variables.away.colour': 'silver',
+      })
+
+      run(doc, 'swap', [
+        'variables.home.name',
+        'variables.home.city',
+        'variables.home.colour',
+        'variables.away.name',
+        'variables.away.city',
+        'variables.away.colour',
+      ])
+
+      expect(Doc.read(doc, 'variables.home.city')).toBe('Moscow')
+      expect(Doc.read(doc, 'variables.away.city')).toBe('Boise')
+      expect(Doc.read(doc, 'variables.home.colour')).toBe('silver')
+      expect(Doc.read(doc, 'variables.away.colour')).toBe('orange')
     })
 
     it('swaps counters through their base', () => {
@@ -114,6 +140,10 @@ describe('mutations', () => {
 
       expect(Doc.read(doc, 'variables.home.score')).toBe(2)
       expect(Doc.read(doc, 'variables.away.score')).toBe(4)
+    })
+
+    it('refuses an odd list rather than dropping the middle one', () => {
+      expect(() => run(doc, 'swap', ['variables.a', 'variables.b', 'variables.c'])).toThrow(/even number of paths/)
     })
   })
 
