@@ -2,10 +2,10 @@
 
 # Component reference
 
-Every piece of state has two components — one on the operator's dashboard, one on
+Every piece of state has two components — one on the operator's control surface, one on
 air — and they meet at a path. That pairing is the whole mental model:
 
-| What it is       | Dashboard | Source |
+| What it is       | Control | Source |
 | ---------------- | --------- | ------ |
 | Text             | [`Field`](#control-field), [`TextArea`](#control-textarea) | [`Variable`](#source-variable) |
 | Number           | [`Stepper`](#control-stepper) | [`Variable`](#source-variable) |
@@ -31,12 +31,13 @@ author writes `name="home.score"` and never has to think about it — each compo
 Every component passes anything it does not recognise through to the DOM, so
 `style`, `data-*` and the rest stay available.
 
-## Dashboard
+## Control
 
-What the operator drives the show from. These render in `src/control/Control.jsx`,
-which is an ordinary React component — put controls in a [`Panel`](#control-panel) and it arranges
-them. Anything you *type* stages until you save, so a half-finished name never
-reaches air; anything you *press* takes effect at once. Each entry below says which.
+What the operator drives the show from — `@single-studio/core/control`. These render
+in `src/control/Control.jsx`, which is an ordinary React component: put controls in a
+[`Panel`](#control-panel) and it arranges them. Anything you *type* stages until you save, so a
+half-finished name never reaches air; anything you *press* takes effect at once. Each
+entry below says which.
 
 - [`Field`](#control-field)
 - [`TextArea`](#control-textarea)
@@ -609,10 +610,10 @@ A destructive button that asks first, without a dialog: one click arms it, a sec
 
 ## Source
 
-What goes on air. Each of these lives in a graphic under `src/sources/`, one file
-per OBS browser source, wrapped in a [`Scene`](#source-scene). They read the same paths the
-dashboard writes and render nothing until the value has arrived, so a graphic
-reopening mid-show never flashes a placeholder over the programme.
+What goes on air — `@single-studio/core/source`. Each of these lives in a graphic under
+`src/sources/`, one file per OBS browser source, wrapped in a [`Scene`](#source-scene). They read
+the same paths the control surface writes and render nothing until the value has
+arrived, so a graphic reopening mid-show never flashes a placeholder over the programme.
 
 - [`Scene`](#source-scene)
 - [`Variable`](#source-variable)
