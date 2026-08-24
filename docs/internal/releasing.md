@@ -237,6 +237,24 @@ trying to scrub the history.
 A deploy key is also the smallest credential that does the job: one repository, write
 access, no account behind it, and revoking it is deleting one entry.
 
+### Check it before you need it
+
+The credential fails in the worst possible place: after `npm publish` has already
+run and cannot be taken back. So check it first, without cutting anything.
+
+**Actions → Release → Run workflow**, tick **"Also check the template deploy key can
+write"**, and run it against `main`.
+
+That does the ordinary rehearsal — lint, test, build, template against packed
+tarballs — and then, instead of publishing or syncing, pushes a scratch tag to the
+template repository and immediately deletes it. Nothing is published, nothing is
+committed, and the template repository is left exactly as it was.
+
+It is a real write against the real remote on purpose. A deploy key added without
+ticking **Allow write access** clones perfectly and refuses to push, so a read-only
+check would pass and tell you nothing. The run also prints what a real release would
+have changed in the template, which is a useful thing to see before it happens.
+
 Without the secret the job stops before touching anything and says so. That failure
 mode is deliberate: the packages are already published by then, so the honest outcome
 is a red release with a clear reason rather than a silent skip that leaves the

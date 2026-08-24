@@ -18,6 +18,11 @@ on:
   # template built against packed tarballs -- which is the thing worth doing before
   # cutting a version you cannot take back.
   workflow_dispatch:
+    inputs:
+      check_template_key:
+        description: 'Also check the template deploy key can write (pushes and deletes a scratch tag)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -132,7 +137,7 @@ jobs:
     # Only once the packages are actually on npm. A template pinned to a version
     # that does not exist is worse than one that is a release behind.
     needs: publish
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || inputs.check_template_key
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -174,7 +179,34 @@ jobs:
           find .mirror -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a templates/studio/. .mirror/
 
+      # A manual run proves the credential and changes nothing. Read access is
+      # already proven by the checkout above; this is the other half, and it is the
+      # half that actually fails -- a deploy key added without ticking "Allow write
+      # access" clones perfectly and refuses to push.
+      #
+      # A scratch tag pushed and immediately deleted is a real write against the
+      # real remote, which is the only thing that answers the question, and it
+      # leaves nothing behind.
+      - name: Check the deploy key can write
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        working-directory: .mirror
+        run: |
+          scratch="refs/tags/template-sync-check-${GITHUB_RUN_ID}"
+
+          if ! git push origin "HEAD:$scratch"; then
+            echo "::error::The deploy key cannot write. Add it to Single-Studio-Template with 'Allow write access' ticked."
+            exit 1
+          fi
+
+          git push origin --delete "$scratch"
+          echo "The deploy key can write, and the scratch tag has been removed."
+
+          echo "::group::what a real release would change"
+          git status --short || true
+          echo "::endgroup::"
+
       - name: Commit, push, and tag
+        if: startsWith(github.ref, 'refs/tags/')
         working-directory: .mirror
         env:
           VERSION: ${{ github.ref_name }}
