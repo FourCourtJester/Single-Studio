@@ -66,7 +66,9 @@ end-to-end encrypted with a key that never reaches the service carrying it.
 
 ## Documentation
 
-- [Getting started](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/getting-started.md) — the component reference and how a studio is put together
+- [Getting started](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/getting-started.md) — how a studio is put together, from an empty folder to OBS
+- [Component reference](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/api.md) — every component, its props and what reads them on air
+- [Your own data](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/data.md) — writing your own state changes, and pulling data in from a feed
 - [Collaborating](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/collaborating.md) — for the person running the show
 - [Collaboration](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/collaboration.md) — how the replication, clocks and encryption actually work
 - [Architecture](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/architecture.md) — why any of it is shaped this way

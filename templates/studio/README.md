@@ -96,3 +96,13 @@ for the Supabase steps and what to do when somebody has to be shut out.
 | `src/mutations/`          | Your own state changes, alongside the built-in ones            |
 | `src/control/Control.jsx` | The operator's board                                           |
 | `src/sources/`            | One component per graphic                                      |
+
+## Where to look things up
+
+Kept in the framework's repository rather than copied in here, so they cannot go
+stale against the version you are on.
+
+- [Component reference](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/api.md) — every component, its props, and what reads it on air
+- [Your own data](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/data.md) — writing your own state changes, and pulling data in from a feed
+- [Getting started](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/getting-started.md) — the longer walkthrough, including transitions and the asset library
+- [Collaborating](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/collaborating.md) — for whoever is running the show on the night
