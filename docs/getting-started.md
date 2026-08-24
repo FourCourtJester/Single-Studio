@@ -242,18 +242,32 @@ a socket rather than a person.
 
 ## Component reference
 
+Two entry points, because a graphic and the operator's board are separate worlds
+and nothing needs both in one file:
+
+```js
+import { Scene, Toggle, Variable } from '@single-studio/core/source' // in src/sources/
+import { Field, Panel, Toggle } from '@single-studio/core/control' // in src/control/
+```
+
+That separation is what lets each side use the right name — `Toggle` is a button on
+the board and the thing being toggled on air. Hooks, mutations and toolkits are on
+the root `@single-studio/core`, since those genuinely are shared.
+
+The full generated reference, with every prop, is [api.md](api.md).
+
 **Source** — what goes on air:
 
-| Component   | Reads              | Notes                                                                                                               |
-| ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `Scene`     | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                                                      |
-| `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                                                         |
-| `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads before swapping; `refresh` polls.                                 |
-| `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                                                        |
-| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Shows 00:00, then clears itself. `onComplete` fires once it lands. |
-| `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.                                            |
-| `Clock`     | — (local)          | Wall clock. Never replicates.                                                                                       |
-| `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                                                              |
+| Component   | Reads              | Notes                                                                                                            |
+| ----------- | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `Scene`     | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                                                   |
+| `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                                                      |
+| `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads and decodes before swapping.                                   |
+| `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                                                     |
+| `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran. |
+| `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.                                         |
+| `Clock`     | — (local)          | Wall clock. Never replicates.                                                                                    |
+| `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                                                           |
 
 Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 [Transitions](#transitions).
@@ -266,13 +280,13 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; Ctrl/Cmd+S saves.                |
 | `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.             |
 | `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                    |
-| `ImageToggle`  | `toggles.<name>`   | `ToggleButton` with a picture. `from` reads the face off a path.          |
+| `ImageToggle`  | `toggles.<name>`   | `Toggle` with a picture. `from` reads the face off a path.                |
 | `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.                        |
 | `Select`       | `variables.<name>` | `options` of strings or `{ label, value }`. Staged until saved.           |
 | `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.             |
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.   |
 | `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                               |
-| `ToggleButton` | `toggles.<name>`   | `group` gives radio-button behaviour.                                     |
+| `Toggle`       | `toggles.<name>`   | `group` names a radio group; buttons sharing one are exclusive.           |
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first.                                  |
 | `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.                 |
 | `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
@@ -376,12 +390,6 @@ The value _is_ the URL — paste a link into a `Field` and it is on air:
 <Image name="sponsor.url" fallback="/logos/placeholder.svg" />
 ```
 
-Contents change behind a stable URL — a chart, a camera still:
-
-```jsx
-<Image name="chart.url" refresh={30} />
-```
-
 An operator's upload, stored locally and referenced by content hash:
 
 ```jsx
@@ -406,9 +414,8 @@ The rest is failure handling that a broadcast needs and a web page does not:
 
 | Behaviour                                         | Why                                                                     |
 | ------------------------------------------------- | ----------------------------------------------------------------------- |
-| Retries with backoff (`retries`, default 3)       | A blip mid-show should not cost the graphic for the night               |
-| Falls back after retries are exhausted            | A missing image should read as "no image", not as a broken-image glyph  |
-| A failed `refresh` keeps what is showing          | Never blank a working graphic because a poll failed                     |
+| Falls back to `fallback` when a load fails        | A missing image should read as "no image", not as a broken-image glyph  |
+| Keeps the previous image while a new one loads    | Never blank a working graphic to wait for the network                   |
 | `referrerpolicy="no-referrer"`                    | Many hosts block hotlinking by `Referer`                                |
 | Warns loudly on `http://` from an `https://` page | Mixed content is blocked silently and is the most common way this fails |
 
@@ -514,7 +521,7 @@ serves both.
 When the choice _is_ a picture — a faction crest, a commander portrait, a map —
 reading nine words is slower than recognising nine images, and a draft does not wait.
 `ImageSelect` is `Select` laid out as a grid of tiles, and `ImageToggle` is
-`ToggleButton` with a picture on it.
+`Toggle` with a picture on it.
 
 ```jsx
 <ImageSelect name="home.faction" label="Faction" options={FACTIONS} />
@@ -771,7 +778,7 @@ be on screen.
 | **Escape** (in a field) | Abandon that field's edit |
 | **Discard** (red ✕)     | Abandon all staged edits  |
 
-Buttons — `Stepper`'s &minus;/+, `ToggleButton`, `ImageToggle`, `ImageSelect`, `SwapButton`,
+Buttons — `Stepper`'s &minus;/+, `Toggle`, `ImageToggle`, `ImageSelect`, `SwapButton`,
 `ResetButton`, `Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
 half-finished state to protect.
 

@@ -1,4 +1,4 @@
-import { Image, Scene, Toggle, Variable } from '@single-studio/core'
+import { Image, Scene, Toggle, Variable } from '@single-studio/core/source'
 
 /**
  * Add to OBS as a Browser source pointed at #/source/guest

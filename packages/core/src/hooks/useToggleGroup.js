@@ -10,9 +10,9 @@ import { useCallback, useEffect } from 'react'
 //
 // So a button says which group it is in and nothing else:
 //
-//   <ToggleButton name="stats" group="panels" />
-//   <ToggleButton name="roster" group="panels" />
-//   <ToggleButton name="bracket" group="panels" />
+//   <Toggle name="stats" group="panels" />
+//   <Toggle name="roster" group="panels" />
+//   <Toggle name="bracket" group="panels" />
 //
 // The group works out its own membership. Each button registers its path while it
 // is on screen, so the set is whatever is actually rendered rather than whatever

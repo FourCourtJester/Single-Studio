@@ -1,4 +1,4 @@
-import { Break, Field, Panel, ResetButton, Select, Stepper, SwapButton } from '@single-studio/core'
+import { Break, Field, Panel, ResetButton, Select, Stepper, SwapButton } from '@single-studio/core/control'
 
 // Your operator's board. Every control binds to a path and knows nothing about any
 // other, so this file is plain composition -- add a control, bind it, done.

@@ -39,6 +39,16 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./control": {
+      "types": "./dist/types/control.d.ts",
+      "import": "./dist/control.js",
+      "default": "./dist/control.js"
+    },
+    "./source": {
+      "types": "./dist/types/source.d.ts",
+      "import": "./dist/source.js",
+      "default": "./dist/source.js"
+    },
     "./worker": {
       "types": "./dist/types/worker.d.ts",
       "import": "./dist/worker.js",

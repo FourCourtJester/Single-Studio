@@ -1,6 +1,11 @@
 // Main-thread entry. Everything a studio's app code needs.
 
-export * from './components'
+// Deliberately not the dashboard or source components: those are
+// `@single-studio/core/control` and `@single-studio/core/source`. See control.js.
+export { Fit } from './components/common/Fit'
+export { Icon } from './components/common/Icon'
+export { Tooltip } from './components/common/Tooltip'
+export { Transition } from './components/common/Transition'
 export * from './hooks'
 export { Service } from './services/Service'
 export { defineStudio } from './studio/defineStudio'

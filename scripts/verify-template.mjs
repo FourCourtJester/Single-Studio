@@ -212,13 +212,20 @@ try {
    * So: a probe that uses the components the way a studio would, compiled with
    * `strict` on against the installed package. Without types it does not merely
    * lose autocomplete -- `noImplicitAny` refuses the import outright.
+   *
+   * It imports from both subpaths, which is the other thing worth proving: the
+   * dashboard and the graphics are separate entry points precisely so that each can
+   * have a <Toggle>, and a package that resolved only one of them would look
+   * completely fine from inside this repository, where everything resolves through
+   * the workspace anyway.
    */
   console.log('\n→ typechecking a consumer against the packed types')
 
   writeFileSync(
     join(project, 'probe.tsx'),
     [
-      "import { Countdown, CountdownTo, Field, ResetButton, Scene, Stepper, Timer, Toggle, Variable } from '@single-studio/core'",
+      "import { Countdown, CountdownTo, Field, ResetButton, Stepper, Toggle } from '@single-studio/core/control'",
+      "import { Scene, Timer, Toggle as OnAir, Variable } from '@single-studio/core/source'",
       '',
       'export const Board = () => (',
       '  <>',
@@ -227,6 +234,7 @@ try {
       '    <Countdown name="round" duration="5:00" />',
       '    <CountdownTo name="showtime" as="time" />',
       '    <ResetButton names={[\'home.score\']} label="scores" />',
+      '    <Toggle name="lowerthird" label="Lower third" group="panels" />',
       '  </>',
       ')',
       '',
@@ -234,7 +242,7 @@ try {
       "  <Scene vars={{ '--accent': 'home.color' }} style={{ opacity: 1 }}>",
       '    <Variable name="home.name" fallback="Home" />',
       '    <Timer name="round" onComplete={() => {}} />',
-      '    <Toggle name="lowerthird">shown while on</Toggle>',
+      '    <OnAir name="lowerthird">shown while on</OnAir>',
       '  </Scene>',
       ')',
       '',

@@ -1,4 +1,4 @@
-import { Scene, Ticker as Crawl } from '@single-studio/core'
+import { Scene, Ticker as Crawl } from '@single-studio/core/source'
 
 /** Add to OBS as a Browser source pointed at #/source/ticker */
 export default function TickerSource() {

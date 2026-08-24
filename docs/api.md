@@ -7,26 +7,26 @@ air — and they meet at a path. That pairing is the whole mental model:
 
 | What it is       | Dashboard | Source |
 | ---------------- | --------- | ------ |
-| Text             | [`Field`](#field), [`TextArea`](#textarea) | [`Variable`](#variable) |
-| Number           | [`Stepper`](#stepper) | [`Variable`](#variable) |
-| One of a list    | [`Select`](#select), [`Cycle`](#cycle) | [`Variable`](#variable) |
-| A yes/no         | [`Cycle`](#cycle) with one option | [`Variable`](#variable) |
-| Colour           | [`ColorPicker`](#colorpicker) | [`Scene`](#scene) `vars` |
-| A picture        | [`ImagePicker`](#imagepicker), [`ImageSelect`](#imageselect) | [`Image`](#image) |
-| Several pictures | [`ImageSelect`](#imageselect) `multiple` | [`ImageList`](#imagelist) |
-| On or off        | [`ToggleButton`](#togglebutton), [`ImageToggle`](#imagetoggle) | [`Toggle`](#toggle) |
-| Counting down    | [`Countdown`](#countdown), [`CountdownTo`](#countdownto) | [`Timer`](#timer) |
-| Counting up      | [`Stopwatch`](#stopwatch) | [`Timer`](#timer) |
-| A table          | [`Leaderboard`](#leaderboard) | _yours_ |
-| Scrolling text   | [`TextArea`](#textarea) | [`Ticker`](#ticker) |
-| Wall clock       | — | [`Clock`](#clock) |
-| Grouping         | [`Panel`](#panel), [`Break`](#break) | [`Scene`](#scene) |
+| Text             | [`Field`](#control-field), [`TextArea`](#control-textarea) | [`Variable`](#source-variable) |
+| Number           | [`Stepper`](#control-stepper) | [`Variable`](#source-variable) |
+| One of a list    | [`Select`](#control-select), [`Cycle`](#control-cycle) | [`Variable`](#source-variable) |
+| A yes/no         | [`Cycle`](#control-cycle) with one option | [`Variable`](#source-variable) |
+| Colour           | [`ColorPicker`](#control-colorpicker) | [`Scene`](#source-scene) `vars` |
+| A picture        | [`ImagePicker`](#control-imagepicker), [`ImageSelect`](#control-imageselect) | [`Image`](#source-image) |
+| Several pictures | [`ImageSelect`](#control-imageselect) `multiple` | [`ImageList`](#source-imagelist) |
+| On or off        | [`Toggle`](#control-toggle), [`ImageToggle`](#control-imagetoggle) | [`Toggle`](#source-toggle) |
+| Counting down    | [`Countdown`](#control-countdown), [`CountdownTo`](#control-countdownto) | [`Timer`](#source-timer) |
+| Counting up      | [`Stopwatch`](#control-stopwatch) | [`Timer`](#source-timer) |
+| A table          | [`Leaderboard`](#control-leaderboard) | _yours_ |
+| Scrolling text   | [`TextArea`](#control-textarea) | [`Ticker`](#source-ticker) |
+| Wall clock       | — | [`Clock`](#source-clock) |
+| Grouping         | [`Panel`](#control-panel), [`Break`](#control-break) | [`Scene`](#source-scene) |
 
 Every component takes a `name`, and knows for itself where that name lives: values
 under `variables`, on/off ones under `toggles`, clocks under `timers`. So a studio
 author writes `name="home.score"` and never has to think about it — each component's
-`name` row says which. The two that act on several values at once, [`ResetButton`](#resetbutton) and
-[`SwapButton`](#swapbutton), take `paths` for the rare case of reaching outside `variables`.
+`name` row says which. The two that act on several values at once, [`ResetButton`](#control-resetbutton) and
+[`SwapButton`](#control-swapbutton), take `paths` for the rare case of reaching outside `variables`.
 
 Every component passes anything it does not recognise through to the DOM, so
 `style`, `data-*` and the rest stay available.
@@ -34,33 +34,37 @@ Every component passes anything it does not recognise through to the DOM, so
 ## Dashboard
 
 What the operator drives the show from. These render in `src/control/Control.jsx`,
-which is an ordinary React component — put controls in a [`Panel`](#panel) and it arranges
+which is an ordinary React component — put controls in a [`Panel`](#control-panel) and it arranges
 them. Anything you *type* stages until you save, so a half-finished name never
 reaches air; anything you *press* takes effect at once. Each entry below says which.
 
-- [`Field`](#field)
-- [`TextArea`](#textarea)
-- [`Stepper`](#stepper)
-- [`Select`](#select)
-- [`Cycle`](#cycle)
-- [`ColorPicker`](#colorpicker)
-- [`ImagePicker`](#imagepicker)
-- [`ImageSelect`](#imageselect)
-- [`ImageToggle`](#imagetoggle)
-- [`ToggleButton`](#togglebutton)
-- [`SwapButton`](#swapbutton)
-- [`ResetButton`](#resetbutton)
-- [`Countdown`](#countdown)
-- [`CountdownTo`](#countdownto)
-- [`Stopwatch`](#stopwatch)
-- [`Leaderboard`](#leaderboard)
-- [`Panel`](#panel)
-- [`Break`](#break)
-- [`Confirm`](#confirm)
+- [`Field`](#control-field)
+- [`TextArea`](#control-textarea)
+- [`Stepper`](#control-stepper)
+- [`Select`](#control-select)
+- [`Cycle`](#control-cycle)
+- [`ColorPicker`](#control-colorpicker)
+- [`ImagePicker`](#control-imagepicker)
+- [`ImageSelect`](#control-imageselect)
+- [`ImageToggle`](#control-imagetoggle)
+- [`Toggle`](#control-toggle)
+- [`SwapButton`](#control-swapbutton)
+- [`ResetButton`](#control-resetbutton)
+- [`Countdown`](#control-countdown)
+- [`CountdownTo`](#control-countdownto)
+- [`Stopwatch`](#control-stopwatch)
+- [`Leaderboard`](#control-leaderboard)
+- [`Panel`](#control-panel)
+- [`Break`](#control-break)
+- [`Confirm`](#control-confirm)
+
+<a id="control-field"></a>
 
 ### Field
 
 ---
+
+`import { Field } from '@single-studio/core/control'`
 
 One line of text an operator types, bound to a path. Staged until saved.
 
@@ -80,9 +84,13 @@ One line of text an operator types, bound to a path. Staged until saved.
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `placeholder` | `string` |  | Hint shown in the empty input. |
 
+<a id="control-textarea"></a>
+
 ### TextArea
 
 ---
+
+`import { TextArea } from '@single-studio/core/control'`
 
 Several lines of text an operator types, bound to a path. Staged until saved.
 
@@ -102,9 +110,13 @@ Several lines of text an operator types, bound to a path. Staged until saved.
 | `placeholder` | `string` |  | Hint shown in the empty box. |
 | `rows` | `number` |  | How many lines tall. Defaults to `3`. |
 
+<a id="control-stepper"></a>
+
 ### Stepper
 
 ---
+
+`import { Stepper } from '@single-studio/core/control'`
 
 A number with minus and plus buttons, and a field to type into. The buttons add and subtract, so two operators pressing +1 at once come to +2 rather than +1. Writes immediately.
 
@@ -124,9 +136,13 @@ A number with minus and plus buttons, and a field to type into. The buttons add 
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `step` | `number` |  | How much the -/+ buttons add, and the field's arrow keys. Defaults to `1`. |
 
+<a id="control-select"></a>
+
 ### Select
 
 ---
+
+`import { Select } from '@single-studio/core/control'`
 
 A dropdown of allowed values. Staged until saved.
 
@@ -155,9 +171,13 @@ A dropdown of allowed values. Staged until saved.
 | `options` | `Array<string \| { label: string, value: string }>` |  | What can be chosen. A bare string is both. |
 | `placeholder` | `string` |  | The empty choice. Defaults to `"— none —"`. |
 
+<a id="control-cycle"></a>
+
 ### Cycle
 
 ---
+
+`import { Cycle } from '@single-studio/core/control'`
 
 One button that steps through a list of values in order, wrapping back to unset at the end. With a single option it is a checkbox: press to set it, press again to clear it — which is what to reach for when a graphic only needs "on or the value, or nothing". Writes immediately.
 
@@ -177,9 +197,13 @@ One button that steps through a list of values in order, wrapping back to unset 
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `options` | `string[]` |  | Stepped through in order, wrapping back to unset. One option makes it a checkbox. |
 
+<a id="control-colorpicker"></a>
+
 ### ColorPicker
 
 ---
+
+`import { ColorPicker } from '@single-studio/core/control'`
 
 A colour, as a swatch to pick from and a hex field to type into. Pair it with `Scene`'s `vars` to drive anything a stylesheet can express. Staged until saved.
 
@@ -202,9 +226,13 @@ A colour, as a swatch to pick from and a hex field to type into. Pair it with `S
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `presets` | `string[]` |  | Swatches offered beside the picker. |
 
+<a id="control-imagepicker"></a>
+
 ### ImagePicker
 
 ---
+
+`import { ImagePicker } from '@single-studio/core/control'`
 
 One image, chosen by name from the studio's library, with a preview beside the dropdown and a magnifier to open the library itself. Writes `asset:<key>`. Staged until saved.
 
@@ -222,9 +250,13 @@ One image, chosen by name from the studio's library, with a preview beside the d
 | `label` | `string` |  | Shown above the control. Defaults to `"Image"`. |
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 
+<a id="control-imageselect"></a>
+
 ### ImageSelect
 
 ---
+
+`import { ImageSelect } from '@single-studio/core/control'`
 
 Choose by picture rather than by name — a grid of tiles, which is what an operator can aim at inside a draft timer. `multiple` collects several. Writes immediately, or `staged` to hold it for a save.
 
@@ -260,9 +292,13 @@ const FACTIONS = [
 | `size` | `'sm' \| 'md' \| 'lg'` |  | Tile size. Defaults to `"md"`. |
 | `staged` | `boolean` |  | Hold the choice until saved, rather than writing on click. |
 
+<a id="control-imagetoggle"></a>
+
 ### ImageToggle
 
 ---
+
+`import { ImageToggle } from '@single-studio/core/control'`
 
 An on/off button with a picture on it. `group` makes a row of them behave like radio buttons, which is how a scene picker is usually built. Writes immediately.
 
@@ -292,21 +328,25 @@ An on/off button with a picture on it. `group` makes a row of them behave like r
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
 | `size` | `'sm' \| 'md' \| 'lg'` |  | Defaults to `"md"`. |
 
-### ToggleButton
+<a id="control-toggle"></a>
+
+### Toggle
 
 ---
+
+`import { Toggle } from '@single-studio/core/control'`
 
 An on/off button for a path under `toggles`, which is what a graphic watches to know whether to be on air. `group` turns a set of them into radio buttons. Writes immediately.
 
 ```jsx
-<ToggleButton name="lowerthird" label="Lower third" />
+<Toggle name="lowerthird" label="Lower third" />
 ```
 
 ```jsx
 // Exactly one of these can be on at a time
-<ToggleButton name="stats" label="Stats" group="panels" />
-<ToggleButton name="roster" label="Roster" group="panels" />
-<ToggleButton name="bracket" label="Bracket" group="panels" />
+<Toggle name="stats" label="Stats" group="panels" />
+<Toggle name="roster" label="Roster" group="panels" />
+<Toggle name="bracket" label="Bracket" group="panels" />
 ```
 
 | Prop | Type | Required | Description |
@@ -317,9 +357,13 @@ An on/off button for a path under `toggles`, which is what a graphic watches to 
 | `label` | `string` |  | Names what is toggled: the button reads "Show <label>". |
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
 
+<a id="control-swapbutton"></a>
+
 ### SwapButton
 
 ---
+
+`import { SwapButton } from '@single-studio/core/control'`
 
 Trade two sides of the board — teams changing ends. Writes immediately.
 
@@ -348,9 +392,13 @@ Trade two sides of the board — teams changing ends. Writes immediately.
 | `names` | `string[]` |  | One side, then the other, spelled the same way. Cut in half and traded. |
 | `paths` | `string[]` |  | Full paths, for trading values outside `variables`. |
 
+<a id="control-resetbutton"></a>
+
 ### ResetButton
 
 ---
+
+`import { ResetButton } from '@single-studio/core/control'`
 
 Clear a set of values back to each source's own fallback. It unsets rather than writing empties, so a graphic falls back rather than going blank. Writes immediately.
 
@@ -372,9 +420,13 @@ Clear a set of values back to each source's own fallback. It unsets rather than 
 | `names` | `string[]` |  | Cleared back to each source's own fallback. |
 | `paths` | `string[]` |  | Full paths, for clearing `toggles` or `timers` in the same press. |
 
+<a id="control-countdown"></a>
+
 ### Countdown
 
 ---
+
+`import { Countdown } from '@single-studio/core/control'`
 
 Counts down a duration — a break, a half, a stinger. Without `duration` the operator types one; with it the control is a single press. Writes immediately.
 
@@ -395,9 +447,13 @@ Counts down a duration — a break, a half, a stinger. Without `duration` the op
 | `name` | `string` | Yes | Names a value under `timers` — e.g. `round`. |
 | `placeholder` | `string` |  | Hint in the duration field. Defaults to `"5:00"`. |
 
+<a id="control-countdownto"></a>
+
 ### CountdownTo
 
 ---
+
+`import { CountdownTo } from '@single-studio/core/control'`
 
 Counts down to a time of day rather than a length — "we go live at 19:30". Rolls to tomorrow if the time has already passed today. Writes immediately.
 
@@ -417,9 +473,13 @@ Counts down to a time of day rather than a length — "we go live at 19:30". Rol
 | `label` | `string` |  | Shown above the control. Defaults to `"Starts at"`. |
 | `name` | `string` | Yes | Names a value under `timers` — e.g. `round`. |
 
+<a id="control-stopwatch"></a>
+
 ### Stopwatch
 
 ---
+
+`import { Stopwatch } from '@single-studio/core/control'`
 
 Counts up from when it was started, with pause and reset. Stores an origin rather than a running total, so every machine derives the same number. Writes immediately.
 
@@ -433,9 +493,13 @@ Counts up from when it was started, with pause and reset. Stores an origin rathe
 | `label` | `string` |  | Shown above the control. Defaults to `"Stopwatch"`. |
 | `name` | `string` | Yes | Names a value under `timers` — e.g. `round`. |
 
+<a id="control-leaderboard"></a>
+
 ### Leaderboard
 
 ---
+
+`import { Leaderboard } from '@single-studio/core/control'`
 
 A table an operator can paste into or edit row by row, stored as one delimited string. `fields` names the columns; the graphic parses it back out. Staged until saved.
 
@@ -457,9 +521,13 @@ A table an operator can paste into or edit row by row, stored as one delimited s
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `rows` | `number` |  | How many rows the table shows. |
 
+<a id="control-panel"></a>
+
 ### Panel
 
 ---
+
+`import { Panel } from '@single-studio/core/control'`
 
 A titled group of controls that arranges itself. The controls sit side by side and drop onto the next line when they run out of room, so one board works both in a narrow OBS dock and full screen on a second monitor without you writing a layout for either.
 
@@ -476,9 +544,13 @@ A titled group of controls that arranges itself. The controls sit side by side a
 | `className` | `string` |  | Added to the component's own classes. |
 | `title` | `string` |  | Heading for the group. |
 
+<a id="control-break"></a>
+
 ### Break
 
 ---
+
+`import { Break } from '@single-studio/core/control'`
 
 Forces a line break inside a `Panel`, for when the natural wrap puts related controls on different rows.
 
@@ -494,9 +566,13 @@ Forces a line break inside a `Panel`, for when the natural wrap puts related con
 | --- | --- | --- | --- |
 | `className` | `string` |  | Added to the component's own classes. |
 
+<a id="control-confirm"></a>
+
 ### Confirm
 
 ---
+
+`import { Confirm } from '@single-studio/core/control'`
 
 A destructive button that asks first, without a dialog: one click arms it, a second does it, and a few seconds of silence disarms it. Exported for actions of your own — the built-in controls that destroy something already ask on their own, so reach for this when a mutation you wrote needs the same care.
 
@@ -534,22 +610,26 @@ A destructive button that asks first, without a dialog: one click arms it, a sec
 ## Source
 
 What goes on air. Each of these lives in a graphic under `src/sources/`, one file
-per OBS browser source, wrapped in a [`Scene`](#scene). They read the same paths the
+per OBS browser source, wrapped in a [`Scene`](#source-scene). They read the same paths the
 dashboard writes and render nothing until the value has arrived, so a graphic
 reopening mid-show never flashes a placeholder over the programme.
 
-- [`Scene`](#scene)
-- [`Variable`](#variable)
-- [`Image`](#image)
-- [`ImageList`](#imagelist)
-- [`Toggle`](#toggle)
-- [`Timer`](#timer)
-- [`Ticker`](#ticker)
-- [`Clock`](#clock)
+- [`Scene`](#source-scene)
+- [`Variable`](#source-variable)
+- [`Image`](#source-image)
+- [`ImageList`](#source-imagelist)
+- [`Toggle`](#source-toggle)
+- [`Timer`](#source-timer)
+- [`Ticker`](#source-ticker)
+- [`Clock`](#source-clock)
+
+<a id="source-scene"></a>
 
 ### Scene
 
 ---
+
+`import { Scene } from '@single-studio/core/source'`
 
 The root of a graphic — one per OBS browser source. `vars` maps CSS custom properties to values an operator controls, which is how a graphic follows input the framework has no component for.
 
@@ -576,9 +656,13 @@ export default function Scoreboard() {
 | `className` | `string` |  | Added to the component's own classes. |
 | `vars` | `Record<string, string>` |  | CSS custom property to value name, e.g. `{ "--accent": "home.color" }`. |
 
+<a id="source-variable"></a>
+
 ### Variable
 
 ---
+
+`import { Variable } from '@single-studio/core/source'`
 
 One value on air, as text. This is the component most graphics are mostly made of — a name, a score, a subtitle.
 
@@ -603,9 +687,13 @@ One value on air, as text. This is the component most graphics are mostly made o
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 
+<a id="source-image"></a>
+
 ### Image
 
 ---
+
+`import { Image } from '@single-studio/core/source'`
 
 A picture chosen by a value the operator controls. Loads and decodes off-screen first and only swaps once ready, so a change never leaves a hole on air.
 
@@ -638,9 +726,13 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 | `value` | `string` |  | A value outright rather than a path to one. Wins over `name`. |
 
+<a id="source-imagelist"></a>
+
 ### ImageList
 
 ---
+
+`import { ImageList } from '@single-studio/core/source'`
 
 Several pictures from one value — what `ImageSelect multiple` writes. Each entry is templated exactly as `Image` templates one.
 
@@ -665,9 +757,13 @@ Several pictures from one value — what `ImageSelect multiple` writes. Each ent
 | `src` | `string` |  | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 
+<a id="source-toggle"></a>
+
 ### Toggle
 
 ---
+
+`import { Toggle } from '@single-studio/core/source'`
 
 Shows its children while a toggle is on, and animates them in and out. This is how a whole graphic is put on and taken off air.
 
@@ -690,9 +786,13 @@ Shows its children while a toggle is on, and animates them in and out. This is h
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 
+<a id="source-timer"></a>
+
 ### Timer
 
 ---
+
+`import { Timer } from '@single-studio/core/source'`
 
 A clock on air, reading whichever kind was stored — a countdown, a count-up, or a paused one. A finished countdown takes itself off air; nobody has to remember to clear it mid-show.
 
@@ -719,9 +819,13 @@ A clock on air, reading whichever kind was stored — a countdown, a count-up, o
 | `onComplete` | `() => void` |  | Called once, when a countdown reaches zero. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 
+<a id="source-ticker"></a>
+
 ### Ticker
 
 ---
+
+`import { Ticker } from '@single-studio/core/source'`
 
 Text scrolling across the bottom of the screen, looping continuously. Speed is in pixels per second, so a long crawl and a short one read at the same pace.
 
@@ -740,9 +844,13 @@ Text scrolling across the bottom of the screen, looping continuously. Speed is i
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `speed` | `number` |  | Pixels per second. Defaults to `100`. |
 
+<a id="source-clock"></a>
+
 ### Clock
 
 ---
+
+`import { Clock } from '@single-studio/core/source'`
 
 The time of day, from the machine the graphic is running on. Nothing replicates here — every browser source reads its own clock.
 

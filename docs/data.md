@@ -483,7 +483,8 @@ right there beside the row:
 
 ```jsx
 // src/control/Roster.jsx
-import { Panel, useVelcroList, useVelcroMutate } from '@single-studio/core'
+import { useVelcroList, useVelcroMutate } from '@single-studio/core'
+import { Panel } from '@single-studio/core/control'
 import { useState } from 'react'
 
 export function Roster() {
@@ -523,7 +524,8 @@ disagree about the order:
 
 ```jsx
 // src/sources/Roster.jsx
-import { Scene, Toggle, useVelcroList } from '@single-studio/core'
+import { useVelcroList } from '@single-studio/core'
+import { Scene, Toggle } from '@single-studio/core/source'
 
 export default function Roster() {
   const players = useVelcroList('variables.roster', { by: 'seed' })

@@ -1,4 +1,5 @@
-import { Image, ImageList, Scene, Timer, Toggle, Variable, useVelcroValue } from '@single-studio/core'
+import { useVelcroValue } from '@single-studio/core'
+import { Image, ImageList, Scene, Timer, Toggle, Variable } from '@single-studio/core/source'
 
 import { ARMY_SIZE, COMMANDERS, MAPS, labelOf } from '../roster'
 

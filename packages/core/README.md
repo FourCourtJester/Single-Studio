@@ -22,11 +22,13 @@ pnpm add @single-studio/core react react-dom react-router-dom
 
 ## What it is
 
-Two halves sharing one store.
+Two halves sharing one store, and two entry points to match — a graphic imports
+from `/source`, the operator's board from `/control`. Nothing needs both, which is
+what lets each side name things for what they are.
 
 ```jsx
 // A graphic. One browser source per file.
-import { Variable, Scene } from '@single-studio/core'
+import { Scene, Variable } from '@single-studio/core/source'
 
 export default function Scoreboard() {
   return (
@@ -40,7 +42,7 @@ export default function Scoreboard() {
 
 ```jsx
 // The operator's board, in an OBS custom browser dock.
-import { Field, Panel, Stepper } from '@single-studio/core'
+import { Field, Panel, Stepper } from '@single-studio/core/control'
 
 export default function Control() {
   return (

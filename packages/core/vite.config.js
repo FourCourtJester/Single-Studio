@@ -2,8 +2,13 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Library build. Two entrypoints: the main-thread surface and the SharedWorker
-// host. They are kept separate so a studio's worker bundle never pulls in React.
+// Library build. Four entrypoints: the shared main-thread surface, the two
+// component sets, and the SharedWorker host.
+//
+// The worker is separate so a studio's worker bundle never pulls in React. The
+// dashboard and the graphics are separate because they are separate worlds -- see
+// src/control.js. Rollup hoists whatever they share into a common chunk, so a board
+// that imports both still resolves one copy of every context and hook.
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -12,6 +17,8 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(import.meta.dirname, 'src/index.js'),
+        control: resolve(import.meta.dirname, 'src/control.js'),
+        source: resolve(import.meta.dirname, 'src/source.js'),
         worker: resolve(import.meta.dirname, 'src/worker.js'),
       },
       formats: ['es'],

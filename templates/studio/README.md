@@ -97,6 +97,16 @@ for the Supabase steps and what to do when somebody has to be shut out.
 | `src/control/Control.jsx` | The operator's board                                           |
 | `src/sources/`            | One component per graphic                                      |
 
+Components come from one of two entry points, and which one a file uses says which
+half of the show it belongs to:
+
+```js
+import { Field, Panel, Toggle } from '@single-studio/core/control' // src/control/
+import { Scene, Toggle, Variable } from '@single-studio/core/source' // src/sources/
+```
+
+Hooks, mutations and toolkits are on the root `@single-studio/core`.
+
 ## Where to look things up
 
 Kept in the framework's repository rather than copied in here, so they cannot go

@@ -7,7 +7,7 @@ import { cx } from '../../toolkits/cx'
 const NAMESPACE = 'toggles'
 
 /**
- * @typedef {object} ToggleButtonProps
+ * @typedef {object} ToggleProps
  * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
  * @property {string} [label] - Names what is toggled: the button reads "Show <label>".
  * @property {string} [group] - A group's name. Buttons sharing one behave as radio buttons.
@@ -25,17 +25,17 @@ const NAMESPACE = 'toggles'
  * different names are two independent rows.
  *
  * @example
- * <ToggleButton name="lowerthird" label="Lower third" />
+ * <Toggle name="lowerthird" label="Lower third" />
  *
  * @example
  * // Exactly one of these can be on at a time
- * <ToggleButton name="stats" label="Stats" group="panels" />
- * <ToggleButton name="roster" label="Roster" group="panels" />
- * <ToggleButton name="bracket" label="Bracket" group="panels" />
+ * <Toggle name="stats" label="Stats" group="panels" />
+ * <Toggle name="roster" label="Roster" group="panels" />
+ * <Toggle name="bracket" label="Bracket" group="panels" />
  *
- * @param {ToggleButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
+ * @param {ToggleProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function ToggleButton({ name, label, group, className, children, ...rest }) {
+export function Toggle({ name, label, group, className, children, ...rest }) {
   const path = `${NAMESPACE}.${name}`
   const active = Boolean(useVelcroValue(path, false))
   const mutate = useVelcroMutate()

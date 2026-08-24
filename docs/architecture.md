@@ -192,7 +192,7 @@ Two families, one store.
 render on air. Each is a thin wrapper over `useVelcroValue`.
 
 **Control** (`Field`, `Select`, `ImageSelect`, `ImagePicker`, `Stepper`, `Cycle`,
-`ToggleButton`, `ImageToggle`, `SwapButton`, `ResetButton`, `Confirm`, `Countdown`,
+`Toggle`, `ImageToggle`, `SwapButton`, `ResetButton`, `Confirm`, `Countdown`,
 `CountdownTo`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
 it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
 

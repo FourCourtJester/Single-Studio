@@ -1,3 +1,4 @@
+import { useVelcroMutate } from '@single-studio/core'
 import {
   AssetLibrary,
   Break,
@@ -15,9 +16,8 @@ import {
   Stopwatch,
   SwapButton,
   TextArea,
-  ToggleButton,
-  useVelcroMutate,
-} from '@single-studio/core'
+  Toggle,
+} from '@single-studio/core/control'
 
 import { ARMY_SIZE, COMMANDERS, FACTIONS, MAPS, UNITS } from '../roster'
 
@@ -70,10 +70,10 @@ export default function Control() {
         <ImageSelect name="map" label="Map" options={MAPS} />
         <Break />
         {/* The scene's own blocks, each on its own switch. */}
-        <ToggleButton name="map" label="map" />
-        <ToggleButton name="armies" label="armies" />
-        <ToggleButton name="elapsed" label="elapsed" />
-        <ToggleButton name="showtime" label="pre-show" />
+        <Toggle name="map" label="map" />
+        <Toggle name="armies" label="armies" />
+        <Toggle name="elapsed" label="elapsed" />
+        <Toggle name="showtime" label="pre-show" />
       </Panel>
 
       <Draft side="home" title="Home" />
@@ -91,12 +91,12 @@ export default function Control() {
       <Panel title="Lower third">
         <Field name="lowerthird.title" label="Title" placeholder="Player name" />
         <Field name="lowerthird.subtitle" label="Subtitle" placeholder="Team / role" />
-        <ToggleButton name="lowerthird" label="lower third" />
+        <Toggle name="lowerthird" label="lower third" />
       </Panel>
 
       <Panel title="Standings">
         <Field name="standings.title" label="Heading" placeholder="Standings" />
-        <ToggleButton name="standings" label="standings" />
+        <Toggle name="standings" label="standings" />
         <Break />
         <Leaderboard name="standings" label="Board" fields={['name', 'score']} rows={5} />
       </Panel>
@@ -107,7 +107,7 @@ export default function Control() {
         <ImagePicker name="guest.photo" label="Headshot" />
         <Field name="guest.name" label="Guest name" placeholder="Guest" />
         <Field name="guest.title" label="Role" placeholder="Analyst" />
-        <ToggleButton name="guest" label="guest" />
+        <Toggle name="guest" label="guest" />
       </Panel>
 
       <Panel title="Sponsor">
@@ -116,7 +116,7 @@ export default function Control() {
         {/* The accent reaches the scene as a CSS custom property, so a colour the
             operator picks drives anything the stylesheet can express. */}
         <ColorPicker name="sponsor.color" label="Accent" fallback="#f59e0b" presets={['#f59e0b', '#0ea5e9', '#e11d48', '#22c55e', '#a855f7', '#f8fafc']} />
-        <ToggleButton name="sponsor" label="sponsor" />
+        <Toggle name="sponsor" label="sponsor" />
       </Panel>
 
       <Panel title="Ticker">

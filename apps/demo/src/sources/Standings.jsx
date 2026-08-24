@@ -1,4 +1,5 @@
-import { Scene, Toggle, Variable, parseBoard } from '@single-studio/core'
+import { parseBoard } from '@single-studio/core'
+import { Scene, Toggle, Variable } from '@single-studio/core/source'
 import { useMemo } from 'react'
 import { useVelcroValue } from '@single-studio/core'
 

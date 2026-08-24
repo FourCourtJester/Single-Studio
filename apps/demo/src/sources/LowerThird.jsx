@@ -1,4 +1,4 @@
-import { Scene, Toggle, Variable } from '@single-studio/core'
+import { Scene, Toggle, Variable } from '@single-studio/core/source'
 
 /**
  * Add to OBS as a Browser source pointed at #/source/lower-third
