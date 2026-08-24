@@ -33,6 +33,7 @@ clock.
 | `templates/studio`           | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                    |
 | `apps/demo`                  | A working studio, and the integration test for the package boundary                                                                                                                      |
 | `docs/`                      | For studio authors: [Getting started](docs/getting-started.md) · [Component reference](docs/api.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) |
+| `CHANGELOG.md`               | What changed in each release, and what breaks                                                                                                                                            |
 | `docs/internal/`             | For working on the framework: [Architecture](docs/internal/architecture.md) · [Collaboration plan](docs/internal/collaboration.md) · [Releasing](docs/internal/releasing.md)             |
 
 A studio is its own repo that depends on `@single-studio/core`, with its own build
