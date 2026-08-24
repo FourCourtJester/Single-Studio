@@ -27,6 +27,11 @@ rm -rf node_modules packages/*/node_modules apps/*/node_modules package-lock.jso
 pnpm install
 ```
 
+**This is about this repository, not about your studio.** A studio depends on the
+published packages and links nothing, so it installs with npm, pnpm or yarn — the
+template uses npm because it comes with Node. Nothing the framework does requires a
+particular package manager.
+
 Open the printed URL. That is the control surface. The header's menu holds the
 setup a board needs and a show does not: **Browser sources** lists every graphic's
 URL with a copy button, alongside the image store and the collaboration settings.

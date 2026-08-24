@@ -168,11 +168,23 @@ try {
   writeFileSync(join(project, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 
   console.log('\n→ installing')
-  // No lockfile and no workspace: a fresh resolve, the way a new project gets one.
-  run('pnpm', ['install', '--ignore-workspace', '--no-frozen-lockfile'], project)
+  /**
+   * npm, because npm is what somebody generating a studio will reach for.
+   *
+   * This used to be `pnpm install --ignore-workspace`, and that flag was the tell:
+   * it existed to stop pnpm treating the temporary project as part of *this*
+   * repository's workspace. The template is an ordinary Vite app with no workspace
+   * protocol and nothing linked, so it never needed pnpm -- the requirement was
+   * leakage from the monorepo around it, and rehearsing with the tool nobody uses
+   * proves the wrong thing. Same lesson the LICENSE bug taught: a rehearsal that
+   * uses a different tool from the performance is not a rehearsal.
+   *
+   * No lockfile: a fresh resolve, the way a new project gets one.
+   */
+  run('npm', ['install', '--no-audit', '--no-fund'], project)
 
   console.log('\n→ building')
-  run('pnpm', ['build'], project)
+  run('npm', ['run', 'build'], project)
 
   if (!existsSync(join(project, 'dist/index.html'))) throw new Error('the template built without producing dist/index.html')
 

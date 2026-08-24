@@ -8,13 +8,18 @@ its label, and neither has to match anything on any server.
 ## Run it
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
-Commit the `pnpm-lock.yaml` that first install produces. Nothing breaks without it —
-the deploy workflow is written to survive a repository that has never been installed
-— but it is what makes a build today and a build in six months the same build.
+**Any package manager works.** This is an ordinary Vite app with no workspace
+protocol and no linking, so pnpm or yarn are fine — npm is used here only because it
+comes with Node. If you switch, change the two `run` lines in
+`.github/workflows/pages.yml` to match, and nothing else.
+
+Commit the lockfile that first install produces. Nothing breaks without it — the
+deploy workflow is written to survive a repository that has never been installed —
+but it is what makes a build today and a build in six months the same build.
 
 Open the control surface at the printed URL. The header menu lists every graphic's
 browser-source URL with a copy button.

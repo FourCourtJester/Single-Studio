@@ -27,26 +27,29 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # No version pinned here: the action reads "packageManager" from
-      # package.json, so your machine and this runner cannot drift apart.
-      - uses: pnpm/action-setup@v5
-
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: pnpm
 
-      # Not `--frozen-lockfile`, and that is for the first push rather than for
-      # every one after it. A repository made from this template has no
-      # pnpm-lock.yaml until somebody runs an install and commits one, and
-      # `--frozen-lockfile` fails outright when there is nothing to freeze -- so the
-      # very first deploy would fail, on a project nobody had touched yet, for a
-      # reason that reads like a broken template.
+      # npm because it is already there. This studio is an ordinary Vite app with
+      # no workspace protocol and no linking, so it installs with whichever manager
+      # you prefer -- swap these two lines for pnpm or yarn and nothing else here
+      # changes. npm is the default only because it ships with Node and needs no
+      # setup step.
       #
-      # Nothing is given up. pnpm already turns frozen-lockfile on by itself in CI
-      # once a lockfile exists, so this is strict exactly when it can be.
-      - run: pnpm install
-      - run: pnpm build
+      # `npm install` rather than `npm ci`, and that is for the first push rather
+      # than every one after it. A repository made from this template has no
+      # lockfile until somebody installs and commits one, and `npm ci` fails outright
+      # when there is nothing to install from -- so the very first deploy would fail,
+      # on a project nobody had touched yet, for a reason that reads like a broken
+      # template. `npm install` honours a lockfile when there is one and writes one
+      # when there is not.
+      #
+      # No `cache:` on setup-node for the same reason: it needs a lockfile to hash
+      # and fails the step without one. A first deploy that works is worth more than
+      # the seconds it saves.
+      - run: npm install
+      - run: npm run build
 
       # `base: './'` in vite.config.js is what makes this work under a repo
       # subpath. Nothing here has to know what the repo is called, and the same
