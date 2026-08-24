@@ -19,7 +19,7 @@
       "request": "launch",
       "type": "chrome",
       "url": "http://localhost:5173/#/",
-      "webRoot": "${workspaceFolder}/apps/demo/src"
+      "webRoot": "${workspaceFolder}/apps/fixture/src"
     },
     {
       // A single graphic, as OBS would load it. Change the source name to taste.
@@ -27,7 +27,7 @@
       "request": "launch",
       "type": "chrome",
       "url": "http://localhost:5173/#/source/scoreboard",
-      "webRoot": "${workspaceFolder}/apps/demo/src"
+      "webRoot": "${workspaceFolder}/apps/fixture/src"
     },
     {
       "name": "Test core (vitest)",

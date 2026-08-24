@@ -7,7 +7,7 @@
 // looking connected while talking to nobody, or a transition that swaps its
 // content at the wrong moment.
 //
-// Usage: pnpm demo:build && pnpm demo:preview   (one shell)
+// Usage: pnpm fixture:build && pnpm fixture:preview   (one shell)
 //        pnpm e2e                                (another)
 //
 // Takes the base URL as an argument, defaulting to the preview server's.

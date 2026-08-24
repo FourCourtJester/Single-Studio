@@ -25,16 +25,18 @@ clock.
 
 ## Layout
 
-| Path                         | What                                                                                                                                                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`              | `@single-studio/core` — the framework                                                                                                                                                    |
-| `packages/provider-supabase` | Collaboration over a Supabase project. Nothing to deploy                                                                                                                                 |
-| `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                                                                                 |
-| `templates/studio`           | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                    |
-| `apps/demo`                  | A working studio, and the integration test for the package boundary                                                                                                                      |
-| `docs/`                      | For studio authors: [Getting started](docs/getting-started.md) · [Component reference](docs/api.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) |
-| `CHANGELOG.md`               | What changed in each release, and what breaks                                                                                                                                            |
-| `docs/internal/`             | For working on the framework: [Architecture](docs/internal/architecture.md) · [Collaboration plan](docs/internal/collaboration.md) · [Releasing](docs/internal/releasing.md)             |
+| Path                                                                  | What                                                                                                                                                                                     |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`                                                       | `@single-studio/core` — the framework                                                                                                                                                    |
+| `packages/provider-supabase`                                          | Collaboration over a Supabase project. Nothing to deploy                                                                                                                                 |
+| `packages/relay`                                                      | Collaboration over your own relay. One `wrangler deploy`                                                                                                                                 |
+| `templates/studio`                                                    | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                    |
+| `apps/fixture`                                                        | A real studio used as the test rig — the browser suites and the consumer typecheck run against it                                                                                        |
+| `docs/`                                                               | For studio authors: [Getting started](docs/getting-started.md) · [Component reference](docs/api.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) |
+| [Demo](https://github.com/FourCourtJester/Single-Studio-Demo)         | A working show to look at, in its own repository. [Live](https://fourcourtjester.github.io/Single-Studio-Demo/#/)                                                                        |
+| [Template](https://github.com/FourCourtJester/Single-Studio-Template) | Start a studio of your own from it                                                                                                                                                       |
+| `CHANGELOG.md`                                                        | What changed in each release, and what breaks                                                                                                                                            |
+| `docs/internal/`                                                      | For working on the framework: [Architecture](docs/internal/architecture.md) · [Collaboration plan](docs/internal/collaboration.md) · [Releasing](docs/internal/releasing.md)             |
 
 A studio is its own repo that depends on `@single-studio/core`, with its own build
 and its own Pages deployment. Framework upgrades are a version bump, not a merge.
@@ -49,11 +51,11 @@ whole package directory regardless of what `files` says.
 
 ```bash
 pnpm install
-pnpm demo      # builds core, then serves the demo studio
+pnpm fixture      # builds core, then serves the demo studio
 pnpm test
 ```
 
-`pnpm demo` builds `@single-studio/core` first — the demo consumes it as a package
+`pnpm fixture` builds `@single-studio/core` first — the demo consumes it as a package
 rather than reaching into its source, and `dist` is not committed.
 
 See [getting-started.md](docs/getting-started.md) for wiring a studio into OBS and

@@ -12,21 +12,21 @@
   "scripts": {
     "preinstall": "node scripts/only-pnpm.mjs",
     "build": "pnpm -r --filter \"./packages/*\" build",
-    "demo": "pnpm build && pnpm --filter @single-studio/demo dev",
-    "demo:build": "pnpm build && pnpm --filter @single-studio/demo build",
-    "demo:preview": "pnpm --filter @single-studio/demo preview",
+    "fixture": "pnpm build && pnpm --filter @single-studio/fixture dev",
+    "fixture:build": "pnpm build && pnpm --filter @single-studio/fixture build",
+    "fixture:preview": "pnpm --filter @single-studio/fixture preview",
     "core:watch": "pnpm --filter @single-studio/core dev",
-    "e2e": "pnpm --filter @single-studio/demo e2e",
-    "e2e:browser": "pnpm --filter @single-studio/demo exec playwright install chromium",
+    "e2e": "pnpm --filter @single-studio/fixture e2e",
+    "e2e:browser": "pnpm --filter @single-studio/fixture exec playwright install chromium",
     "lint": "eslint .",
-    "typecheck": "pnpm --filter @single-studio/core build && node node_modules/typescript/bin/tsc -p apps/demo/tsconfig.json",
+    "typecheck": "pnpm --filter @single-studio/core build && node node_modules/typescript/bin/tsc -p apps/fixture/tsconfig.json",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md,yaml,yml}\"",
     "test": "pnpm -r test",
     "verify:template": "node scripts/verify-template.mjs",
     "api:reference": "node scripts/api-reference.mjs",
     "test:watch": "pnpm --filter @single-studio/core test:watch",
     "relay": "node packages/relay/bin/relay.mjs",
-    "e2e:relay": "pnpm --filter @single-studio/demo e2e:relay"
+    "e2e:relay": "pnpm --filter @single-studio/fixture e2e:relay"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

@@ -135,7 +135,7 @@ a studio with a different bundler, make sure Yjs resolves to exactly one copy.
 ```bash
 pnpm --filter @single-studio/relay test   # 21 tests, no browser
 
-VITE_RELAY_URL=ws://127.0.0.1:1234 pnpm demo:build
-pnpm demo:preview
+VITE_RELAY_URL=ws://127.0.0.1:1234 pnpm fixture:build
+pnpm fixture:preview
 pnpm e2e:relay                            # two browsers against a real relay
 ```

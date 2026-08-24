@@ -12,14 +12,14 @@ app that consumes it.**
 ```
 packages/core        @single-studio/core   the framework
 templates/studio     what a new studio starts from
-apps/demo            a real studio, and the integration test for the package boundary
+apps/fixture            a real studio, and the integration test for the package boundary
 packages/relay       (planned) collaboration relay, see collaboration.md
 ```
 
 A client studio is its own repo with its own build and its own GitHub Pages
 deployment. Framework upgrades are a version bump instead of a merge conflict.
 
-`apps/demo` exists to consume `@single-studio/core` from outside and is the reason
+`apps/fixture` exists to consume `@single-studio/core` from outside and is the reason
 the package boundary is honest — it has already caught one bug that only appears
 across that boundary.
 
@@ -401,7 +401,7 @@ League workers each reimplemented the same singleton, channel wiring, and a flat
 | Layer       | Where                     | Covers                                                         |
 | ----------- | ------------------------- | -------------------------------------------------------------- |
 | Unit        | `packages/core/test`      | paths, counters, mutations, time, three-peer convergence       |
-| Integration | `apps/demo/e2e/smoke.mjs` | SharedWorker startup, cross-tab fan-out, IndexedDB persistence |
+| Integration | `apps/fixture/e2e/smoke.mjs` | SharedWorker startup, cross-tab fan-out, IndexedDB persistence |
 
 The split is deliberate. The store is pure and testable in Node against a raw
 `Y.Doc`. Everything that only exists in a browser needs a browser — and the wiring

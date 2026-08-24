@@ -4,7 +4,7 @@
 
 ```bash
 pnpm install
-pnpm demo
+pnpm fixture
 ```
 
 **pnpm, not npm.** The packages depend on each other through the `workspace:*`
@@ -68,17 +68,17 @@ OBS gives the browser source. The display name is title-cased from the source's
 key, so a key written for a URL (`lower-third`) reads as English in a scene list
 (`Lower Third`) without anybody maintaining a second copy of it.
 
-`pnpm demo` builds `@single-studio/core` first. The demo consumes the framework
+`pnpm fixture` builds `@single-studio/core` first. The demo consumes the framework
 through its published entrypoints rather than reaching into its source — which is
 what keeps the package boundary honest — so the package has to exist before the
 demo can resolve it, and `dist` is not committed.
 
 | Command             | Does                                                    |
 | ------------------- | ------------------------------------------------------- |
-| `pnpm demo`         | Build core, then run the demo studio with HMR           |
-| `pnpm demo:build`   | Build core, then build the demo for production          |
-| `pnpm demo:preview` | Serve the built demo (this is what OBS should point at) |
-| `pnpm core:watch`   | Rebuild core on change — run alongside `pnpm demo`      |
+| `pnpm fixture`         | Build core, then run the demo studio with HMR           |
+| `pnpm fixture:build`   | Build core, then build the demo for production          |
+| `pnpm fixture:preview` | Serve the built demo (this is what OBS should point at) |
+| `pnpm core:watch`   | Rebuild core on change — run alongside `pnpm fixture`      |
 | `pnpm test`         | Unit tests                                              |
 | `pnpm e2e`          | Browser smoke test against a running preview            |
 | `pnpm e2e:browser`  | One-off: download Chromium for the smoke test           |
@@ -90,7 +90,7 @@ rebuilds core on its own.
 The browser suite wants two shells:
 
 ```bash
-pnpm demo:build && pnpm demo:preview   # shell A
+pnpm fixture:build && pnpm fixture:preview   # shell A
 pnpm e2e                               # shell B
 ```
 

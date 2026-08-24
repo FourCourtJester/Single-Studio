@@ -9,8 +9,8 @@
 // one by hand, the way whoever runs the show would, and the second machine arrives
 // on an invite link with nothing configured at all.
 //
-//   pnpm demo:build && pnpm demo:preview
-//   node apps/demo/e2e/relay.mjs
+//   pnpm fixture:build && pnpm fixture:preview
+//   node apps/fixture/e2e/relay.mjs
 
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

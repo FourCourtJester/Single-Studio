@@ -1,4 +1,9 @@
-# Publish the demo studio to GitHub Pages.
+# Publish the fixture studio to GitHub Pages.
+#
+# Not the demo. The demo people are pointed at lives in its own repository and is
+# maintained there; this deploys apps/fixture, which is the test rig. The two
+# started identical and are expected to drift, so treat this URL as a preview of
+# what is on this branch rather than as the showcase.
 #
 # Separate from ci.yml on purpose. CI runs on every branch and every pull request
 # and is allowed to fail loudly; this runs on the default branch only, holds the
@@ -43,17 +48,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Builds the framework packages first; the demo consumes them through their
+      # Builds the framework packages first; the fixture consumes them through their
       # published entrypoints rather than reaching into source, so they have to
       # exist before it can resolve them.
-      - run: pnpm demo:build
+      - run: pnpm fixture:build
 
-      # `base: './'` in the demo's vite config is what makes this work at a repo
+      # `base: './'` in the fixture's vite config is what makes this work at a repo
       # subpath. Nothing here has to know the repo is called Single-Studio, and the
       # same artifact would serve from a custom domain or off a disk.
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/demo/dist
+          path: apps/fixture/dist
 
   deploy:
     needs: build

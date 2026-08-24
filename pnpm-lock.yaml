@@ -33,7 +33,7 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
-  apps/demo:
+  apps/fixture:
     dependencies:
       '@single-studio/core':
         specifier: workspace:*

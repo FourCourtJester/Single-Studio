@@ -21,7 +21,7 @@
 
   // Tailwind v4 keeps its config in CSS, so the language server needs pointing
   // at the entry that imports it.
-  "tailwindCSS.experimental.configFile": "apps/demo/src/index.css",
+  "tailwindCSS.experimental.configFile": "apps/fixture/src/index.css",
   "editor.quickSuggestions": {
     "strings": "on"
   },

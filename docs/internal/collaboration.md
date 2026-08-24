@@ -305,7 +305,7 @@ localStorage rather than in the document, because it belongs to the machine and 
 to the show.
 
 **Done when:** an operator's board visibly shows the host going offline and
-recovering, without a reload. ✅ — covered by `apps/demo/e2e/relay.mjs`, which
+recovering, without a reload. ✅ — covered by `apps/fixture/e2e/relay.mjs`, which
 stops the relay mid-show and asserts the indicator changes and changes back.
 
 ### Stage 4 — Access control ✅

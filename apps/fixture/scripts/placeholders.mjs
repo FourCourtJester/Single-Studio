@@ -6,11 +6,11 @@
 // nothing here is anyone's intellectual property, and every file is a stand-in you
 // are meant to overwrite.
 //
-// To use your own, drop files with the same names into apps/demo/public/<set>/ and
+// To use your own, drop files with the same names into apps/fixture/public/<set>/ and
 // leave everything else alone -- the sources template their paths off the stored
 // value, so no code changes when the art does.
 //
-//   node apps/demo/scripts/placeholders.mjs
+//   node apps/fixture/scripts/placeholders.mjs
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
