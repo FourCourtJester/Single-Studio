@@ -1,6 +1,6 @@
 // Two machines, one show.
 //
-// The stage-2 claim from docs/collaboration.md: two browser profiles converge
+// The stage-2 claim from docs/internal/collaboration.md: two browser profiles converge
 // through a running relay. Playwright contexts are the profiles -- each gets its
 // own storage partition, so each gets its own SharedWorker and its own IndexedDB,
 // which is exactly the boundary a second operator's laptop sits behind.

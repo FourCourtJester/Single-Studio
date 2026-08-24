@@ -7,7 +7,7 @@ import * as syncProtocol from 'y-protocols/sync'
 //
 // Deliberately the *standard* one rather than something of our own. It means a
 // studio can point at this relay, at y-websocket, at Hocuspocus or at y-sweet
-// without changing a line, which is the promise made in collaboration.md: the
+// without changing a line, which is the promise made in docs/internal/collaboration.md: the
 // endpoint is just a URL. It also means the client half is a library somebody else
 // maintains and tests.
 //

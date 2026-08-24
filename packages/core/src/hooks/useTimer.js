@@ -57,7 +57,7 @@ const REST = 1000
  * Machine skew is the one thing a stored instant cannot absorb on its own, since
  * two machines disagreeing about what "now" is will read the same timestamp as two
  * different numbers. `useClockOffset` is that difference, and it is nought unless
- * somebody in the room has been named the clock -- see docs/collaboration.md.
+ * somebody in the room has been named the clock -- see docs/internal/collaboration.md.
  *
  * The sampling below is a view concern only. Nothing about it is written anywhere,
  * so a slow or throttled tab renders late but never wrong: the next sample derives

@@ -115,7 +115,7 @@ endpoint.
 
 **Payload encryption is not implemented**, deliberately — it is mutually exclusive
 with the relay holding a replica for late joiners. See
-[collaboration.md](../../docs/collaboration.md) for the full argument.
+[collaboration.md](../../docs/internal/collaboration.md) for the full argument.
 
 ## One Yjs, always
 

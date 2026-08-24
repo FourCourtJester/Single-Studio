@@ -25,14 +25,15 @@ clock.
 
 ## Layout
 
-| Path                         | What                                                                                                                                                                                                                                                       |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`              | `@single-studio/core` — the framework                                                                                                                                                                                                                      |
-| `packages/provider-supabase` | Collaboration over a Supabase project. Nothing to deploy                                                                                                                                                                                                   |
-| `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                                                                                                                                                   |
-| `templates/studio`           | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                                                                                      |
-| `apps/demo`                  | A working studio, and the integration test for the package boundary                                                                                                                                                                                        |
-| `docs/`                      | [Architecture](docs/architecture.md) · [Getting started](docs/getting-started.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) · [Component reference](docs/api.md) · [Collaboration plan](docs/collaboration.md) · [Releasing](docs/releasing.md) |
+| Path                         | What                                                                                                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`              | `@single-studio/core` — the framework                                                                                                                                                    |
+| `packages/provider-supabase` | Collaboration over a Supabase project. Nothing to deploy                                                                                                                                 |
+| `packages/relay`             | Collaboration over your own relay. One `wrangler deploy`                                                                                                                                 |
+| `templates/studio`           | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                    |
+| `apps/demo`                  | A working studio, and the integration test for the package boundary                                                                                                                      |
+| `docs/`                      | For studio authors: [Getting started](docs/getting-started.md) · [Component reference](docs/api.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) |
+| `docs/internal/`             | For working on the framework: [Architecture](docs/internal/architecture.md) · [Collaboration plan](docs/internal/collaboration.md) · [Releasing](docs/internal/releasing.md)             |
 
 A studio is its own repo that depends on `@single-studio/core`, with its own build
 and its own Pages deployment. Framework upgrades are a version bump, not a merge.
@@ -107,7 +108,7 @@ Nothing is globbed, nothing is discovered by path convention.
 
 - **Now** — single operator, local-first, no external services.
 - **Next** — service plugins (OBS, Google Sheets, BakkesMod) on the `Service` base.
-- **Then** — [multi-operator collaboration](docs/collaboration.md): one streamer plus
+- **Then** — [multi-operator collaboration](docs/internal/collaboration.md): one streamer plus
   _n_ remote operators over a user-deployed relay, with the show still running if
   that relay goes down.
 - **Later** — skinnable docks, then operator-authored layout.

@@ -72,8 +72,8 @@ end-to-end encrypted with a key that never reaches the service carrying it.
 - [Component reference](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/api.md) — every component, its props and what reads them on air
 - [Your own data](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/data.md) — writing your own state changes, and pulling data in from a feed
 - [Collaborating](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/collaborating.md) — for the person running the show
-- [Collaboration](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/collaboration.md) — how the replication, clocks and encryption actually work
-- [Architecture](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/architecture.md) — why any of it is shaped this way
+- [Collaboration](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/internal/collaboration.md) — how the replication, clocks and encryption actually work
+- [Architecture](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/internal/architecture.md) — why any of it is shaped this way
 
 ## Peer dependencies
 
