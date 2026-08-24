@@ -183,27 +183,42 @@ deleted there. It never force-pushes the branch, and it skips the commit entirel
 nothing changed — but it tags every release either way, so "which template goes with
 0.2.0" has an answer even when the template did not move.
 
-### The token, and the scope everyone forgets
+### The credential: a deploy key, not a token
 
-The job needs a secret called **`TEMPLATE_PUSH_TOKEN`** with write access to the
-template repository. `GITHUB_TOKEN` cannot do it: it is scoped to this repository
-alone.
+The job needs a secret called **`TEMPLATE_DEPLOY_KEY`** in _this_ repository, holding
+the **private half** of an SSH keypair whose public half is a write-enabled deploy key
+on the template repository.
 
-**It also needs the `workflow` scope**, and this is the part that fails first if you
-miss it. The template contains `.github/workflows/pages.yml`, and GitHub refuses any
-push that creates or updates a workflow file unless the credential carries that
-scope:
-
-```
-! [remote rejected] main -> main (refusing to allow an OAuth App to create or
-  update workflow `.github/workflows/pages.yml` without `workflow` scope)
+```bash
+ssh-keygen -t ed25519 -C "single-studio template sync" -f template-sync -N ""
 ```
 
-- **Classic PAT** — tick `repo` and `workflow`.
-- **Fine-grained PAT** — Contents: read and write, **and** Workflows: read and write,
-  scoped to `Single-Studio-Template`.
+- **Public half** (`template-sync.pub`) → Single-Studio-**Template** → Settings →
+  Deploy keys → Add deploy key → **tick "Allow write access"**
+- **Private half** (`template-sync`) → Single-**Studio** → Settings → Secrets and
+  variables → Actions → `TEMPLATE_DEPLOY_KEY`
 
-Add it under Settings → Secrets and variables → Actions.
+Then delete both files from your machine. The private half exists in the secret; a
+copy in your downloads folder is a copy that can leak.
+
+**Why not a personal access token.** Three reasons, and the third decides it:
+
+1. `GITHUB_TOKEN` cannot reach another repository at all — it is scoped to this one.
+2. A PAT acts as whoever minted it, expires on a schedule somebody has to remember,
+   and grants whatever that person can reach rather than this one repository.
+3. The template contains `.github/workflows/pages.yml`, and GitHub refuses any push
+   from an OAuth or GitHub App credential that creates or updates a workflow file
+   unless it carries the `workflow` scope:
+
+   ```
+   ! [remote rejected] main -> main (refusing to allow an OAuth App to create or
+     update workflow `.github/workflows/pages.yml` without `workflow` scope)
+   ```
+
+   SSH is not subject to that rule. A deploy key never meets the problem.
+
+A deploy key is also the smallest credential that does the job: one repository, write
+access, no account behind it, and revoking it is deleting one entry.
 
 Without the secret the job stops before touching anything and says so. That failure
 mode is deliberate: the packages are already published by then, so the honest outcome
