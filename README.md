@@ -1,121 +1,109 @@
 # Single Studio
 
-Local-first broadcast graphics for OBS. Build your scoreboards, lower thirds, and
-tickers as React components, drive them from an operator's board running as an OBS
-dock, and deploy the whole thing as static files.
+[![npm](https://img.shields.io/npm/v/@single-studio/core.svg)](https://www.npmjs.com/package/@single-studio/core)
+[![licence](https://img.shields.io/npm/l/@single-studio/core.svg)](LICENSE)
 
-No server. No backend. The graphics keep working when the network doesn't.
+**Broadcast graphics for OBS, as React components.** Scoreboards, lower thirds,
+tickers and clocks, driven from an operator's board that runs inside OBS as a custom
+browser dock.
 
-> **Status: rewrite in progress.** This is a ground-up rebuild. The previous
-> create-react-app/Redux version is tagged [`v0-cra`](../../tree/v0-cra) and is what
-> currently runs in production for existing clients.
+No server. No backend. Nothing to deploy but static files — and the graphics keep
+working when the network doesn't.
 
-## What it is
+**[See a studio running →](https://fourcourtjester.github.io/Single-Studio-Demo/#/)**
+&nbsp;·&nbsp; **[Documentation →](https://fourcourtjester.github.io/Single-Studio/)**
 
-Two halves sharing one store:
+## Start
 
-- **A control surface** — text fields, steppers, toggles, timers — running as an OBS
-  custom browser dock.
-- **Graphics** — one browser source per graphic, updating live as the operator
-  works.
-
-State lives in a `SharedWorker` shared by the dock and every source, persisted to
-IndexedDB, fanned out per-path so a lower third is never re-rendered by the shot
-clock.
-
-## Layout
-
-| Path                                                                  | What                                                                                                                                                                                     |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`                                                       | `@single-studio/core` — the framework                                                                                                                                                    |
-| `packages/provider-supabase`                                          | Collaboration over a Supabase project. Nothing to deploy                                                                                                                                 |
-| `packages/relay`                                                      | Collaboration over your own relay. One `wrangler deploy`                                                                                                                                 |
-| `templates/studio`                                                    | Starting point for a new studio. Built from packed tarballs in CI, so it cannot drift                                                                                                    |
-| `apps/fixture`                                                        | A real studio used as the test rig — the browser suites and the consumer typecheck run against it                                                                                        |
-| `docs/`                                                               | For studio authors: [Getting started](docs/getting-started.md) · [Component reference](docs/api.md) · [Your own data](docs/data.md) · [Working with other people](docs/collaborating.md) |
-| [Demo](https://github.com/FourCourtJester/Single-Studio-Demo)         | A working show to look at, in its own repository. [Live](https://fourcourtjester.github.io/Single-Studio-Demo/#/)                                                                        |
-| [Template](https://github.com/FourCourtJester/Single-Studio-Template) | Start a studio of your own from it                                                                                                                                                       |
-| `CHANGELOG.md`                                                        | What changed in each release, and what breaks                                                                                                                                            |
-| `docs/internal/`                                                      | For working on the framework: [Architecture](docs/internal/architecture.md) · [Collaboration plan](docs/internal/collaboration.md) · [Releasing](docs/internal/releasing.md)             |
-
-A studio is its own repo that depends on `@single-studio/core`, with its own build
-and its own Pages deployment. Framework upgrades are a version bump, not a merge.
-
-`pnpm verify:template` is what keeps that promise honest: it packs the packages the
-way `npm publish` would, copies the template somewhere clean, points it at the
-tarballs and builds it with no workspace to fall back on. The demo cannot answer the
-same question — it resolves the framework through `workspace:*`, which reaches the
-whole package directory regardless of what `files` says.
-
-## Quick start
+Press **[Use this template](https://github.com/FourCourtJester/Single-Studio-Template)**,
+then:
 
 ```bash
-pnpm install
-pnpm fixture      # builds core, then serves the demo studio
-pnpm test
+npm install
+npm run dev
 ```
 
-`pnpm fixture` builds `@single-studio/core` first — the demo consumes it as a package
-rather than reaching into its source, and `dist` is not committed.
+The board opens at the printed URL. Its header menu lists every graphic's
+browser-source URL with a copy button — that is what you paste into OBS.
 
-See [getting-started.md](docs/getting-started.md) for wiring a studio into OBS and
-starting your own.
+## A studio in two files
 
-## A studio in three files
+Both halves name the same path. That is the whole model.
 
-```js
-// src/velcro.worker.js -- owns the state, no React in this bundle
-import { createVelcroHost } from '@single-studio/core/worker'
-import { STUDIO_ID } from './config'
-import { mutations } from './mutations'
+```jsx
+// src/control/Control.jsx — the operator's board, in an OBS dock
+import { Field, Panel, Stepper } from '@single-studio/core/control'
 
-createVelcroHost({ name: STUDIO_ID, mutations })
-```
-
-```js
-// src/studio.js -- declared once, as data
-export const studio = defineStudio({
-  name: 'My Studio',
-  id: STUDIO_ID,
-  worker: () => new SharedWorker(new URL('./velcro.worker.js', import.meta.url), { type: 'module' }),
-  control: () => import('./control/Control'),
-  sources: { scoreboard: () => import('./sources/Scoreboard') },
-})
+export default function Control() {
+  return (
+    <Panel title="Scores">
+      <Field name="home.name" label="Home" />
+      <Stepper name="home.score" label="Home score" />
+    </Panel>
+  )
+}
 ```
 
 ```jsx
-// src/sources/Scoreboard.jsx -- on air
-<Scene>
-  <Variable name="home.name" fallback="Home" fit />
-  <Variable name="home.score" fallback="0" />
-</Scene>
+// src/sources/Scoreboard.jsx — one file per OBS browser source
+import { Scene, Variable } from '@single-studio/core/source'
+
+export default function Scoreboard() {
+  return (
+    <Scene>
+      <Variable name="home.name" fallback="Home" />
+      <Variable name="home.score" fallback="0" />
+    </Scene>
+  )
+}
 ```
 
-## Design notes
+Press **+** on the board and the scoreboard changes. There is nothing to declare, no
+store to configure, and no wiring between the two files.
 
-**Scores that add up.** Numeric values are stored as a base plus a per-writer
-subtotal, so two operators both tapping +1 produce +2. A plain last-write-wins map
-produces +1 — a scoreboard quietly lying on air.
+## What you get
 
-**Timers that need no sync.** A countdown stores its target time, not its remaining
-time, so every peer derives the same number with nothing to synchronise.
+**It keeps working.** A studio is static files and its state lives on the machine
+running it. A dropped connection mid-show costs you collaboration, not your
+graphics.
 
-**Text that fits.** `Fit` binary-searches the largest font size that keeps a name on
-one line. `Transition` defers content swaps until the exit animation finishes, so a
-value change never shows the new value in the old one's outgoing animation.
+**Scores that add up.** Two operators both pressing +1 make +2. The obvious
+implementation makes +1 — a scoreboard quietly lying on air, with nothing to report
+it.
 
-**Extension by import.** A studio hands its own mutations to the host at startup.
-Nothing is globbed, nothing is discovered by path convention.
+**Clocks that agree.** Every machine shows the same number on the same countdown,
+including the one whose system clock is four seconds out.
 
-## Roadmap
+**Nothing flashes.** A graphic switched on mid-show paints its real values, not a
+frame of placeholder text over the programme.
 
-- **Now** — single operator, local-first, no external services.
-- **Next** — service plugins (OBS, Google Sheets, BakkesMod) on the `Service` base.
-- **Then** — [multi-operator collaboration](docs/internal/collaboration.md): one streamer plus
-  _n_ remote operators over a user-deployed relay, with the show still running if
-  that relay goes down.
-- **Later** — skinnable docks, then operator-authored layout.
+**Collaboration when you want it.** Off until somebody pastes a link. Then a
+producer drives the scores from their own laptop, over a service you own,
+end-to-end encrypted with a key that service never sees. Their entire setup is
+pasting one link into an OBS dock.
 
-## License
+## The pieces
 
-MIT — see [LICENSE](LICENSE).
+|                                                                                                      |                                                                                          |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **[Template](https://github.com/FourCourtJester/Single-Studio-Template)**                            | Start here. A studio, wired up, ready to edit                                            |
+| **[Demo](https://github.com/FourCourtJester/Single-Studio-Demo)**                                    | A full show to look at — [live](https://fourcourtjester.github.io/Single-Studio-Demo/#/) |
+| [`@single-studio/core`](https://www.npmjs.com/package/@single-studio/core)                           | The framework                                                                            |
+| [`@single-studio/provider-supabase`](https://www.npmjs.com/package/@single-studio/provider-supabase) | Multi-operator collaboration, over a project you own                                     |
+
+## Documentation
+
+**[fourcourtjester.github.io/Single-Studio](https://fourcourtjester.github.io/Single-Studio/)**
+
+- [Getting started](docs/getting-started.md) — an empty folder to a studio in OBS
+- [Component reference](docs/api.md) — every component, its props, and what reads it on air
+- [Your own data](docs/data.md) — your own state changes, and pulling data in from a feed
+- [Working with other people](docs/collaborating.md) — for whoever runs the show on the night
+
+## Requirements
+
+React 18+ and a Chromium-based browser at 114 or newer — which is what OBS embeds.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). Changes are in [CHANGELOG.md](CHANGELOG.md).

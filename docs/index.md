@@ -22,7 +22,7 @@ features:
   - title: Nothing to deploy
     details: A studio is static files on GitHub Pages. The operator's board is a custom browser dock, each graphic is a browser source, and there is no backend to run or pay for.
   - title: Works when the network does not
-    details: State lives in a SharedWorker on the machine, persisted to IndexedDB. A dropped connection mid-show costs you collaboration, not the graphics.
+    details: A studio is static files, and its state lives on the machine running it. A dropped connection mid-show costs you collaboration, not your graphics.
   - title: Numbers that add up
     details: Scores are counters rather than last-write-wins, so two operators both pressing +1 make +2. The alternative is a wrong number on air that nothing reports.
   - title: Clocks that agree

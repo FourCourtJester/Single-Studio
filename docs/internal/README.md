@@ -8,6 +8,7 @@ carry status markers rather than instructions.
 
 |                                      |                                                                                             |
 | ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| [contributing.md](contributing.md)   | Running the checks, what each one is for, and the layout of the repository                  |
 | [architecture.md](architecture.md)   | How the store, routes and components fit together, and why each is shaped that way          |
 | [collaboration.md](collaboration.md) | The design for going from one operator to several. A plan with staged delivery, not a guide |
 | [releasing.md](releasing.md)         | Publishing both packages to npm — trusted publishing, tags, and the rehearsal               |

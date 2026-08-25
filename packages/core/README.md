@@ -18,8 +18,8 @@ working when the network does not.
 Not with `npm install`. Start from the
 **[template](https://github.com/FourCourtJester/Single-Studio-Template)** — press
 **Use this template**, and you get this package already wired to a control surface, a
-graphic, the SharedWorker and a GitHub Pages deploy. Those are the fiddly parts, and
-they are not interesting to assemble twice.
+graphic and a GitHub Pages deploy. Those are the fiddly parts, and they are not
+interesting to assemble twice.
 
 ```bash
 npm install    # in your new studio
@@ -70,22 +70,20 @@ That is the whole model: **both halves name the same path**, and the framework k
 them in step. There is nothing to declare, no store to configure, and no wiring
 between the two files.
 
-## Why it is built this way
+## What you get
 
-**One store, in a `SharedWorker`.** The dock and every browser source share it,
-persisted to IndexedDB and fanned out per path — so a lower third is never
-re-rendered by a shot clock ticking.
+**It keeps working.** A studio is static files and its state lives on the machine
+running it. A dropped connection mid-show costs you collaboration, not your graphics.
 
-**Nothing polls, nothing round-trips.** A graphic that has just been switched on
-paints its real values rather than a flash of placeholder text, because the state was
-already there.
+**Scores that add up.** Two operators both pressing +1 make +2. The obvious
+implementation makes +1 — a scoreboard quietly lying on air, with nothing to report
+it.
 
-**Numbers add up.** Scores are counters, not last-write-wins, so two operators both
-pressing +1 make +2 rather than +1 — the failure that quietly puts a wrong number on
-air.
+**Clocks that agree.** Every machine shows the same number on the same countdown,
+including the one whose system clock is four seconds out.
 
-**Clocks agree.** A countdown stores the instant it ends, not the seconds remaining,
-so every machine derives the same number and nobody has to tick.
+**Nothing flashes.** A graphic switched on mid-show paints its real values, not a
+frame of placeholder text over the programme.
 
 ## Collaboration, if you want it
 
@@ -105,10 +103,10 @@ An operator's entire setup is pasting one link into an OBS dock.
 
 ## Requirements
 
-|                   |                                                                 |
-| ----------------- | --------------------------------------------------------------- |
-| Peer dependencies | React 18+, React DOM 18+, React Router **7.18+**                |
-| Browser           | Module `SharedWorker` — Chromium 114+, which is what OBS embeds |
+|                   |                                                  |
+| ----------------- | ------------------------------------------------ |
+| Peer dependencies | React 18+, React DOM 18+, React Router **7.18+** |
+| Browser           | Chromium 114 or newer — which is what OBS embeds |
 
 ## Licence
 
