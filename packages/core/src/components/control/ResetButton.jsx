@@ -10,9 +10,9 @@ const NAMESPACE = 'variables'
  * @typedef {object} ResetButtonProps
  * @property {string[]} [names] - Cleared back to each source's own fallback.
  * @property {string[]} [paths] - Full paths, for clearing `toggles` or `timers` in the same press.
- * @property {string} [label] - Names what gets cleared: the button reads "Reset <label>". Defaults to `"Reset"`.
+ * @property {string} [label] - Names what gets cleared: the button reads "Reset `<label>`". Defaults to `"Reset"`.
  * @property {boolean} [confirm] - Arm on the first press, clear on the second.
- * @property {import("react").ReactNode} [children] - Replaces the generated "Reset <label>" text.
+ * @property {import("react").ReactNode} [children] - Replaces the generated "Reset `<label>`" text.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -23,7 +23,7 @@ const NAMESPACE = 'variables'
  * source falls back to its own default. Writing '' would leave the paths present
  * and holding blanks, which looks the same in the board and different on air.
  *
- * `label` names what gets cleared, and the button says "Reset <label>" -- so
+ * `label` names what gets cleared, and the button says "Reset `<label>`" -- so
  * `label="draft"` reads "Reset draft" rather than a red button saying "draft",
  * which told an operator the colour was dangerous but not what it would do.
  *

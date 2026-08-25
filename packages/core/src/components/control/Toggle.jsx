@@ -9,9 +9,9 @@ const NAMESPACE = 'toggles'
 /**
  * @typedef {object} ToggleProps
  * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
- * @property {string} [label] - Names what is toggled: the button reads "Show <label>".
+ * @property {string} [label] - Names what is toggled: the button reads "Show `<label>`".
  * @property {string} [group] - A group's name. Buttons sharing one behave as radio buttons.
- * @property {import("react").ReactNode} [children] - Replaces the generated "Show <label>" text.
+ * @property {import("react").ReactNode} [children] - Replaces the generated "Show `<label>`" text.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**

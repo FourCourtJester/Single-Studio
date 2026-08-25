@@ -689,5 +689,5 @@ If you genuinely need `Set` semantics in your own code, convert on the way out:
 ---
 
 **See also** — [Getting started](getting-started.md) for wiring a studio up,
-[Architecture](internal/architecture.md) for why the store is shaped this way, and
+[Architecture](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/internal/architecture.md) for why the store is shaped this way, and
 [Component reference](api.md) for what reads these values on air.

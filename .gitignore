@@ -67,3 +67,7 @@ id_ed25519*
 # carrying forward, and should never end up back in this history.
 reference/
 legacy/
+
+# VitePress build output and cache
+docs/.vitepress/dist
+docs/.vitepress/cache

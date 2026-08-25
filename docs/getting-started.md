@@ -575,7 +575,7 @@ every change would be expensive now and worse once it replicates.
 not travel to a remote operator's board, and deliberately so: moving it would buy a
 preview, not correctness, because the machine that has to draw it is the one that
 already has it. That is why files are the OBS machine's to add — see [the rule that
-removes most of the problem](./internal/collaboration.md#the-rule-that-removes-most-of-the-problem-).
+removes most of the problem](https://github.com/FourCourtJester/Single-Studio/blob/main/docs/internal/collaboration.md#the-rule-that-removes-most-of-the-problem-).
 URL entries replicate fine, since they are just strings.
 
 ### Driving anything else from a value

@@ -1,9 +1,12 @@
-# Publish the fixture studio to GitHub Pages.
+# Publish the documentation site to GitHub Pages.
 #
-# Not the demo. The demo people are pointed at lives in its own repository and is
-# maintained there; this deploys apps/fixture, which is the test rig. The two
-# started identical and are expected to drift, so treat this URL as a preview of
-# what is on this branch rather than as the showcase.
+# The landing page and the docs, not a studio. A studio to look at lives at
+# Single-Studio-Demo and is maintained there; apps/fixture is the test rig and has no
+# business being published as if it were a showcase.
+#
+# Built from docs/ with VitePress, which renders the same markdown the repository
+# already has -- so nothing is written twice, and api.md in particular is regenerated
+# from the shipped types before every build rather than kept as a second edition.
 #
 # Separate from ci.yml on purpose. CI runs on every branch and every pull request
 # and is allowed to fail loudly; this runs on the default branch only, holds the
@@ -15,8 +18,7 @@ name: Pages
 on:
   push:
     branches: [main]
-  # So a deploy can be re-run without an empty commit -- a demo is often needed
-  # back at short notice and rarely at the moment the code changed.
+  # So a deploy can be re-run without an empty commit.
   workflow_dispatch:
 
 permissions:
@@ -48,17 +50,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Builds the framework packages first; the fixture consumes them through their
-      # published entrypoints rather than reaching into source, so they have to
-      # exist before it can resolve them.
-      - run: pnpm fixture:build
+      # Builds the framework packages first, because docs:build regenerates api.md
+      # from the emitted types before VitePress renders anything. A site built
+      # without that step would publish whatever api.md happened to be committed.
+      - run: pnpm build
+      - run: pnpm docs:build
 
-      # `base: './'` in the fixture's vite config is what makes this work at a repo
-      # subpath. Nothing here has to know the repo is called Single-Studio, and the
-      # same artifact would serve from a custom domain or off a disk.
+      # `base: '/Single-Studio/'` in the VitePress config is what makes this work at
+      # a project-site subpath. If this ever moves to a custom domain, that is the
+      # one line to change.
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/fixture/dist
+          path: docs/.vitepress/dist
 
   deploy:
     needs: build

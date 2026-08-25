@@ -208,7 +208,7 @@ definition. It only bites if somebody sets up early, alone. Tell them to open it
 once you are up.
 
 If that matters to you — a production where operators prepare hours ahead — run
-[your own relay](../packages/relay/README.md) instead. One command to deploy, it
+[your own relay](https://github.com/FourCourtJester/Single-Studio/tree/main/packages/relay) instead. One command to deploy, it
 holds the document, and the Collaborate dialog takes its address the same way.
 
 ---

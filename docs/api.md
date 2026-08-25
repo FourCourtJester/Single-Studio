@@ -352,10 +352,10 @@ An on/off button for a path under `toggles`, which is what a graphic watches to 
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | Replaces the generated "Show <label>" text. |
+| `children` | `ReactNode` |  | Replaces the generated "Show `<label>`" text. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `group` | `string` |  | A group's name. Buttons sharing one behave as radio buttons. |
-| `label` | `string` |  | Names what is toggled: the button reads "Show <label>". |
+| `label` | `string` |  | Names what is toggled: the button reads "Show `<label>`". |
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
 
 <a id="control-swapbutton"></a>
@@ -414,10 +414,10 @@ Clear a set of values back to each source's own fallback. It unsets rather than 
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | Replaces the generated "Reset <label>" text. |
+| `children` | `ReactNode` |  | Replaces the generated "Reset `<label>`" text. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `confirm` | `boolean` |  | Arm on the first press, clear on the second. |
-| `label` | `string` |  | Names what gets cleared: the button reads "Reset <label>". Defaults to `"Reset"`. |
+| `label` | `string` |  | Names what gets cleared: the button reads "Reset `<label>`". Defaults to `"Reset"`. |
 | `names` | `string[]` |  | Cleared back to each source's own fallback. |
 | `paths` | `string[]` |  | Full paths, for clearing `toggles` or `timers` in the same press. |
 
