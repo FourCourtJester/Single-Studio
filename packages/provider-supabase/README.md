@@ -1,6 +1,17 @@
 # @single-studio/provider-supabase
 
-Collaboration over a service the user owns, with a key nobody else holds.
+[![npm](https://img.shields.io/npm/v/@single-studio/provider-supabase.svg)](https://www.npmjs.com/package/@single-studio/provider-supabase)
+[![licence](https://img.shields.io/npm/l/@single-studio/provider-supabase.svg)](https://github.com/FourCourtJester/Single-Studio/blob/main/LICENSE)
+
+Multi-operator collaboration for [Single Studio](https://www.npmjs.com/package/@single-studio/core),
+over a service **you** own, with a key nobody else holds.
+
+Install it alongside the framework; it does nothing until somebody pastes an invite
+link.
+
+```bash
+npm install @single-studio/provider-supabase
+```
 
 ## Why this one
 
@@ -8,12 +19,12 @@ A studio deploys as static files. Whatever carries edits between machines has to
 work from a browser with no backend of any kind — and the vendor of the studio must
 never hold a credential for it.
 
-| Option                | Verdict                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Supabase Realtime** | Broadcast channels work from the browser with a project's anon key. Free tier is ample. **This.**                   |
-| Pusher                | Client-to-client needs private channels, which need an auth endpoint — a backend, which is the thing being avoided. |
-| Trystero              | Genuinely zero setup, but WebRTC cannot be created in a `SharedWorker` and the whole store lives in one.            |
-| Your own relay        | [`@single-studio/relay`](../relay) — one deploy, for anyone who wants it.                                           |
+| Option                | Verdict                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Supabase Realtime** | Broadcast channels work from the browser with a project's anon key. Free tier is ample. **This.**                                |
+| Pusher                | Client-to-client needs private channels, which need an auth endpoint — a backend, which is the thing being avoided.              |
+| Trystero              | Genuinely zero setup, but WebRTC cannot be created in a `SharedWorker` and the whole store lives in one.                         |
+| Your own relay        | [Run your own](https://github.com/FourCourtJester/Single-Studio/tree/main/packages/relay) — one deploy, for anyone who wants it. |
 
 The publishable key (`anon` on older projects) is public by design; it is in the
 page of every Supabase app ever shipped, and it is the _user's_ key in the _user's_
