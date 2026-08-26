@@ -58,6 +58,7 @@ const AUTHORED = {
     'Panel',
     'Break',
     'Confirm',
+    'Hotkeys',
   ],
   source: ['Scene', 'Variable', 'Image', 'ImageList', 'Toggle', 'Timer', 'Ticker', 'Clock'],
 }
@@ -302,6 +303,10 @@ in \`src/control/Control.jsx\`, which is an ordinary React component: put contro
 ${dash('Panel')} and it arranges them. Anything you *type* stages until you save, so a
 half-finished name never reaches air; anything you *press* takes effect at once. Each
 entry below says which.
+
+The board also carries a menu you do not place: the room, the image library, the OBS
+URLs, the keyboard shortcuts and the ways to start over. ${dash('Hotkeys')} is the one
+piece of it you can also put on the board yourself.
 
 ${AUTHORED.control.map((name) => `- ${dash(name)}`).join('\n')}
 

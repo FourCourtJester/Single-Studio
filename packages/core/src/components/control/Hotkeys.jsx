@@ -118,13 +118,24 @@ function Recorder({ action, chord, onBind }) {
 }
 
 /**
- * Rebind the board's keyboard shortcuts.
+ * @typedef {object} HotkeysProps
+ * @property {string} [className] - Added to the component's own classes.
+ */
+/**
+ * Lets an operator choose which keys save and discard. Ctrl/Cmd+S is a default
+ * rather than a rule — it collides with habits from other software, and on some
+ * layouts it is awkward — and discard can be put on a key too, which it is not by
+ * default. Bindings belong to the operator rather than the show, so rebinding one
+ * does not move anybody else's, and they are stored with the studio rather than the
+ * machine, so they travel with it. **The board's menu already offers this**, so
+ * place the panel only if you want it on the board itself.
  *
- * Ctrl+S was the only way to save without reaching for the mouse, and it is not
- * everybody's key -- it collides with habits from other software, and on some
- * layouts it is genuinely awkward. The bindings are the operator's rather than the
- * show's, so changing one here does not move anybody else's -- but they are stored
- * with the studio rather than on the machine, so they travel with an export.
+ * @example
+ * <Panel title="Shortcuts">
+ *   <Hotkeys />
+ * </Panel>
+ *
+ * @param {HotkeysProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Hotkeys({ className, ...rest }) {
   const { bindings, bind, reset } = useHotkeys()

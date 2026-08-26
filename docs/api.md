@@ -39,6 +39,10 @@ in `src/control/Control.jsx`, which is an ordinary React component: put controls
 half-finished name never reaches air; anything you *press* takes effect at once. Each
 entry below says which.
 
+The board also carries a menu you do not place: the room, the image library, the OBS
+URLs, the keyboard shortcuts and the ways to start over. [`Hotkeys`](#control-hotkeys) is the one
+piece of it you can also put on the board yourself.
+
 - [`Field`](#control-field)
 - [`TextArea`](#control-textarea)
 - [`Stepper`](#control-stepper)
@@ -58,6 +62,7 @@ entry below says which.
 - [`Panel`](#control-panel)
 - [`Break`](#control-break)
 - [`Confirm`](#control-confirm)
+- [`Hotkeys`](#control-hotkeys)
 
 <a id="control-field"></a>
 
@@ -607,6 +612,26 @@ A destructive button that asks first, without a dialog: one click arms it, a sec
 | `label` | `string` |  | What the button says when idle. |
 | `onConfirm` | `() => void` | Yes | Called on the second click. |
 | `tone` | `'danger' \| 'warn' \| 'go' \| 'primary' \| 'quiet'` |  | What the button means. Defaults to `"danger"`. |
+
+<a id="control-hotkeys"></a>
+
+### Hotkeys
+
+---
+
+`import { Hotkeys } from '@single-studio/core/control'`
+
+Lets an operator choose which keys save and discard. Ctrl/Cmd+S is a default rather than a rule — it collides with habits from other software, and on some layouts it is awkward — and discard can be put on a key too, which it is not by default. Bindings belong to the operator rather than the show, so rebinding one does not move anybody else's, and they are stored with the studio rather than the machine, so they travel with it. **The board's menu already offers this**, so place the panel only if you want it on the board itself.
+
+```jsx
+<Panel title="Shortcuts">
+  <Hotkeys />
+</Panel>
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Added to the component's own classes. |
 
 ## Source
 
