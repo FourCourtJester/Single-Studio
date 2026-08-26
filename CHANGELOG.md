@@ -3,6 +3,36 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## 0.3.0
+
+### Added
+
+- **The save shortcut is rebindable.** Ctrl/Cmd+S was hard-wired into `SaveButton`
+  and was the only way to save from the keyboard. It is now a default rather than a
+  rule: **menu → Keyboard shortcuts**, press the key you want.
+
+  Discard can be bound too, and ships unbound — a destructive action that arrives
+  already on a key is one somebody finds by accident.
+
+  Bindings are per machine, in `localStorage` beside the operator name and the relay
+  config, so rebinding yours does not move anybody else's and "Reset this machine"
+  clears them with everything else. A chord already in use is taken off whatever
+  held it rather than firing both.
+
+  The recorder reads the keys rather than asking you to spell them, and says when a
+  choice has a catch: `Escape` and `Tab` are refused outright, a combination the
+  browser handles above the page is flagged as one that will never fire, and a plain
+  letter is noted as working only while no field has focus.
+
+- `Hotkeys` and `HotkeysDialog` components, `useHotkeys` and `useHotkeyHandlers`
+  hooks, `currentBindings()` for code outside React, and a `hotkey` toolkit
+  (`chordOf`, `formatChord`, `ariaChord`, `problemWith`) on `@single-studio/core`.
+
+### Changed
+
+- `SaveButton` reads the bound chord instead of owning `Ctrl+S`. Its tooltip and
+  `aria-keyshortcuts` follow whatever the shortcut currently is.
+
 ## 0.2.0
 
 The first release a studio can actually be built on. 0.1.x published the packages

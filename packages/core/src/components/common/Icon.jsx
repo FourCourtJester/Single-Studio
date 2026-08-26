@@ -36,6 +36,21 @@ const shapes = {
       <path d="M4 17h16" />
     </>
   ),
+  /* A keyboard: the case, two rows of keys, and a space bar. */
+  keyboard: (
+    <>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6 9.5h.01" />
+      <path d="M9.5 9.5h.01" />
+      <path d="M13 9.5h.01" />
+      <path d="M16.5 9.5h.01" />
+      <path d="M6 12.75h.01" />
+      <path d="M9.5 12.75h.01" />
+      <path d="M13 12.75h.01" />
+      <path d="M16.5 12.75h.01" />
+      <path d="M8 15.5h8" />
+    </>
+  ),
   /* A picture: frame, sun, and the hill a photo icon always has. */
   image: (
     <>

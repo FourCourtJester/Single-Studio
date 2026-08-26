@@ -215,7 +215,7 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | Component      | Writes             | Notes                                                                     |
 | -------------- | ------------------ | ------------------------------------------------------------------------- |
 | `Field`        | `variables.<name>` | One line of text. Staged until saved.                                     |
-| `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; Ctrl/Cmd+S saves.                |
+| `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; the save shortcut saves.         |
 | `ImagePicker`  | `variables.<name>` | Preview, dropdown of library entries, and a magnifier to browse.          |
 | `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                    |
 | `ImageToggle`  | `toggles.<name>`   | `Toggle` with a picture. `from` reads the face off a path.                |
@@ -232,7 +232,7 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                         |
 | `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                           |
 | `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                  |
-| `SaveButton`   | —                  | Commits every staged edit. Owns the Ctrl/Cmd+S binding.                   |
+| `SaveButton`   | —                  | Commits every staged edit. Hosts the save and discard shortcuts.          |
 | `Panel`        | —                  | Titled group. Children wrap in a flex row.                                |
 | `Break`        | —                  | Forces a line break inside a `Panel`.                                     |
 
@@ -685,6 +685,16 @@ be on screen.
 | **Enter** (in a field)  | Commit every staged edit  |
 | **Escape** (in a field) | Abandon that field's edit |
 | **Discard** (red ✕)     | Abandon all staged edits  |
+
+**Ctrl/Cmd+S is only the default.** If it collides with something else you use, or
+your keyboard makes it awkward, change it: **menu → Keyboard shortcuts**, press the
+key you want, done. You can also put discard on a key, which ships unbound.
+
+Shortcuts are stored on the machine, not in the show — rebinding yours does not move
+anybody else's. A choice with no modifier, like `F2`, works fine; a plain letter also
+works, but only while no text field has focus, since otherwise you would be typing
+it. The dialog says so when you pick one, and warns you if the browser would take
+the combination before the board ever sees it.
 
 Buttons — `Stepper`'s &minus;/+, `Toggle`, `ImageToggle`, `ImageSelect`, `SwapButton`,
 `ResetButton`, `Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no

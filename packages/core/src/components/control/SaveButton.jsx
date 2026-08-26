@@ -1,23 +1,23 @@
-import { useEffect } from 'react'
-
+import { useHotkeyHandlers, useHotkeys } from '../../hooks/useHotkeys'
 import { useDraft } from '../../studio/DraftProvider'
 import * as Draft from '../../studio/draft'
 import { cx } from '../../toolkits/cx'
+import { ariaChord, formatChord } from '../../toolkits/hotkey'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
-
-const isMac = () => typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
 
 /**
  * @typedef {object} SaveButtonProps
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Commits every staged edit at once, and owns the Ctrl/Cmd+S binding.
+ * Commits every staged edit at once, and hosts the save and discard shortcuts.
  *
- * The shortcut is registered here rather than in the provider so it is only live
- * where a save is meaningful -- a graphic page has nothing to commit and should not
- * be swallowing the browser's own Ctrl+S.
+ * They are registered here rather than in the provider so they are only live where
+ * a save is meaningful -- a graphic page has nothing to commit and should not be
+ * swallowing the browser's own Ctrl+S. Which chord runs which is the operator's,
+ * set in the menu under Keyboard shortcuts; this component asks what it is rather
+ * than deciding.
  *
  * Both buttons are icons, matched in size and weight, because this pair sits in the
  * board's header where space is scarce and it gets used on the clock. Amber commits,
@@ -33,23 +33,13 @@ export function SaveButton({ className, ...rest }) {
   const count = Draft.count(draft)
   const pending = count > 0
 
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      const chord = event.ctrlKey || event.metaKey
+  const { chordFor } = useHotkeys()
+  const saveChord = chordFor('save')
 
-      if (chord && event.key.toLowerCase() === 's') {
-        // Always prevent the browser's own save dialog, even with nothing pending:
-        // an operator hitting the shortcut out of habit should never get a file
-        // picker over the top of their board.
-        event.preventDefault()
-        save()
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown)
-
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [save])
+  // Bound whether or not anything is pending. An operator hitting their save key out
+  // of habit on a clean board should get nothing -- not the browser's file picker
+  // over the top of the show.
+  useHotkeyHandlers({ save, discard: () => revert() })
 
   const button = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors'
 
@@ -67,14 +57,14 @@ export function SaveButton({ className, ...rest }) {
           </button>
         </Tooltip>
       ) : null}
-      <Tooltip label={pending ? `Save ${count} change${count === 1 ? '' : 's'} (${isMac() ? '⌘' : 'Ctrl'}+S)` : 'Saved'} align="end">
+      <Tooltip label={pending ? `Save ${count} change${count === 1 ? '' : 's'}${saveChord ? ` (${formatChord(saveChord)})` : ''}` : 'Saved'} align="end">
         <button
           type="button"
           onClick={save}
           disabled={!pending}
           data-pending={pending ? 'true' : 'false'}
           aria-label={pending ? `Save ${count} change${count === 1 ? '' : 's'}` : 'Saved'}
-          aria-keyshortcuts={isMac() ? 'Meta+S' : 'Control+S'}
+          aria-keyshortcuts={ariaChord(saveChord)}
           className={cx(button, pending ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-700')}
         >
           <Icon name="save" />

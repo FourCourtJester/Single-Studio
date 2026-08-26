@@ -39,7 +39,7 @@ export default defineConfig({
       { text: 'Collaborating', link: '/collaborating' },
       { text: 'Demo', link: 'https://fourcourtjester.github.io/Single-Studio-Demo/#/' },
       {
-        text: 'v0.2.0',
+        text: 'v0.3.0',
         items: [
           { text: 'Changelog', link: 'https://github.com/FourCourtJester/Single-Studio/blob/main/CHANGELOG.md' },
           { text: 'npm', link: 'https://www.npmjs.com/package/@single-studio/core' },

@@ -1138,6 +1138,53 @@ check(
 
 await closeLibrary()
 
+// -- Rebindable shortcuts ----------------------------------------------------
+// The save key is the operator's, not the framework's. What matters here is that a
+// rebind actually moves it: the new chord saves, and the old one stops.
+await control.bringToFront()
+await control.locator('.ss-menu-open').click()
+await control.locator('.ss-menu-hotkeys').click()
+check(await becomes(control, () => Boolean(document.querySelector('.ss-hotkeys-dialog[open]'))), 'the menu opens the shortcut settings')
+
+const saveRow = control.locator('.ss-hotkey-row').first()
+const saveSetter = saveRow.locator('.ss-hotkey-set')
+check((await saveSetter.getAttribute('data-chord')) === 'Ctrl+S', 'save starts on Ctrl+S')
+
+await saveSetter.click()
+check((await saveSetter.getAttribute('data-recording')) === 'true', 'the setter listens for a key rather than asking you to spell one')
+
+await control.keyboard.press('F8')
+check(await becomes(control, () => document.querySelector('.ss-hotkeys-dialog[open] .ss-hotkey-set')?.dataset.chord === 'F8'), 'pressing a key binds it')
+
+// Escape has to keep meaning "close this", or a recorder that swallowed it would
+// trap somebody in the dialog.
+await control.keyboard.press('Escape')
+check(await becomes(control, () => !document.querySelector('.ss-hotkeys-dialog[open]')), 'Escape still closes the dialog')
+
+// The real test: the show, through the new key.
+const rebound = control.locator('.ss-field:has-text("Home") input').first()
+await rebound.fill('Rebound')
+check((await control.locator('.ss-save button[data-pending]').getAttribute('data-pending')) === 'true', 'an edit is staged, waiting for whichever key saves')
+
+await control.keyboard.press('Control+s')
+await control.waitForTimeout(300)
+check((await control.locator('.ss-save button[data-pending]').getAttribute('data-pending')) === 'true', 'the old chord no longer saves')
+
+await control.keyboard.press('F8')
+check(await becomes(control, () => document.querySelector('.ss-save button[data-pending]')?.dataset.pending === 'false'), 'the newly bound key does')
+check(await becomes(source, sceneHas, 'rebound'), 'and the edit reached the graphic')
+
+// Put it back, so everything below still saves the way it expects to.
+await control.locator('.ss-menu-open').click()
+await control.locator('.ss-menu-hotkeys').click()
+await control.locator('.ss-hotkey-reset').click()
+check(
+  await becomes(control, () => document.querySelector('.ss-hotkeys-dialog[open] .ss-hotkey-set')?.dataset.chord === 'Ctrl+S'),
+  'restoring defaults puts save back on Ctrl+S',
+)
+await control.keyboard.press('Escape')
+await becomes(control, () => !document.querySelector('.ss-hotkeys-dialog[open]'))
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
