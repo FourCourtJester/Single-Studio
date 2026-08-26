@@ -110,4 +110,4 @@ An operator's entire setup is pasting one link into an OBS dock.
 
 ## Licence
 
-MIT © Shaun Delaney
+MIT © Shaun "FourCourtJester" Delaney

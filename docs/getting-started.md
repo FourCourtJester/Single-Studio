@@ -1,36 +1,20 @@
 # Getting started
 
-## Run the demo
+## Start
+
+You do not clone Single Studio, and you do not need a copy of this repository.
+A studio is your own repository with `@single-studio/core` as a dependency.
+
+Press **[Use this template](https://github.com/FourCourtJester/Single-Studio-Template)**
+on Single-Studio-Template, name your repository, and clone it:
 
 ```bash
-pnpm install
-pnpm fixture
+npm install
+npm run dev
 ```
 
-**pnpm, not npm.** The packages depend on each other through the `workspace:*`
-protocol, which npm does not implement, and Vite resolves framework imports through
-pnpm's symlink tree. `npm install` cannot work here, and it does not fail cleanly —
-it gets far enough to start rearranging `node_modules` first, and what it leaves
-behind looks like a broken build rather than a wrong package manager:
-
-```
-Error: The following dependencies are imported but could not be resolved:
-  yjs (imported by packages/core/dist/mutations-*.js)
-```
-
-That is `packages/core/node_modules/yjs`, a symlink pnpm made and npm removed. A
-`preinstall` guard now stops this before it starts; if you hit it on an older
-checkout, clear the wreckage and reinstall:
-
-```bash
-rm -rf node_modules packages/*/node_modules apps/*/node_modules package-lock.json
-pnpm install
-```
-
-**This is about this repository, not about your studio.** A studio depends on the
-published packages and links nothing, so it installs with npm, pnpm or yarn — the
-template uses npm because it comes with Node. Nothing the framework does requires a
-particular package manager.
+npm, pnpm or yarn — the template ships with npm because it comes with Node, and
+nothing the framework does needs a particular package manager.
 
 Open the printed URL. That is the control surface. The header's menu holds the
 setup a board needs and a show does not: **Browser sources** lists every graphic's
@@ -68,37 +52,6 @@ OBS gives the browser source. The display name is title-cased from the source's
 key, so a key written for a URL (`lower-third`) reads as English in a scene list
 (`Lower Third`) without anybody maintaining a second copy of it.
 
-`pnpm fixture` builds `@single-studio/core` first. The demo consumes the framework
-through its published entrypoints rather than reaching into its source — which is
-what keeps the package boundary honest — so the package has to exist before the
-demo can resolve it, and `dist` is not committed.
-
-| Command             | Does                                                    |
-| ------------------- | ------------------------------------------------------- |
-| `pnpm fixture`         | Build core, then run the demo studio with HMR           |
-| `pnpm fixture:build`   | Build core, then build the demo for production          |
-| `pnpm fixture:preview` | Serve the built demo (this is what OBS should point at) |
-| `pnpm core:watch`   | Rebuild core on change — run alongside `pnpm fixture`      |
-| `pnpm test`         | Unit tests                                              |
-| `pnpm e2e`          | Browser smoke test against a running preview            |
-| `pnpm e2e:browser`  | One-off: download Chromium for the smoke test           |
-
-Editing the framework itself while the demo runs needs `pnpm core:watch` in a
-second shell — Vite reloads the demo when core's `dist` changes, but nothing
-rebuilds core on its own.
-
-The browser suite wants two shells:
-
-```bash
-pnpm fixture:build && pnpm fixture:preview   # shell A
-pnpm e2e                               # shell B
-```
-
-Chromium ships in the devcontainer image, so `pnpm e2e:browser` is only needed
-outside it, or after a Playwright version bump. It never needs root: the system
-libraries are installed at image build time and the browser directory belongs to
-the container's `node` user.
-
 ## Wire a studio into OBS
 
 1. **Control surface** — _Docks &rarr; Custom Browser Docks_, pointed at the app root
@@ -130,11 +83,13 @@ the container's `node` user.
    that is where OBS looks, and it is plain text: edit it if you want the source
    called something else.
 
-## Start a new studio
+## What the template gives you
 
-Copy `templates/studio` into a fresh repo. Until `@single-studio/core` is published
-you can consume it from a workspace checkout; after publishing, `pnpm install` is
-enough.
+Pressing **Use this template** leaves you with a working studio, not a skeleton —
+a control surface, a graphic, and a Pages deploy already wired. `npm install` pulls
+`@single-studio/core` from npm like any other dependency.
+
+What is in it:
 
 ```
 src/
@@ -892,8 +847,15 @@ would let one person's OS setting strip the animation from everyone's screen.
 
 ## Deploy
 
+The template ships a Pages workflow, so there is nothing to run. Switch **Settings
+→ Pages → Source** to **GitHub Actions**, push to `main`, and the board lands at
+`https://<you>.github.io/<your-repo>/#/` — the URL you paste into an OBS custom
+browser dock, and the one every invite link is built from.
+
+To build it yourself:
+
 ```bash
-pnpm build && pnpm deploy   # gh-pages -d dist
+npm run build      # dist/
 ```
 
 Asset paths are relative (`base: './'`), so a build works at a Pages repo subpath,

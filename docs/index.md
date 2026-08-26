@@ -68,14 +68,20 @@ write.
 
 ## Start
 
+You do not clone Single Studio. You start from
+**[Single-Studio-Template](https://github.com/FourCourtJester/Single-Studio-Template)** —
+press **Use this template**, name your repository, and clone that:
+
 ```bash
-# Press "Use this template" on the template repository, then:
 npm install
 npm run dev
 ```
 
 The board opens at the printed URL. Its header menu lists every graphic's
 browser-source URL with a copy button — that is what you paste into OBS.
+
+Your studio is your own repository from the first commit. Single Studio is a
+dependency in it, upgraded with a version bump.
 
 [Getting started →](/getting-started) · [Components →](/api) ·
 [Your own data →](/data)

@@ -19,6 +19,35 @@ installs with whatever you like.
 `pnpm fixture` builds `@single-studio/core` first, because the fixture consumes it as
 a package rather than reaching into its source, and `dist` is not committed.
 
+| Command                | Does                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `pnpm fixture`         | Build core, then run the fixture studio with HMR           |
+| `pnpm fixture:build`   | Build core, then build the fixture for production          |
+| `pnpm fixture:preview` | Serve the built fixture (this is what OBS should point at) |
+| `pnpm core:watch`      | Rebuild core on change — run alongside `pnpm fixture`      |
+| `pnpm e2e:browser`     | One-off: download Chromium for the smoke test              |
+
+Editing the framework while the fixture runs needs `pnpm core:watch` in a second
+shell — Vite reloads the fixture when core's `dist` changes, but nothing rebuilds
+core on its own.
+
+The browser suite wants two shells:
+
+```bash
+pnpm fixture:build && pnpm fixture:preview   # shell A
+pnpm e2e                                     # shell B
+```
+
+Chromium ships in the devcontainer image, so `pnpm e2e:browser` is only needed
+outside it, or after a Playwright version bump. It never needs root: the system
+libraries are installed at image build time and the browser directory belongs to
+the container's `node` user.
+
+## Still to review
+
+- **`docs/data.md`** — the hooks in it have not had an API review. Revisit the
+  surface before it is treated as settled.
+
 ## Layout
 
 | Path                         | What                                                                                              |

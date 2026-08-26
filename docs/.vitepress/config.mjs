@@ -10,6 +10,13 @@ import { defineConfig } from 'vitepress'
 // `base` is the repository name because this deploys to a GitHub Pages project site,
 // which serves from a subpath. The demo studio is a separate repository with its own
 // deployment; this one is the landing page and the documentation.
+// First published in 2026. The range runs to whenever the site was last built, so a
+// year rolling over is a rebuild rather than an edit -- and it stays a single year
+// until there is actually a second one to show.
+const FIRST_PUBLISHED = 2026
+const thisYear = new Date().getFullYear()
+const years = thisYear > FIRST_PUBLISHED ? `${FIRST_PUBLISHED}-${thisYear}` : `${FIRST_PUBLISHED}`
+
 export default defineConfig({
   title: 'Single Studio',
   description: 'Broadcast graphics for OBS, as React components. No server, no backend, nothing to deploy but static files.',
@@ -29,6 +36,7 @@ export default defineConfig({
       { text: 'Getting started', link: '/getting-started' },
       { text: 'Components', link: '/api' },
       { text: 'Your own data', link: '/data' },
+      { text: 'Collaborating', link: '/collaborating' },
       { text: 'Demo', link: 'https://fourcourtjester.github.io/Single-Studio-Demo/#/' },
       {
         text: 'v0.2.0',
@@ -58,16 +66,11 @@ export default defineConfig({
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/FourCourtJester/Single-Studio' }],
 
-    editLink: {
-      pattern: 'https://github.com/FourCourtJester/Single-Studio/edit/main/docs/:path',
-      text: 'Edit this page on GitHub',
-    },
-
     search: { provider: 'local' },
 
     footer: {
       message: 'MIT licensed',
-      copyright: '© Shaun Delaney',
+      copyright: `© ${years} Shaun "FourCourtJester" Delaney`,
     },
   },
 })
