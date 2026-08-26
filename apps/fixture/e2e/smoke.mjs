@@ -123,10 +123,7 @@ check(await control.locator('.ss-save .ss-discard').isVisible(), 'a discard appe
 
 await save()
 check(await becomes(source, sceneHas, 'broncos'), 'Ctrl+S commits the edit to the graphic')
-check(
-  await becomes(control, () => document.querySelector('.ss-save button:last-of-type')?.dataset.pending === 'false'),
-  'the board reports itself saved again',
-)
+check(await becomes(control, () => document.querySelector('.ss-save button:last-of-type')?.dataset.pending === 'false'), 'the board reports itself saved again')
 check(!(await control.locator('.ss-save .ss-discard').isVisible()), 'and the discard goes away with nothing left to discard')
 
 // Buttons stay immediate -- a stepper is one deliberate act with no half-typed state.
@@ -176,6 +173,11 @@ const sides = async () => ({
   homeScore: await control.locator('.ss-stepper input').nth(0).inputValue(),
   awayScore: await control.locator('.ss-stepper input').nth(1).inputValue(),
 })
+
+// Wait for that increment to land before snapshotting. Reading straight after the
+// click captured the away score as it was *before* the press, and the swap then
+// looked wrong against a "before" that never existed on screen.
+check(await becomes(control, () => document.querySelectorAll('.ss-stepper input')[1]?.value === '1'), 'the away score reaches 1 before the sides are read')
 
 const sidesBefore = await sides()
 await control.locator('.ss-swap').click()
@@ -391,7 +393,13 @@ for (const width of widths) {
     const root = document.documentElement
     const spills = [...document.querySelectorAll('.ss-panel-body > *')]
       .filter((el) => el.scrollWidth - el.clientWidth > 1)
-      .map((el) => (el.className.toString().split(' ').find((c) => c.startsWith('ss-')) ?? el.tagName))
+      .map(
+        (el) =>
+          el.className
+            .toString()
+            .split(' ')
+            .find((c) => c.startsWith('ss-')) ?? el.tagName,
+      )
 
     return { sideways: root.scrollWidth > root.clientWidth + 1, spills: [...new Set(spills)] }
   })
@@ -498,10 +506,7 @@ const filterBox = library.locator('input[aria-label="Filter images"]')
 check(await filterBox.isVisible(), 'a filter appears once the library is big enough to need one')
 
 await filterBox.fill('gunship')
-check(
-  await becomes(control, () => document.querySelectorAll('.ss-asset-tile').length === 1),
-  'filtering narrows the library to what was asked for',
-)
+check(await becomes(control, () => document.querySelectorAll('.ss-asset-tile').length === 1), 'filtering narrows the library to what was asked for')
 
 await filterBox.fill('')
 check(await becomes(control, () => document.querySelectorAll('.ss-asset-tile').length > 1), 'and clearing it brings everything back')
@@ -516,9 +521,7 @@ check((await folderInput.getAttribute('webkitdirectory')) !== null, 'the folder 
 
 await folderInput.setInputFiles(fileURLToPath(new URL('../public/maps', import.meta.url)))
 
-const fromFolder = await becomes(control, () =>
-  [...document.querySelectorAll('.ss-asset-group h3')].some((heading) => heading.textContent.startsWith('maps')),
-)
+const fromFolder = await becomes(control, () => [...document.querySelectorAll('.ss-asset-group h3')].some((heading) => heading.textContent.startsWith('maps')))
 
 check(fromFolder, 'a folder files itself under its own name, with no typing at all')
 
@@ -740,10 +743,7 @@ check(
 )
 
 // A red button reading "draft" says it is dangerous but not what it does.
-check(
-  (await control.locator('.ss-reset').first().textContent()).trim() === 'Reset draft',
-  'a reset button names the thing it resets',
-)
+check((await control.locator('.ss-reset').first().textContent()).trim() === 'Reset draft', 'a reset button names the thing it resets')
 
 // -- Map ---------------------------------------------------------------------
 await control.locator('.ss-image-select').filter({ hasText: 'Map' }).locator('button[data-value="redline"]').click()
@@ -774,13 +774,22 @@ await match.bringToFront()
 // operator, and it used to strand the graphic mid-exit showing the old clock for
 // the rest of the show -- see Transition. Doing it deliberately here is the cheapest
 // place that case will ever be covered.
-check(await becomes(match, () => /00:0[12]/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000), 'a short countdown counts down where it can be seen')
-check(await becomes(match, () => /00:00/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 6000), 'and shows 00:00 rather than skipping the number it was counting to')
+check(
+  await becomes(match, () => /00:0[12]/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000),
+  'a short countdown counts down where it can be seen',
+)
+check(
+  await becomes(match, () => /00:00/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 6000),
+  'and shows 00:00 rather than skipping the number it was counting to',
+)
 
 // And then leaves, without being asked. A graphic that waits to be dismissed is one
 // somebody has to remember mid-show, and remembering it is worth nothing: the
 // countdown is over and everybody watching can see that it is over.
-check(await becomes(match, () => /--:--/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000), 'and then takes itself off air, without an operator doing anything')
+check(
+  await becomes(match, () => /--:--/.test(document.querySelector('.ss-scene')?.innerText ?? ''), null, 4000),
+  'and then takes itself off air, without an operator doing anything',
+)
 
 await control.bringToFront()
 check(
@@ -1004,10 +1013,7 @@ check(await becomes(titled, () => document.title === 'SS - Demo - Scoreboard'), 
 const derived = listed.find((row) => row.href.includes('/source/lower-third'))
 
 check(Boolean(derived), 'a source key can carry hyphens for the words it contains')
-check(
-  decodeURIComponent(derived?.href ?? '').includes('SS - Demo - Lower Third'),
-  'and its OBS name is title-cased from that key, not a second copy of it',
-)
+check(decodeURIComponent(derived?.href ?? '').includes('SS - Demo - Lower Third'), 'and its OBS name is title-cased from that key, not a second copy of it')
 check(derived?.shown.includes('lower-third'), 'while the URL keeps the key as written')
 await titled.close()
 
@@ -1034,18 +1040,27 @@ const score = control.locator('.ss-stepper input[aria-label="Home score"]')
 
 await score.fill('3')
 await score.press('Enter')
-check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '3'), 'a stepper takes a number typed straight in')
+check(
+  await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '3'),
+  'a stepper takes a number typed straight in',
+)
 
 // And the buttons still add to it rather than replacing it, which is the property
 // the typed field could quietly have broken.
 await control.locator('.ss-stepper button[aria-label="Increase Home score"]').click()
-check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '4'), 'and the buttons still add to what was typed')
+check(
+  await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '4'),
+  'and the buttons still add to what was typed',
+)
 
 // Escape abandons, the same bargain a text field makes. A half-typed number must
 // not reach air just because somebody clicked away mid-thought.
 await score.fill('99')
 await score.press('Escape')
-check(await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '4'), 'and Escape abandons an edit rather than committing it')
+check(
+  await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '4'),
+  'and Escape abandons an edit rather than committing it',
+)
 
 // -- Starting over -----------------------------------------------------------
 // Destructive, so it asks -- and it asks inside the page rather than through
@@ -1078,7 +1093,10 @@ await control.locator('.ss-menu-reset').click()
 await control.waitForSelector('.ss-reset-dialog[open]')
 
 await control.locator('.ss-reset-show').click()
-check(await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-reset-show')?.textContent ?? '')), 'one click on a reset arms it and says so rather than doing it')
+check(
+  await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-reset-show')?.textContent ?? '')),
+  'one click on a reset arms it and says so rather than doing it',
+)
 const armedScore = await scoreNow()
 
 check(armedScore === '4', `and the show is still there after that first click (score ${armedScore})`)
@@ -1102,7 +1120,10 @@ const purge = control.locator('.ss-asset-dialog[open] .ss-asset-purge .ss-confir
 check(new RegExp(`Remove all ${before}`).test((await purge.textContent()) ?? ''), 'the library offers to empty itself, and counts what that means')
 
 await purge.click()
-check(await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-asset-purge .ss-confirm')?.textContent ?? '')), 'one click arms that one too')
+check(
+  await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-asset-purge .ss-confirm')?.textContent ?? '')),
+  'one click arms that one too',
+)
 check((await tiles()) === before, 'and removes nothing on its own')
 
 await purge.click()
