@@ -690,8 +690,9 @@ be on screen.
 your keyboard makes it awkward, change it: **menu → Keyboard shortcuts**, press the
 key you want, done. You can also put discard on a key, which ships unbound.
 
-Shortcuts are stored on the machine, not in the show — rebinding yours does not move
-anybody else's. A choice with no modifier, like `F2`, works fine; a plain letter also
+Shortcuts are yours rather than the show's, so rebinding one does not move anybody
+else's. They are stored with the studio, which means they come along if you move it
+to another machine. A choice with no modifier, like `F2`, works fine; a plain letter also
 works, but only while no text field has focus, since otherwise you would be typing
 it. The dialog says so when you pick one, and warns you if the browser would take
 the combination before the board ever sees it.

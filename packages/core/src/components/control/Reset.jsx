@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { useAssetStore } from '../../hooks/useAssets'
+import { useSettingsStore } from '../../hooks/useSettings'
 import { useRelay } from '../../hooks/useRelay'
 import { useSyncStatus } from '../../hooks/useSync'
 import { useVelcro } from '../../hooks/useVelcro'
@@ -38,6 +39,7 @@ export function ResetDialog({ open, onClose }) {
   const status = useSyncStatus()
   const { config, leave, rekey } = useRelay({ auto: false })
   const store = useAssetStore()
+  const settings = useSettingsStore()
   const velcro = useVelcro()
   const [done, setDone] = useState(null)
 
@@ -92,6 +94,7 @@ export function ResetDialog({ open, onClose }) {
     try {
       await velcro.wipe()
       await store.clear()
+      await settings.clear()
     } catch {
       // Best effort. A blocked or missing IndexedDB should not leave the rest of
       // the reset half-done -- storage and the reload still get somebody unstuck.

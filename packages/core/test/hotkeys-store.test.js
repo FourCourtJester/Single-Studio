@@ -1,141 +1,212 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import 'fake-indexeddb/auto'
 
-// A localStorage that can be made to fail, because a locked-down profile is one of
-// the states this has to survive rather than a hypothetical.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+let n = 0
+let studio
+
+// The settings module as the hook sees it. `vi.resetModules()` hands out a fresh
+// copy of every module, so a class imported at the top of this file would be a
+// different object from the one useHotkeys imports -- same database underneath, but
+// spying on its prototype would do nothing to the code under test.
+let Settings
+
+/** A localStorage that starts empty and can be made to fail. */
 const makeStorage = () => {
   const map = new Map()
 
   return {
     getItem: (key) => map.get(key) ?? null,
     setItem: vi.fn((key, value) => map.set(key, value)),
-    removeItem: (key) => map.delete(key),
-    get size() {
-      return map.size
-    },
+    removeItem: vi.fn((key) => map.delete(key)),
+    has: (key) => map.has(key),
   }
 }
 
 let storage
 
+/** The module, freshly imported, pointed at a studio nobody else is using. */
 const load = async () => {
   vi.resetModules()
   storage = makeStorage()
   vi.stubGlobal('localStorage', storage)
+  studio = `hk-${(n += 1)}`
+  Settings = (await import('../src/velcro/settings')).SettingsStore
 
   return import('../src/hooks/useHotkeys')
 }
+
+/** What is actually on disk for this studio. */
+const stored = () => new Settings(studio).get('hotkeys')
 
 beforeEach(() => {
   vi.unstubAllGlobals()
 })
 
+afterEach(() => {
+  vi.unstubAllGlobals()
+  // Not just tidiness: a test that fails before its own restore would otherwise
+  // leave the stub in place and take the rest of the file down with it, which is
+  // exactly what happened while writing these.
+  vi.restoreAllMocks()
+})
+
 describe('defaults', () => {
   it('binds save and leaves discard alone', async () => {
     const { defaults } = await load()
-    const map = defaults()
 
     // Discard throws work away. A destructive action that ships already on a key is
     // one somebody finds by accident.
-    expect(map.save).toMatch(/\+S$/)
-    expect(map.discard).toBe('')
+    expect(defaults().save).toMatch(/\+S$/)
+    expect(defaults().discard).toBe('')
+  })
+
+  it('is what a board reads before the database has answered', async () => {
+    const { currentBindings, defaults } = await load()
+
+    // The read is async and the snapshot is not, so the first paint shows the
+    // shipped chords. That is the right thing to show while the answer is unknown.
+    expect(currentBindings()).toEqual(defaults())
   })
 })
 
 describe('binding', () => {
-  it('stores a chord and reads it back', async () => {
-    const { bind, defaults } = await load()
+  it('persists to the settings database, not localStorage', async () => {
+    const { bind, loadBindings } = await load()
 
-    bind('save', 'F2')
+    await loadBindings(studio)
+    await bind('save', 'F2')
 
-    expect(JSON.parse(storage.getItem('single-studio:hotkeys')).save).toBe('F2')
-    expect(defaults().save).not.toBe('F2') // defaults are not mutated by a bind
+    // The point of the whole change: an export of IndexedDB carries this.
+    expect(await stored()).toMatchObject({ save: 'F2' })
+    expect(storage.setItem).not.toHaveBeenCalled()
+  })
+
+  it('applies immediately, without waiting for the write', async () => {
+    const { bind, currentBindings, loadBindings } = await load()
+
+    await loadBindings(studio)
+
+    const writing = bind('save', 'F3')
+
+    expect(currentBindings().save).toBe('F3')
+    await writing
+  })
+
+  it('comes back on the next load', async () => {
+    const { bind, loadBindings } = await load()
+
+    await loadBindings(studio)
+    await bind('save', 'F4')
+
+    vi.resetModules()
+
+    const fresh = await import('../src/hooks/useHotkeys')
+
+    await fresh.loadBindings(studio)
+
+    expect(fresh.currentBindings().save).toBe('F4')
   })
 
   it('takes a chord off whatever held it, rather than firing both', async () => {
-    const { bind } = await load()
+    const { bind, currentBindings, loadBindings } = await load()
 
-    bind('save', 'F2')
-    bind('discard', 'F2')
+    await loadBindings(studio)
+    await bind('save', 'F5')
+    await bind('discard', 'F5')
 
-    const stored = JSON.parse(storage.getItem('single-studio:hotkeys'))
-
-    expect(stored.discard).toBe('F2')
-    expect(stored.save).toBe('')
-  })
-
-  it('unbinds with an empty chord without disturbing the others', async () => {
-    const { bind } = await load()
-
-    bind('discard', 'F4')
-    bind('save', '')
-
-    const stored = JSON.parse(storage.getItem('single-studio:hotkeys'))
-
-    expect(stored.save).toBe('')
-    expect(stored.discard).toBe('F4')
+    expect(currentBindings()).toMatchObject({ discard: 'F5', save: '' })
   })
 
   it('refuses a chord the board keeps for itself', async () => {
-    const { bind } = await load()
+    const { bind, currentBindings, defaults, loadBindings } = await load()
 
-    bind('save', 'Escape')
+    await loadBindings(studio)
+    await bind('save', 'Escape')
 
-    // Nothing written at all, so the default stands.
-    expect(storage.getItem('single-studio:hotkeys')).toBeNull()
+    expect(currentBindings().save).toBe(defaults().save)
   })
 
-  it('survives storage that refuses to write', async () => {
-    const { bind, defaults } = await load()
+  it('still applies when the write fails', async () => {
+    const { bind, currentBindings, loadBindings } = await load()
 
-    storage.setItem.mockImplementation(() => {
-      throw new DOMException('QuotaExceededError')
-    })
+    await loadBindings(studio)
+    vi.spyOn(Settings.prototype, 'set').mockResolvedValue(false)
 
-    // The binding applies for the session; it just will not outlive a reload.
-    expect(() => bind('save', 'F5')).not.toThrow()
-    expect(defaults().save).not.toBe('F5')
+    // Refusing a rebind because storage is full would leave an operator pressing a
+    // key the dialog says is bound.
+    expect(await bind('save', 'F6')).toBe(false)
+    expect(currentBindings().save).toBe('F6')
   })
 })
 
-describe('reading what was stored', () => {
-  it('fills in an action added since the map was written', async () => {
-    await load()
+describe('an action added after somebody set their keys', () => {
+  it('arrives at its default rather than missing', async () => {
+    const { loadBindings, currentBindings } = await load()
 
-    // A map from a build that only knew about save. Reading it literally would
-    // leave `discard` absent for everybody who had ever opened the dialog.
-    storage.setItem('single-studio:hotkeys', JSON.stringify({ save: 'F8' }))
-    vi.resetModules()
+    // A map written by a build that only knew about save.
+    await new Settings(studio).set('hotkeys', { save: 'F7' })
+    await loadBindings(studio)
 
-    const fresh = await import('../src/hooks/useHotkeys')
+    expect(currentBindings().save).toBe('F7') // their choice survived
+    expect(currentBindings().discard).toBe('') // the newer action is present
+  })
+})
 
-    // Read it, rather than binding and inspecting what was written: `bind` spreads
-    // the map and then sets its own key, so it supplies the missing action itself
-    // and would pass whether or not the read merged.
-    const map = fresh.currentBindings()
+describe('settings written before this moved out of localStorage', () => {
+  it('are carried across on first load', async () => {
+    const { loadBindings, currentBindings } = await load()
 
-    expect(map.save).toBe('F8') // the stored choice survived
-    expect(map.discard).toBe('') // the action the old map never mentioned is present
+    storage.setItem('single-studio:hotkeys', JSON.stringify({ save: 'F10' }))
+    storage.setItem.mockClear()
+
+    await loadBindings(studio)
+
+    expect(currentBindings().save).toBe('F10')
+    expect(await stored()).toMatchObject({ save: 'F10' })
   })
 
-  it('falls back to defaults on unreadable storage', async () => {
-    const { defaults } = await load()
+  it('are taken out of the old home, so the migration happens once', async () => {
+    const { loadBindings } = await load()
 
-    storage.setItem('single-studio:hotkeys', '{ not json')
-    vi.resetModules()
+    storage.setItem('single-studio:hotkeys', JSON.stringify({ save: 'F11' }))
 
-    const fresh = await import('../src/hooks/useHotkeys')
+    await loadBindings(studio)
 
-    expect(fresh.defaults().save).toBe(defaults().save)
+    expect(storage.has('single-studio:hotkeys')).toBe(false)
+  })
+
+  it('do not override what is already in the database', async () => {
+    const { loadBindings, currentBindings } = await load()
+
+    // Both present: the database is the newer home and wins. Reading the stale
+    // localStorage copy would undo a rebind made after the migration.
+    await new Settings(studio).set('hotkeys', { save: 'F12' })
+    storage.setItem('single-studio:hotkeys', JSON.stringify({ save: 'F9' }))
+
+    await loadBindings(studio)
+
+    expect(currentBindings().save).toBe('F12')
+  })
+
+  it('are not required -- a machine with nothing stored gets the defaults', async () => {
+    const { loadBindings, currentBindings, defaults } = await load()
+
+    await loadBindings(studio)
+
+    expect(currentBindings()).toEqual(defaults())
   })
 })
 
 describe('restoring defaults', () => {
-  it('clears what was stored', async () => {
-    const { bind, resetBindings } = await load()
+  it('clears the stored setting', async () => {
+    const { bind, loadBindings, resetBindings, currentBindings, defaults } = await load()
 
-    bind('save', 'F9')
-    resetBindings()
+    await loadBindings(studio)
+    await bind('save', 'F9')
+    await resetBindings()
 
-    expect(storage.getItem('single-studio:hotkeys')).toBeNull()
+    expect(currentBindings()).toEqual(defaults())
+    expect(await stored()).toBeNull()
   })
 })

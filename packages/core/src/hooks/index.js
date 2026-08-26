@@ -1,4 +1,5 @@
 export { ACTIONS as HOTKEY_ACTIONS, currentBindings, useHotkeys, useHotkeyHandlers } from './useHotkeys'
+export { useSettingsStore } from './useSettings'
 export { isClock, relayFromUrl, relayLink, setClockRole, useRelay } from './useRelay'
 export { useAssetLibrary, useAssetStore, useAssetUrl } from './useAssets'
 export { useClockOffset, useOwner, usePathPresence, usePresence, usePresent, useSetClock, useSyncStatus } from './useSync'

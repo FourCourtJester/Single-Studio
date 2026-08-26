@@ -122,8 +122,9 @@ function Recorder({ action, chord, onBind }) {
  *
  * Ctrl+S was the only way to save without reaching for the mouse, and it is not
  * everybody's key -- it collides with habits from other software, and on some
- * layouts it is genuinely awkward. The bindings are per machine, so changing one
- * here does not move anybody else's.
+ * layouts it is genuinely awkward. The bindings are the operator's rather than the
+ * show's, so changing one here does not move anybody else's -- but they are stored
+ * with the studio rather than on the machine, so they travel with an export.
  */
 export function Hotkeys({ className, ...rest }) {
   const { bindings, bind, reset } = useHotkeys()
@@ -137,7 +138,8 @@ export function Hotkeys({ className, ...rest }) {
       </div>
 
       <p className="mt-3 text-xs text-slate-500">
-        Shortcuts are stored on this machine, not in the show. A chord with no modifier only works while no text field has focus.
+        Shortcuts are yours, not part of the show &mdash; nobody else&rsquo;s board moves when you change one. They are stored with the studio, so they come
+        with it if you move it to another machine. A chord with no modifier only works while no text field has focus.
       </p>
 
       <button

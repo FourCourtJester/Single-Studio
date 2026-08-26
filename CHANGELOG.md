@@ -14,24 +14,36 @@ Both packages share a version — `@single-studio/core` and
   Discard can be bound too, and ships unbound — a destructive action that arrives
   already on a key is one somebody finds by accident.
 
-  Bindings are per machine, in `localStorage` beside the operator name and the relay
-  config, so rebinding yours does not move anybody else's and "Reset this machine"
-  clears them with everything else. A chord already in use is taken off whatever
-  held it rather than firing both.
+  Bindings are the operator's rather than the show's — rebinding yours does not move
+  anybody else's — but they are stored with the studio rather than on the machine,
+  so they travel. A chord already in use is taken off whatever held it rather than
+  firing both.
 
   The recorder reads the keys rather than asking you to spell them, and says when a
   choice has a catch: `Escape` and `Tab` are refused outright, a combination the
   browser handles above the page is flagged as one that will never fire, and a plain
   letter is noted as working only while no field has focus.
 
-- `Hotkeys` and `HotkeysDialog` components, `useHotkeys` and `useHotkeyHandlers`
-  hooks, `currentBindings()` for code outside React, and a `hotkey` toolkit
-  (`chordOf`, `formatChord`, `ariaChord`, `problemWith`) on `@single-studio/core`.
+- **A settings store, in IndexedDB.** `<studio>:settings`, a third database
+  alongside the document and the image library. What is kept here is carried by an
+  export of a studio's storage; anything in `localStorage` would be left behind,
+  which is what made it the wrong home for a preference somebody set up once.
+
+  `SettingsStore` has `get`, `set`, `remove` and `clear`, plus `all` and
+  `replaceAll` — the pair an export and an import want. One row per setting rather
+  than one object holding them all, so two writers cannot erase each other.
+
+- `Hotkeys` and `HotkeysDialog` components, `useHotkeys`, `useHotkeyHandlers` and
+  `useSettingsStore` hooks, `currentBindings()` for code outside React, and a
+  `hotkey` toolkit (`chordOf`, `formatChord`, `ariaChord`, `problemWith`) on
+  `@single-studio/core`.
 
 ### Changed
 
 - `SaveButton` reads the bound chord instead of owning `Ctrl+S`. Its tooltip and
   `aria-keyshortcuts` follow whatever the shortcut currently is.
+
+- **Reset this machine** clears the settings database along with everything else.
 
 ## 0.2.0
 

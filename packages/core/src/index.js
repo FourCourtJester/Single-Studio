@@ -30,5 +30,6 @@ export { ariaChord, chordOf, formatChord, matches as chordMatches, problemWith }
 export { layerNameFromUrl, LAYER_NAME } from './toolkits/url'
 export { getSupport, MINIMUM_VERSIONS } from './velcro/support'
 export { canEncrypt, newSecret } from './velcro/crypto'
+export { SettingsStore } from './velcro/settings'
 export { AssetStore, ASSET_SCHEME, assetKeyOf, isAssetRef, toAssetRef, toKey } from './velcro/assets'
 export * as Velcro from './velcro'

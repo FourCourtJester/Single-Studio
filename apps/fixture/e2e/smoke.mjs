@@ -1174,6 +1174,34 @@ await control.keyboard.press('F8')
 check(await becomes(control, () => document.querySelector('.ss-save button[data-pending]')?.dataset.pending === 'false'), 'the newly bound key does')
 check(await becomes(source, sceneHas, 'rebound'), 'and the edit reached the graphic')
 
+// The reason these moved out of localStorage: a studio's durable state is
+// IndexedDB, and that is what an export carries to another machine. A setting left
+// in localStorage would be the one thing that did not travel.
+const where = await control.evaluate(async () => {
+  const dbs = await indexedDB.databases()
+
+  return {
+    local: Object.keys(localStorage).filter((key) => key.includes('hotkey')),
+    databases: dbs.map((db) => db.name).filter(Boolean),
+  }
+})
+console.log(`  settings: localStorage ${JSON.stringify(where.local)}, databases ${JSON.stringify(where.databases)}`)
+check(where.local.length === 0, 'no shortcut is left behind in localStorage')
+check(
+  where.databases.some((name) => name.endsWith(':settings')),
+  'the settings database exists, so an export has something to carry',
+)
+
+// And it has to survive the trip. The read is asynchronous while the snapshot is
+// not, so a reload is the case where a board could plausibly come back on the
+// defaults and nobody would notice until a show.
+await control.reload()
+await control.waitForSelector('.ss-save')
+check(
+  await becomes(control, () => document.querySelector('.ss-save button[aria-keyshortcuts]')?.getAttribute('aria-keyshortcuts') === 'F8'),
+  'the rebound key is still bound after a reload',
+)
+
 // Put it back, so everything below still saves the way it expects to.
 await control.locator('.ss-menu-open').click()
 await control.locator('.ss-menu-hotkeys').click()

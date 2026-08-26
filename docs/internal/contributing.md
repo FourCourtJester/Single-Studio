@@ -60,6 +60,25 @@ real alert gets skimmed past.
 `pnpm audit` after taking it out — if the count is still zero, the override has done
 its job and is only in the way.
 
+## Where a studio's storage lives
+
+Three IndexedDB databases, and an export has to walk all of them:
+
+| Database            | Holds                                               |
+| ------------------- | --------------------------------------------------- |
+| `<studio>`          | The document — every value the show is made of      |
+| `<studio>:assets`   | The image library: entries, and the blobs they name |
+| `<studio>:settings` | Preferences. Hotkeys today, whatever comes next     |
+
+`localStorage` still holds the operator name, the relay config and the relay admin
+secret. Those are genuinely per-machine — an identity and a credential, not
+preferences — and carrying them to another computer is at best meaningless and at
+worst wrong. **Anything that a person sets up once and would resent setting up again
+belongs in `:settings`**, because that is the half of the split that travels.
+
+There is no export yet. The store is shaped for one: `all()` and `replaceAll()` are
+the two halves of it.
+
 ## Still to review
 
 - **`docs/data.md`** — the hooks in it have not had an API review. Revisit the
