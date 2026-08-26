@@ -43,6 +43,23 @@ outside it, or after a Playwright version bump. It never needs root: the system
 libraries are installed at image build time and the browser directory belongs to
 the container's `node` user.
 
+## The vite override
+
+`package.json` pins `pnpm.overrides.vite` to `^6.4.3`. VitePress 1.6.4 asks for
+`vite ^5.4.14`, and every 5.x — including the newest, 5.4.21 — carries four
+advisories fixed only in 6.4.2 and 6.4.3. There is no patched 5.x to move to and no
+newer stable VitePress, so the override is the only way to resolve them without
+running a 2.0 alpha for the docs site.
+
+All four are dev-server issues and none of them reach anything published:
+`pnpm audit --prod` was clean before the override as well as after. It is worth
+keeping anyway, because a repository that cries wolf on Dependabot is one where the
+real alert gets skimmed past.
+
+**Remove it when VitePress 2.0 ships**, which depends on vite 6 natively. Check with
+`pnpm audit` after taking it out — if the count is still zero, the override has done
+its job and is only in the way.
+
 ## Still to review
 
 - **`docs/data.md`** — the hooks in it have not had an API review. Revisit the

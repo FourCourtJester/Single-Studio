@@ -41,5 +41,10 @@
     "prettier": "^3.4.1",
     "typescript": "^7.0.2",
     "vitepress": "^1.6.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "^6.4.3"
+    }
   }
 }
