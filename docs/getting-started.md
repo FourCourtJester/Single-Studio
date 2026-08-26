@@ -57,10 +57,9 @@ key, so a key written for a URL (`lower-third`) reads as English in a scene list
 1. **Control surface** — _Docks &rarr; Custom Browser Docks_, pointed at the app root
    (`.../#/`).
 
-   Run it as a dock, not in a separate browser. The dock shares OBS's browser
-   process with your sources, which is what lets them share one store with no
-   network involved. A separate browser is a separate process with its own
-   SharedWorker and its own IndexedDB.
+   Run it as a dock, not in a separate browser. The dock and your graphics share
+   one show because they are in the same place. A separate browser window is a
+   separate place, with a separate copy of everything.
 
 2. **Each graphic** — one Browser source per URL from the control page. Set the
    resolution to your canvas (usually 1920x1080).
@@ -89,35 +88,25 @@ Pressing **Use this template** leaves you with a working studio, not a skeleton 
 a control surface, a graphic, and a Pages deploy already wired. `npm install` pulls
 `@single-studio/core` from npm like any other dependency.
 
-What is in it:
+Two folders are the ones you will live in:
 
-```
-src/
-  config.js          STUDIO_ID -- shared by the worker and the studio definition
-  studio.js          defineStudio(): name, worker, control, sources
-  velcro.worker.js   createVelcroHost(): your mutations
-  mutations/
-    index.js         the registry the worker is handed
-    show.js          the examples that ship -- keep, edit or delete
-    custom.js        yours, starting as a no-op to fill in
-  control/Control.jsx
-  sources/*.jsx
-```
+| Folder         | Holds                                                |
+| -------------- | ---------------------------------------------------- |
+| `src/control/` | The operator's board                                 |
+| `src/sources/` | One file per graphic — each becomes a browser source |
+
+The rest is wiring that already works. Have a look around the
+[template repository](https://github.com/FourCourtJester/Single-Studio-Template)
+if you want the full tour.
 
 ### Add a graphic
 
-Create `src/sources/MyGraphic.jsx`, default-exporting a component. That is the whole
-step: it appears at `#/source/my-graphic` and in the control surface's **Browser
-sources** list, with a copy button and the name OBS should give it.
+Create `src/sources/MyGraphic.jsx`, default-exporting a component. That is the
+whole step. It appears in the control surface's **Browser sources** list with a
+copy button and the name OBS should give it — no list to add it to, nothing to
+register.
 
-The template registers sources by globbing that folder, so there is no registry to
-keep in step:
-
-```js
-sources: sourcesFrom(import.meta.glob('./sources/**/*.jsx')),
-```
-
-The key comes from the path, and folders group:
+The filename decides the address, and folders group:
 
 | File                                  | URL                            |
 | ------------------------------------- | ------------------------------ |
@@ -127,27 +116,16 @@ The key comes from the path, and folders group:
 | `src/sources/game/Scoreboard.jsx`     | `#/source/game/scoreboard`     |
 
 The group carries through to what OBS calls the source — `SS - My Studio - Lower
-Thirds / Single` — so a scene list sorts the way the repo does.
+Thirds / Single` — so a scene list sorts the way your folders do.
+
+Rename the file and the URL changes with it. That is the point: the folder is the
+only place a graphic is named, so there is nothing to keep in step and nothing to
+forget to update.
 
 > **`src/sources/` is only for graphics.** Everything in it becomes a browser
 > source, so a shared plate, a hook or a helper belongs somewhere else —
 > `src/components/` is the obvious home. A file left in `sources/` by mistake turns
 > up in the operator's list and in OBS, which is a confusing way to find out.
-
-`import.meta.glob` is resolved by Vite at build time rather than at runtime: it
-becomes a literal object of dynamic imports before any code runs, so every graphic
-is still statically known, still code-split into its own chunk, and still loaded
-only when it is opened. Nothing is discovered by a path the framework was handed.
-
-To name them by hand, pass a plain object instead — `sourcesFrom` is a convenience,
-not a requirement:
-
-```js
-sources: {
-  scoreboard: () => import('./sources/Scoreboard'),
-  'lower-thirds/single': () => import('./sources/LowerThirdSingle'),
-},
-```
 
 ### Add state
 
@@ -222,7 +200,7 @@ The full generated reference, with every prop, is [api.md](api.md).
 | ----------- | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | `Scene`     | —                  | Root of a graphic. `vars` maps CSS custom properties to paths.                                                   |
 | `Variable`  | `variables.<name>` | Text. `fit` shrinks it to stay on one line.                                                                      |
-| `Image`     | `variables.<name>` | A bundled path, URL, or `asset:` upload. Preloads and decodes before swapping.                                   |
+| `Image`     | `variables.<name>` | A bundled path, a URL, or a library entry. Preloads and decodes before swapping.                                 |
 | `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                                                     |
 | `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran. |
 | `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.                                         |
@@ -238,7 +216,7 @@ Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
 | -------------- | ------------------ | ------------------------------------------------------------------------- |
 | `Field`        | `variables.<name>` | One line of text. Staged until saved.                                     |
 | `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; Ctrl/Cmd+S saves.                |
-| `ImagePicker`  | `variables.<name>` | Preview, key dropdown, and a magnifier. Writes `asset:<key>`.             |
+| `ImagePicker`  | `variables.<name>` | Preview, dropdown of library entries, and a magnifier to browse.          |
 | `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                    |
 | `ImageToggle`  | `toggles.<name>`   | `Toggle` with a picture. `from` reads the face off a path.                |
 | `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.                        |
@@ -271,11 +249,11 @@ through it — including why Supabase, what it costs, and what it gives up.
 
 Three of them, because a broadcast asks three different questions:
 
-| Control       | Question                    | Stored as      |
-| ------------- | --------------------------- | -------------- |
-| `Countdown`   | "five more minutes"         | target instant |
-| `CountdownTo` | "we go live at 19:00"       | target instant |
-| `Stopwatch`   | "how long have we been on?" | origin instant |
+| Control       | Question                    |
+| ------------- | --------------------------- |
+| `Countdown`   | "five more minutes"         |
+| `CountdownTo` | "we go live at 19:00"       |
+| `Stopwatch`   | "how long have we been on?" |
 
 ```jsx
 <Countdown name="round" label="Round" />                 {/* operator types it */}
@@ -289,50 +267,22 @@ minutes is a guess about somebody else's show. The input takes whatever an opera
 would naturally type — `90`, `1:30`, `1:02:03` — rather than insisting on a format.
 Give it a `duration` when the length never varies and one press should start it.
 
-All three land at `timers.<name>` and all three are read by the same source
-component, which works out from the stored shape which kind it is:
+All three are read by the same component, whichever kind you used:
 
 ```jsx
 <Timer name="round" fallback="--:--" />
 ```
 
-**Nothing ticks in the store.** A countdown stores the instant it ends and a
-count-up stores the instant it began; every page derives the same number from the
-same timestamp. That is why a second operator's clock agrees with the OBS machine's
-without either of them sending the other a single frame, and why a graphic that OBS
-destroys and rebuilds comes back showing the right time instead of restarting.
+**Every machine shows the same number.** A second operator's clock agrees with the
+one running OBS, down to the second, without either of them having to be in sync
+with the other. A graphic that OBS destroys and rebuilds comes back showing the
+right time rather than starting over, and pausing then resuming picks up exactly
+where it stopped.
 
-A pause stores the elapsed time it held, and resuming backdates the origin by that
-much — so the clock picks up where it stopped without ever having counted anything
-itself.
-
-The screen still has to repaint, of course. The view samples each running clock four
-times a second and re-renders only when the whole second it displays actually
-changes. Sampling rather than scheduling is what keeps a tick landing on time:
-`setTimeout` fires late under load, so a timer that chases the next second lands
-wherever it lands, and the wander is visible on air even though every number it
-shows is correct. Nothing about the sampling is written anywhere, so a throttled tab
-renders late but never wrong.
-
-Counting up floors and counting down rounds up, each so the number on screen matches
-what an operator means by it: a countdown reads 00:01 until time is genuinely out,
-and a stopwatch reads 00:00 until a second has genuinely passed. Every digit of a
-countdown therefore holds for a full second, and a five-second timer opens on 00:05.
-
-**A countdown shows 00:00 for a second, then takes itself off air.** It used to
-vanish the instant it reached zero, which meant the number the whole thing exists to
-reach was the one frame nobody ever saw — 00:01, then the graphic animating away.
-The zero now gets the same second on screen as every other digit, because rounding
-up already gives each of them exactly one.
-
-Then it goes, on its own. A graphic that waits to be dismissed is one somebody has
-to remember mid-show, and remembering it is worth nothing: the countdown is over and
-everyone watching can see that it is over.
-
-None of that is written or announced. It is `now - target < 1000` on the instant
-every peer already has, so the zero appears and leaves at the same moment on every
-machine with nobody telling anybody, and a countdown left in the document from last
-week is simply long past rather than something to clean up before going on air.
+**A countdown shows 00:00 for a second, then takes itself off air.** The number the
+whole thing exists to reach gets its full second on screen, and then the graphic
+leaves on its own — nobody has to remember to dismiss it mid-show. It goes at the
+same moment on every machine.
 
 ## Images
 
@@ -343,6 +293,10 @@ Templated from a value — "Single Studio" resolves `logos/single-studio.svg`:
 ```jsx
 <Image name="home.name" src="/logos/:value:.svg" slug fallback="/logos/placeholder.svg" />
 ```
+
+Images you ship with the studio live in `public/` — `public/logos/acme.svg` is
+`/logos/acme.svg` on air. Drop them in, commit them, and they deploy with
+everything else.
 
 The value _is_ the URL — paste a link into a `Field` and it is on air:
 
@@ -362,8 +316,8 @@ paired with a picker on the board:
 <ImagePicker name="guest.photo" label="Headshot" />
 ```
 
-`Image` does not care which of the four it is given. A bundled path, a URL, and an
-`asset:` reference all follow the same code path.
+`Image` does not care which of the four it is given — a bundled path, a URL and a
+library entry are all treated the same.
 
 What separates this from an `<img>` tag is what happens **between** images. A new
 URL is loaded and decoded off-screen first, and only swapped in once it can paint.
@@ -394,8 +348,8 @@ The library is where those live. Two ways in, and both produce a **named entry**
 - **Drop or choose files, or a whole folder** — the bytes are stored locally,
   content-addressed.
 
-A graphic then points at the key (`asset:ada-okafor`) rather than at a link or a
-hash. That is the name an operator recognises under pressure, and it means
+A graphic points at the entry by name — "ada-okafor" — rather than at a link or a
+file path. That is the name an operator recognises under pressure, and it means
 repointing a slot is a rename in the library rather than an edit everywhere it is
 used.
 
@@ -415,10 +369,10 @@ players/kim-nakamura
 logos/acme
 ```
 
-The part before the last slash becomes a group: an `<optgroup>` in every picker's
-dropdown, and a heading in the library. A hundred images in one flat list is a
-scroll an operator has to read; the same hundred under a handful of prefixes is a
-menu they can aim at.
+The part before the last slash becomes a group — a heading in the library, and a
+heading in every picker's dropdown. A hundred images in one flat list is a scroll
+an operator has to read; the same hundred under a handful of prefixes is a menu
+they can aim at.
 
 Groups are deliberately not a second concept with their own storage and their own
 editing screen. The key already existed, renaming it already worked, and a graphic
@@ -457,19 +411,15 @@ missing is their own preview. The board says so in those words.
 
 There is no limit in the framework. The practical ones:
 
-- **Browser quota.** IndexedDB gets a share of free disk — typically a large
-  fraction of it in Chromium, so hundreds of megabytes of photos is not a problem.
-  A show's worth of headshots is nowhere near it.
-- **Duplicates are free.** Blobs are content-addressed by SHA-256, so the same
-  photo filed under two keys stores its bytes once. Re-uploading a folder you
-  already added costs nothing but entries.
+- **Browser storage.** The browser gives a studio a large share of free disk, so
+  hundreds of megabytes of photos is not a problem. A show's worth of headshots is
+  nowhere near it.
+- **Duplicates are free.** The same photo filed under two names is stored once.
+  Re-adding a folder you already have costs nothing but entries.
 - **Adds are sequential**, one file read at a time, so a folder of a hundred does
   not spike memory the way reading all hundred at once would. There is a progress
   readout above four files, and one unreadable file is reported rather than losing
   the rest of the batch.
-
-Bytes never enter the Y.Doc — that document is persisted whole and cloned to every
-tab on every change. The document holds `asset:<key>`; IndexedDB holds the image.
 
 `ImagePicker` gives a preview, a dropdown of the library's keys for a fast swap
 between segments, and a magnifier joined onto the dropdown that opens the library
@@ -522,9 +472,8 @@ Two properties worth knowing:
 - **Bytes deduplicate, keys do not.** The same photo filed under two names stores
   its bytes once, and deleting one key leaves the other working.
 
-Bytes live in their own IndexedDB database, never in the document. Putting a few
-megabytes of JPEG in a store that is persisted whole and cloned to every tab on
-every change would be expensive now and worse once it replicates.
+Images are stored on the machine, separately from the show itself — the show
+carries the name of the picture, not the picture.
 
 **Bytes stay on the machine that holds them.** A file added on the OBS machine does
 not travel to a remote operator's board, and deliberately so: moving it would buy a
@@ -570,11 +519,20 @@ back in. Every source component does that already — the interesting part is _h
 <Toggle name="showtime" transition="bounce" />
 ```
 
-The prop is a space-separated list of variant names; each becomes an `ss-` class.
-That is the whole mechanism. The state machine sets `ss-exiting` / `ss-entering` /
-`ss-active` and **never touches a transform** — what a phase looks like is CSS, so
-a variant costs a rule rather than a code path, and your own variant is just another
-class you write and pass by name.
+The prop is a space-separated list of variant names, and what each one looks like
+is CSS — so a new motion costs a rule rather than a code path.
+
+Every transitioning element is in exactly one of **four phases**:
+
+| Phase      | Meaning                      |
+| ---------- | ---------------------------- |
+| `inactive` | Off. Not showing, not moving |
+| `entering` | On its way in                |
+| `active`   | On air, at rest              |
+| `exiting`  | On its way out               |
+
+The phase is on the element as `data-state` and as an `ss-` class, so you can style
+or inspect any of them.
 
 | Motion        | What it does                                               |
 | ------------- | ---------------------------------------------------------- |
@@ -660,9 +618,8 @@ rule in your own stylesheet:
 
 Three things make that work, and each is a mistake worth making once:
 
-- **`@layer components`, matching the framework's own rules.** Unlayered CSS beats
-  layered CSS regardless of specificity, so a variant written outside a layer would
-  outrank every Tailwind utility a studio uses on the same element.
+- **Wrap it in `@layer components`**, matching the framework's own rules — see
+  [Styling](#styling) for why the layer matters.
 - **The same declarations for `inactive`, `exiting` and `entering`.** Those three are
   one visual state — "not showing" — reached from three different directions. Giving
   `entering` its own values makes the element jump at the moment it starts arriving.
@@ -670,17 +627,8 @@ Three things make that work, and each is a mistake worth making once:
   than restating it, so the variant composes with `--ss-shift` and with whatever a
   studio's own rule does.
 
-Tailwind can supply the values, since a variant is ordinary CSS:
-
-```css
-@layer components {
-  .ss-stinger.ss-inactive,
-  .ss-stinger.ss-exiting,
-  .ss-stinger.ss-entering {
-    @apply opacity-0 -translate-x-full;
-  }
-}
-```
+A variant is ordinary CSS, so Tailwind can supply the values — see
+[Styling](#styling).
 
 Easing and duration come from the modifiers and custom properties above, so a
 variant only has to describe where the element is — not how long it takes to get
@@ -766,28 +714,22 @@ const { save, revert } = useDraft()
 
 ## Browser requirements
 
-A studio needs a `SharedWorker` that can load an ES module — `new SharedWorker(url, { type: 'module' })`:
+A studio needs a reasonably current browser:
 
 | Browser       | Minimum |
 | ------------- | ------- |
 | Chrome / Edge | 83      |
 | Firefox       | 114     |
 | Safari        | 16      |
+| OBS           | 28      |
 
-All three engines have supported this since mid-2023, so in practice any current
-browser works. The OBS dock runs on CEF (Chromium), and remote operators on the
-collaboration path can use whatever they already have.
+Every one of those shipped by mid-2023, so in practice anything current works. The
+OBS dock is Chromium, and remote operators on the collaboration path can use
+whatever they already have.
 
-A browser too old to understand the options object does not error — it treats the
-second argument as the worker's _name_, loads the script as a classic worker, and
-its `import` statements fail somewhere the page never sees. That would hand an
-operator a board where every field looks fine and nothing ever updates.
-
-So the framework checks before it starts the store, and replaces the board with a
-message naming what is missing and the version needed. The check is behavioural,
-not a user-agent sniff: it hands the constructor an options object whose `type` is
-a getter and sees whether anything reads it. Override the screen with
-`onUnsupported`, or call `getSupport()` yourself:
+If a browser is too old, the board says so plainly instead of loading a page where
+nothing updates — it names what is missing and the version needed. You can replace
+that screen with `onUnsupported`, or ask first:
 
 ```jsx
 import { getSupport } from '@single-studio/core'
@@ -795,9 +737,21 @@ import { getSupport } from '@single-studio/core'
 const { ok, missing, persistent } = getSupport()
 ```
 
-`persistent: false` (no IndexedDB — private windows, some locked-down profiles) is
-_not_ a failure: the store falls back to memory, which still drives graphics
-correctly for the length of a session. It just will not survive a reload.
+`persistent: false` means the browser will not keep anything after a reload —
+private windows and some locked-down profiles. It is not a failure: the show runs
+normally for the session, it just starts fresh next time.
+
+> **Phones and tablets are not supported yet.** A studio needs a browser feature
+> that mobile Safari and Chrome for Android do not provide, so the board will
+> refuse to load rather than half-work. See
+> [the note below](#a-hand-held-control-surface).
+
+### A hand-held control surface
+
+Running the operator's board from a phone is a reasonable thing to want, and it is
+on the list. It is not a small change: the store is shared between the board and
+every graphic by a mechanism phones do not implement, so supporting them means a
+second way of sharing it. Until then, a remote operator needs a laptop.
 
 ## Styling
 
@@ -833,12 +787,34 @@ there is no duration prop to keep in sync — retune it any of three ways:
 } /* custom property */
 ```
 
-All of the framework's rules live in `@layer components` so any of these win, and
-your own rules should sit in the same layer for the same reason — see
-[Writing your own](#writing-your-own).
-That is load-bearing rather than tidy: unlayered declarations beat layered ones, so
-framework CSS outside a layer would silently outrank every Tailwind utility a studio
-wrote, and `duration-500` would quietly resolve to the default.
+### Tailwind, and the `@layer` rule
+
+The template ships with Tailwind, and every framework component takes a `className`,
+so utilities work on anything:
+
+```jsx
+<Variable name="home.name" className="text-6xl font-bold tracking-tight" />
+```
+
+**Write your own rules inside `@layer components`**, the same layer the framework
+uses:
+
+```css
+@layer components {
+  .ss-stinger.ss-inactive {
+    @apply opacity-0 -translate-x-full;
+  }
+}
+```
+
+That is load-bearing rather than tidy. Unlayered CSS beats layered CSS whatever the
+specificity, so a rule written outside a layer outranks every Tailwind utility on
+the same element — and `duration-500` would quietly do nothing. Both the framework's
+rules and yours sit in the layer, so ordinary specificity decides, and the last one
+written wins.
+
+Tailwind is not required. It is what the template happens to use, and nothing in the
+framework depends on it.
 
 **Reduced motion applies to your control surface, not to graphics.** On a browser
 source, animation is broadcast content, and the preference being read belongs to the
@@ -864,23 +840,35 @@ URLs directly.
 
 ## Troubleshooting
 
-**Graphics show fallbacks and never update.** The control surface and the source
-must be in the same browser process, and `STUDIO_ID` in `config.js` must match what
-`createVelcroHost` receives. A mismatch logs a warning in the console.
+### My graphics show fallback text and never update
 
-**State came back wrong after renaming the studio.** `STUDIO_ID` names the
-IndexedDB database. Renaming it starts from a clean slate; the old data is still
-under the old name.
+The board and the graphics have to be in the same place. Check both:
 
-**A source is blank in OBS but fine in a browser.** Confirm the browser source URL
-includes the `#/source/...` fragment.
+- The control surface is an OBS **custom browser dock**, not a separate browser
+  window.
+- `STUDIO_ID` in `src/config.js` matches the one the worker is given. A mismatch
+  logs a warning in the browser console.
 
-### Sources that unload when hidden
+### A source is blank in OBS but works in a browser
 
-These are supported and tested. A graphic is
-destroyed and rebuilt every time its scene returns, and nothing is painted until the
-store has answered — no fallback flash, no empty panel, and the state comes back
-every cycle. The one thing that has to hold is that the dock stays open, since it is
-what keeps the SharedWorker (and therefore the store) alive while every source is
-unloaded. If everything unloads at once the worker exits and the next source to load
-rehydrates from IndexedDB, which is slower but not lossy.
+The browser source URL is missing its `#/source/...` part. Copy it again from the
+board's **Browser sources** menu — the copy button includes everything needed.
+
+### I renamed my studio and the show emptied
+
+`STUDIO_ID` is the name your show is filed under, so renaming it starts a fresh
+one. Nothing is lost: put the old `STUDIO_ID` back and the show returns.
+
+### Do graphics survive being hidden in OBS?
+
+Yes, and it is tested. A graphic is destroyed and rebuilt every time its scene comes
+back, and nothing paints until the real values have arrived — no flash of fallback
+text over the programme.
+
+**Keep the dock open**, though. It is what holds the show while the graphics are
+unloaded. If the dock is closed and every graphic is hidden at once, the next one to
+appear reloads the show from disk — slower, but nothing is lost.
+
+### The board will not load on my phone
+
+Not supported yet — see [browser requirements](#browser-requirements).
