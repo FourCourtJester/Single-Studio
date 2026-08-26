@@ -111,16 +111,7 @@ function preload(url) {
  *
  * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */
-export function Image({
-  name,
-  value: literal,
-  src = ':value:',
-  slug = false,
-  fallback,
-  alt = '',
-  className,
-  ...rest
-}) {
+export function Image({ name, value: literal, src = ':value:', slug = false, fallback, alt = '', className, ...rest }) {
   const { value: stored, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
   // A literal value stands in for the store, so a component that already holds a
   // value -- one row of a list, say -- can reuse all of the loading machinery below

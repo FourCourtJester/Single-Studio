@@ -42,15 +42,7 @@ const NAMESPACE = 'variables'
  *
  * @param {LeaderboardProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Leaderboard({
-  name,
-  label = 'Leaderboard',
-  fields = DEFAULT_FIELDS,
-  delimiter = DEFAULT_DELIMITER,
-  rows,
-  className,
-  ...rest
-}) {
+export function Leaderboard({ name, label = 'Leaderboard', fields = DEFAULT_FIELDS, delimiter = DEFAULT_DELIMITER, rows, className, ...rest }) {
   const path = `${NAMESPACE}.${name}`
   // Staged like any other text control: a half-pasted board must not reach air.
   const { value, dirty, onChange } = useDraftValue(path)

@@ -72,17 +72,7 @@ const same = (a, b) => a.length === b.length && a.every((item, index) => item ==
  *
  * @param {ImageSelectProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function ImageSelect({
-  name,
-  label = 'Select',
-  options = [],
-  multiple = false,
-  max,
-  staged = false,
-  size = 'md',
-  className,
-  ...rest
-}) {
+export function ImageSelect({ name, label = 'Select', options = [], multiple = false, max, staged = false, size = 'md', className, ...rest }) {
   const path = `${NAMESPACE}.${name}`
   const draft = useDraftValue(path, multiple ? [] : '')
   const mutate = useVelcroMutate()

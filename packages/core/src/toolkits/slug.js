@@ -31,11 +31,7 @@ export function titleize(value) {
   // A slash groups rather than joins: `lower-thirds/single` is two things, and an
   // OBS scene list reads better keeping the group than mashing it into one word.
   if (String(value ?? '').includes('/')) {
-    return String(value)
-      .split('/')
-      .filter(Boolean)
-      .map(titleize)
-      .join(' / ')
+    return String(value).split('/').filter(Boolean).map(titleize).join(' / ')
   }
 
   return String(value ?? '')

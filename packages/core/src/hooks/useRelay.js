@@ -319,9 +319,7 @@ export function useRelay({ auto = true } = {}) {
 
   const join = useCallback(
     (next) => {
-      const cleaned = next?.url
-        ? { url: next.url, room: next.room || undefined, token: next.token || undefined, secret: next.secret || undefined }
-        : null
+      const cleaned = next?.url ? { url: next.url, room: next.room || undefined, token: next.token || undefined, secret: next.secret || undefined } : null
 
       remember(cleaned)
       setConfig(cleaned)

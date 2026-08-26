@@ -31,8 +31,42 @@ const KEY = 'single-studio:operator'
  * headset the point of a name is that somebody can. Sixteen by sixteen is plenty
  * for a production of four, and small enough to sit in a file without apology.
  */
-const COLOURS = ['Amber', 'Cobalt', 'Crimson', 'Emerald', 'Ivory', 'Jade', 'Onyx', 'Rust', 'Sable', 'Saffron', 'Scarlet', 'Silver', 'Slate', 'Teal', 'Umber', 'Violet']
-const CREATURES = ['Albatross', 'Badger', 'Falcon', 'Heron', 'Ibex', 'Jackal', 'Kestrel', 'Lynx', 'Magpie', 'Osprey', 'Otter', 'Panther', 'Raven', 'Stoat', 'Vulture', 'Wolf']
+const COLOURS = [
+  'Amber',
+  'Cobalt',
+  'Crimson',
+  'Emerald',
+  'Ivory',
+  'Jade',
+  'Onyx',
+  'Rust',
+  'Sable',
+  'Saffron',
+  'Scarlet',
+  'Silver',
+  'Slate',
+  'Teal',
+  'Umber',
+  'Violet',
+]
+const CREATURES = [
+  'Albatross',
+  'Badger',
+  'Falcon',
+  'Heron',
+  'Ibex',
+  'Jackal',
+  'Kestrel',
+  'Lynx',
+  'Magpie',
+  'Osprey',
+  'Otter',
+  'Panther',
+  'Raven',
+  'Stoat',
+  'Vulture',
+  'Wolf',
+]
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)]
 

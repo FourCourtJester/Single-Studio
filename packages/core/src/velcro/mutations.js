@@ -292,7 +292,11 @@ export const mutations = {
     if (at !== undefined) {
       const index = Number(at)
 
-      writeOne(ctx, key, current.filter((_, i) => i !== index))
+      writeOne(
+        ctx,
+        key,
+        current.filter((_, i) => i !== index),
+      )
       return
     }
 

@@ -22,7 +22,16 @@ describe('the mutation context', () => {
     const doc = Doc.createDoc()
     let ctx
 
-    apply(doc, { ...mutations, probe: (given) => { ctx = given } }, 'probe')
+    apply(
+      doc,
+      {
+        ...mutations,
+        probe: (given) => {
+          ctx = given
+        },
+      },
+      'probe',
+    )
 
     for (const name of ['read', 'collect', 'list', 'write', 'add', 'now', 'run']) expect(typeof ctx[name]).toBe('function')
     for (const name of ['doc', 'state', 'clientId']) expect(ctx[name]).toBeDefined()

@@ -61,7 +61,9 @@ describe('the room key in a link', () => {
   // the show without ever seeing it either.
 
   it('is read from the fragment', () => {
-    expect(relayFromUrl('https://studio.example.com/?relay=https://x.supabase.co&room=friday&key=anon#/?k=Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk')).toMatchObject({
+    expect(
+      relayFromUrl('https://studio.example.com/?relay=https://x.supabase.co&room=friday&key=anon#/?k=Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyaGk'),
+    ).toMatchObject({
       url: 'https://x.supabase.co',
       room: 'friday',
       token: 'anon',

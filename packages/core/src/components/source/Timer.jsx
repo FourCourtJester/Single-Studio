@@ -81,12 +81,7 @@ export function Timer({ name, fallback = '00:00', limit, onComplete, className, 
   const over = allowed > 0 && mode === 'up' && elapsed >= allowed
 
   return (
-    <Transition
-      trigger={loaded && active}
-      data-over={over ? '' : undefined}
-      className={cx('ss-timer tabular-nums', over && 'ss-over', className)}
-      {...rest}
-    >
+    <Transition trigger={loaded && active} data-over={over ? '' : undefined} className={cx('ss-timer tabular-nums', over && 'ss-over', className)} {...rest}>
       {loaded ? (active ? text : fallback) : null}
     </Transition>
   )

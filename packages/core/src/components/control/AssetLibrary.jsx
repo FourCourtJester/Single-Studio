@@ -313,7 +313,9 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
         </>
       ) : (
         <p className="py-8 text-center text-xs text-slate-500">
-          {owner ? 'Nothing here yet. Drop images or a folder in, or paste a URL.' : 'Nothing here yet. Paste a URL above, or ask the machine running OBS to add files.'}
+          {owner
+            ? 'Nothing here yet. Drop images or a folder in, or paste a URL.'
+            : 'Nothing here yet. Paste a URL above, or ask the machine running OBS to add files.'}
         </p>
       )}
 
@@ -326,12 +328,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           entry, because a picker keeps offering it. */}
       {!onPick && assets.length ? (
         <div className="ss-asset-purge flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
-          <Confirm
-            onConfirm={() => run(removeAll)}
-            disabled={busy}
-            label={`Remove all ${assets.length}`}
-            className="px-2 py-1 text-xs"
-          />
+          <Confirm onConfirm={() => run(removeAll)} disabled={busy} label={`Remove all ${assets.length}`} className="px-2 py-1 text-xs" />
           <span className="text-xs text-slate-500">Everything above, off this machine and out of the show. It cannot be undone.</span>
         </div>
       ) : null}
@@ -375,7 +372,9 @@ function AssetTile({ entry, selected, onPick, onRemove, onRename, owner }) {
         {url ? (
           <img src={url} alt="" className="max-h-full max-w-full object-contain" />
         ) : (
-          <span className="px-1 text-center text-[10px] leading-tight text-slate-600">{entry.here === false ? (owner ? 'on another machine' : 'on the studio machine') : '…'}</span>
+          <span className="px-1 text-center text-[10px] leading-tight text-slate-600">
+            {entry.here === false ? (owner ? 'on another machine' : 'on the studio machine') : '…'}
+          </span>
         )}
       </button>
 

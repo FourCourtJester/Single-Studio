@@ -218,9 +218,7 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
                 button is how this is actually used. The text stays because a link
                 you cannot see is a link you cannot check. */}
             <div className="flex items-start gap-2">
-              <code className="ss-invite-link min-w-0 grow select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
-                {invite}
-              </code>
+              <code className="ss-invite-link min-w-0 grow select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">{invite}</code>
               <button
                 type="button"
                 onClick={copy}
@@ -234,8 +232,8 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
 
         {config?.url && secret && secret !== (config.secret ?? '') ? (
           <p className="ss-rekey-warning rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-            Press <span className="font-medium">Move</span> to start this show over with a new key. Your show comes with you. Everyone you still want in it needs
-            the new link &mdash; anyone holding the old one is left behind, which is the point.
+            Press <span className="font-medium">Move</span> to start this show over with a new key. Your show comes with you. Everyone you still want in it
+            needs the new link &mdash; anyone holding the old one is left behind, which is the point.
           </p>
         ) : null}
 
@@ -275,8 +273,8 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
             </li>
             <li>Wait a minute or two while it builds.</li>
             <li>
-              Open <span className="text-slate-300">Project Settings</span> from the sidebar. The <span className="text-slate-300">Project ID</span> on that page
-              is the first box below &mdash; a short string of letters, not a web address.
+              Open <span className="text-slate-300">Project Settings</span> from the sidebar. The <span className="text-slate-300">Project ID</span> on that
+              page is the first box below &mdash; a short string of letters, not a web address.
             </li>
             <li>
               Then <span className="text-slate-300">API Keys</span>, and copy the <span className="text-slate-300">publishable</span> key (it starts{' '}
@@ -353,12 +351,17 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
             it is deciding for a whole production. Encryption is free on Supabase and
             costs the late-joiner guarantee on a relay, and that is the sort of thing
             somebody should be told where the choice is, not in a document. */}
-        <label className={cx('ss-seal flex items-start gap-2.5 rounded-md border p-3', canSeal ? 'cursor-pointer border-slate-800 bg-slate-950/60' : 'border-slate-800/60 bg-slate-950/30')}>
+        <label
+          className={cx(
+            'ss-seal flex items-start gap-2.5 rounded-md border p-3',
+            canSeal ? 'cursor-pointer border-slate-800 bg-slate-950/60' : 'border-slate-800/60 bg-slate-950/30',
+          )}
+        >
           <input
             type="checkbox"
             checked={Boolean(secret) && canSeal}
             disabled={!canSeal}
-            onChange={(event) => setSecret(event.target.checked ? (secret || newSecret()) : '')}
+            onChange={(event) => setSecret(event.target.checked ? secret || newSecret() : '')}
             aria-label="Encrypt this show"
             className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-sky-500 disabled:cursor-not-allowed"
           />
