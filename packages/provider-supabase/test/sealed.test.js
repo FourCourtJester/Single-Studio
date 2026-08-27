@@ -20,6 +20,23 @@ function room({ key = secret } = {}) {
   const peers = []
   const wire = []
 
+  // Every seal and every open still in flight.
+  //
+  // Sealing is real AES-GCM, so a frame reaches the far document a few promise
+  // turns after it is sent. `settle` used to be a 30ms sleep, which is a guess: it
+  // passed alone and failed under a loaded machine running the whole workspace's
+  // suites at once -- the worst kind of red, because nothing was wrong.
+  const pending = new Set()
+
+  const track = (work) => {
+    if (typeof work?.then !== 'function') return work
+
+    pending.add(work)
+    work.finally(() => pending.delete(work))
+
+    return work
+  }
+
   const join = (label, { holds = key } = {}) => {
     const doc = new Y.Doc()
     const cipher = holds ? createCipher(holds) : null
@@ -46,13 +63,13 @@ function room({ key = secret } = {}) {
         wire.push(bytes)
 
         for (const other of peers) {
-          if (other !== peer) other.wire.receive(bytes)
+          if (other !== peer) track(other.wire.receive(bytes))
         }
       },
       toMesh: (bytes) => peer.mesh.receive(bytes),
     })
 
-    peer.mesh = createMeshProvider({ doc, name: label, send: peer.wire.send })
+    peer.mesh = createMeshProvider({ doc, name: label, send: (bytes) => track(peer.wire.send(bytes)) })
 
     peer.mesh.connected()
     peers.push(peer)
@@ -60,7 +77,23 @@ function room({ key = secret } = {}) {
     return peer
   }
 
-  return { join, wire, settle: () => new Promise((resolve) => setTimeout(resolve, 30)) }
+  /**
+   * Wait for the room to go quiet, however long that takes.
+   *
+   * Drains rather than sleeps: one peer's send delivers to another, whose open
+   * queues more work, so a single await is not enough and a fixed one is a race.
+   * The cap is there to fail as a test rather than as a hang.
+   */
+  const settle = async () => {
+    const deadline = Date.now() + 2_000
+
+    do {
+      await Promise.all([...pending])
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    } while (pending.size > 0 && Date.now() < deadline)
+  }
+
+  return { join, wire, settle }
 }
 
 /** The complaints are sentences meant for an operator, so match on what they say. */
