@@ -1,8 +1,11 @@
+import 'fake-indexeddb/auto'
+
 import { describe, expect, it, vi } from 'vitest'
 
 import * as Doc from '../src/velcro/doc'
-import { definePlugin, isPlugin, PluginBase } from '../src/services/plugin'
+import { defaultConfig, definePlugin, isPlugin, PluginBase, PluginHandler } from '../src/services/plugin'
 import { createVelcroHost } from '../src/velcro/host'
+import { SettingsStore } from '../src/velcro/settings'
 
 /** A plugin that runs nothing, so a test can drive it by hand. */
 const fake = (name, hooks = {}) =>
@@ -200,5 +203,237 @@ describe('the emitter a plugin carries', () => {
     runtime.emit('goal', { team: 'blue' })
 
     expect(seen).toHaveBeenCalledWith({ team: 'blue' })
+  })
+})
+
+describe('config', () => {
+  it('refuses a field with no key, or an invented type', () => {
+    expect(() => definePlugin({ name: 'a', create: () => ({}), config: [{ label: 'Port' }] })).toThrow(/needs a `key`/)
+    expect(() => definePlugin({ name: 'a', create: () => ({}), config: [{ key: 'port', type: 'slider' }] })).toThrow(/expected one of/)
+  })
+
+  it('falls back to a type-appropriate empty when no default is given', () => {
+    expect(defaultConfig([{ key: 'port', type: 'number', default: 49122 }, { key: 'name' }, { key: 'on', type: 'boolean' }])).toEqual({
+      port: 49122,
+      name: '',
+      on: false,
+    })
+  })
+
+  it('reaches a plugin as the shipped defaults when nothing is stored', async () => {
+    let seen
+
+    const studio = createVelcroHost({
+      name: `cfg-${Math.random()}`,
+      persist: false,
+      plugins: [
+        definePlugin({
+          name: 'rl',
+          config: [{ key: 'port', type: 'number', default: 49122 }],
+          create: (context) => {
+            seen = context.config
+            return new PluginBase('rl')
+          },
+        }),
+      ],
+    })
+
+    await studio.started
+
+    expect(seen).toEqual({ port: 49122 })
+  })
+
+  it('is stored per studio, restarts the plugin, and comes back on the next load', async () => {
+    const name = `cfg-${Math.random()}`
+    const ports = []
+
+    const plugin = () =>
+      definePlugin({
+        name: 'rl',
+        label: 'Rocket League',
+        config: [{ key: 'port', type: 'number', default: 49122 }],
+        create: (context) => {
+          ports.push(context.config.port)
+          return new PluginBase('rl')
+        },
+      })
+
+    const studio = createVelcroHost({ name, persist: false, plugins: [plugin()] })
+
+    await studio.started
+    expect(await studio.configurePlugin('rl', { port: 5000 })).toEqual({ ok: true })
+
+    // Rebuilt against the new value rather than left running on the old one: the
+    // config is the address of the thing it talks to.
+    expect(ports).toEqual([49122, 5000])
+    expect(await new SettingsStore(name).get('plugin:rl')).toEqual({ port: 5000 })
+
+    const again = createVelcroHost({ name, persist: false, plugins: [plugin()] })
+
+    await again.started
+    expect(ports.at(-1)).toBe(5000)
+  })
+
+  it('fills in a field added by a later version of a plugin', async () => {
+    const name = `cfg-${Math.random()}`
+
+    // What an operator who configured the old version has stored.
+    await new SettingsStore(name).set('plugin:rl', { port: 5000 })
+
+    let seen
+
+    const studio = createVelcroHost({
+      name,
+      persist: false,
+      plugins: [
+        definePlugin({
+          name: 'rl',
+          config: [
+            { key: 'port', type: 'number', default: 49122 },
+            { key: 'team', default: 'blue' },
+          ],
+          create: (context) => {
+            seen = context.config
+            return new PluginBase('rl')
+          },
+        }),
+      ],
+    })
+
+    await studio.started
+
+    expect(seen).toEqual({ port: 5000, team: 'blue' })
+  })
+
+  it('says so rather than throwing when asked about a plugin that is not installed', async () => {
+    const studio = createVelcroHost({ name: `cfg-${Math.random()}`, persist: false, plugins: [] })
+
+    await studio.started
+
+    expect(await studio.configurePlugin('nope', {})).toMatchObject({ ok: false })
+  })
+})
+
+describe('the manifest a board reads', () => {
+  it('carries what to render and what it is set to', async () => {
+    const studio = createVelcroHost({
+      name: `man-${Math.random()}`,
+      persist: false,
+      plugins: [
+        definePlugin({
+          name: 'rl',
+          label: 'Rocket League',
+          config: [{ key: 'port', type: 'number', default: 49122, label: 'Port' }],
+          create: () => {
+            const runtime = new PluginBase('rl')
+
+            runtime.status = 'connected'
+
+            return runtime
+          },
+        }),
+      ],
+    })
+
+    await studio.started
+
+    // The worker answers, because the worker is where plugins are declared.
+    expect(await studio.pluginManifest()).toEqual([
+      {
+        name: 'rl',
+        label: 'Rocket League',
+        config: [{ key: 'port', type: 'number', default: 49122, label: 'Port' }],
+        values: { port: 49122 },
+        status: 'connected',
+      },
+    ])
+  })
+})
+
+describe('the handler a studio author fills in', () => {
+  class Skeleton extends PluginHandler {
+    static handles = { GoalScored: 'onGoalScored', MatchEnded: 'onMatchEnded' }
+
+    onGoalScored() {}
+
+    onMatchEnded() {}
+  }
+
+  it('calls only the methods that were overridden, with `this` intact', () => {
+    const events = new PluginBase('rl').events
+    const goals = []
+
+    class MyShow extends Skeleton {
+      constructor(context) {
+        super(context)
+        this.tally = 0
+      }
+
+      onGoalScored({ scorer }) {
+        this.tally += 1
+        goals.push(`${scorer} (${this.tally})`)
+      }
+    }
+
+    const handler = new MyShow({ mutate: () => {}, owner: () => true, studio: 's' })
+
+    handler.attach(events)
+
+    events.emit('GoalScored', { scorer: 'Ada' })
+    events.emit('GoalScored', { scorer: 'Kim' })
+    events.emit('MatchEnded', {})
+
+    // A class rather than a callback so a handler has somewhere to keep what it
+    // needs between events.
+    expect(goals).toEqual(['Ada (1)', 'Kim (2)'])
+  })
+
+  it('inherits the map without a subclass restating it', () => {
+    const events = new PluginBase('rl').events
+    const seen = vi.fn()
+
+    class MyShow extends Skeleton {
+      onMatchEnded(...args) {
+        seen(...args)
+      }
+    }
+
+    new MyShow({ mutate: () => {} }).attach(events)
+    events.emit('MatchEnded', { WinnerTeamNum: 0 })
+
+    expect(seen).toHaveBeenCalledWith({ WinnerTeamNum: 0 })
+  })
+
+  it('detaches everything at once', () => {
+    const events = new PluginBase('rl').events
+    const seen = vi.fn()
+
+    class MyShow extends Skeleton {
+      onGoalScored(...args) {
+        seen(...args)
+      }
+    }
+
+    const off = new MyShow({ mutate: () => {} }).attach(events)
+
+    off()
+    events.emit('GoalScored', {})
+
+    expect(seen).not.toHaveBeenCalled()
+    expect(events.count('GoalScored')).toBe(0)
+  })
+
+  it('warns about a mapping that points at nothing rather than failing silently', () => {
+    const complain = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    class Broken extends PluginHandler {
+      static handles = { GoalScored: 'onGaolScored' }
+    }
+
+    new Broken({ mutate: () => {} }).attach(new PluginBase('rl').events)
+
+    expect(complain).toHaveBeenCalledWith(expect.stringContaining('onGaolScored'))
+
+    complain.mockRestore()
   })
 })

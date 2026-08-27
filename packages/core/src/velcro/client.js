@@ -299,6 +299,27 @@ export class VelcroClient {
     return this.#request('peek', { path: normalize(path) })
   }
 
+  /**
+   * What plugins this studio has, what they can be asked, and what they are set to.
+   *
+   * Answered by the worker, which is where plugins are declared. A board keeping
+   * its own list would be a second place to edit and a second place to be wrong.
+   */
+  plugins() {
+    return this.#request('plugins:list')
+  }
+
+  /**
+   * Set one plugin's config and restart it against the new values.
+   *
+   * @param {string} plugin
+   * @param {Record<string, unknown>} values
+   * @returns {Promise<{ ok: boolean, reason?: string }>}
+   */
+  configurePlugin(plugin, values) {
+    return this.#request('plugins:configure', { plugin, values })
+  }
+
   /** Whole-document read, for debugging and the dev harness. */
   snapshot() {
     return this.#request('snapshot')

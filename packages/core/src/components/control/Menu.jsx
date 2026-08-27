@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AssetLibraryDialog } from './AssetLibrary'
 import { Collaborate, CollaborateDialog } from './Collaborate'
 import { HotkeysDialog } from './Hotkeys'
+import { PluginsDialog } from './Plugins'
 import { ResetDialog } from './Reset'
 import { SourceListDialog } from './SourceList'
 import { cx } from '../../toolkits/cx'
@@ -26,6 +27,7 @@ const ITEMS = [
   { key: 'images', icon: 'image', label: 'Image store', hint: 'Add, name and remove images' },
   { key: 'sources', icon: 'screen', label: 'Browser sources', hint: 'The URLs to paste into OBS' },
   { key: 'hotkeys', icon: 'keyboard', label: 'Keyboard shortcuts', hint: 'Choose the keys that save and discard' },
+  { key: 'plugins', icon: 'plug', label: 'Plugins', hint: 'Settings for whatever this studio pulls data from' },
   // Last, and on its own side of a rule. Everything above opens something; this one
   // undoes something, and a destructive item sitting flush against three harmless
   // ones is a mis-click waiting for a bad night.
@@ -124,6 +126,7 @@ export function Menu({ className, ...rest }) {
       {showing === 'images' ? <AssetLibraryDialog open onClose={close} /> : null}
       {showing === 'sources' ? <SourceListDialog open onClose={close} /> : null}
       {showing === 'hotkeys' ? <HotkeysDialog open onClose={close} /> : null}
+      {showing === 'plugins' ? <PluginsDialog open onClose={close} /> : null}
       {showing === 'reset' ? <ResetDialog open onClose={close} /> : null}
     </span>
   )

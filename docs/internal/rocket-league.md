@@ -98,6 +98,26 @@ third reads.
 
 ## What this means for the plugin
 
+**30Hz is measured, not feared.** `test/tick-rate.test.js` runs 300 ticks and counts
+the update frames the document actually produced:
+
+| What the feed sends, 30Hz for 10s  | Frames | Why                                  |
+| ---------------------------------- | ------ | ------------------------------------ |
+| Names and scores, nothing changing | 1      | `writeOne` compares before it writes |
+| Same, one goal midway              | 2      | One per thing that happened          |
+| A clock ticking once a second      | 10     | The rate of the value, not the feed  |
+| 6 players' boost and speed         | 300    | The values really are all different  |
+
+So the resend rate costs nothing. **The rate of change is the whole cost**, and only
+genuine telemetry has one — roughly 4.8 kB/s for six players' boost and speed, every
+byte persisted to IndexedDB and replicated to every peer, for numbers that are stale
+before anybody reads them.
+
+That is not fixable by comparison and should not go in the document. A live boost
+meter wants a transient path that fans out to graphics without being stored, the
+way presence already works. Nothing needs it yet, and it should not be built until
+something does.
+
 **The tick is the problem to solve, not the events.** At a `PacketSendRate` of 30,
 `UpdateState` carries every player's boost and speed thirty times a second. Writing
 that into a replicated document would be thirty transactions a second, each
