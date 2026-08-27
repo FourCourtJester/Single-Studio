@@ -1257,6 +1257,23 @@ check(await becomes(control, () => document.querySelector('#ss-plugin-field-labe
 // studio's handler, which writes through the ordinary mutation path.
 check(await becomes(match, sceneHas, 'rehearsal'), 'the restarted plugin drives the graphic with the new config')
 
+// Help is written by whoever knows how the thing works and shown where the question
+// gets asked. It crosses postMessage from the worker, so it is data rather than
+// markup -- a plugin cannot put HTML on an operator's board.
+check(
+  (await control.locator('.ss-plugin[data-plugin="feed"] .ss-plugin-summary').textContent()).includes('Ticks on a timer'),
+  'a plugin says in one line what it is',
+)
+check((await control.locator('.ss-help').count()) === 0, 'setup instructions stay out of the way until asked for')
+
+await control.locator('.ss-help-toggle').click()
+check(await becomes(control, () => /talks to nothing/.test(document.querySelector('.ss-help')?.textContent ?? '')), 'and open when they are')
+check((await control.locator('.ss-help-steps li').count()) === 3, 'numbered steps render as steps')
+check((await control.locator('.ss-help-note').count()) === 1, 'and a warning renders as one')
+
+await control.locator('.ss-help-toggle').click()
+check(await becomes(control, () => !document.querySelector('.ss-help')), 'and close again')
+
 // A value it will not start on is reported rather than swallowed.
 await rate.fill('0')
 await control.locator('.ss-plugin-save').click()

@@ -73,6 +73,12 @@ export const feed = (Handler = FeedHandler) =>
   definePlugin({
     name: 'feed',
     label: 'Demo feed',
+    summary: 'Ticks on a timer, so the plugin seam has something to exercise.',
+    help: [
+      { type: 'text', text: 'This one talks to nothing. It exists so the wiring can be tested without a game running.' },
+      { type: 'steps', items: ['Change the name or the rate', 'Press Save and reconnect', 'Watch the count on the Match graphic follow'] },
+      { type: 'note', text: 'A rate of zero is refused, because an interval that never fires looks identical to a plugin that is running fine.' },
+    ],
     config: [
       { key: 'label', label: 'What to call it', default: 'Feed', help: 'Written to the scene beside the count.' },
       { key: 'rate', label: 'Ticks per minute', type: 'number', default: 120 },

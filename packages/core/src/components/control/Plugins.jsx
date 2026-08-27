@@ -60,6 +60,82 @@ function Field({ field, value, onChange }) {
   )
 }
 
+/**
+ * One block of a plugin's help.
+ *
+ * Rendered as elements, never as HTML. The content came across `postMessage` from
+ * a dependency a studio installed, and a markdown string would mean a parser and
+ * `dangerouslySetInnerHTML` -- which is a way of letting a package put arbitrary
+ * markup on an operator's board. Here the worst it can do is write dull text.
+ */
+function Block({ block }) {
+  if (block.type === 'steps') {
+    return (
+      <ol className="ss-help-steps ml-4 list-decimal space-y-1 text-xs text-slate-400 marker:text-slate-600">
+        {(block.items ?? []).map((item, index) => (
+           
+          <li key={index}>{item}</li>
+        ))}
+      </ol>
+    )
+  }
+
+  if (block.type === 'code') {
+    return <pre className="ss-help-code overflow-x-auto rounded bg-slate-950 px-2.5 py-2 font-mono text-[11px] text-slate-300">{block.text}</pre>
+  }
+
+  if (block.type === 'link') {
+    return (
+      <a
+        href={block.href}
+        target="_blank"
+        // `noreferrer` as well as `noopener`: the target is a URL a plugin chose,
+        // and there is no reason it should learn where the operator came from.
+        rel="noopener noreferrer"
+        className="ss-help-link text-xs text-sky-400 underline decoration-sky-400/40 underline-offset-2 hover:decoration-sky-400"
+      >
+        {block.label || block.href}
+      </a>
+    )
+  }
+
+  if (block.type === 'note') {
+    return <p className="ss-help-note rounded border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-xs text-amber-200/90">{block.text}</p>
+  }
+
+  return <p className="ss-help-text text-xs text-slate-400">{block.text}</p>
+}
+
+/** Setup instructions, written by whoever knows, shown where the question is asked. */
+function Help({ blocks, plugin }) {
+  const [open, setOpen] = useState(false)
+
+  if (!blocks?.length) return null
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((was) => !was)}
+        aria-expanded={open}
+        aria-controls={`ss-help-${plugin}`}
+        className="ss-help-toggle self-start text-xs text-slate-500 underline decoration-slate-700 underline-offset-2 transition-colors hover:text-slate-300"
+      >
+        {open ? 'Hide setup' : 'How do I set this up?'}
+      </button>
+
+      {open ? (
+        <div id={`ss-help-${plugin}`} className="ss-help mt-1 flex flex-col gap-2 rounded-md border border-slate-800 bg-slate-950/50 p-3">
+          {blocks.map((block, index) => (
+             
+            <Block key={index} block={block} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  )
+}
+
 /** One plugin: what it is, whether it is talking, and what it can be asked. */
 function Entry({ plugin, onSave }) {
   const [draft, setDraft] = useState(plugin.values ?? {})
@@ -90,6 +166,10 @@ function Entry({ plugin, onSave }) {
         <h3 className="grow text-sm font-medium text-slate-100">{plugin.label ?? plugin.name}</h3>
         <span className="text-xs text-slate-500">{SAYS[status] ?? status}</span>
       </header>
+
+      {plugin.summary ? <p className="ss-plugin-summary -mt-0.5 text-xs text-slate-500">{plugin.summary}</p> : null}
+
+      <Help blocks={plugin.help} plugin={plugin.name} />
 
       {plugin.config?.length ? (
         <>

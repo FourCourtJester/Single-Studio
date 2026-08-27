@@ -343,6 +343,8 @@ export function createVelcroHost(config = {}) {
       list.push({
         name: pluginName,
         label: definition.label,
+        summary: definition.summary,
+        help: definition.help,
         config: definition.config,
         values: await configFor(definition),
         status: plugins.get(pluginName)?.status ?? 'idle',

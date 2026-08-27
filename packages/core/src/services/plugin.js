@@ -123,6 +123,28 @@ export class PluginHandler {
 const FIELD_TYPES = new Set(['text', 'number', 'boolean', 'secret'])
 
 /**
+ * The blocks a plugin's help can be made of.
+ *
+ * Structured rather than markdown, for two reasons that both matter. The help
+ * crosses `postMessage` from the worker, so it has to be JSON -- and a markdown
+ * string would need a parser and then `dangerouslySetInnerHTML`, which is a way of
+ * letting a dependency put arbitrary HTML on an operator's board.
+ *
+ * These render as React elements with no HTML parsing anywhere, so the worst a
+ * badly-behaved plugin can do is write unhelpful text.
+ */
+const HELP_BLOCKS = new Set(['text', 'steps', 'code', 'link', 'note'])
+
+/**
+ * @typedef {object} HelpBlock
+ * @property {'text'|'steps'|'code'|'link'|'note'} type
+ * @property {string} [text] For `text`, `code` and `note`.
+ * @property {string[]} [items] For `steps`, in order.
+ * @property {string} [href] For `link`.
+ * @property {string} [label] For `link`. Falls back to the href.
+ */
+
+/**
  * @typedef {object} PluginField
  * @property {string} key
  * @property {string} label What the operator reads.
@@ -150,12 +172,21 @@ const FIELD_TYPES = new Set(['text', 'number', 'boolean', 'secret'])
  * port is a fact about one computer.
  *
  * @param {object} definition
+ * `help` is what an operator reads when they open the plugin and do not know what
+ * any of the fields mean. A plugin author knows that "Tools -> WebSocket Server
+ * Settings" is where the port comes from, and the operator in front of the board at
+ * five to seven does not. Written once, by the person who knows, and shown where
+ * the question is asked.
+ *
+ * @param {object} definition
  * @param {string} definition.name Identifies it in status and in errors. Kebab-case.
  * @param {string} [definition.label] What the board calls it. Defaults to `name`.
+ * @param {string} [definition.summary] One line, under the name, always visible.
+ * @param {HelpBlock[]} [definition.help] Setup instructions, shown on request.
  * @param {PluginField[]} [definition.config] Fields the operator can set.
  * @param {(context: PluginContext) => PluginRuntime} definition.create
  */
-export function definePlugin({ name, label, config = [], create }) {
+export function definePlugin({ name, label, summary, help = [], config = [], create }) {
   if (!name || typeof name !== 'string') throw new TypeError('definePlugin needs a `name`')
   if (typeof create !== 'function') throw new TypeError(`plugin "${name}" needs a \`create\` function`)
   if (!Array.isArray(config)) throw new TypeError(`plugin "${name}": \`config\` must be an array of fields`)
@@ -167,7 +198,15 @@ export function definePlugin({ name, label, config = [], create }) {
     }
   }
 
-  return { [TAG]: true, name, label: label ?? name, config, create }
+  if (!Array.isArray(help)) throw new TypeError(`plugin "${name}": \`help\` must be an array of blocks`)
+
+  for (const block of help) {
+    if (!HELP_BLOCKS.has(block?.type)) {
+      throw new TypeError(`plugin "${name}": a help block has type "${block?.type}"; expected one of ${[...HELP_BLOCKS].join(', ')}`)
+    }
+  }
+
+  return { [TAG]: true, name, label: label ?? name, summary: summary ?? '', help, config, create }
 }
 
 /**

@@ -323,6 +323,8 @@ describe('the manifest a board reads', () => {
         definePlugin({
           name: 'rl',
           label: 'Rocket League',
+          summary: 'Reads the game.',
+          help: [{ type: 'steps', items: ['Turn it on'] }],
           config: [{ key: 'port', type: 'number', default: 49122, label: 'Port' }],
           create: () => {
             const runtime = new PluginBase('rl')
@@ -342,6 +344,10 @@ describe('the manifest a board reads', () => {
       {
         name: 'rl',
         label: 'Rocket League',
+        // Carried across postMessage so the board can render setup instructions
+        // written by whoever knows how the thing works.
+        summary: 'Reads the game.',
+        help: [{ type: 'steps', items: ['Turn it on'] }],
         config: [{ key: 'port', type: 'number', default: 49122, label: 'Port' }],
         values: { port: 49122 },
         status: 'connected',
@@ -435,5 +441,45 @@ describe('the handler a studio author fills in', () => {
     expect(complain).toHaveBeenCalledWith(expect.stringContaining('onGaolScored'))
 
     complain.mockRestore()
+  })
+})
+
+describe('help', () => {
+  it('defaults to nothing, so a plugin need not have any', () => {
+    const definition = definePlugin({ name: 'plain', create: () => ({}) })
+
+    expect(definition.help).toEqual([])
+    expect(definition.summary).toBe('')
+  })
+
+  it('refuses a block type the board cannot render', () => {
+    // Caught where the mistake is, rather than rendering nothing on a board at
+    // five to seven.
+    expect(() => definePlugin({ name: 'a', create: () => ({}), help: [{ type: 'video', src: 'x' }] })).toThrow(/expected one of/)
+    expect(() => definePlugin({ name: 'a', create: () => ({}), help: [{ text: 'no type' }] })).toThrow(/expected one of/)
+  })
+
+  it('insists it is a list', () => {
+    expect(() => definePlugin({ name: 'a', create: () => ({}), help: 'just a string' })).toThrow(/must be an array/)
+  })
+
+  it('takes the blocks a plugin author actually needs', () => {
+    const help = [
+      { type: 'text', text: 'What this is' },
+      { type: 'steps', items: ['One', 'Two'] },
+      { type: 'code', text: 'scopes here' },
+      { type: 'link', href: 'https://example.com', label: 'The console' },
+      { type: 'note', text: 'Mind this' },
+    ]
+
+    expect(definePlugin({ name: 'a', create: () => ({}), help }).help).toEqual(help)
+  })
+
+  it('survives the trip a manifest makes', () => {
+    // The whole constraint on the format: it crosses postMessage, so it has to be
+    // structured clone-able. A React element would not be.
+    const help = [{ type: 'steps', items: ['One'] }]
+
+    expect(JSON.parse(JSON.stringify(help))).toEqual(help)
   })
 })

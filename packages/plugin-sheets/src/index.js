@@ -1,11 +1,8 @@
-import { definePlugin, Emitter, PluginHandler, Service } from '@single-studio/core/worker'
+import { definePlugin, PluginHandler, PollingService } from '@single-studio/core/worker'
 
-import { explain, parse, same, urlFor } from './sheet'
+import { explain, parse, urlFor } from './sheet'
 
 export { explain, keyOf, parse, same, urlFor } from './sheet'
-
-/** Google allows 60 reads a minute per user. One a second is a rate limit waiting. */
-const FLOOR_SECONDS = 5
 
 /**
  * A shared spreadsheet as a data source.
@@ -24,96 +21,49 @@ const FLOOR_SECONDS = 5
  * one sheet's worth of information. `Service` already answers that: exactly one
  * machine asks, and everybody else reads the replicated result.
  */
-class Sheets extends Service {
+class Sheets extends PollingService {
   static serviceName = 'sheets'
 
-  #timer = null
-
-  #last = null
-
-  events = new Emitter()
-
-  constructor(context) {
-    super({ mutate: context.mutate, owner: context.owner })
-
-    this.config = context.config
-    this.studio = context.studio
+  /** Google allows sixty reads a minute per user. One a second is a limit waiting. */
+  get floorSeconds() {
+    return 5
   }
 
-  /** Seconds between reads, floored so a typo cannot burn a quota. */
-  get every() {
-    return Math.max(FLOOR_SECONDS, Number(this.config.every) || 30)
-  }
-
-  async open() {
-    // The first read decides whether this is working, so a wrong id or a private
-    // sheet is reported at once rather than on a timer nobody is watching.
-    await this.#poll(true)
-
-    this.#timer = setInterval(() => {
-      this.#poll().catch(() => {})
-    }, this.every * 1000)
-  }
-
-  async close() {
-    clearInterval(this.#timer)
-    this.#timer = null
-  }
-
-  /**
-   * Ask once.
-   *
-   * @param {boolean} [first] Throw rather than back off, so `open()` can fail loudly.
-   */
-  async #poll(first = false) {
-    if (!this.owns) return
-
-    let response
-
-    try {
-      response = await fetch(urlFor({ id: this.config.id, range: this.config.range, key: this.config.key }))
-    } catch (error) {
-      // A network blip is not a misconfiguration. Backoff handles it; the operator
-      // does not need telling twice a minute.
-      if (first) throw error
-
-      this.dropped(error)
-
-      return
-    }
-
+  async read() {
+    const response = await fetch(urlFor({ id: this.config.id, range: this.config.range, key: this.config.key }))
     const body = await response.json().catch(() => ({}))
 
     if (!response.ok) {
       const problem = new Error(explain(response.status, body))
 
-      // A refusal is not something a retry fixes -- a private sheet stays private
-      // however many times it is asked. Said once, and the plugin stops.
-      this.emit('problem', { status: response.status, message: problem.message })
+      // Marked so `fatal` can tell a refusal from a dropped network without
+      // matching on the message text.
+      problem.refused = true
+      problem.status = response.status
 
-      if (first) throw problem
-
-      this.status = 'error'
-      clearInterval(this.#timer)
-      this.#timer = null
-
-      return
+      throw problem
     }
 
-    const next = parse(body, { header: this.config.header !== false })
-
-    // The whole reason polling is cheap. An unchanged sheet says nothing, so the
-    // studio's handler and every mutation it would make run only on a real edit.
-    if (this.#last && same(this.#last, next)) return
-
-    this.#last = next
-    this.status = 'connected'
-
-    this.emit('rows', { rows: next.rows, header: next.header, count: next.count })
+    return parse(body, { header: this.config.header !== false })
   }
 
-  emit(...args) {
-    return this.events.emit(...args)
+  /**
+   * A refusal is not something a retry fixes: a private sheet stays private however
+   * many times it is asked, and retrying only spends quota to be refused again. A
+   * dropped network is the opposite.
+   */
+  fatal(error) {
+    return Boolean(error?.refused)
+  }
+
+  /** The status is what a handler wants; the sentence is what a board shows. */
+  problemOf(error) {
+    return { status: error?.status ?? null, message: error?.message ?? String(error) }
+  }
+
+  /** `rows` rather than the base class's `changed`, because that is what it is. */
+  publish(next) {
+    this.emit('rows', { rows: next.rows, header: next.header, count: next.count })
   }
 }
 
@@ -131,6 +81,26 @@ export const sheets = (Handler = SheetsHandler) =>
   definePlugin({
     name: 'sheets',
     label: 'Google Sheet',
+    summary: 'Reads a spreadsheet, so anybody on the team can update the show from a browser.',
+    help: [
+      { type: 'text', text: 'Two things are needed: the sheet has to be readable by anyone with its link, and you need a Google API key.' },
+      {
+        type: 'steps',
+        items: [
+          'Open the sheet, press Share, and set General access to "Anyone with the link" as a Viewer.',
+          'Copy the long id out of the sheet’s address — it is the part between /d/ and /edit.',
+          'Go to console.cloud.google.com, make a project if you have none, and enable the Google Sheets API for it.',
+          'Under APIs & Services → Credentials, create an API key and paste it above.',
+          'Set the range to the cells you want, like Standings!A1:D20.',
+        ],
+      },
+      { type: 'link', href: 'https://console.cloud.google.com/apis/credentials', label: 'Google Cloud credentials' },
+      {
+        type: 'note',
+        text: 'The key only ever reads, and only what the sheet’s own sharing already allows. It is worth restricting it to the Sheets API in the Cloud console.',
+      },
+      { type: 'text', text: 'The first row is used as column names by default, so a heading of "Team Name" becomes teamName in your graphics.' },
+    ],
     config: [
       { key: 'id', label: 'Spreadsheet id', help: 'The long id in the sheet’s URL, between /d/ and /edit.' },
       { key: 'range', label: 'Range', default: 'A:Z', help: 'A1 notation, like Standings!A1:D20.' },

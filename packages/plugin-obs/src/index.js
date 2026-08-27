@@ -1,4 +1,4 @@
-import { definePlugin, Emitter, PluginHandler, Service } from '@single-studio/core/worker'
+import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
 import { categoriesFor, EVENTS, normalise } from './events'
 import { authenticate, classify, identify, maskOf, request } from './protocol'
@@ -22,22 +22,16 @@ export { EVENTS, categoriesFor, normalise } from './events'
  * and never announces the present, so a studio that only listened would not know
  * the scene until somebody changed it. The plugin asks once on connect.
  */
-class Obs extends Service {
+class Obs extends SocketService {
   static serviceName = 'obs'
-
-  #socket = null
 
   #pending = new Map()
 
   #nextId = 0
 
-  events = new Emitter()
-
-  constructor(context) {
-    super({ mutate: context.mutate, owner: context.owner })
-
-    this.config = context.config
-    this.studio = context.studio
+  /** Not usable until identified, so `open()` waits for that rather than the socket. */
+  get readyOnOpen() {
+    return false
   }
 
   get types() {
@@ -56,31 +50,7 @@ class Obs extends Service {
     return `ws://${host}:${port}`
   }
 
-  open() {
-    return new Promise((resolve, reject) => {
-      const socket = new WebSocket(this.url)
-
-      this.#socket = socket
-
-      socket.addEventListener('message', (message) => this.#read(message, resolve, reject))
-      socket.addEventListener('error', () =>
-        reject(new Error(`Could not reach OBS at ${this.url}. Is obs-websocket enabled under Tools -> WebSocket Server Settings?`)),
-      )
-      socket.addEventListener('close', () => {
-        if (socket === this.#socket) this.dropped(new Error('OBS closed the connection.'))
-      })
-    })
-  }
-
-  async #read(message, resolve, reject) {
-    let raw
-
-    try {
-      raw = JSON.parse(message.data)
-    } catch {
-      return
-    }
-
+  async receive(raw) {
     const action = classify(raw)
 
     switch (action.do) {
@@ -89,14 +59,14 @@ class Obs extends Service {
         // is refused, and refusing to connect because a studio left the field empty
         // would be wrong for the common case of authentication switched off.
         if (action.auth && !this.config.password) {
-          reject(new Error('OBS is asking for a password, and none is set.'))
+          this.fail(new Error('OBS is asking for a password, and none is set.'))
 
           return
         }
 
         const authentication = action.auth ? await authenticate(this.config.password, action.auth.salt, action.auth.challenge) : undefined
 
-        this.#send(
+        this.send(
           identify({
             rpcVersion: action.rpcVersion,
             authentication,
@@ -113,7 +83,10 @@ class Obs extends Service {
         // OBS announces changes and never announces the present. Without this a
         // studio does not know the scene until somebody changes it -- which on a
         // quiet show could be the whole broadcast.
-        this.#prime().then(resolve, resolve)
+        this.#prime().then(
+          () => this.ready(),
+          () => this.ready(),
+        )
 
         return
 
@@ -139,10 +112,6 @@ class Obs extends Service {
     }
   }
 
-  #send(frame) {
-    this.#socket?.send(JSON.stringify(frame))
-  }
-
   /**
    * Ask something and wait for the matching reply.
    *
@@ -154,7 +123,7 @@ class Obs extends Service {
 
     return new Promise((resolve) => {
       this.#pending.set(id, resolve)
-      this.#send(request(requestType, id, requestData))
+      this.send(request(requestType, id, requestData))
     })
   }
 
@@ -178,15 +147,8 @@ class Obs extends Service {
   }
 
   async close() {
-    const socket = this.#socket
-
-    this.#socket = null
     this.#pending.clear()
-    socket?.close()
-  }
-
-  emit(...args) {
-    return this.events.emit(...args)
+    await super.close()
   }
 }
 
@@ -231,6 +193,25 @@ export const obs = (Handler = ObsHandler) =>
   definePlugin({
     name: 'obs',
     label: 'OBS',
+    summary: 'Reads the live scene, and whether you are streaming or recording.',
+    help: [
+      { type: 'text', text: 'OBS can already do this — there is nothing to install. It just has to be switched on.' },
+      {
+        type: 'steps',
+        items: [
+          'In OBS, open Tools → WebSocket Server Settings.',
+          'Tick "Enable WebSocket server".',
+          'Leave the port as 4455 unless you have a reason to change it.',
+          'If "Enable Authentication" is ticked, press "Show Connect Info" and copy the password into the field above. If it is not ticked, leave the password blank.',
+          'Press Apply, then Save and reconnect here.',
+        ],
+      },
+      { type: 'note', text: 'Running OBS on another machine? Put its address in Host, and make sure that machine allows the connection through its firewall.' },
+      {
+        type: 'text',
+        text: 'Once connected, your graphics can react to the scene that is live — a lower third that hides itself when the camera cuts away, or a badge that only shows while you are actually streaming.',
+      },
+    ],
     config: [
       { key: 'host', label: 'Host', default: 'localhost', help: 'The machine running OBS. Usually this one.' },
       { key: 'port', label: 'Port', type: 'number', default: 4455, help: 'Tools → WebSocket Server Settings.' },

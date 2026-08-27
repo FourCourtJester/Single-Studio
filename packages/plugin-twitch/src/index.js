@@ -1,4 +1,4 @@
-import { definePlugin, Emitter, PluginHandler, Service } from '@single-studio/core/worker'
+import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
 import { EVENTS, normalise } from './events'
 import { Protocol } from './protocol'
@@ -22,31 +22,26 @@ const HELIX = 'https://api.twitch.tv/helix/eventsub/subscriptions'
  * the session handshake, the keepalive watchdog, and the subscriptions that have to
  * be created after connecting rather than before.
  */
-class Twitch extends Service {
+class Twitch extends SocketService {
   static serviceName = 'twitch'
-
-  #socket = null
 
   /** The socket being handed over to, during a reconnect. */
   #next = null
 
-  #watchdog = null
-
   #protocol = new Protocol()
 
-  /** Settled by the first welcome, so `open()` resolves only once subscribed. */
-  #opened = null
+  /** Not usable until subscribed, so `open()` waits for that rather than the socket. */
+  get readyOnOpen() {
+    return false
+  }
 
-  /** The emitter a studio's handler is attached to. */
-  events = new Emitter()
+  get url() {
+    return EVENTSUB
+  }
 
-  constructor(context) {
-    super({ mutate: context.mutate, owner: context.owner })
-
-    // `name` comes from Service, off `serviceName`. Assigning it throws, because
-    // the base declares it as a getter.
-    this.config = context.config
-    this.studio = context.studio
+  /** Sized by what Twitch said in the welcome rather than by a guess. */
+  get silenceBudgetMs() {
+    return this.#protocol.silenceBudgetMs
   }
 
   /** The events this studio asked for, or all of them. */
@@ -59,66 +54,35 @@ class Twitch extends Service {
     return asked.length ? asked : Object.keys(EVENTS)
   }
 
-  async open() {
-    if (!this.config.token) throw new Error('Not signed in to Twitch yet.')
-    if (!this.config.clientId) throw new Error('A Twitch application Client ID is needed.')
-    if (!this.config.broadcasterId) throw new Error('The broadcaster user id is needed.')
+  open() {
+    if (!this.config.token) return Promise.reject(new Error('Not signed in to Twitch yet.'))
+    if (!this.config.clientId) return Promise.reject(new Error('A Twitch application Client ID is needed.'))
+    if (!this.config.broadcasterId) return Promise.reject(new Error('The broadcaster user id is needed.'))
 
-    await this.#connect(EVENTSUB)
+    return super.open()
   }
 
-  #connect(url) {
-    return new Promise((resolve, reject) => {
-      this.#opened = { resolve, reject }
-
-      const socket = new WebSocket(url)
-
-      socket.addEventListener('message', (message) => this.#read(socket, message))
-      socket.addEventListener('error', () => reject(new Error('Could not reach Twitch EventSub.')))
-      socket.addEventListener('close', () => {
-        // Only if this is still the live socket: a reconnect closes the old one on
-        // purpose, and treating that as a drop would restart a healthy connection.
-        if (socket === this.#socket) this.dropped(new Error('EventSub closed the connection.'))
-      })
-    })
-  }
-
-  async #read(socket, message) {
-    let raw
-
-    try {
-      raw = JSON.parse(message.data)
-    } catch {
-      return
-    }
-
+  async receive(raw, socket) {
     const action = this.#protocol.handle(raw)
-
-    // Any message at all means the connection is alive, which is what the watchdog
-    // is actually measuring -- not keepalives specifically.
-    this.#pet()
 
     switch (action.do) {
       case 'subscribe': {
         // A welcome on the incoming socket during a handover: that one is now the
         // live one, and the old can go.
         if (socket === this.#next) {
-          this.#socket?.close()
-          this.#socket = this.#next
-          this.#next = null
-
           // Subscriptions belong to the session, and the new session already has
           // them -- Twitch carries them across a reconnect. Nothing to create.
+          this.adopt(socket)
+          this.#next = null
+
           return
         }
 
-        this.#socket = socket
-
         try {
           await this.#subscribe(action.session)
-          this.#opened?.resolve()
+          this.ready()
         } catch (error) {
-          this.#opened?.reject(error)
+          this.fail(error)
         }
 
         return
@@ -136,8 +100,16 @@ class Twitch extends Service {
       case 'reconnect':
         // Twitch hands over a URL rather than closing, so the old socket keeps
         // delivering until the new one has welcomed. Nothing is missed.
-        this.#next = new WebSocket(action.url)
-        this.#next.addEventListener('message', (event) => this.#read(this.#next, event))
+        this.#next = this.connect(action.url)
+        this.#next.addEventListener('message', (event) => {
+          this.pet()
+
+          try {
+            this.receive(JSON.parse(event.data), this.#next)
+          } catch {
+            // Not JSON, so not this protocol.
+          }
+        })
 
         return
 
@@ -150,18 +122,6 @@ class Twitch extends Service {
 
       default:
     }
-  }
-
-  /**
-   * Restart the silence timer.
-   *
-   * Twitch sends a keepalive whenever it has sent nothing else, so silence past the
-   * budget is the connection being gone without a close frame -- the failure that
-   * leaves a chat overlay looking healthy and frozen.
-   */
-  #pet() {
-    clearTimeout(this.#watchdog)
-    this.#watchdog = setTimeout(() => this.dropped(new Error('Twitch went quiet.')), this.#protocol.silenceBudgetMs)
   }
 
   /**
@@ -211,15 +171,9 @@ class Twitch extends Service {
   }
 
   async close() {
-    clearTimeout(this.#watchdog)
-    this.#socket?.close()
     this.#next?.close()
-    this.#socket = null
     this.#next = null
-  }
-
-  emit(...args) {
-    return this.events.emit(...args)
+    await super.close()
   }
 }
 
@@ -260,6 +214,32 @@ export const twitch = (Handler = TwitchHandler) =>
   definePlugin({
     name: 'twitch',
     label: 'Twitch',
+    summary: 'Chat, follows, subs, gifts, cheers and raids, straight into the show.',
+    help: [
+      {
+        type: 'note',
+        text: 'Signing in properly is not built yet, so for now this needs an access token pasted in by hand. Tokens expire, so expect to redo this.',
+      },
+      {
+        type: 'steps',
+        items: [
+          'Register an application at dev.twitch.tv/console/apps. The Client ID it gives you is public — paste it above.',
+          'Find your channel’s numeric user id (any "Twitch username to user id" tool will do) and paste it into both id fields.',
+          'Generate a user access token with the scopes below and paste it into Access token.',
+          'Save and reconnect.',
+        ],
+      },
+      { type: 'text', text: 'Scopes needed, depending on which events you want:' },
+      {
+        type: 'code',
+        text: 'user:read:chat            chat messages\nmoderator:read:followers  follows\nchannel:read:subscriptions subs, resubs and gifts\nbits:read                 cheers',
+      },
+      { type: 'link', href: 'https://dev.twitch.tv/console/apps', label: 'Twitch developer console' },
+      {
+        type: 'text',
+        text: 'Leave Events blank for all of them, or list the ones you want — a studio that only shows chat need not ask for subscription scopes at all.',
+      },
+    ],
     config: [
       { key: 'clientId', label: 'Client ID', help: 'From your app at dev.twitch.tv/console/apps. Public, not a secret.' },
       { key: 'broadcasterId', label: 'Channel user id', help: 'The numeric id of the channel to watch.' },
