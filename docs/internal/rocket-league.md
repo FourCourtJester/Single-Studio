@@ -20,6 +20,12 @@ files with nothing to run alongside it.
 - Whether anything is emitted on connect, or whether a client sees nothing until the
   next tick.
 
+Neither blocks the plugin. **Host, port and path are config fields**, so the address
+is a settings change on the night rather than a release — which is why they exist
+rather than being constants. The second question is why there is no watchdog: the
+game is silent whenever nobody is in a match, so a silence budget would drop a
+healthy connection every time an operator sat in the menu.
+
 ## Envelope
 
 Every message is the same two fields.
@@ -98,7 +104,7 @@ third reads.
 
 ## What this means for the plugin
 
-**30Hz is measured, not feared.** `test/tick-rate.test.js` runs 300 ticks and counts
+**30Hz is measured, not feared.** `packages/core/test/tick-rate.test.js` runs 300 ticks and counts
 the update frames the document actually produced:
 
 | What the feed sends, 30Hz for 10s  | Frames | Why                                  |
@@ -135,3 +141,38 @@ already extracted beats making every author read `Game.Teams[].Score` out of a t
 is Unreal's house style and not this framework's. The plugin should emit
 `{ overtime: true }`. A studio author should not have to know what engine the game
 was written in.
+
+## What was built
+
+`packages/plugin-rocket-league`. Two files: `events.js` turns a wire payload into the
+shape a studio would have written, and `index.js` is the socket, the throttle and the
+handler skeleton.
+
+Wire name to emitted name, where they differ:
+
+| Wire                                                      | Emitted                                      |
+| --------------------------------------------------------- | -------------------------------------------- |
+| `MatchInitialized`                                        | `matchReady`                                 |
+| `CountdownBegin`                                          | `countdown`                                  |
+| `GoalScored`                                              | `goal`                                       |
+| `GoalReplayStart` / `GoalReplayWillEnd` / `GoalReplayEnd` | `replayStart` / `replayEnding` / `replayEnd` |
+| `ClockUpdatedSeconds`                                     | `clock`                                      |
+| `ReplayCreated`                                           | `replaySaved`                                |
+| `StatfeedEvent`, and `StatFeedEvent`                      | `statfeed`                                   |
+| `UpdateState`                                             | `score`, `state`                             |
+
+The rest keep their names, lower-cased at the front. `normalise` answers to both
+spellings of the stat feed event, so nobody meets the lower-case `f`.
+
+`UpdateState` is the only one that becomes two events, and the only one with a
+policy:
+
+- **`score`** whenever either number changes, throttle or no throttle. `GoalScored`
+  says who scored, not what the score became, so a studio counting goals itself is
+  wrong the first time it misses one.
+- **`state`** at most every `stateEvery` milliseconds, default 250. A typed `0`
+  switches it off and goals and the clock still arrive; a _cleared_ field is not a
+  typed zero and falls back to the default.
+
+Booleans lose their `b`, teams gain a `side` of `blue` or `orange`, and team colours
+gain the `#` that makes them CSS.
