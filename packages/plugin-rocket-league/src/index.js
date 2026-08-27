@@ -16,6 +16,20 @@ export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
  * replay seek, HUD visibility -- and those are the deferred work, because a remote
  * operator pressing a button needs a way to reach the machine with the game on it.
  */
+/**
+ * The fastest the tick is ever passed on, whatever an operator types.
+ *
+ * A policy decision rather than a measurement, though the measurements agree with
+ * it: nothing on a stream updates visibly more than ten times a second, and the
+ * document pays for every emit that a handler turns into a write. Ten a second is
+ * already generous for something an eye is watching, and the events that carry
+ * meaning -- goals, the clock, the whistle -- do not come through here at all.
+ *
+ * A floor rather than a default, because the default is only the value somebody has
+ * not changed yet. This is the value they cannot.
+ */
+const FLOOR_MS = 100
+
 class RocketLeague extends SocketService {
   static serviceName = 'rocket-league'
 
@@ -24,6 +38,12 @@ class RocketLeague extends SocketService {
 
   /** When `state` was last emitted, for the throttle. */
   #statedAt = 0
+
+  /** The newest tick not yet passed on. Replaced, never queued. */
+  #pending = null
+
+  /** The timer that will pass it on. */
+  #flush = null
 
   get url() {
     const host = this.config.host || '127.0.0.1'
@@ -53,16 +73,18 @@ class RocketLeague extends SocketService {
   }
 
   /**
-   * How often the full tick is worth passing on, in milliseconds.
+   * How often the full tick is passed on, in milliseconds.
    *
    * The game sends `UpdateState` up to 120 times a second and 30 is usual. Every
    * one of those carries each player's boost and speed, and a studio that wrote
-   * them into a replicated document would be spending roughly five kilobytes a
-   * second, persisted and sent to every peer, on numbers stale before anybody reads
+   * them straight into a replicated document would spend fourteen kilobytes a
+   * second -- four megabytes over a five-minute match, persisted, and downloaded in
+   * full by every board that joins late -- on numbers stale before anybody reads
    * them.
    *
-   * Four a second is plenty for anything an eye is watching, and the events that
-   * matter -- goals, the clock, the whistle -- arrive as their own messages anyway.
+   * Four a second is the default and is plenty; ten a second is the ceiling, and
+   * `FLOOR_MS` is what makes it one. The events that carry meaning -- goals, the
+   * clock, the whistle -- arrive as their own messages and are never throttled.
    */
   get stateEveryMs() {
     // Not `|| 250`: an operator who types 0 means "stop sending me the tick", and a
@@ -74,7 +96,12 @@ class RocketLeague extends SocketService {
 
     const every = Number(set)
 
-    return Number.isFinite(every) ? Math.max(0, every) : 250
+    if (!Number.isFinite(every) || every < 0) return 250
+
+    // Zero passes through as off. Anything else is held to the floor, so a typed 8
+    // is 100 rather than 8 -- and the person who typed it gets the plugin they
+    // expected rather than the one that fills a database.
+    return every === 0 ? 0 : Math.max(FLOOR_MS, every)
   }
 
   async receive(raw) {
@@ -98,9 +125,18 @@ class RocketLeague extends SocketService {
   /**
    * The tick, which is the only part of this that needs a policy.
    *
-   * The score comes out of it whatever the throttle says, because a scoreboard
-   * changing a quarter of a second late is a scoreboard that is wrong on the replay
-   * -- and because `GoalScored` says who scored and not what the score became.
+   * Every tick is read. The score comes out of all of them, because a scoreboard a
+   * quarter of a second late is a scoreboard that is wrong on the replay -- and
+   * because `GoalScored` says who scored and not what the score became. It cannot
+   * run away with itself: it fires when a number changes, and in this game those
+   * numbers change a few times a match.
+   *
+   * The state is the sampled one, and it is *collected* rather than dropped -- the
+   * newest tick is kept and passed on when the window opens. Sampling by discarding
+   * looks the same until the feed stops, and then the last thing a studio was told
+   * is whatever arrived on a window boundary rather than what is actually on the
+   * pitch. Coalescing costs one held reference and means the final state always
+   * lands.
    */
   #tick(data) {
     const score = scoreOf(data)
@@ -114,12 +150,47 @@ class RocketLeague extends SocketService {
 
     if (!every) return
 
-    const now = Date.now()
+    // Replaced, not queued. There is no value in yesterday's tick.
+    this.#pending = data
 
-    if (now - this.#statedAt < every) return
+    const due = this.#statedAt + every - Date.now()
 
-    this.#statedAt = now
+    // Leading edge, so the first tick of a match is not held back by a window
+    // nobody is waiting on.
+    if (due <= 0) {
+      this.#state()
+
+      return
+    }
+
+    this.#flush ??= setTimeout(() => this.#state(), due)
+  }
+
+  /** Pass on whatever is held, and open the next window. */
+  #state() {
+    clearTimeout(this.#flush)
+    this.#flush = null
+
+    const data = this.#pending
+
+    this.#pending = null
+
+    if (!data) return
+
+    this.#statedAt = Date.now()
+
+    // Normalising here rather than on arrival is the other half of the saving: at
+    // 120Hz this runs ten times a second instead of a hundred and twenty, and the
+    // ticks in between cost a parse and a score comparison.
     this.emit('state', gameState(data))
+  }
+
+  async close() {
+    clearTimeout(this.#flush)
+    this.#flush = null
+    this.#pending = null
+
+    await super.close()
   }
 }
 
@@ -233,6 +304,10 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
         ],
       },
       { type: 'note', text: 'PacketSendRate of 0 switches the feature off entirely. Anything above about 30 is more than a scoreboard can use.' },
+      {
+        type: 'text',
+        text: 'Every tick is read whatever these settings say. “Full state every” only controls how often the whole picture is handed on — and since nothing on a stream changes visibly more than ten times a second, 100ms is as fast as it will go.',
+      },
       { type: 'text', text: 'Leave Path blank unless connecting fails — it exists for the case where the endpoint wants one.' },
       { type: 'link', href: 'https://www.rocketleague.com/developer/stats-api', label: 'Psyonix’s Stats API documentation' },
       {
@@ -249,7 +324,7 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
         label: 'Full state every (ms)',
         type: 'number',
         default: 250,
-        help: 'The game ticks up to 120 times a second. 0 switches the state event off; goals and the clock still arrive.',
+        help: 'The game ticks up to 120 times a second; this is how often that is passed on. 100 is the fastest allowed, 0 switches it off, and goals and the clock arrive either way.',
       },
     ],
     create: (context) => {

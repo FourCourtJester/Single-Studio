@@ -171,6 +171,94 @@ describe('the tick', () => {
     expect(spies.onState).toHaveBeenCalledTimes(2)
   })
 
+  it('will not go faster than ten a second, whatever is typed', async () => {
+    // The ceiling, not a default. Nothing on a stream changes visibly more often
+    // than this, and every emit a handler turns into a write is four megabytes a
+    // match at the rate the game is capable of.
+    const { MyShow, spies } = watching(['onState'])
+    const plugin = build(MyShow, { stateEvery: 8 })
+
+    plugin.open()
+    sockets[0].open()
+
+    const clock = vi.spyOn(Date, 'now')
+
+    // Ten ticks across 90ms: inside the floor, outside the number that was typed.
+    for (let i = 0; i < 10; i += 1) {
+      clock.mockReturnValue(1_000 + i * 10)
+      sockets[0].send('UpdateState', tick(0, 0, i))
+    }
+
+    expect(spies.onState).toHaveBeenCalledTimes(1)
+
+    clock.mockReturnValue(1_100)
+    sockets[0].send('UpdateState', tick(0, 0, 99))
+
+    expect(spies.onState).toHaveBeenCalledTimes(2)
+  })
+
+  it('holds the newest tick and discards the ones behind it', async () => {
+    // Replaced, not queued: there is no value in yesterday's tick, and a studio
+    // that received three in a burst would write three times for one picture.
+    vi.useFakeTimers()
+
+    try {
+      const { MyShow, spies } = watching(['onState'])
+      const plugin = build(MyShow, { stateEvery: 100 })
+
+      plugin.open()
+      sockets[0].open()
+
+      sockets[0].send('UpdateState', tick(0, 0, 10))
+
+      vi.advanceTimersByTime(40)
+      sockets[0].send('UpdateState', tick(0, 0, 20))
+
+      vi.advanceTimersByTime(40)
+      sockets[0].send('UpdateState', tick(0, 0, 30))
+
+      // One so far -- the leading edge -- and two now held, of which only the
+      // second is worth anything.
+      expect(spies.onState).toHaveBeenCalledTimes(1)
+
+      vi.advanceTimersByTime(100)
+
+      expect(spies.onState).toHaveBeenCalledTimes(2)
+      expect(spies.onState.mock.calls[1][0].players[0].boost).toBe(30)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('still delivers the last tick after the feed goes quiet', async () => {
+    // The reason for holding one rather than dropping it. The whistle goes, the
+    // ticks stop, and what a studio was told last should be the final state of the
+    // match rather than a moment before it.
+    vi.useFakeTimers()
+
+    try {
+      const { MyShow, spies } = watching(['onState'])
+      const plugin = build(MyShow, { stateEvery: 100 })
+
+      plugin.open()
+      sockets[0].open()
+
+      sockets[0].send('UpdateState', tick(0, 0, 10))
+      sockets[0].send('UpdateState', tick(3, 2, 99))
+
+      // Two ticks back to back: the first goes out on the leading edge, the second
+      // is inside the window and is held.
+      expect(spies.onState).toHaveBeenCalledTimes(1)
+
+      vi.advanceTimersByTime(200)
+
+      expect(spies.onState).toHaveBeenCalledTimes(2)
+      expect(spies.onState.mock.calls[1][0].players[0].boost).toBe(99)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('keeps the default when the field is cleared, rather than reading blank as off', async () => {
     // A number input that has been emptied reports NaN, and an older stored value
     // can be a string. Neither is somebody asking for silence -- only a typed 0 is.

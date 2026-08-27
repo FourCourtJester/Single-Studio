@@ -114,6 +114,37 @@ the update frames the document actually produced:
 | A clock ticking once a second      | 10     | The rate of the value, not the feed  |
 | 6 players' boost and speed         | 300    | The values really are all different  |
 
+### At the rate the game is actually capable of
+
+Measured at 120Hz, which is the cap `PacketSendRate` allows. Reading the feed is
+free; the CPU figures are a fraction of one core over ten seconds of wall clock:
+
+| At 120Hz                          | Cost            |
+| --------------------------------- | --------------- |
+| `JSON.parse` + score extraction   | 0.55% of a core |
+| `JSON.parse` + full `gameState()` | 0.64% of a core |
+| Writing changing telemetry        | 0.59% of a core |
+| A peer applying it                | 0.54% of a core |
+
+The ceiling is not CPU. It is that the document keeps history:
+
+| 120Hz telemetry for | Document |
+| ------------------- | -------- |
+| 10s                 | 127 kB   |
+| 60s                 | 828 kB   |
+| 300s                | 4.2 MB   |
+
+Linear and unbounded — 14 kB/s for as long as it runs, persisted to IndexedDB and
+downloaded in full by every board that joins late.
+
+The same 36,000 ticks driving an actual scoreboard — two names, two scores, a clock
+— cost **300 update frames and 0.3 kB**. Four orders of magnitude apart, from
+identical input, decided entirely by what a handler chooses to write. Which is the
+argument for a plugin that emits rather than one that writes, in one table.
+
+Not measured, because Node has neither: the IndexedDB write and the `postMessage`
+fan-out to each open tab. Those are the untested part of the chain.
+
 So the resend rate costs nothing. **The rate of change is the whole cost**, and only
 genuine telemetry has one — roughly 4.8 kB/s for six players' boost and speed, every
 byte persisted to IndexedDB and replicated to every peer, for numbers that are stale
@@ -170,9 +201,22 @@ policy:
 - **`score`** whenever either number changes, throttle or no throttle. `GoalScored`
   says who scored, not what the score became, so a studio counting goals itself is
   wrong the first time it misses one.
-- **`state`** at most every `stateEvery` milliseconds, default 250. A typed `0`
-  switches it off and goals and the clock still arrive; a _cleared_ field is not a
-  typed zero and falls back to the default.
+- **`state`** at most every `stateEvery` milliseconds, default 250, **floored at
+  100**. A typed `0` switches it off and goals and the clock still arrive; a
+  _cleared_ field is not a typed zero and falls back to the default; a typed `8`
+  becomes 100.
+
+The floor is a decision rather than a measurement, though the measurements agree
+with it: nothing on a stream changes visibly more than ten times a second, and every
+emit a handler turns into a write is charged at the rates above. It is a floor and
+not a default because a default is only the value somebody has not changed yet.
+
+The state is **collected, not dropped**. The newest tick is held and handed on when
+the window opens, rather than emitting whichever tick happens to land on a boundary.
+The two look identical while the feed is running and differ the moment it stops:
+with the second, a studio's last word on a match is a moment before the whistle. It
+costs one held reference. Normalising only what is emitted is the other half of it —
+`gameState()` runs ten times a second at most, whatever the feed does.
 
 Booleans lose their `b`, teams gain a `side` of `blue` or `orange`, and team colours
 gain the `#` that makes them CSS.
