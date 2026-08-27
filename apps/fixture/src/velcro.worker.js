@@ -4,6 +4,7 @@ import { WebsocketProvider } from 'y-websocket'
 
 import { STUDIO_ID } from './config'
 import { mutations } from './mutations'
+import { feed, FeedHandler } from './plugins/feed'
 
 // The SharedWorker entry. This is the whole plugin mechanism for state:
 // the studio hands its own mutations to the host at startup, so there is no
@@ -34,7 +35,10 @@ const connect = (context) => {
   // dangerous version of this is the quiet one: sending in the clear while a board
   // shows a link with a key in it would have everyone believing the show was
   // sealed while every frame went out readable.
-  if (secret) throw new Error('This link carries a room key, and a relay cannot use one: it holds a copy of the show, so it has to be able to read it. Use a Supabase project to encrypt, or an invite link without a key.')
+  if (secret)
+    throw new Error(
+      'This link carries a room key, and a relay cannot use one: it holds a copy of the show, so it has to be able to read it. Use a Supabase project to encrypt, or an invite link without a key.',
+    )
 
   const provider = new WebsocketProvider(url, room, doc, { params: token ? { token } : {} })
 
@@ -54,9 +58,23 @@ const connect = (context) => {
 // invite link the whole of an operator's setup. See useRelay.
 const preset = import.meta.env.VITE_RELAY_URL
 
+/**
+ * What this studio does with the demo feed.
+ *
+ * A handler class rather than listeners in this file: a real plugin has twenty-odd
+ * events, and the worker entry should stay a manifest of what a studio is made of.
+ * Overriding one method is the whole of the work.
+ */
+class Ticker extends FeedHandler {
+  onTick({ count, label }) {
+    this.mutate('set', { 'variables.feed.count': count, 'variables.feed.label': label })
+  }
+}
+
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
+  plugins: [feed(Ticker)],
   sync: {
     url: preset,
     room: import.meta.env.VITE_RELAY_ROOM ?? STUDIO_ID,

@@ -909,6 +909,17 @@ const styleOf = (selector) =>
 await control.locator('button:has-text("Hide map")').click()
 check(await becomes(match, () => document.querySelector('.ss-slide-right')?.dataset.state === 'inactive'), 'the map card goes inactive when hidden')
 
+// `inactive` is set when the card starts leaving, not when it has left: the
+// transform animates over 450ms after that. Reading the moment the state flips
+// catches it at the beginning of its travel, still at zero, which is
+// indistinguishable from a card that never moved -- exactly the bug this check
+// exists to catch. So wait for the travel to finish rather than for the state.
+await becomes(match, () => {
+  const transform = getComputedStyle(document.querySelector('.ss-slide-right')).transform
+
+  return /^matrix\(/.test(transform) && parseFloat(transform.split(',').at(4)) <= -192
+})
+
 const parked = await styleOf('.ss-slide-right')
 console.log(`  slide-right parked: ${JSON.stringify(parked)}`)
 check(/^matrix\(/.test(parked.transform) && parseFloat(parked.transform.split(',').at(4)) <= -192, 'a hidden slide is parked off-screen, not just transparent')
@@ -1212,6 +1223,54 @@ check(
 )
 await control.keyboard.press('Escape')
 await becomes(control, () => !document.querySelector('.ss-hotkeys-dialog[open]'))
+
+// -- Plugins -----------------------------------------------------------------
+// The seam end to end: the worker reports what is installed, the board renders the
+// config a plugin declared, and saving restarts it against the new values. The
+// fixture's plugin talks to nothing on purpose -- what is under test is the wiring,
+// not any particular game.
+await control.bringToFront()
+await control.locator('.ss-menu-open').click()
+await control.locator('.ss-menu-plugins').click()
+check(await becomes(control, () => Boolean(document.querySelector('.ss-plugins-dialog[open]'))), 'the menu opens the plugin settings')
+
+const feed = control.locator('.ss-plugin[data-plugin="feed"]')
+check((await feed.count()) === 1, 'the worker reports the plugin the studio registered')
+check(await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"]')?.dataset.status === 'connected'), 'and says it is running')
+
+// The fields came from the plugin's declaration, not from anything the board knows.
+const label = control.locator('#ss-plugin-field-label')
+const rate = control.locator('#ss-plugin-field-rate')
+check((await label.inputValue()) === 'Feed', 'a declared text field arrives at its default')
+check((await rate.inputValue()) === '120', 'and a declared number field does too')
+
+// Nothing to save until something changes.
+check((await control.locator('.ss-plugin-save').isDisabled()) === true, 'saving is offered only once something has changed')
+
+await label.fill('Rehearsal')
+check((await control.locator('.ss-plugin-save').isDisabled()) === false, 'and offered as soon as it has')
+
+await control.locator('.ss-plugin-save').click()
+check(await becomes(control, () => document.querySelector('#ss-plugin-field-label')?.value === 'Rehearsal'), 'the new value is stored and read back')
+
+// The real proof: the plugin was rebuilt against it, and its events still reach the
+// studio's handler, which writes through the ordinary mutation path.
+check(await becomes(match, sceneHas, 'rehearsal'), 'the restarted plugin drives the graphic with the new config')
+
+// A value it will not start on is reported rather than swallowed.
+await rate.fill('0')
+await control.locator('.ss-plugin-save').click()
+check(
+  await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin-problem')?.textContent ?? '')),
+  'a config the plugin refuses says why, on the board',
+)
+
+// Put it back, so the rest of the run is not driven by a stopped plugin.
+await rate.fill('120')
+await control.locator('.ss-plugin-save').click()
+await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"]')?.dataset.status === 'connected')
+await control.keyboard.press('Escape')
+await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))
 
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces

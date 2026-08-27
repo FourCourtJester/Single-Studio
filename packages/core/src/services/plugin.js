@@ -28,11 +28,12 @@ import { Emitter } from '../toolkits/emitter'
  * @property {(name: string, payload: unknown) => unknown} mutate Dispatch into the store.
  * @property {() => boolean} owner Whether this machine should be the one talking outward.
  * @property {string} studio The studio id, for naming anything the plugin persists.
+ * @property {Record<string, unknown>} config What the operator set, merged over the plugin's declared defaults.
  */
 
 /**
  * @typedef {object} PluginRuntime
- * @property {string} name
+ * @property {string} [name]
  * @property {Emitter} events
  * @property {() => Promise<void> | void} [start]
  * @property {() => Promise<void> | void} [stop]
@@ -194,7 +195,7 @@ export class PluginBase {
   events = new Emitter()
 
   constructor(name) {
-    this.pluginName = name
+    this.name = name
     this.status = 'idle'
   }
 
