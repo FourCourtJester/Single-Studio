@@ -1,6 +1,7 @@
 import { IndexeddbPersistence } from 'y-indexeddb'
 
 import { channelFor, statusChannelFor } from './channels'
+import { isPlugin } from '../services/plugin'
 import * as Counter from './counter'
 import * as Doc from './doc'
 import { apply, mutations as defaults } from './mutations'
@@ -26,7 +27,7 @@ import { createSync } from './sync'
 const READY = 'ready'
 
 export function createVelcroHost(config = {}) {
-  const { name = 'studio', mutations: extra = {}, persist = true, onReady, sync: syncConfig } = config
+  const { name = 'studio', mutations: extra = {}, persist = true, onReady, sync: syncConfig, plugins: declared = [] } = config
 
   const doc = Doc.createDoc()
   const registry = { ...defaults, ...extra }
@@ -257,6 +258,56 @@ export function createVelcroHost(config = {}) {
     connected.delete(portId)
   }
 
+  // -- plugins --------------------------------------------------------------
+  //
+  // A plugin brings the outside world in: a game, a spreadsheet, a scoring feed. It
+  // is constructed here rather than by the studio because everything it needs lives
+  // here -- `mutate`, and the answer to "should this machine be the one talking".
+  //
+  // The host owns the lifecycle so a studio author never wires it. Getting it wrong
+  // is quiet: a plugin that nobody rechecks keeps polling after somebody else took
+  // the OBS role, and the show ends up with two writers on the same paths and no
+  // sign that is what happened.
+
+  /** @type {Map<string, import('../services/plugin').PluginRuntime>} */
+  const plugins = new Map()
+
+  const pluginContext = { mutate, owner: owns, studio: name }
+
+  function startPlugins() {
+    for (const definition of declared) {
+      if (!isPlugin(definition)) {
+        console.error('[velcro] plugins must come from definePlugin(); ignoring', definition)
+        continue
+      }
+
+      if (plugins.has(definition.name)) {
+        console.error(`[velcro] two plugins are called "${definition.name}"; ignoring the second`)
+        continue
+      }
+
+      try {
+        const runtime = definition.create(pluginContext)
+
+        plugins.set(definition.name, runtime)
+        Promise.resolve(runtime.start?.()).catch((error) => console.error(`[velcro] plugin "${definition.name}" failed to start`, error))
+      } catch (error) {
+        // One broken plugin is not a broken show. The rest still start, and the
+        // studio still runs -- an operator can type a score by hand, which is the
+        // whole reason a graphic has a fallback.
+        console.error(`[velcro] plugin "${definition.name}" threw while starting`, error)
+      }
+    }
+  }
+
+  // Every status change, not only delegation: `recheck` is idempotent by design and
+  // a plugin that stood down wants to know the moment the room lets it back in.
+  sync.watchStatus(() => {
+    for (const [pluginName, runtime] of plugins) {
+      Promise.resolve(runtime.recheck?.()).catch((error) => console.error(`[velcro] plugin "${pluginName}" failed to recheck`, error))
+    }
+  })
+
   // -- lifecycle ----------------------------------------------------------
 
   const started = Promise.resolve()
@@ -275,7 +326,12 @@ export function createVelcroHost(config = {}) {
       // top of remote state; both read as data loss to whoever is watching.
       if (sync.configured && sync.autoConnect) sync.attach()
 
-      return onReady?.({ doc, registry, mutate, owns, sync })
+      // Plugins after that, for the same reason and one more: a plugin's first
+      // event can arrive immediately, and a mutation it triggers must land on the
+      // replayed document rather than be overwritten by the replay.
+      startPlugins()
+
+      return onReady?.({ doc, registry, mutate, owns, sync, plugins })
     })
     .catch((err) => {
       // Persistence failing must not take the show down: an in-memory doc still
@@ -459,5 +515,5 @@ export function createVelcroHost(config = {}) {
     self.onconnect = (event) => connect(event.ports[0])
   }
 
-  return { doc, registry, mutate, owns, connect, started, subscriptions, sync }
+  return { doc, registry, mutate, owns, connect, started, subscriptions, sync, plugins }
 }
