@@ -125,6 +125,16 @@ importers:
         specifier: ^3.2.6
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
 
+  packages/plugin-twitch:
+    dependencies:
+      '@single-studio/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      vitest:
+        specifier: ^3.2.6
+        version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
+
   packages/provider-supabase:
     dependencies:
       '@supabase/supabase-js':
