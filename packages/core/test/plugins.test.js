@@ -31,6 +31,16 @@ const fake = (name, hooks = {}) =>
     },
   })
 
+/** Wait for something to become true, rather than guessing how many turns it takes. */
+const until = async (predicate, why = 'condition') => {
+  const deadline = Date.now() + 1_000
+
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${why}`)
+    await new Promise((resolve) => setTimeout(resolve, 1))
+  }
+}
+
 /** A host with no persistence and no sync, which is what a unit test wants. */
 const host = (plugins) => createVelcroHost({ name: 'plugin-test', persist: false, plugins })
 
@@ -124,6 +134,43 @@ describe('when a plugin misbehaves', () => {
     expect(complain).toHaveBeenCalled()
 
     complain.mockRestore()
+  })
+
+  it('does not make one slow plugin the reason the others are late', async () => {
+    // A `start` is a handshake with somebody else's software, and one that is
+    // switched off does not answer quickly -- it does not answer at all until the
+    // browser gives up. Started in a row, that plugin decides when every plugin
+    // after it may begin.
+    let release
+    const hanging = definePlugin({
+      name: 'slow',
+      create: () => {
+        const runtime = new PluginBase('slow')
+
+        runtime.start = () => new Promise((resolve) => (release = resolve))
+
+        return runtime
+      },
+    })
+
+    let quick
+    let everything = false
+
+    const studio = host([hanging, fake('quick', { onCreate: (r) => (quick = r) })])
+
+    studio.started.then(() => {
+      everything = true
+    })
+
+    // Started in a row this never arrives, because the first plugin never resolves.
+    await until(() => quick?.started === 1, 'the second plugin to start')
+
+    // And the first one really is still hanging, so this is concurrency rather
+    // than the slow one having quietly finished.
+    expect(everything).toBe(false)
+
+    release()
+    await studio.started
   })
 
   it('rejects anything that did not come from definePlugin', async () => {
@@ -351,8 +398,69 @@ describe('the manifest a board reads', () => {
         config: [{ key: 'port', type: 'number', default: 49122, label: 'Port' }],
         values: { port: 49122 },
         status: 'connected',
+        // Null rather than absent, so a board can render the field unconditionally.
+        problem: null,
       },
     ])
+  })
+
+  it('carries why a plugin is not connected, not only that it is not', async () => {
+    // A red light saying "Not connecting" sends an operator to whoever built the
+    // studio. The reason sends them to the thing that is actually wrong -- and the
+    // console it would otherwise be in is inside a SharedWorker, where nobody will
+    // ever look for it.
+    const studio = createVelcroHost({
+      name: `why-${Math.random()}`,
+      persist: false,
+      plugins: [
+        definePlugin({
+          name: 'obs',
+          create: () => {
+            const runtime = new PluginBase('obs')
+
+            runtime.status = 'error'
+            runtime.problem = 'Could not reach obs at ws://127.0.0.1:4455.'
+
+            return runtime
+          },
+        }),
+      ],
+    })
+
+    await studio.started
+
+    const [entry] = await studio.pluginManifest()
+
+    expect(entry.status).toBe('error')
+    expect(entry.problem).toBe('Could not reach obs at ws://127.0.0.1:4455.')
+  })
+
+  it('carries why one that never started at all did not', async () => {
+    // Nothing to ask on the runtime, because there is no runtime -- so the host
+    // remembers on its behalf.
+    const complain = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const studio = createVelcroHost({
+      name: `why-none-${Math.random()}`,
+      persist: false,
+      plugins: [
+        definePlugin({
+          name: 'boom',
+          create: () => {
+            throw new Error('the port must be a number')
+          },
+        }),
+      ],
+    })
+
+    await studio.started
+
+    const [entry] = await studio.pluginManifest()
+
+    expect(entry.status).toBe('idle')
+    expect(entry.problem).toBe('the port must be a number')
+
+    complain.mockRestore()
   })
 })
 

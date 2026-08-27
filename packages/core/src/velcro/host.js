@@ -292,18 +292,53 @@ export function createVelcroHost(config = {}) {
 
   const pluginContext = { mutate, owner: owns, studio: name }
 
+  /**
+   * Why a plugin is not running, for the ones that failed before they could say so
+   * themselves.
+   *
+   * A plugin that got as far as connecting reports its own trouble on the runtime,
+   * because it is the one that knows and it can change its mind later. This is for
+   * the ones that never got that far -- a `create` that threw, settings that would
+   * not load -- where there is no runtime to ask.
+   */
+  const troubles = new Map()
+
   async function build(definition) {
     const config = await configFor(definition)
     const runtime = definition.create({ ...pluginContext, config })
 
     plugins.set(definition.name, runtime)
+    troubles.delete(definition.name)
 
     await runtime.start?.()
 
     return runtime
   }
 
+  /**
+   * Start every plugin at once, and let each fail on its own.
+   *
+   * Concurrent rather than one after another, which it used to be. A plugin's
+   * `start` is a handshake with somebody else's software: OBS does not resolve
+   * until it has identified, Twitch not until it has welcomed, and a socket to a
+   * machine that is switched off does not resolve or reject until the browser gives
+   * up on the connection. Awaited in a row, the slowest of those decides when the
+   * others may begin, so an operator whose Twitch is briefly unreachable watches
+   * Rocket League fail to start for reasons that have nothing to do with Rocket
+   * League.
+   *
+   * `Promise.all` never sees a rejection, because each start catches its own. That
+   * is the point: one broken plugin is not a broken show. The rest still start, the
+   * studio still runs, and an operator can type a score by hand -- which is the
+   * whole reason a graphic has a fallback.
+   *
+   * Order is unaffected. Both maps are filled synchronously before anything is
+   * awaited, so a board lists plugins as the studio declared them however the
+   * connections happen to land.
+   */
   async function startPlugins() {
+    const starting = []
+
     for (const definition of declared) {
       if (!isPlugin(definition)) {
         console.error('[velcro] plugins must come from definePlugin(); ignoring', definition)
@@ -317,15 +352,20 @@ export function createVelcroHost(config = {}) {
 
       definitions.set(definition.name, definition)
 
-      try {
-        await build(definition)
-      } catch (error) {
-        // One broken plugin is not a broken show. The rest still start, and the
-        // studio still runs -- an operator can type a score by hand, which is the
-        // whole reason a graphic has a fallback.
-        console.error(`[velcro] plugin "${definition.name}" threw while starting`, error)
-      }
+      starting.push(
+        build(definition).catch((error) => {
+          const why = String(error?.message ?? error)
+
+          // Kept, not only logged. A console message in a SharedWorker is somewhere
+          // an operator will never look, and "Not connecting" with no reason is a
+          // support conversation rather than a fix.
+          troubles.set(definition.name, why)
+          console.error(`[velcro] plugin "${definition.name}" threw while starting`, error)
+        }),
+      )
     }
+
+    await Promise.all(starting)
   }
 
   /**
@@ -348,6 +388,8 @@ export function createVelcroHost(config = {}) {
         config: definition.config,
         values: await configFor(definition),
         status: plugins.get(pluginName)?.status ?? 'idle',
+        // The sentence under the status light. Null on a plugin that is fine.
+        problem: plugins.get(pluginName)?.problem ?? troubles.get(pluginName) ?? null,
       })
     }
 
@@ -382,9 +424,12 @@ export function createVelcroHost(config = {}) {
     try {
       await build(definition)
     } catch (error) {
+      const why = String(error?.message ?? error)
+
+      troubles.set(pluginName, why)
       console.error(`[velcro] plugin "${pluginName}" threw while restarting`, error)
 
-      return { ok: false, reason: String(error?.message ?? error) }
+      return { ok: false, reason: why }
     }
 
     return { ok: true }

@@ -73,7 +73,6 @@ function Block({ block }) {
     return (
       <ol className="ss-help-steps ml-4 list-decimal space-y-1 text-xs text-slate-400 marker:text-slate-600">
         {(block.items ?? []).map((item, index) => (
-           
           <li key={index}>{item}</li>
         ))}
       </ol>
@@ -127,7 +126,6 @@ function Help({ blocks, plugin }) {
       {open ? (
         <div id={`ss-help-${plugin}`} className="ss-help mt-1 flex flex-col gap-2 rounded-md border border-slate-800 bg-slate-950/50 p-3">
           {blocks.map((block, index) => (
-             
             <Block key={index} block={block} />
           ))}
         </div>
@@ -168,6 +166,18 @@ function Entry({ plugin, onSave }) {
       </header>
 
       {plugin.summary ? <p className="ss-plugin-summary -mt-0.5 text-xs text-slate-500">{plugin.summary}</p> : null}
+
+      {/*
+        Why, not just that. A red light saying "Not connecting" sends an operator
+        to whoever built the studio; "Could not reach rocket-league at
+        ws://127.0.0.1:49122" sends them to the game, which is where the fix is.
+        Reported by the plugin itself, so it clears when the plugin recovers.
+      */}
+      {plugin.problem ? (
+        <p role="status" className="ss-plugin-reason text-xs text-rose-400">
+          {plugin.problem}
+        </p>
+      ) : null}
 
       <Help blocks={plugin.help} plugin={plugin.name} />
 

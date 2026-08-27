@@ -48,6 +48,18 @@ export class Service {
     this.owner = owner
     this.config = config
     this.status = 'idle'
+
+    /**
+     * Why it is not connected, in a sentence an operator can act on.
+     *
+     * `status` says a service is in trouble; this says what the trouble is. Without
+     * it a board shows a red light and the reason is in a console inside a
+     * SharedWorker, which is somewhere nobody will ever look -- so "Not connecting"
+     * becomes a support conversation instead of "start OBS" or "check the port".
+     *
+     * @type {string | null}
+     */
+    this.problem = null
   }
 
   get name() {
@@ -102,6 +114,7 @@ export class Service {
       await this.open()
       this.#attempt = 0
       this.status = 'connected'
+      this.problem = null
     } catch (err) {
       this.status = 'error'
       this.#retry(err)
@@ -114,6 +127,7 @@ export class Service {
     this.#stopped = true
     clearTimeout(this.#timer)
     this.status = 'idle'
+    this.problem = null
     await this.close()
   }
 
@@ -126,6 +140,10 @@ export class Service {
 
   #retry(err) {
     if (this.#stopped) return
+
+    // Recorded before the wait, not after it. The whole point is that somebody
+    // reading the board during the backoff can see why.
+    this.problem = err?.message ?? (err ? String(err) : null)
 
     const delay = Math.min(BACKOFF.initial * BACKOFF.factor ** this.#attempt, BACKOFF.max)
 
