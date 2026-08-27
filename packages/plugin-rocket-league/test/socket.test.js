@@ -109,6 +109,110 @@ describe('events', () => {
   })
 })
 
+describe('the frequent events', () => {
+  const hit = (speed) => ({ Players: [{ Name: 'A', TeamNum: 0 }], Ball: { PreHitSpeed: speed, PostHitSpeed: speed + 100, Location: { X: 1, Y: 2, Z: 3 } } })
+
+  it('arrive as one dated list rather than one event each', async () => {
+    // A dribble is a touch every few frames. Nobody cuts to a graphic for one, and
+    // a studio writing on each would be doing the thing the throttle exists to
+    // stop -- but they are exactly what a stats package wants afterwards, so
+    // dropping them is not the answer either.
+    vi.useFakeTimers()
+
+    try {
+      const { MyShow, spies } = watching(['onBallHits'])
+      const plugin = build(MyShow)
+
+      plugin.open()
+      sockets[0].open()
+
+      sockets[0].send('BallHit', hit(100))
+      vi.advanceTimersByTime(20)
+      sockets[0].send('BallHit', hit(200))
+      vi.advanceTimersByTime(20)
+      sockets[0].send('BallHit', hit(300))
+
+      // Nothing yet: no leading edge, or a burst would cost two emits instead of
+      // the one it should.
+      expect(spies.onBallHits).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(100)
+
+      expect(spies.onBallHits).toHaveBeenCalledTimes(1)
+
+      const [hits] = spies.onBallHits.mock.calls[0]
+
+      expect(hits.map((one) => one.before)).toEqual([100, 200, 300])
+      // Dated on the way in, because that is what batching would otherwise
+      // destroy: twelve touches handed over together are a dribble or twelve
+      // separate touches depending on when each happened.
+      expect(hits[1].at - hits[0].at).toBe(20)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keep each kind in its own list', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const { MyShow, spies } = watching(['onBallHits', 'onBoostPickups'])
+      const plugin = build(MyShow)
+
+      plugin.open()
+      sockets[0].open()
+
+      sockets[0].send('BallHit', hit(100))
+      sockets[0].send('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 100 })
+      sockets[0].send('BallHit', hit(200))
+
+      vi.advanceTimersByTime(100)
+
+      expect(spies.onBallHits.mock.calls[0][0]).toHaveLength(2)
+      expect(spies.onBoostPickups.mock.calls[0][0]).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('say nothing at all in a window where nothing happened', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const { MyShow, spies } = watching(['onBallHits'])
+      const plugin = build(MyShow)
+
+      plugin.open()
+      sockets[0].open()
+
+      vi.advanceTimersByTime(1_000)
+
+      expect(spies.onBallHits).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('do not hold back the events that mean something', async () => {
+    // The guard on over-applying this. A goal batched for a tenth of a second is a
+    // graphic a tenth of a second late, for no saving worth having -- goals happen
+    // a few times a match.
+    const { MyShow, spies } = watching(['onGoal', 'onStatfeed', 'onCrossbar'])
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+
+    sockets[0].send('GoalScored', { Scorer: { Name: 'A', TeamNum: 0 } })
+    sockets[0].send('StatfeedEvent', { EventName: 'Demolish' })
+    sockets[0].send('CrossbarHit', { BallSpeed: 90 })
+
+    expect(spies.onGoal).toHaveBeenCalledTimes(1)
+    expect(spies.onStatfeed).toHaveBeenCalledTimes(1)
+    expect(spies.onCrossbar).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('the tick', () => {
   const tick = (blue, orange, boost = 50) => ({
     Players: [{ Name: 'A', TeamNum: 0, Boost: boost }],
