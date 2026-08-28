@@ -153,7 +153,25 @@ export function createSync({ doc, name, status, config }) {
 
   // Only ever sent once a studio has opted in. An offline studio posting "offline"
   // would be a message that never existed before.
-  const announceStatus = () => status.postMessage({ type: 'sync', name, ...snapshot() })
+  // Watchers inside this worker, as opposed to the pages on the other end of the
+  // status channel. Plugins live here and need to re-answer "do I own this?" the
+  // moment the room changes -- posting a message to ourselves and reading it back
+  // would be the long way round to a function call.
+  const statusWatchers = new Set()
+
+  const announceStatus = () => {
+    const state = snapshot()
+
+    status.postMessage({ type: 'sync', name, ...state })
+
+    for (const watcher of statusWatchers) {
+      try {
+        watcher(state)
+      } catch (error) {
+        console.error('[velcro] a status watcher threw', error)
+      }
+    }
+  }
 
   function report(next, why = null) {
     if (state === next && detail === why) return
@@ -589,6 +607,22 @@ export function createSync({ doc, name, status, config }) {
       if (immediate) fn(peers())
 
       return () => watchers.delete(fn)
+    },
+
+    /**
+     * Called in-process on every status change, with the snapshot.
+     *
+     * Separate from `watch`, which is presence. This one exists for anything in the
+     * worker whose behaviour depends on who holds the OBS role -- plugins, chiefly,
+     * which have to stand down when somebody else claims it and pick back up when
+     * they leave.
+     *
+     * @returns {() => void} unsubscribe
+     */
+    watchStatus(fn) {
+      statusWatchers.add(fn)
+
+      return () => statusWatchers.delete(fn)
     },
 
     /** Whether a studio configured sync at all, regardless of connection state. */

@@ -3,6 +3,70 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## 0.3.5
+
+### Added
+
+- **Plugins.** A studio can now bring in data from something the framework knows
+  nothing about — a game, a spreadsheet, a broadcast tool — without that thing
+  needing to know anything about the framework either.
+
+  A plugin connects outward and **emits events**. It never writes to the document.
+  The studio author writes the mutations, in a handler class of their own, which is
+  what keeps a plugin installed from npm from having any authority over the show and
+  keeps it from imposing a vocabulary — a studio whose graphics already read
+  `home.score` goes on reading `home.score`.
+
+  ```js
+  // src/velcro.worker.js
+  class MyShow extends RocketLeagueHandler {
+    onScore({ blue, orange }) {
+      this.mutate('set', { 'variables.home.score': blue, 'variables.away.score': orange })
+    }
+  }
+
+  createVelcroHost({ name: STUDIO_ID, mutations, plugins: [rocketLeague(MyShow)] })
+  ```
+
+  Everything runs in the SharedWorker, which is the one thing a studio has exactly
+  one of — so a feed is read once however many boards, previews and browser sources
+  are open, and `mutate` is a direct call rather than a message.
+
+  `definePlugin`, `PluginBase`, `PluginHandler`, `SocketService`, `PollingService`
+  and `Emitter` are on `@single-studio/core/worker`.
+
+- **A plugins panel, in the menu.** Per-machine settings for whatever a studio
+  installed — the port a game listens on was chosen by whoever runs the game, on
+  their own PC, and a studio author three time zones away cannot know it. Values are
+  stored per studio in the settings database, so they travel with an export and
+  are not replicated to anybody else.
+
+  `Plugins` is exported as a panel as well, for a board that would rather have it
+  inline than in the menu.
+
+- **Setup instructions, written by whoever knows.** A plugin declares `summary`,
+  `help` blocks and a sentence per field; the panel shows the summary always and the
+  rest behind _"How do I set this up?"_. Help is structured blocks rather than
+  markdown so it survives `postMessage` and renders as elements — a plugin can write
+  dull text, never markup.
+
+- **A reason when something is not connecting.** `Service` keeps its last failure on
+  `problem`, and the panel shows it under the plugin's name. A red light saying "Not
+  connecting" sends an operator to whoever built the studio; _"Could not reach
+  rocket-league at ws://127.0.0.1:49122"_ sends them to the game.
+
+### Changed
+
+- **Plugins start concurrently.** They used to start one after another, and a
+  plugin's start is a handshake with somebody else's software — so a socket to a
+  machine that was switched off decided when every plugin after it was allowed to
+  begin. One that fails still does not stop the others.
+
+### Fixed
+
+- The sealed-room tests waited a fixed 30ms for real AES-GCM to finish, which passed
+  alone and failed under a full workspace run. They drain the work in flight instead.
+
 ## 0.3.0
 
 ### Added

@@ -1,6 +1,8 @@
 import { IndexeddbPersistence } from 'y-indexeddb'
 
 import { channelFor, statusChannelFor } from './channels'
+import { defaultConfig, isPlugin } from '../services/plugin'
+import { SettingsStore } from './settings'
 import * as Counter from './counter'
 import * as Doc from './doc'
 import { apply, mutations as defaults } from './mutations'
@@ -26,7 +28,7 @@ import { createSync } from './sync'
 const READY = 'ready'
 
 export function createVelcroHost(config = {}) {
-  const { name = 'studio', mutations: extra = {}, persist = true, onReady, sync: syncConfig } = config
+  const { name = 'studio', mutations: extra = {}, persist = true, onReady, sync: syncConfig, plugins: declared = [] } = config
 
   const doc = Doc.createDoc()
   const registry = { ...defaults, ...extra }
@@ -257,6 +259,190 @@ export function createVelcroHost(config = {}) {
     connected.delete(portId)
   }
 
+  // -- plugins --------------------------------------------------------------
+  //
+  // A plugin brings the outside world in: a game, a spreadsheet, a scoring feed. It
+  // is constructed here rather than by the studio because everything it needs lives
+  // here -- `mutate`, and the answer to "should this machine be the one talking".
+  //
+  // The host owns the lifecycle so a studio author never wires it. Getting it wrong
+  // is quiet: a plugin that nobody rechecks keeps polling after somebody else took
+  // the OBS role, and the show ends up with two writers on the same paths and no
+  // sign that is what happened.
+
+  /** @type {Map<string, import('../services/plugin').PluginRuntime>} */
+  const plugins = new Map()
+
+  /** Definitions by name, kept so a plugin can be rebuilt when its config changes. */
+  const definitions = new Map()
+
+  // Config lives beside hotkeys, in the settings database rather than the document.
+  // A port is a fact about one computer: replicating it would push one operator's
+  // number onto everybody else's machine, where it is wrong.
+  const settings = new SettingsStore(name)
+  const settingKey = (plugin) => `plugin:${plugin}`
+
+  const configFor = async (definition) => {
+    const stored = await settings.get(settingKey(definition.name), null)
+
+    // Merged over the defaults so a field added by a plugin update arrives at its
+    // default rather than missing, the same rule the hotkey map follows.
+    return { ...defaultConfig(definition.config), ...(stored && typeof stored === 'object' ? stored : {}) }
+  }
+
+  const pluginContext = { mutate, owner: owns, studio: name }
+
+  /**
+   * Why a plugin is not running, for the ones that failed before they could say so
+   * themselves.
+   *
+   * A plugin that got as far as connecting reports its own trouble on the runtime,
+   * because it is the one that knows and it can change its mind later. This is for
+   * the ones that never got that far -- a `create` that threw, settings that would
+   * not load -- where there is no runtime to ask.
+   */
+  const troubles = new Map()
+
+  async function build(definition) {
+    const config = await configFor(definition)
+    const runtime = definition.create({ ...pluginContext, config })
+
+    plugins.set(definition.name, runtime)
+    troubles.delete(definition.name)
+
+    await runtime.start?.()
+
+    return runtime
+  }
+
+  /**
+   * Start every plugin at once, and let each fail on its own.
+   *
+   * Concurrent rather than one after another, which it used to be. A plugin's
+   * `start` is a handshake with somebody else's software: OBS does not resolve
+   * until it has identified, Twitch not until it has welcomed, and a socket to a
+   * machine that is switched off does not resolve or reject until the browser gives
+   * up on the connection. Awaited in a row, the slowest of those decides when the
+   * others may begin, so an operator whose Twitch is briefly unreachable watches
+   * Rocket League fail to start for reasons that have nothing to do with Rocket
+   * League.
+   *
+   * `Promise.all` never sees a rejection, because each start catches its own. That
+   * is the point: one broken plugin is not a broken show. The rest still start, the
+   * studio still runs, and an operator can type a score by hand -- which is the
+   * whole reason a graphic has a fallback.
+   *
+   * Order is unaffected. Both maps are filled synchronously before anything is
+   * awaited, so a board lists plugins as the studio declared them however the
+   * connections happen to land.
+   */
+  async function startPlugins() {
+    const starting = []
+
+    for (const definition of declared) {
+      if (!isPlugin(definition)) {
+        console.error('[velcro] plugins must come from definePlugin(); ignoring', definition)
+        continue
+      }
+
+      if (definitions.has(definition.name)) {
+        console.error(`[velcro] two plugins are called "${definition.name}"; ignoring the second`)
+        continue
+      }
+
+      definitions.set(definition.name, definition)
+
+      starting.push(
+        build(definition).catch((error) => {
+          const why = String(error?.message ?? error)
+
+          // Kept, not only logged. A console message in a SharedWorker is somewhere
+          // an operator will never look, and "Not connecting" with no reason is a
+          // support conversation rather than a fix.
+          troubles.set(definition.name, why)
+          console.error(`[velcro] plugin "${definition.name}" threw while starting`, error)
+        }),
+      )
+    }
+
+    await Promise.all(starting)
+  }
+
+  /**
+   * What a board needs to render the plugin settings: what is installed, what it
+   * can be asked, and what it is currently set to.
+   *
+   * Answered by the worker because the worker is where plugins are declared. A
+   * board that kept its own list would be a second place to edit and a second place
+   * to be wrong.
+   */
+  async function pluginManifest() {
+    const list = []
+
+    for (const [pluginName, definition] of definitions) {
+      list.push({
+        name: pluginName,
+        label: definition.label,
+        summary: definition.summary,
+        help: definition.help,
+        config: definition.config,
+        values: await configFor(definition),
+        status: plugins.get(pluginName)?.status ?? 'idle',
+        // The sentence under the status light. Null on a plugin that is fine.
+        problem: plugins.get(pluginName)?.problem ?? troubles.get(pluginName) ?? null,
+      })
+    }
+
+    return list
+  }
+
+  /**
+   * Store new config and restart that plugin against it.
+   *
+   * Restarted rather than reconfigured in place: a plugin's config is mostly the
+   * address of the thing it talks to, and there is no version of "change the port
+   * without reconnecting" that means anything. A stop and a start is also the one
+   * path already covered by the ownership tests.
+   */
+  async function configurePlugin(pluginName, values) {
+    const definition = definitions.get(pluginName)
+
+    if (!definition) return { ok: false, reason: `no plugin called "${pluginName}"` }
+
+    const merged = { ...defaultConfig(definition.config), ...values }
+
+    await settings.set(settingKey(pluginName), merged)
+
+    try {
+      await plugins.get(pluginName)?.stop?.()
+    } catch (error) {
+      console.error(`[velcro] plugin "${pluginName}" threw while stopping`, error)
+    }
+
+    plugins.delete(pluginName)
+
+    try {
+      await build(definition)
+    } catch (error) {
+      const why = String(error?.message ?? error)
+
+      troubles.set(pluginName, why)
+      console.error(`[velcro] plugin "${pluginName}" threw while restarting`, error)
+
+      return { ok: false, reason: why }
+    }
+
+    return { ok: true }
+  }
+
+  // Every status change, not only delegation: `recheck` is idempotent by design and
+  // a plugin that stood down wants to know the moment the room lets it back in.
+  sync.watchStatus(() => {
+    for (const [pluginName, runtime] of plugins) {
+      Promise.resolve(runtime.recheck?.()).catch((error) => console.error(`[velcro] plugin "${pluginName}" failed to recheck`, error))
+    }
+  })
+
   // -- lifecycle ----------------------------------------------------------
 
   const started = Promise.resolve()
@@ -275,7 +461,13 @@ export function createVelcroHost(config = {}) {
       // top of remote state; both read as data loss to whoever is watching.
       if (sync.configured && sync.autoConnect) sync.attach()
 
-      return onReady?.({ doc, registry, mutate, owns, sync })
+      // Plugins after that, for the same reason and one more: a plugin's first
+      // event can arrive immediately, and a mutation it triggers must land on the
+      // replayed document rather than be overwritten by the replay.
+      //
+      // Awaited, because reading each one's stored config is a trip to IndexedDB.
+      // Without this `onReady` runs against a plugin map that is still filling.
+      return startPlugins().then(() => onReady?.({ doc, registry, mutate, owns, sync, plugins }))
     })
     .catch((err) => {
       // Persistence failing must not take the show down: an in-memory doc still
@@ -355,6 +547,14 @@ export function createVelcroHost(config = {}) {
 
       case 'snapshot':
         port.postMessage({ type: 'snapshot:result', id: message.id, value: Doc.snapshot(doc) })
+        break
+
+      case 'plugins:list':
+        pluginManifest().then((value) => port.postMessage({ type: 'plugins:list:result', id: message.id, value }))
+        break
+
+      case 'plugins:configure':
+        configurePlugin(message.plugin, message.values).then((value) => port.postMessage({ type: 'plugins:configure:result', id: message.id, value }))
         break
 
       /**
@@ -459,5 +659,5 @@ export function createVelcroHost(config = {}) {
     self.onconnect = (event) => connect(event.ports[0])
   }
 
-  return { doc, registry, mutate, owns, connect, started, subscriptions, sync }
+  return { doc, registry, mutate, owns, connect, started, subscriptions, sync, plugins, pluginManifest, configurePlugin }
 }

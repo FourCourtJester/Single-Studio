@@ -909,6 +909,17 @@ const styleOf = (selector) =>
 await control.locator('button:has-text("Hide map")').click()
 check(await becomes(match, () => document.querySelector('.ss-slide-right')?.dataset.state === 'inactive'), 'the map card goes inactive when hidden')
 
+// `inactive` is set when the card starts leaving, not when it has left: the
+// transform animates over 450ms after that. Reading the moment the state flips
+// catches it at the beginning of its travel, still at zero, which is
+// indistinguishable from a card that never moved -- exactly the bug this check
+// exists to catch. So wait for the travel to finish rather than for the state.
+await becomes(match, () => {
+  const transform = getComputedStyle(document.querySelector('.ss-slide-right')).transform
+
+  return /^matrix\(/.test(transform) && parseFloat(transform.split(',').at(4)) <= -192
+})
+
 const parked = await styleOf('.ss-slide-right')
 console.log(`  slide-right parked: ${JSON.stringify(parked)}`)
 check(/^matrix\(/.test(parked.transform) && parseFloat(parked.transform.split(',').at(4)) <= -192, 'a hidden slide is parked off-screen, not just transparent')
@@ -1212,6 +1223,83 @@ check(
 )
 await control.keyboard.press('Escape')
 await becomes(control, () => !document.querySelector('.ss-hotkeys-dialog[open]'))
+
+// -- Plugins -----------------------------------------------------------------
+// The seam end to end: the worker reports what is installed, the board renders the
+// config a plugin declared, and saving restarts it against the new values. The
+// fixture's plugin talks to nothing on purpose -- what is under test is the wiring,
+// not any particular game.
+await control.bringToFront()
+await control.locator('.ss-menu-open').click()
+await control.locator('.ss-menu-plugins').click()
+check(await becomes(control, () => Boolean(document.querySelector('.ss-plugins-dialog[open]'))), 'the menu opens the plugin settings')
+
+// Waited for rather than counted. The dialog opens immediately and the list does
+// not: the panel asks the worker over postMessage and renders "Asking the worker..."
+// until the answer comes back, so a count taken the instant the dialog appears is
+// reading the loading state and calling it a missing plugin.
+check(
+  await becomes(control, () => document.querySelectorAll('.ss-plugin[data-plugin="feed"]').length === 1),
+  'the worker reports the plugin the studio registered',
+)
+check(await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"]')?.dataset.status === 'connected'), 'and says it is running')
+
+// The fields came from the plugin's declaration, not from anything the board knows.
+// Safe to read directly now: the row above is rendered, so these are with it.
+const label = control.locator('#ss-plugin-field-label')
+const rate = control.locator('#ss-plugin-field-rate')
+check((await label.inputValue()) === 'Feed', 'a declared text field arrives at its default')
+check((await rate.inputValue()) === '120', 'and a declared number field does too')
+
+// Nothing to save until something changes.
+check((await control.locator('.ss-plugin-save').isDisabled()) === true, 'saving is offered only once something has changed')
+
+await label.fill('Rehearsal')
+// Polled, because the button follows a React render rather than the keystroke.
+check(await becomes(control, () => document.querySelector('.ss-plugin-save')?.disabled === false), 'and offered as soon as it has')
+
+await control.locator('.ss-plugin-save').click()
+check(await becomes(control, () => document.querySelector('#ss-plugin-field-label')?.value === 'Rehearsal'), 'the new value is stored and read back')
+
+// The real proof: the plugin was rebuilt against it, and its events still reach the
+// studio's handler, which writes through the ordinary mutation path.
+check(await becomes(match, sceneHas, 'rehearsal'), 'the restarted plugin drives the graphic with the new config')
+
+// Help is written by whoever knows how the thing works and shown where the question
+// gets asked. It crosses postMessage from the worker, so it is data rather than
+// markup -- a plugin cannot put HTML on an operator's board.
+check(
+  (await control.locator('.ss-plugin[data-plugin="feed"] .ss-plugin-summary').textContent()).includes('Ticks on a timer'),
+  'a plugin says in one line what it is',
+)
+check((await control.locator('.ss-help').count()) === 0, 'setup instructions stay out of the way until asked for')
+
+await control.locator('.ss-help-toggle').click()
+check(await becomes(control, () => /talks to nothing/.test(document.querySelector('.ss-help')?.textContent ?? '')), 'and open when they are')
+check((await control.locator('.ss-help-steps li').count()) === 3, 'numbered steps render as steps')
+check((await control.locator('.ss-help-note').count()) === 1, 'and a warning renders as one')
+
+await control.locator('.ss-help-toggle').click()
+check(await becomes(control, () => !document.querySelector('.ss-help')), 'and close again')
+
+// A value it will not start on is reported rather than swallowed.
+await rate.fill('0')
+await control.locator('.ss-plugin-save').click()
+check(
+  await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin-problem')?.textContent ?? '')),
+  'a config the plugin refuses says why, on the board',
+)
+// Once. The manifest is read back after every save, so a rejected one arrives as
+// the plugin's standing reason as well as the save's -- and the same sentence in
+// two places reads as two problems.
+check((await control.locator('.ss-plugin-reason').count()) === 0, 'and says it once, not twice')
+
+// Put it back, so the rest of the run is not driven by a stopped plugin.
+await rate.fill('120')
+await control.locator('.ss-plugin-save').click()
+await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"]')?.dataset.status === 'connected')
+await control.keyboard.press('Escape')
+await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))
 
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces

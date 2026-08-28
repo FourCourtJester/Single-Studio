@@ -36,6 +36,15 @@ const shapes = {
       <path d="M4 17h16" />
     </>
   ),
+  /* A plug: two pins, a body, and the lead going off. */
+  plug: (
+    <>
+      <path d="M9 3v5" />
+      <path d="M15 3v5" />
+      <path d="M6.5 8h11v3a5.5 5.5 0 0 1-11 0z" />
+      <path d="M12 16.5V21" />
+    </>
+  ),
   /* A keyboard: the case, two rows of keys, and a space bar. */
   keyboard: (
     <>

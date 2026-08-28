@@ -46,6 +46,48 @@ describe('a service that owns its ingress', () => {
   })
 })
 
+describe('what it says when it cannot connect', () => {
+  it('keeps the reason, not only the fact', async () => {
+    // `status` is a red light. This is the sentence beside it -- and without it the
+    // reason lives in a console inside a SharedWorker, which is nowhere.
+    const service = new Fake({ mutate: vi.fn() })
+
+    service.fail = true
+    await service.start()
+
+    expect(service.status).toBe('error')
+    expect(service.problem).toBe('nope')
+
+    await service.stop()
+  })
+
+  it('forgets it once it connects', async () => {
+    const service = new Fake({ mutate: vi.fn() })
+
+    service.fail = true
+    await service.start()
+    expect(service.problem).toBe('nope')
+
+    service.fail = false
+    await service.start()
+
+    expect(service.status).toBe('connected')
+    expect(service.problem).toBeNull()
+
+    await service.stop()
+  })
+
+  it('says nothing at all while it is fine', async () => {
+    const service = new Fake({ mutate: vi.fn() })
+
+    await service.start()
+
+    expect(service.problem).toBeNull()
+
+    await service.stop()
+  })
+})
+
 describe('a service that does not', () => {
   it('never opens a connection at all', async () => {
     const made = service({ owner: false })

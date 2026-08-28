@@ -141,6 +141,18 @@ export default function Match() {
           </Toggle>
         </div>
 
+        {/* Driven by the demo plugin rather than by an operator, which is the
+            point of it: the whole path from a plugin's event, through the studio's
+            handler, to a value on air. */}
+        <div className="ss-feed absolute bottom-0 left-0 flex items-baseline gap-2 rounded-lg bg-slate-950/70 px-4 py-2 text-white ring-1 ring-white/10">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+            <Variable name="feed.label" fallback="Feed" />
+          </span>
+          <span className="text-lg font-semibold tabular-nums">
+            <Variable name="feed.count" fallback="0" />
+          </span>
+        </div>
+
         <Toggle
           name="lowerthird"
           transition="slide-left ease-back opaque"
