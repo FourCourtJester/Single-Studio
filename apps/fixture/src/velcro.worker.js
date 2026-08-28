@@ -42,6 +42,13 @@ const connect = (context) => {
 
   const provider = new WebsocketProvider(url, room, doc, { params: token ? { token } : {} })
 
+  // Said here rather than left to the listener below, which is registered a line too
+  // late: y-websocket emits its first "connecting" from inside the constructor, so
+  // nothing is listening yet and the seam hears silence. A seam that has heard
+  // nothing assumes the transport has no events and reports connected -- so a board
+  // pointed at a relay that does not exist flashed green before going red.
+  report('connecting')
+
   // The provider knows when it is genuinely connected; the seam only guesses when
   // nothing tells it otherwise.
   provider.on('status', ({ status }) => report(status === 'connected' ? 'connected' : 'connecting'))

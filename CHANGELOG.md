@@ -3,6 +3,50 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## 0.3.6
+
+### Fixed
+
+- **"Connecting…" no longer means "forever".** A paused Supabase project left the
+  status light pulsing hopefully with nothing anywhere saying why. The transport was
+  not at fault — its client reports one failed attempt and then goes quiet while it
+  backs off, so the last thing the seam was told really was "connecting". A
+  `connecting` that has not become `connected` within fifteen seconds is now an
+  error, keeping whatever reason the transport gave.
+
+- **The reason is shown, in the dialog the light already opens.** It was being
+  carried and never rendered. Clicking a status light that is worrying you now
+  answers the question instead of showing a form.
+
+- **There is a way back.** A project that was paused and has been turned back on
+  needs no new credentials — only a reconnect, which nothing offered. The banner
+  carries **Try again**, which re-attaches what is already configured without
+  reloading the board.
+
+- A studio's `connect` that reports its status by registering a listener could miss
+  its own transport's first event and be assumed connected. The contract — report
+  before you return — is now written where it is read, and the demo follows it.
+
+### Changed
+
+- **The header menu is a cog, and says "Settings".** Everything behind it configures
+  the board; three lines promise navigation.
+
+- **The save button glows while work is staged.** It already turned amber, which is
+  enough if you are looking at it — an operator mid-show is looking at the preview.
+  Slow and shallow on purpose, and it stays lit rather than breathing under
+  `prefers-reduced-motion`.
+
+- **"Move" is now "Save and reconnect"** ("Connect" on a board with no room yet).
+  "Move" described what the button does only when the address changed.
+
+- Smaller: a rule above the plugins footnote, and buttons that sit beside a
+  paragraph are centred against it rather than pinned to its first line.
+
+### Added
+
+- `sync.detail` beside `sync.state`, and `retry()` from `useRelay`.
+
 ## 0.3.5
 
 ### Added

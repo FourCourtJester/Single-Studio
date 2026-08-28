@@ -244,7 +244,12 @@ export function Plugins({ className, ...rest }) {
           {plugins.map((plugin) => (
             <Entry key={plugin.name} plugin={plugin} onSave={configure} />
           ))}
-          <p className="mt-3 text-xs text-slate-500">
+          {/*
+            Ruled off. It is a note about the whole panel sitting under the last
+            plugin's fields, and without a line it reads as one more thing that
+            plugin has to say.
+          */}
+          <p className="mt-3 border-t border-slate-800 pt-3 text-xs text-slate-500">
             These are stored with the studio on this machine, not in the show. Another operator&rsquo;s settings are their own.
           </p>
         </>

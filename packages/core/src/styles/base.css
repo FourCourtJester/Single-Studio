@@ -398,4 +398,37 @@
   .ss-control .ss-transition {
     transition-duration: 1ms;
   }
+
+  /* The glow stops moving and stays lit. The point is "there is something to save",
+     which a static ring makes just as well as a breathing one. */
+  .ss-save-button[data-pending='true'] {
+    animation: none;
+    box-shadow: 0 0 8px 2px rgb(245 158 11 / 0.42);
+  }
+}
+
+/*
+ * Unsaved work, from the corner of an eye.
+ *
+ * The button already turns amber, which is enough if you are looking at it. An
+ * operator mid-show is looking at the preview, and the thing worth noticing is not
+ * the button's colour but that it changed at all -- so this breathes rather than
+ * sits, because peripheral vision is far better at motion than at hue.
+ *
+ * Deliberately slow and shallow. A fast or bright pulse beside a live preview is
+ * something an operator learns to tune out within one show, which would cost the
+ * signal permanently to buy attention once.
+ */
+@keyframes ss-save-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 1px rgb(245 158 11 / 0.54);
+  }
+  50% {
+    box-shadow: 0 0 14px 4px rgb(245 158 11 / 0.17);
+  }
+}
+
+.ss-save-button[data-pending='true'] {
+  animation: ss-save-glow 2.4s ease-in-out infinite;
 }

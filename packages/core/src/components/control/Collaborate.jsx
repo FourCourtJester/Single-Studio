@@ -99,15 +99,81 @@ function Roster() {
 /** The settings themselves, opened from the menu. */
 export function CollaborateDialog({ open, onClose }) {
   const status = useSyncStatus()
-  const { config, join, leave, reference } = useRelay({ auto: false })
+  const { config, join, leave, retry, reference } = useRelay({ auto: false })
 
-  return <SetupDialog open={open} onClose={onClose} config={config} join={join} leave={leave} reference={reference} offset={status.offset} />
+  return (
+    <SetupDialog
+      open={open}
+      onClose={onClose}
+      config={config}
+      join={join}
+      leave={leave}
+      retry={retry}
+      reference={reference}
+      offset={status.offset}
+      status={status}
+    />
+  )
 }
 
 /** "3s behind" / "12s ahead", from the offset that would correct it. */
 const formatSkew = (offset) => `${Math.round(Math.abs(offset) / 1000)}s ${offset > 0 ? 'behind' : 'ahead of'}`
 
-function SetupDialog({ open, onClose, config, join, leave, reference, offset }) {
+/**
+ * What went wrong, where somebody will actually read it.
+ *
+ * The header light says a connection is not working and has room for three words.
+ * This is the same fact with the reason attached, in the place an operator opens
+ * *because* the light worried them -- clicking it is the first thing anybody does,
+ * and until now it opened a form that said nothing about the problem.
+ *
+ * The reason comes from the transport, so it is the honest one: a paused project,
+ * a refused key, a host that is not answering.
+ */
+function Trouble({ status, onRetry, retrying }) {
+  if (status?.state !== 'error') return null
+
+  return (
+    <div role="alert" className="ss-sync-trouble flex items-center gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+      <p className="min-w-0 grow">
+        <strong className="font-medium text-rose-100">Not connected.</strong> {sentence(status.detail) || 'The relay is not answering.'} Your graphics are
+        unaffected and your edits are saved on this machine — they will sync when it comes back.
+      </p>
+      {/*
+        Because the commonest cause has nothing to do with the settings below it. A
+        paused Supabase project that has been turned back on needs no new
+        credentials and no new key -- the only thing wrong was that the far end was
+        asleep, and nothing tells the board it woke up. Without this the only way
+        back was re-submitting a form that was already correct.
+      */}
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={retrying}
+        className="ss-sync-retry shrink-0 rounded-md border border-rose-400/50 px-2.5 py-1 font-medium text-rose-100 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+      >
+        {retrying ? 'Trying…' : 'Try again'}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * End a fragment with a full stop, if whoever wrote it did not.
+ *
+ * The reason comes from a transport rather than from us -- "realtime:
+ * CHANNEL_ERROR", "closed", a browser's own message -- so it arrives as a fragment,
+ * lands in the middle of a sentence, and runs straight into the next one.
+ */
+const sentence = (text) => {
+  const trimmed = String(text ?? '').trim()
+
+  if (!trimmed) return ''
+
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`
+}
+
+function SetupDialog({ open, onClose, config, join, leave, retry, reference, offset, status }) {
   const dialog = useRef(null)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
@@ -115,6 +181,7 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
   const [secret, setSecret] = useState('')
   const [help, setHelp] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   useEffect(() => {
     const element = dialog.current
@@ -206,6 +273,18 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
       </header>
 
       <div className="flex flex-col gap-3 overflow-y-auto p-4">
+        <Trouble
+          status={status}
+          retrying={retrying}
+          onRetry={() => {
+            // Held for a moment whatever happens. A retry that fails again reports
+            // through the status seam a second or two later, and a button that
+            // sprang straight back would read as one that did nothing.
+            setRetrying(true)
+            retry()
+            setTimeout(() => setRetrying(false), 1200)
+          }}
+        />
         {config?.url ? (
           <section className="flex flex-col gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3">
             <span className="text-xs font-medium uppercase tracking-wide text-emerald-200">Invite someone</span>
@@ -217,7 +296,11 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
                 dock the width of a sidebar is a drag somebody gets wrong twice; the
                 button is how this is actually used. The text stays because a link
                 you cannot see is a link you cannot check. */}
-            <div className="flex items-start gap-2">
+            {/* Centred, not top-aligned. The text beside these buttons wraps to two or
+                three lines as often as not, and a button pinned to the first line of
+                a paragraph reads as though it belongs to that line rather than to
+                the block. The same goes for the retry in `Trouble` above. */}
+            <div className="flex items-center gap-2">
               <code className="ss-invite-link min-w-0 grow select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">{invite}</code>
               <button
                 type="button"
@@ -401,7 +484,14 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
           disabled={!url.trim()}
           className="ss-collaborate-go ml-auto rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500 disabled:opacity-40"
         >
-          {config?.url ? 'Move' : 'Go'}
+          {/*
+            It said "Move", which is what it does only when the address changed. The
+            commonest reason to open this is that something is wrong with the room
+            you are already in, where "Move" reads like it will take the show
+            somewhere else. This says what it does in both cases, and matches the
+            plugin panel's button, which has the same job.
+          */}
+          {config?.url ? 'Save and reconnect' : 'Connect'}
         </button>
       </footer>
     </dialog>

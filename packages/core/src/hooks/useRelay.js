@@ -337,6 +337,23 @@ export function useRelay({ auto = true } = {}) {
   )
 
   /**
+   * Try the room again, with exactly what is already configured.
+   *
+   * The case this exists for is a Supabase project that was paused and has been
+   * turned back on. Nothing about the credentials changed and nothing needs to --
+   * the only thing wrong was that the far end was asleep, and the board has no way
+   * to notice it woke up.
+   *
+   * Deliberately not `join`: that stores the config and rewrites the address bar,
+   * which reloads the board. Reloading to retry a connection is a heavy answer to a
+   * small question, and mid-show it is the wrong one. `attach` tears down and
+   * rebuilds on every call, so this is all a retry needs to be.
+   */
+  const retry = useCallback(() => {
+    if (config?.url) velcro.connectSync(config)
+  }, [config, velcro])
+
+  /**
    * Leave the room and go back to working alone.
    *
    * Three things, and all three are needed. Forgetting the stored room stops the
@@ -376,5 +393,5 @@ export function useRelay({ auto = true } = {}) {
     return next
   }, [config, join, reference])
 
-  return { config, join, leave, rekey, reference }
+  return { config, join, leave, rekey, retry, reference }
 }

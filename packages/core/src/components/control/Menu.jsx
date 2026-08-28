@@ -78,16 +78,21 @@ export function Menu({ className, ...rest }) {
     <span ref={wrapper} className={cx('ss-menu relative flex items-center gap-2', className)} {...rest}>
       <Collaborate onOpen={() => show('collaborate')} />
 
-      <Tooltip label="Setup" align="end">
+      {/*
+        A cog rather than three lines. Everything behind it configures the board --
+        who else is in the room, what the shortcuts are, what the plugins are set to
+        -- and a hamburger promises navigation, which is the one thing this is not.
+      */}
+      <Tooltip label="Settings" align="end">
         <button
           type="button"
           onClick={() => setOpen((was) => !was)}
-          aria-label="Setup"
+          aria-label="Settings"
           aria-haspopup="menu"
           aria-expanded={open}
           className="ss-menu-open flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
         >
-          <Icon name="menu" />
+          <Icon name="cog" />
         </button>
       </Tooltip>
 
