@@ -65,7 +65,11 @@ export function SaveButton({ className, ...rest }) {
           data-pending={pending ? 'true' : 'false'}
           aria-label={pending ? `Save ${count} change${count === 1 ? '' : 's'}` : 'Saved'}
           aria-keyshortcuts={ariaChord(saveChord)}
-          className={cx(button, pending ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-700')}
+          className={cx(
+            button,
+            'ss-save-button',
+            pending ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-700',
+          )}
         >
           <Icon name="save" />
         </button>

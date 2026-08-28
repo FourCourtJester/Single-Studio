@@ -101,13 +101,35 @@ export function CollaborateDialog({ open, onClose }) {
   const status = useSyncStatus()
   const { config, join, leave, reference } = useRelay({ auto: false })
 
-  return <SetupDialog open={open} onClose={onClose} config={config} join={join} leave={leave} reference={reference} offset={status.offset} />
+  return <SetupDialog open={open} onClose={onClose} config={config} join={join} leave={leave} reference={reference} offset={status.offset} status={status} />
 }
 
 /** "3s behind" / "12s ahead", from the offset that would correct it. */
 const formatSkew = (offset) => `${Math.round(Math.abs(offset) / 1000)}s ${offset > 0 ? 'behind' : 'ahead of'}`
 
-function SetupDialog({ open, onClose, config, join, leave, reference, offset }) {
+/**
+ * What went wrong, where somebody will actually read it.
+ *
+ * The header light says a connection is not working and has room for three words.
+ * This is the same fact with the reason attached, in the place an operator opens
+ * *because* the light worried them -- clicking it is the first thing anybody does,
+ * and until now it opened a form that said nothing about the problem.
+ *
+ * The reason comes from the transport, so it is the honest one: a paused project,
+ * a refused key, a host that is not answering.
+ */
+function Trouble({ status }) {
+  if (status?.state !== 'error') return null
+
+  return (
+    <p role="alert" className="ss-sync-trouble rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+      <strong className="font-medium text-rose-100">Not connected.</strong> {status.detail || 'The relay is not answering.'} Your graphics are unaffected and
+      your edits are saved on this machine — they will sync when it comes back.
+    </p>
+  )
+}
+
+function SetupDialog({ open, onClose, config, join, leave, reference, offset, status }) {
   const dialog = useRef(null)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
@@ -206,6 +228,7 @@ function SetupDialog({ open, onClose, config, join, leave, reference, offset }) 
       </header>
 
       <div className="flex flex-col gap-3 overflow-y-auto p-4">
+        <Trouble status={status} />
         {config?.url ? (
           <section className="flex flex-col gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3">
             <span className="text-xs font-medium uppercase tracking-wide text-emerald-200">Invite someone</span>

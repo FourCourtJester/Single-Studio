@@ -194,6 +194,102 @@ describe('attaching a provider', () => {
   })
 })
 
+describe('a connection that never arrives', () => {
+  // The failure this exists for is silent, and was found by an operator rather than
+  // by a test: a paused Supabase project left the board saying "Connecting..." with
+  // a hopeful little pulse, indefinitely, with nothing anywhere saying why.
+  //
+  // The transport is not lying. Supabase's realtime client reports the failed
+  // attempt and then goes quiet while it backs off, so the last thing the seam was
+  // told really was "connecting". It just was not going to be told anything again.
+
+  it('stops calling it connecting once it plainly is not', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const name = `stuck-${Math.random()}`
+      const seen = watch(name)
+      // A provider that reports the attempt and then says nothing, which is what a
+      // transport with its own internal retry looks like from here.
+      const made = host({
+        name,
+        sync: {
+          connect: ({ report }) => {
+            report('connecting', 'realtime: CHANNEL_ERROR')
+            return { destroy() {} }
+          },
+        },
+      })
+
+      await made.started
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(made.sync.state).toBe(CONNECTING)
+
+      await vi.advanceTimersByTimeAsync(15_000)
+
+      expect(made.sync.state).toBe(ERROR)
+      // The reason the transport gave, kept. It was always carried and never shown.
+      expect(made.sync.detail).toBe('realtime: CHANNEL_ERROR')
+      expect(seen.filter((message) => message.type === 'sync').map((message) => message.state)).toContain(ERROR)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('says something rather than nothing when the transport gave no reason', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const made = host({
+        name: `mute-${Math.random()}`,
+        sync: {
+          connect: ({ report }) => {
+            report('connecting')
+            return { destroy() {} }
+          },
+        },
+      })
+
+      await made.started
+      await vi.advanceTimersByTimeAsync(15_000)
+
+      expect(made.sync.state).toBe(ERROR)
+      expect(made.sync.detail).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('leaves a connection that arrives in time alone', async () => {
+    // The guard on the guard. Fifteen seconds is a long wobble, not a broken link,
+    // and an error reported over a working connection is worse than the silence
+    // this replaces.
+    vi.useFakeTimers()
+
+    try {
+      const made = host({
+        name: `slow-${Math.random()}`,
+        sync: {
+          connect: ({ report }) => {
+            report('connecting')
+            setTimeout(() => report('connected'), 5_000)
+
+            return { destroy() {} }
+          },
+        },
+      })
+
+      await made.started
+      await vi.advanceTimersByTimeAsync(30_000)
+
+      expect(made.sync.state).toBe(CONNECTED)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
 describe('a remote update', () => {
   it('reaches a subscriber without the host knowing where it came from', async () => {
     // The seam needs no publishing code of its own. A provider applying a remote

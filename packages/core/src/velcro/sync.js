@@ -173,11 +173,59 @@ export function createSync({ doc, name, status, config }) {
     }
   }
 
+  /**
+   * How long "connecting" is allowed to stay true before it is called what it is.
+   *
+   * A drop that will recover looks exactly like one that will not, for the first
+   * few seconds, and reporting an error over a wobbly minute would have operators
+   * ignoring the light by the second week. After this long it is no longer a wobble.
+   */
+  const CONNECTING_GRACE_MS = 15_000
+
+  let escalation = null
+
+  /**
+   * Say what the connection is doing.
+   *
+   * With a watchdog on `connecting`, because that state can be a lie by omission. A
+   * transport that retries internally -- Supabase's realtime client, among others --
+   * reports a failed attempt and then goes quiet while it backs off, so a project
+   * that is paused, deleted or unreachable leaves a board saying "Connecting..."
+   * with a hopeful little pulse for as long as anybody leaves it open. Nothing is
+   * coming. An operator watching that has been told the opposite of the truth.
+   *
+   * So a `connecting` that does not become `connected` within the grace period
+   * becomes `error`, keeping whatever reason the transport gave -- which is usually
+   * the useful part and was previously carried and never shown.
+   */
   function report(next, why = null) {
     if (state === next && detail === why) return
 
     state = next
     detail = why
+
+    clearTimeout(escalation)
+    escalation = null
+
+    if (next === CONNECTING) {
+      escalation = setTimeout(() => {
+        escalation = null
+
+        // Re-checked rather than assumed: fifteen seconds is long enough for the
+        // state to have moved on, and an error reported over a healthy connection
+        // is worse than the silence this replaces.
+        if (state !== CONNECTING) return
+
+        state = ERROR
+        detail = why ?? 'It is not answering.'
+
+        announceStatus()
+      }, CONNECTING_GRACE_MS)
+
+      // Nothing is waiting on this, and a worker that cannot be collected because a
+      // status timer is pending is a worse bug than the one being fixed.
+      escalation.unref?.()
+    }
 
     announceStatus()
   }
@@ -631,6 +679,10 @@ export function createSync({ doc, name, status, config }) {
     },
     get state() {
       return state
+    },
+    /** Why, when the state is one that has a reason. Null when it does not. */
+    get detail() {
+      return detail
     },
     /** Milliseconds to add to this machine's clock to get the room's. */
     get offset() {

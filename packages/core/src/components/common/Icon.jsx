@@ -36,6 +36,19 @@ const shapes = {
       <path d="M4 17h16" />
     </>
   ),
+  /*
+   * A cog. The rim is what makes it one -- teeth radiating from a bare hub read as
+   * a sun, which is a brightness control on every other piece of software an
+   * operator has ever used. So: a hub, a rim, and eight short teeth sitting on the
+   * rim rather than floating outside it.
+   */
+  cog: (
+    <>
+      <circle cx="12" cy="12" r="7.25" />
+      <circle cx="12" cy="12" r="2.75" />
+      <path d="M12 2.75v2M12 19.25v2M21.25 12h-2M4.75 12h-2M18.55 5.45l-1.4 1.4M6.85 17.15l-1.4 1.4M18.55 18.55l-1.4-1.4M6.85 6.85l-1.4-1.4" />
+    </>
+  ),
   /* A plug: two pins, a body, and the lead going off. */
   plug: (
     <>
