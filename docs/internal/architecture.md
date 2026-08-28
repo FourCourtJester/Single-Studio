@@ -390,17 +390,71 @@ properties, re-measured on resize.
 
 ## Services
 
-None ship yet. The base class exists because the old OBS, Sheets, and Rocket
-League workers each reimplemented the same singleton, channel wiring, and a flat
-5s retry. `Service` adds the two things they lacked: exponential backoff, and an
-`owner` flag so ingress has a single writer. See
-[collaboration.md](./collaboration.md#ingress-ownership).
+Four ship: [Rocket League](./rocket-league.md), [OBS](./obs.md),
+[Twitch](./twitch.md) and [Sheets](./sheets.md).
+
+`Service` exists because the old OBS, Sheets and Rocket League workers each
+reimplemented the same singleton, channel wiring and flat 5s retry. It adds the two
+things they lacked: exponential backoff, and an `owner` flag so ingress has a single
+writer. See [collaboration.md](./collaboration.md#ingress-ownership).
+
+Above it sit the two shapes a plugin can take, both written _after_ three plugins
+rather than before them:
+
+- **`SocketService`** — something that tells you. Open, parse, teardown, a
+  "is this still the live socket" check for protocols that hand over, and a
+  watchdog, because a socket can die without a close frame and the symptom is the
+  worst kind: an overlay that looks healthy and is frozen. A subclass writes
+  `receive` and `url`.
+- **`PollingService`** — something that will not. Owner check, a floor on the
+  interval, and change detection, so a read that finds nothing costs one request and
+  nothing else. A subclass writes `read`.
+
+OBS and Twitch had independently grown the same open/parse/teardown code and got the
+watchdog subtly different, which is what decided the extraction. All four plugins
+were then rewritten onto the base classes — the only honest test of an abstraction is
+whether the things it was drawn from fit back into it.
+
+### Commands
+
+Everything so far is ingress. Rocket League v2.72 also accepts commands — spectator
+viewpoint, replay load and seek, playback speed, HUD visibility — and OBS accepts
+far more than the plugin asks it.
+
+**A command in response to an event needs nothing new.** The event arrives at the
+machine with the game on it, the handler runs on that machine, and the reply goes
+back down the socket it arrived on:
+
+```js
+class MyShow extends RocketLeagueHandler {
+  onRoundStarted() {
+    this.plugin.send({ Command: 'SetHudVisibility', Data: { visible: false } })
+  }
+}
+```
+
+That already works today — `PluginHandler` is handed the runtime as `this.plugin`,
+and `SocketService.send` is public. It is not _blessed_: there is no named method,
+nothing declares which commands a plugin accepts, and nothing stops a handler
+sending a malformed frame. Those are the things worth adding, and none of them is a
+mechanism.
+
+**A command from an operator is the hard one, and is deferred.** A remote board
+pressing a button has to reach the machine holding the role, and the document cannot
+carry that: it is a CRDT of state, so anything written into it persists, replicates
+and replays. "Seek the replay to 0:42" re-running when somebody reloads a browser
+source is a bad night. That wants a transient path — the shape presence already uses
+— and nothing needs it yet.
+
+The fallback if it stays awkward is the one the image library already takes: the
+machine with the game open is the sole manipulator of plugins that talk to it, and a
+remote operator simply does not have those buttons.
 
 ## Testing
 
-| Layer       | Where                     | Covers                                                         |
-| ----------- | ------------------------- | -------------------------------------------------------------- |
-| Unit        | `packages/core/test`      | paths, counters, mutations, time, three-peer convergence       |
+| Layer       | Where                        | Covers                                                         |
+| ----------- | ---------------------------- | -------------------------------------------------------------- |
+| Unit        | `packages/core/test`         | paths, counters, mutations, time, three-peer convergence       |
 | Integration | `apps/fixture/e2e/smoke.mjs` | SharedWorker startup, cross-tab fan-out, IndexedDB persistence |
 
 The split is deliberate. The store is pure and testable in Node against a raw

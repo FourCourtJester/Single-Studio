@@ -36,8 +36,15 @@ Every message is the same two fields.
 
 Commands go the other way in the mirror image — `Command` naming it, `Data` holding
 the variables — covering spectator viewpoint, replay load and seek, playback speed,
-and HUD visibility. **Commands are deferred**; see the plan in
-[architecture](architecture.md#services). Ingress first.
+and HUD visibility.
+
+The plugin does not send any, but a handler can: it is handed the runtime as
+`this.plugin`, and `SocketService.send` is public. So a command _in response to an
+event_ — hide the HUD when the round starts — works today and needs no mechanism,
+because the machine that heard the event is the machine that sends the command. What
+is missing is a blessed method, a declaration of which commands exist, and anything
+stopping a malformed frame. A command from a _remote operator_ is the deferred one.
+See [architecture](architecture.md#commands).
 
 Every payload carries `MatchGuid`, which is the only thing tying a stream of events
 to one match. Worth keying off rather than assuming a socket sees one match: a
