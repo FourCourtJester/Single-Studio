@@ -33,6 +33,11 @@ jobs:
 
       - run: pnpm lint
 
+      # `pnpm test` builds core first, and has to. The plugin packages import the
+      # framework through its public entry points rather than by relative path --
+      # which is the point, since that is the surface a studio author gets -- so
+      # they resolve through `dist`, and a clean checkout has none. Reordering these
+      # two steps is not a fix; the script is what a contributor runs locally too.
       - run: pnpm test
 
       - name: Build packages

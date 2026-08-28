@@ -21,7 +21,7 @@
     "lint": "eslint .",
     "typecheck": "pnpm --filter @single-studio/core build && node node_modules/typescript/bin/tsc -p apps/fixture/tsconfig.json",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md,yaml,yml}\"",
-    "test": "pnpm -r test",
+    "test": "pnpm --filter @single-studio/core build && pnpm -r test",
     "verify:template": "node scripts/verify-template.mjs",
     "api:reference": "node scripts/api-reference.mjs",
     "test:watch": "pnpm --filter @single-studio/core test:watch",
