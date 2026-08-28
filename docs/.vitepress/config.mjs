@@ -36,10 +36,11 @@ export default defineConfig({
       { text: 'Getting started', link: '/getting-started' },
       { text: 'Components', link: '/api' },
       { text: 'Your own data', link: '/data' },
+      { text: 'Plugins', link: '/plugins' },
       { text: 'Collaborating', link: '/collaborating' },
       { text: 'Demo', link: 'https://fourcourtjester.github.io/Single-Studio-Demo/#/' },
       {
-        text: 'v0.3.0',
+        text: 'v0.3.6',
         items: [
           { text: 'Changelog', link: 'https://github.com/FourCourtJester/Single-Studio/blob/main/CHANGELOG.md' },
           { text: 'npm', link: 'https://www.npmjs.com/package/@single-studio/core' },
@@ -60,6 +61,7 @@ export default defineConfig({
         items: [
           { text: 'Components', link: '/api' },
           { text: 'Your own data', link: '/data' },
+          { text: 'Plugins', link: '/plugins' },
         ],
       },
     ],
