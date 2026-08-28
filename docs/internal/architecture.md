@@ -421,23 +421,41 @@ Everything so far is ingress. Rocket League v2.72 also accepts commands — spec
 viewpoint, replay load and seek, playback speed, HUD visibility — and OBS accepts
 far more than the plugin asks it.
 
-**A command in response to an event needs nothing new.** The event arrives at the
-machine with the game on it, the handler runs on that machine, and the reply goes
-back down the socket it arrived on:
+**A command in response to an event needs nothing new**, and is built. The event
+arrives at the machine with the game on it, the handler runs on that machine, and
+the reply goes back down the socket it arrived on:
 
 ```js
-class MyShow extends RocketLeagueHandler {
-  onRoundStarted() {
-    this.plugin.send({ Command: 'SetHudVisibility', Data: { visible: false } })
+class MyShow extends ObsHandler {
+  onMatchEnded() {
+    this.command('scene', { name: 'Podium' })
   }
 }
 ```
 
-That already works today — `PluginHandler` is handed the runtime as `this.plugin`,
-and `SocketService.send` is public. It is not _blessed_: there is no named method,
-nothing declares which commands a plugin accepts, and nothing stops a handler
-sending a malformed frame. Those are the things worth adding, and none of them is a
-mechanism.
+`SocketService` declares `static commands` — a table of name to frame builder,
+mirroring how each plugin's events are declared, so the list of what a plugin can be
+asked is something a studio author can read rather than guess. `PluginHandler` gets
+`command()` as the shorthand.
+
+The three refusals are the whole of the design, and are deliberately different:
+
+|               |                    | Why                                                                                                                    |
+| ------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Unknown name  | **throws**         | A typo in a studio's own code. It will never work, and the far end would swallow the frame without a word.             |
+| Not the owner | **false**, quietly | The normal state of every machine but one on a collaborating show. Throwing would put the same guard in every handler. |
+| Not connected | **false**          | The thing is not running. A handler should not have to check.                                                          |
+
+The ownership check matters more here than it does for ingress. Five machines
+writing the same paths is waste; five machines telling the same OBS to cut scene is
+five scene changes, four of them from people who cannot see what they did.
+
+OBS declares six commands — scene, preview, stream, record, pause, source visibility
+— chosen as the things a show does to _itself_ while running, not the hundred-odd
+requests that configure OBS at build time. Rocket League declares none yet: the
+v2.72 command names are documented where CI cannot reach, and six plausible guesses
+would ship a plugin whose commands the game silently ignores, which is worse than one
+that admits it has none.
 
 **A command from an operator is the hard one, and is deferred.** A remote board
 pressing a button has to reach the machine holding the role, and the document cannot

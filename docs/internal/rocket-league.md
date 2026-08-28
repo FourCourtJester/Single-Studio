@@ -38,13 +38,20 @@ Commands go the other way in the mirror image — `Command` naming it, `Data` ho
 the variables — covering spectator viewpoint, replay load and seek, playback speed,
 and HUD visibility.
 
-The plugin does not send any, but a handler can: it is handed the runtime as
-`this.plugin`, and `SocketService.send` is public. So a command _in response to an
-event_ — hide the HUD when the round starts — works today and needs no mechanism,
-because the machine that heard the event is the machine that sends the command. What
-is missing is a blessed method, a declaration of which commands exist, and anything
-stopping a malformed frame. A command from a _remote operator_ is the deferred one.
-See [architecture](architecture.md#commands).
+The mechanism for sending them exists — `SocketService.commands` and
+`handler.command()`, see [architecture](architecture.md#commands) — and a command
+sent in reaction to an event needs nothing more, because the machine that heard the
+event is the machine that sends the command.
+
+**The plugin's command table is empty, and the wire names are why.** They are
+documented where this container cannot reach, and declaring six plausible strings
+would ship a plugin whose commands the game ignores without a word — worse than one
+with none, because `command()` refuses an unknown name loudly while a guessed name
+would look like it worked. Filling the table in is a five-line change once the names
+are to hand; an author who already knows one can send it directly with
+`this.plugin.send({ Command, Data })`.
+
+A command from a _remote operator_ is a different problem and stays deferred.
 
 Every payload carries `MatchGuid`, which is the only thing tying a stream of events
 to one match. Worth keying off rather than assuming a socket sees one match: a

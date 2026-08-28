@@ -12,9 +12,21 @@ export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
  * WebSocket support, and that is the whole reason this plugin can exist: a studio
  * stays static files with nothing running alongside it.
  *
- * Ingress only. v2.72 also added commands going the other way -- spectator target,
- * replay seek, HUD visibility -- and those are the deferred work, because a remote
- * operator pressing a button needs a way to reach the machine with the game on it.
+ * Ingress only, for now, and not for a reason worth defending. v2.72 added commands
+ * going the other way -- spectator target, replay load and seek, playback speed, HUD
+ * visibility -- and a command sent *in reaction to an event* needs no mechanism at
+ * all: the event arrived on the machine running the game, so the answer goes back
+ * down the socket it came in on. The base class provides `command` and the table
+ * below is where those would be declared.
+ *
+ * It is empty because the wire names are the one thing this could not read. Psyonix
+ * documents them where CI cannot reach, and inventing six plausible strings would
+ * ship a plugin whose commands are silently ignored by the game -- worse than one
+ * that admits it has none, because `command()` refuses an unknown name loudly and a
+ * guessed name would look like it worked.
+ *
+ * Filling it in is a five-line change once the names are to hand. An author who
+ * knows one already can send it with `this.plugin.send({ Command, Data })`.
  */
 /**
  * The fastest the tick is ever passed on, whatever an operator types.
@@ -53,6 +65,12 @@ const BATCHED = { ballHit: 'ballHits', boostPickup: 'boostPickups' }
 
 class RocketLeague extends SocketService {
   static serviceName = 'rocket-league'
+
+  /**
+   * What a studio can ask the game to do. Empty until the v2.72 command names are
+   * confirmed -- see the note above, and `docs/internal/rocket-league.md`.
+   */
+  static commands = {}
 
   /** The last score emitted, so the tick can be quiet when nothing scored. */
   #score = null

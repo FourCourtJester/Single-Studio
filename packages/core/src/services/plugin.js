@@ -92,6 +92,34 @@ export class PluginHandler {
   }
 
   /**
+   * Ask the thing this plugin talks to, to do something.
+   *
+   * The other direction, and the shorter half of it. A handler already reacts to
+   * what arrived; this is how it answers -- hide the HUD when the round starts, cut
+   * the scene when the whistle goes.
+   *
+   * It needs no routing and no new mechanism, which is the whole reason it is here
+   * rather than deferred: the event arrived at the machine running the game, the
+   * handler runs on that machine, and the command goes back down the socket it came
+   * in on. The hard version -- an operator on another machine pressing a button --
+   * is a different problem and is not this.
+   *
+   * Returns false rather than throwing when this machine is not the one that should
+   * be talking, which on a collaborating show is every machine but one.
+   *
+   * @param {string} name
+   * @param {object} [data]
+   * @returns {boolean} Whether it went.
+   */
+  command(name, data) {
+    if (typeof this.plugin?.command !== 'function') {
+      throw new Error(`${this.plugin?.name ?? 'this plugin'} does not take commands`)
+    }
+
+    return this.plugin.command(name, data)
+  }
+
+  /**
    * Subscribe every declared method to its event.
    *
    * Walks the constructor's `handles` rather than the instance, so a subclass

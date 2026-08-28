@@ -244,3 +244,62 @@ describe('events', () => {
     expect(seen).toHaveBeenCalledWith(expect.objectContaining({ live: true, state: 'started' }))
   })
 })
+
+describe('telling OBS to do something', () => {
+  /** Connected, identified, and with the connect-time reads already out of the way. */
+  const talking = async (over = {}) => {
+    const plugin = build(ObsHandler, over)
+
+    plugin.open()
+    await sockets[0].settle()
+    sockets[0].sent.length = 0
+
+    return plugin
+  }
+
+  it('cuts to a scene, in obs-websocket’s own shape', async () => {
+    const plugin = await talking()
+
+    expect(plugin.command('scene', { name: 'Match' })).toBe(true)
+
+    const [frame] = sockets[0].sent
+
+    expect(frame.op).toBe(OP.REQUEST)
+    expect(frame.d.requestType).toBe('SetCurrentProgramScene')
+    expect(frame.d.requestData).toEqual({ sceneName: 'Match' })
+  })
+
+  it('turns the stream and the recorder on and off with one command each', async () => {
+    const plugin = await talking()
+
+    plugin.command('stream', { on: true })
+    plugin.command('record', { on: false })
+
+    expect(sockets[0].sent.map((frame) => frame.d.requestType)).toEqual(['StartStream', 'StopRecord'])
+  })
+
+  it('shows and hides one source inside a scene', async () => {
+    const plugin = await talking()
+
+    plugin.command('item', { scene: 'Match', id: 7, visible: false })
+
+    expect(sockets[0].sent[0].d.requestData).toEqual({ sceneName: 'Match', sceneItemId: 7, sceneItemEnabled: false })
+  })
+
+  it('refuses a request that is not on the list', async () => {
+    // The list is small on purpose: the things a show does to itself while it is
+    // running, not the hundred that configure OBS at build time.
+    const plugin = await talking()
+
+    expect(() => plugin.command('CreateScene', { name: 'nope' })).toThrow(/no command "CreateScene"/)
+  })
+
+  it('says nothing on a machine that is not running this OBS', async () => {
+    const plugin = await talking({})
+
+    plugin.owner = () => false
+
+    expect(plugin.command('scene', { name: 'Match' })).toBe(false)
+    expect(sockets[0].sent).toEqual([])
+  })
+})

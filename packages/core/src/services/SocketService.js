@@ -65,7 +65,7 @@ export class SocketService extends Service {
    * @param {WebSocket} _socket The socket it came from, which matters during a handover.
    * @abstract
    */
-   
+
   async receive(_message, _socket) {
     throw new Error(`${this.name} must implement \`receive\``)
   }
@@ -201,6 +201,65 @@ export class SocketService extends Service {
   /** @param {unknown} frame Serialised as JSON. */
   send(frame) {
     this.#socket?.send(JSON.stringify(frame))
+  }
+
+  /**
+   * The commands this service accepts, by the name a studio author uses, each
+   * building the frame that goes on the wire.
+   *
+   * A table rather than a method per command, for the same reason the events are a
+   * table: it is the list somebody reads to find out what a plugin can be asked, and
+   * a name that is not in it is a mistake rather than a frame the far end will
+   * quietly ignore.
+   *
+   * Declared per protocol because the envelope is. Rocket League wants
+   * `{ Command, Data }`; obs-websocket wants an opcode and a request id. There is
+   * nothing shared to put in the base class beyond the guards below.
+   *
+   * @type {Record<string, (data: object) => unknown>}
+   */
+  static commands = {}
+
+  /**
+   * Send one command, if this machine is the one that should.
+   *
+   * The three answers are deliberately different, because they are three different
+   * kinds of thing:
+   *
+   *   - **An unknown name throws.** It is a typo in a studio's own code, it will
+   *     never work, and the far end would swallow the frame without a word. Loud, at
+   *     the moment it is written.
+   *   - **Not the owner returns false, quietly.** On a collaborating show this is
+   *     the normal state of every machine but one, several times a match. Throwing
+   *     would mean every handler wrapping every command in the same guard, and the
+   *     first author to forget would fill a colleague's console during a show.
+   *   - **No connection returns false too.** The game is not running, or is starting
+   *     up. A handler should not have to check.
+   *
+   * The ownership check is the important one. Ingress has a single owner so five
+   * machines do not write the same paths; egress needs it for a sharper reason --
+   * five machines telling the same OBS to change scene is five scene changes, and
+   * four of them come from people who cannot see what they did.
+   *
+   * @param {string} name
+   * @param {object} [data]
+   * @returns {boolean} Whether it went.
+   */
+  command(name, data = {}) {
+    const build = this.constructor.commands?.[name]
+
+    if (typeof build !== 'function') {
+      const known = Object.keys(this.constructor.commands ?? {})
+
+      throw new Error(`${this.name} has no command "${name}"${known.length ? `; it accepts ${known.join(', ')}` : ' and accepts none yet'}`)
+    }
+
+    if (!this.owns) return false
+    if (!this.#socket) return false
+
+    this.send(build(data))
+
+    return true
   }
 
   async close() {

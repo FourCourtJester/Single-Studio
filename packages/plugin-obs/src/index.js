@@ -14,16 +14,44 @@ export { EVENTS, categoriesFor, normalise } from './events'
  * for itself: a lower third that hides when the camera cuts away, a scoreboard that
  * only counts while the match scene is up, a "LIVE" badge that is honest.
  *
- * Ingress only. OBS is bidirectional and switching scenes from the board is the
- * obvious next thing, but that is the deferred command work -- it needs the routing
- * question answered first, or a remote operator's button press has nowhere to go.
+ * Requests were always here, because reading needs them: OBS announces changes and
+ * never announces the present, so a studio that only listened would not know the
+ * scene until somebody changed it. The plugin asks once on connect.
  *
- * Requests are here regardless, because reading needs them: OBS announces changes
- * and never announces the present, so a studio that only listened would not know
- * the scene until somebody changed it. The plugin asks once on connect.
+ * A handful of them are now declared as commands, so a studio can answer as well as
+ * listen -- cut the scene when the whistle goes. What is still deferred is a
+ * *remote* operator pressing a button, which is a routing problem rather than a
+ * protocol one. See architecture.md#commands.
  */
 class Obs extends SocketService {
   static serviceName = 'obs'
+
+  /**
+   * What a studio can ask OBS to do.
+   *
+   * A deliberately small list: the things a show does *to itself* while it is
+   * running. OBS accepts a hundred-odd requests and most of them configure it --
+   * creating scenes, moving sources, setting up encoders -- which is the operator's
+   * job at build time and not something a graphic should be doing at five to seven.
+   *
+   * `requestId` is a constant rather than a counter because nothing waits for the
+   * reply. `ask` correlates because it has a promise to settle; a command is told,
+   * not asked, and OBS ignores an id it is not being asked about.
+   */
+  static commands = {
+    /** Cut to a scene by name. The one everybody wants. */
+    scene: ({ name }) => request('SetCurrentProgramScene', 'ss-cmd', { sceneName: name }),
+
+    /** Load a scene into preview, for a studio-mode operator to take manually. */
+    preview: ({ name }) => request('SetCurrentPreviewScene', 'ss-cmd', { sceneName: name }),
+
+    stream: ({ on }) => request(on ? 'StartStream' : 'StopStream', 'ss-cmd'),
+    record: ({ on }) => request(on ? 'StartRecord' : 'StopRecord', 'ss-cmd'),
+    pauseRecord: ({ on }) => request(on ? 'PauseRecord' : 'ResumeRecord', 'ss-cmd'),
+
+    /** Show or hide one source within a scene. Needs the scene's item id. */
+    item: ({ scene, id, visible }) => request('SetSceneItemEnabled', 'ss-cmd', { sceneName: scene, sceneItemId: id, sceneItemEnabled: Boolean(visible) }),
+  }
 
   #pending = new Map()
 
