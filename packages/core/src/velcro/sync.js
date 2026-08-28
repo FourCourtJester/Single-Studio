@@ -589,6 +589,14 @@ export function createSync({ doc, name, status, config }) {
 
       // A provider that never reported anything is assumed connected once it has
       // been built, which covers the simple case of a transport with no events.
+      //
+      // Which means a `connect` that *does* report has to have done so by now --
+      // synchronously, before it returns. Registering a listener and waiting is a
+      // line too late: a transport that emits its first status from inside its own
+      // constructor emits it into an empty room, this branch hears nothing, and a
+      // board pointed at a dead relay goes green for a tenth of a second before it
+      // goes red. `connectSupabase` calls `report('connecting')` outright for this
+      // reason, and so should anything else.
       if (!spoke) report(CONNECTED)
 
       return provider

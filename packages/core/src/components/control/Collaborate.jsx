@@ -134,11 +134,8 @@ function Trouble({ status, onRetry, retrying }) {
   if (status?.state !== 'error') return null
 
   return (
-    <div
-      role="alert"
-      className="ss-sync-trouble flex flex-col items-start gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
-    >
-      <p>
+    <div role="alert" className="ss-sync-trouble flex items-start gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+      <p className="min-w-0 grow">
         <strong className="font-medium text-rose-100">Not connected.</strong> {sentence(status.detail) || 'The relay is not answering.'} Your graphics are
         unaffected and your edits are saved on this machine — they will sync when it comes back.
       </p>
@@ -153,7 +150,7 @@ function Trouble({ status, onRetry, retrying }) {
         type="button"
         onClick={onRetry}
         disabled={retrying}
-        className="ss-sync-retry rounded-md border border-rose-400/50 px-2.5 py-1 font-medium text-rose-100 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+        className="ss-sync-retry shrink-0 rounded-md border border-rose-400/50 px-2.5 py-1 font-medium text-rose-100 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
       >
         {retrying ? 'Trying…' : 'Try again'}
       </button>
