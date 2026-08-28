@@ -403,7 +403,7 @@
      which a static ring makes just as well as a breathing one. */
   .ss-save-button[data-pending='true'] {
     animation: none;
-    box-shadow: 0 0 8px 2px rgb(245 158 11 / 0.35);
+    box-shadow: 0 0 8px 2px rgb(245 158 11 / 0.42);
   }
 }
 
@@ -422,10 +422,10 @@
 @keyframes ss-save-glow {
   0%,
   100% {
-    box-shadow: 0 0 6px 1px rgb(245 158 11 / 0.45);
+    box-shadow: 0 0 6px 1px rgb(245 158 11 / 0.54);
   }
   50% {
-    box-shadow: 0 0 14px 4px rgb(245 158 11 / 0.14);
+    box-shadow: 0 0 14px 4px rgb(245 158 11 / 0.17);
   }
 }
 
