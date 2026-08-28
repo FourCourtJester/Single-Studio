@@ -1,6 +1,6 @@
 {
   "name": "@single-studio/provider-supabase",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Collaboration for Single Studio over Supabase Realtime: bring your own key, no backend to deploy.",
   "license": "MIT",
   "repository": {

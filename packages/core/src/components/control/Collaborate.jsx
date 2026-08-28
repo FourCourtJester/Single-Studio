@@ -134,7 +134,7 @@ function Trouble({ status, onRetry, retrying }) {
   if (status?.state !== 'error') return null
 
   return (
-    <div role="alert" className="ss-sync-trouble flex items-start gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+    <div role="alert" className="ss-sync-trouble flex items-center gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
       <p className="min-w-0 grow">
         <strong className="font-medium text-rose-100">Not connected.</strong> {sentence(status.detail) || 'The relay is not answering.'} Your graphics are
         unaffected and your edits are saved on this machine — they will sync when it comes back.
@@ -296,7 +296,11 @@ function SetupDialog({ open, onClose, config, join, leave, retry, reference, off
                 dock the width of a sidebar is a drag somebody gets wrong twice; the
                 button is how this is actually used. The text stays because a link
                 you cannot see is a link you cannot check. */}
-            <div className="flex items-start gap-2">
+            {/* Centred, not top-aligned. The text beside these buttons wraps to two or
+                three lines as often as not, and a button pinned to the first line of
+                a paragraph reads as though it belongs to that line rather than to
+                the block. The same goes for the retry in `Trouble` above. */}
+            <div className="flex items-center gap-2">
               <code className="ss-invite-link min-w-0 grow select-all break-all rounded bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">{invite}</code>
               <button
                 type="button"
