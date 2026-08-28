@@ -1234,11 +1234,18 @@ await control.locator('.ss-menu-open').click()
 await control.locator('.ss-menu-plugins').click()
 check(await becomes(control, () => Boolean(document.querySelector('.ss-plugins-dialog[open]'))), 'the menu opens the plugin settings')
 
-const feed = control.locator('.ss-plugin[data-plugin="feed"]')
-check((await feed.count()) === 1, 'the worker reports the plugin the studio registered')
+// Waited for rather than counted. The dialog opens immediately and the list does
+// not: the panel asks the worker over postMessage and renders "Asking the worker..."
+// until the answer comes back, so a count taken the instant the dialog appears is
+// reading the loading state and calling it a missing plugin.
+check(
+  await becomes(control, () => document.querySelectorAll('.ss-plugin[data-plugin="feed"]').length === 1),
+  'the worker reports the plugin the studio registered',
+)
 check(await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"]')?.dataset.status === 'connected'), 'and says it is running')
 
 // The fields came from the plugin's declaration, not from anything the board knows.
+// Safe to read directly now: the row above is rendered, so these are with it.
 const label = control.locator('#ss-plugin-field-label')
 const rate = control.locator('#ss-plugin-field-rate')
 check((await label.inputValue()) === 'Feed', 'a declared text field arrives at its default')
@@ -1248,7 +1255,8 @@ check((await rate.inputValue()) === '120', 'and a declared number field does too
 check((await control.locator('.ss-plugin-save').isDisabled()) === true, 'saving is offered only once something has changed')
 
 await label.fill('Rehearsal')
-check((await control.locator('.ss-plugin-save').isDisabled()) === false, 'and offered as soon as it has')
+// Polled, because the button follows a React render rather than the keystroke.
+check(await becomes(control, () => document.querySelector('.ss-plugin-save')?.disabled === false), 'and offered as soon as it has')
 
 await control.locator('.ss-plugin-save').click()
 check(await becomes(control, () => document.querySelector('#ss-plugin-field-label')?.value === 'Rehearsal'), 'the new value is stored and read back')
@@ -1281,6 +1289,10 @@ check(
   await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin-problem')?.textContent ?? '')),
   'a config the plugin refuses says why, on the board',
 )
+// Once. The manifest is read back after every save, so a rejected one arrives as
+// the plugin's standing reason as well as the save's -- and the same sentence in
+// two places reads as two problems.
+check((await control.locator('.ss-plugin-reason').count()) === 0, 'and says it once, not twice')
 
 // Put it back, so the rest of the run is not driven by a stopped plugin.
 await rate.fill('120')

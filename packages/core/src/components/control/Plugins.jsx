@@ -172,8 +172,13 @@ function Entry({ plugin, onSave }) {
         to whoever built the studio; "Could not reach rocket-league at
         ws://127.0.0.1:49122" sends them to the game, which is where the fix is.
         Reported by the plugin itself, so it clears when the plugin recovers.
+
+        Not while a save is being reported, though. The manifest is read back after
+        every save, so a rejected one arrives here as well as beside the button --
+        the same sentence twice, once where it was asked for and once where it was
+        not. The one by the button wins: it is next to what they just pressed.
       */}
-      {plugin.problem ? (
+      {plugin.problem && !problem ? (
         <p role="status" className="ss-plugin-reason text-xs text-rose-400">
           {plugin.problem}
         </p>
