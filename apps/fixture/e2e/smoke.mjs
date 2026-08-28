@@ -1246,19 +1246,29 @@ check(await becomes(control, () => document.querySelector('.ss-plugin[data-plugi
 
 // The fields came from the plugin's declaration, not from anything the board knows.
 // Safe to read directly now: the row above is rendered, so these are with it.
+// Scoped to the row under test. There is more than one plugin installed now, so a
+// bare `.ss-plugin-save` is two buttons and a bare `.ss-help-toggle` is two links --
+// the demo feed's and Rocket League's. Which is the point of the scoping rather than
+// an annoyance: a panel with one plugin in it never proved anything about a panel.
+const row = control.locator('.ss-plugin[data-plugin="feed"]')
+const pluginSave = row.locator('.ss-plugin-save')
+
 const label = control.locator('#ss-plugin-field-label')
 const rate = control.locator('#ss-plugin-field-rate')
 check((await label.inputValue()) === 'Feed', 'a declared text field arrives at its default')
 check((await rate.inputValue()) === '120', 'and a declared number field does too')
 
 // Nothing to save until something changes.
-check((await control.locator('.ss-plugin-save').isDisabled()) === true, 'saving is offered only once something has changed')
+check((await pluginSave.isDisabled()) === true, 'saving is offered only once something has changed')
 
 await label.fill('Rehearsal')
 // Polled, because the button follows a React render rather than the keystroke.
-check(await becomes(control, () => document.querySelector('.ss-plugin-save')?.disabled === false), 'and offered as soon as it has')
+check(
+  await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-save')?.disabled === false),
+  'and offered as soon as it has',
+)
 
-await control.locator('.ss-plugin-save').click()
+await pluginSave.click()
 check(await becomes(control, () => document.querySelector('#ss-plugin-field-label')?.value === 'Rehearsal'), 'the new value is stored and read back')
 
 // The real proof: the plugin was rebuilt against it, and its events still reach the
@@ -1272,31 +1282,34 @@ check(
   (await control.locator('.ss-plugin[data-plugin="feed"] .ss-plugin-summary').textContent()).includes('Ticks on a timer'),
   'a plugin says in one line what it is',
 )
-check((await control.locator('.ss-help').count()) === 0, 'setup instructions stay out of the way until asked for')
+check((await row.locator('.ss-help').count()) === 0, 'setup instructions stay out of the way until asked for')
 
-await control.locator('.ss-help-toggle').click()
-check(await becomes(control, () => /talks to nothing/.test(document.querySelector('.ss-help')?.textContent ?? '')), 'and open when they are')
-check((await control.locator('.ss-help-steps li').count()) === 3, 'numbered steps render as steps')
-check((await control.locator('.ss-help-note').count()) === 1, 'and a warning renders as one')
+await row.locator('.ss-help-toggle').click()
+check(
+  await becomes(control, () => /talks to nothing/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-help')?.textContent ?? '')),
+  'and open when they are',
+)
+check((await row.locator('.ss-help-steps li').count()) === 3, 'numbered steps render as steps')
+check((await row.locator('.ss-help-note').count()) === 1, 'and a warning renders as one')
 
-await control.locator('.ss-help-toggle').click()
-check(await becomes(control, () => !document.querySelector('.ss-help')), 'and close again')
+await row.locator('.ss-help-toggle').click()
+check(await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="feed"] .ss-help')), 'and close again')
 
 // A value it will not start on is reported rather than swallowed.
 await rate.fill('0')
-await control.locator('.ss-plugin-save').click()
+await pluginSave.click()
 check(
-  await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin-problem')?.textContent ?? '')),
+  await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-problem')?.textContent ?? '')),
   'a config the plugin refuses says why, on the board',
 )
 // Once. The manifest is read back after every save, so a rejected one arrives as
 // the plugin's standing reason as well as the save's -- and the same sentence in
 // two places reads as two problems.
-check((await control.locator('.ss-plugin-reason').count()) === 0, 'and says it once, not twice')
+check((await row.locator('.ss-plugin-reason').count()) === 0, 'and says it once, not twice')
 
 // Put it back, so the rest of the run is not driven by a stopped plugin.
 await rate.fill('120')
-await control.locator('.ss-plugin-save').click()
+await pluginSave.click()
 await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"]')?.dataset.status === 'connected')
 await control.keyboard.press('Escape')
 await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))

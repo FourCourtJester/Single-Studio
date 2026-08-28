@@ -9,12 +9,14 @@
     ".": "./src/index.js"
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "replay": "node dev/replay.mjs"
   },
   "dependencies": {
     "@single-studio/core": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^3.2.6"
+    "vitest": "^3.2.6",
+    "ws": "^8.21.3"
   }
 }

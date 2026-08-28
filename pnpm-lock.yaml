@@ -44,6 +44,9 @@ importers:
       '@single-studio/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@single-studio/plugin-rocket-league':
+        specifier: workspace:*
+        version: link:../../packages/plugin-rocket-league
       '@single-studio/provider-supabase':
         specifier: workspace:*
         version: link:../../packages/provider-supabase
@@ -144,6 +147,9 @@ importers:
       vitest:
         specifier: ^3.2.6
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
+      ws:
+        specifier: ^8.21.3
+        version: 8.21.3
 
   packages/plugin-sheets:
     dependencies:

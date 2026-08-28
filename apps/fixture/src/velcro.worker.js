@@ -4,6 +4,8 @@ import { WebsocketProvider } from 'y-websocket'
 
 import { STUDIO_ID } from './config'
 import { mutations } from './mutations'
+import { rocketLeague, RocketLeagueHandler } from '@single-studio/plugin-rocket-league'
+
 import { feed, FeedHandler } from './plugins/feed'
 
 // The SharedWorker entry. This is the whole plugin mechanism for state:
@@ -78,10 +80,58 @@ class Ticker extends FeedHandler {
   }
 }
 
+/**
+ * Rocket League on this studio's own scoreboard.
+ *
+ * Blue is home and orange is away, which is a decision this studio makes rather than
+ * one the plugin makes for it -- the whole reason a plugin emits rather than writes.
+ * The graphic is the one that was already here, reading `home.score` as it always
+ * did; nothing about it knows a game is driving it.
+ *
+ * Nothing to install to watch this work:
+ *
+ *   pnpm --filter @single-studio/plugin-rocket-league replay
+ *
+ * then open Settings -> Plugins and press Save on Rocket League. Without it the row
+ * sits there saying it cannot reach the game, which is also worth seeing.
+ */
+class Rocket extends RocketLeagueHandler {
+  onScore({ blue, orange }) {
+    this.mutate('set', { 'variables.home.score': blue, 'variables.away.score': orange })
+  }
+
+  onClock({ seconds }) {
+    // Written as the string a scoreboard reads, because 87 seconds is 1:27 to
+    // everybody except a computer.
+    const minutes = Math.floor(seconds / 60)
+
+    this.mutate('set', { 'variables.period': `${minutes}:${String(seconds % 60).padStart(2, '0')}` })
+  }
+
+  onGoal({ scorer, side }) {
+    this.mutate('set', {
+      'variables.lower.name': scorer?.name ?? 'Own goal',
+      'variables.lower.title': `Goal — ${side === 'blue' ? 'Home' : 'Away'}`,
+    })
+  }
+
+  onStatfeed({ what, by, to }) {
+    if (what !== 'Demolish') return
+
+    this.mutate('set', { 'variables.lower.name': by?.name ?? '', 'variables.lower.title': `Demolished ${to?.name ?? ''}` })
+  }
+
+  // The teams are named once a match rather than every tick, because `writeOne`
+  // compares before it writes and there is nothing to compare against on the first.
+  onMatchReady() {
+    this.mutate('set', { 'variables.home.name': 'Blue', 'variables.away.name': 'Orange' })
+  }
+}
+
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
-  plugins: [feed(Ticker)],
+  plugins: [feed(Ticker), rocketLeague(Rocket)],
   sync: {
     url: preset,
     room: import.meta.env.VITE_RELAY_ROOM ?? STUDIO_ID,
