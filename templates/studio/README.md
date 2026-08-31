@@ -99,7 +99,7 @@ for the Supabase steps and what to do when somebody has to be shut out.
 | `src/studio/config.js`        | `STUDIO_ID` — names the IndexedDB store and every channel      |
 | `src/studio/velcro.worker.js` | The SharedWorker that owns state. No React in here             |
 | `src/mutations/`              | Your own state changes, alongside the built-in ones            |
-| `src/control/Control.jsx`     | The operator's board                                           |
+| `src/control/`                | The operator's board: `Control.jsx` composes `panels/`         |
 | `src/sources/`                | One component per graphic                                      |
 
 Components come from one of two entry points, and which one a file uses says which

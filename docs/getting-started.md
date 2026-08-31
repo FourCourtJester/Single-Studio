@@ -90,10 +90,10 @@ a control surface, a graphic, and a Pages deploy already wired. `npm install` pu
 
 Two folders are the ones you will live in:
 
-| Folder         | Holds                                                |
-| -------------- | ---------------------------------------------------- |
-| `src/control/` | The operator's board                                 |
-| `src/sources/` | One file per graphic — each becomes a browser source |
+| Folder         | Holds                                                   |
+| -------------- | ------------------------------------------------------- |
+| `src/control/` | The operator's board — `Control.jsx` composes `panels/` |
+| `src/sources/` | One file per graphic — each becomes a browser source    |
 
 Then, as you need them:
 
