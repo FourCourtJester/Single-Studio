@@ -12,6 +12,7 @@ carry status markers rather than instructions.
 | [architecture.md](architecture.md)   | How the store, routes and components fit together, and why each is shaped that way                            |
 | [collaboration.md](collaboration.md) | The design for going from one operator to several. A plan with staged delivery, not a guide                   |
 | [rocket-league.md](rocket-league.md) | The Stats API as transcribed from Psyonix's docs, which CI cannot reach. The working reference for the plugin |
+| [next.md](next.md)                   | What is queued and why, so a break does not lose it                                                           |
 | [sheets.md](sheets.md)               | A shared spreadsheet as a data source: an API key, polling, and the quota floor                               |
 | [obs.md](obs.md)                     | obs-websocket v5: the handshake, the auth hash, and the subscription bitmask                                  |
 | [twitch.md](twitch.md)               | EventSub, the auth constraint that shapes it, and what is still unverified                                    |

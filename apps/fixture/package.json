@@ -17,7 +17,8 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.2",
     "y-websocket": "^3.1.0",
-    "yjs": "^13.6.32"
+    "yjs": "^13.6.32",
+    "@single-studio/plugin-rocket-league": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",

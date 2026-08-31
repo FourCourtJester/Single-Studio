@@ -187,6 +187,24 @@ is Unreal's house style and not this framework's. The plugin should emit
 `{ overtime: true }`. A studio author should not have to know what engine the game
 was written in.
 
+## Watching it work without the game
+
+`pnpm --filter @single-studio/plugin-rocket-league replay` serves the Stats API shape
+on `ws://127.0.0.1:49122` and plays a short match on a loop — kickoff, three goals
+with their replay sequences, a demolition, a podium — then starts again. The demo
+studio registers the plugin, so `pnpm fixture` plus that command is a moving
+scoreboard with nothing installed.
+
+It proves the plugin end to end and proves nothing about the wire format. Every frame
+in it is one somebody typed from the same notes the parser was written from, so it
+cannot disagree with the parser. **A capture from a real match is still the missing
+piece**, and when there is one this should replay that, with the script as the
+fallback.
+
+Worth knowing while reading it: each client gets a fresh match from the top, which
+the game does not do. A real client that stays connected across a lobby sees several
+matches, which is why every payload carries `MatchGuid`.
+
 ## What was built
 
 `packages/plugin-rocket-league`. Two files: `events.js` turns a wire payload into the
