@@ -1,3 +1,4 @@
+// WIRING — the registry. Add your file to the list at the bottom.
 // Everything that can change this studio's state, in one object.
 //
 // The worker hands this to createVelcroHost, where it joins the built-ins --

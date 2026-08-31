@@ -1,3 +1,4 @@
+// YOURS — the operator's board.
 import Match from './panels/Match'
 import Scores from './panels/Scores'
 

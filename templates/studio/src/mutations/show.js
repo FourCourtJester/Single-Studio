@@ -1,3 +1,4 @@
+// YOURS — example mutations. Keep, edit or delete them.
 // Two examples that ship with the template, to be kept, edited or deleted.
 //
 // Your own belong in custom.js, or in a file per area of the show as it grows --

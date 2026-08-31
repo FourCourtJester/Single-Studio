@@ -1,3 +1,4 @@
+// YOURS — a panel on the board.
 import { Field, Panel, Stepper, SwapButton } from '@single-studio/core/control'
 
 // One panel, in its own file. Add another beside it and put it in Control.jsx.

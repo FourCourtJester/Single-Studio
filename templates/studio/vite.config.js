@@ -1,3 +1,4 @@
+// WIRING — you should not need to change this.
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwind from '@tailwindcss/vite'

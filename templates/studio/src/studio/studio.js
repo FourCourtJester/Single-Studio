@@ -1,3 +1,4 @@
+// YOURS — what this studio is called, and what it registers.
 import { defineStudio, sourcesFrom } from '@single-studio/core'
 
 import { STUDIO_ID } from './config'

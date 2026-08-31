@@ -1,3 +1,4 @@
+// YOURS — what the show connects to: plugins, and collaboration.
 import { createVelcroHost } from '@single-studio/core/worker'
 import { connectSupabase } from '@single-studio/provider-supabase'
 

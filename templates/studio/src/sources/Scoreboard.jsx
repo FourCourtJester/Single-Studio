@@ -1,3 +1,4 @@
+// YOURS — a graphic. This file becomes an OBS browser source.
 import { Scene, Variable } from '@single-studio/core/source'
 
 // Add to OBS as a Browser source pointed at #/source/scoreboard

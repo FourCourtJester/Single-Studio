@@ -1,3 +1,4 @@
+// WIRING — you should not need to change this.
 // Where the page starts. Hands your studio to the framework, which does the routing
 // -- one route for the operator's board, one per graphic. Nothing to change here.
 import { StrictMode } from 'react'

@@ -93,14 +93,33 @@ for the Supabase steps and what to do when somebody has to be shut out.
 
 ## Where things live
 
-| Path                          | What it is                                                     |
-| ----------------------------- | -------------------------------------------------------------- |
-| `src/studio.js`               | The registry: name, id, control surface, one entry per graphic |
-| `src/studio/config.js`        | `STUDIO_ID` — names the IndexedDB store and every channel      |
-| `src/studio/velcro.worker.js` | The SharedWorker that owns state. No React in here             |
-| `src/mutations/`              | Your own state changes, alongside the built-in ones            |
-| `src/control/`                | The operator's board: `Control.jsx` composes `panels/`         |
-| `src/sources/`                | One component per graphic                                      |
+Every file says which it is on its first line, so you can tell from inside it too.
+
+### Yours
+
+Making this studio your own means editing these and nothing else.
+
+| Path                          | What it is                                                    |
+| ----------------------------- | ------------------------------------------------------------- |
+| `src/control/`                | The operator's board — `Control.jsx` composes `panels/`       |
+| `src/sources/`                | One component per graphic. Each becomes an OBS browser source |
+| `src/mutations/`              | How your show's data changes — `custom.js` starts empty       |
+| `src/studio/studio.js`        | What the studio is called, and what it registers              |
+| `src/studio/config.js`        | `STUDIO_ID`. Set it once, when you start                      |
+| `src/studio/velcro.worker.js` | What the show connects to: plugins, and collaboration         |
+| `src/css/index.css`           | Tailwind, and your own CSS at the bottom                      |
+
+### Wiring
+
+Working already, and exposed rather than hidden so you can read it — but you should
+not need to change any of it.
+
+| Path                     | What it is                                   |
+| ------------------------ | -------------------------------------------- |
+| `index.html`             | The page Vite serves                         |
+| `src/main.jsx`           | Hands the studio to the framework            |
+| `src/mutations/index.js` | Merges your mutation files into one registry |
+| `vite.config.js`         | The build                                    |
 
 Components come from one of two entry points, and which one a file uses says which
 half of the show it belongs to:

@@ -1,3 +1,4 @@
+// YOURS — your studio's own mutations.
 // Your studio's own mutations. This file starts empty on purpose.
 //
 // A mutation is a named function that changes state -- a reducer, if that is the

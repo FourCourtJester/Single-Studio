@@ -1,3 +1,4 @@
+// YOURS — set this once, when you start.
 /**
  * The name this studio's data is stored under.
  *
