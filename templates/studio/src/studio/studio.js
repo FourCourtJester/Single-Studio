@@ -28,6 +28,6 @@ export const studio = defineStudio({
   name: 'My Studio',
   id: STUDIO_ID,
   worker: () => new SharedWorker(new URL('./velcro.worker.js', import.meta.url), { type: 'module', name: `velcro-${STUDIO_ID}` }),
-  control: () => import('./control/Control'),
-  sources: sourcesFrom(import.meta.glob('./sources/**/*.jsx')),
+  control: () => import('../control/Control'),
+  sources: sourcesFrom(import.meta.glob('../sources/**/*.jsx')),
 })

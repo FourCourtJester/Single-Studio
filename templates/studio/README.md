@@ -81,7 +81,7 @@ Already wired. Open **Collaborate** in the header menu, paste a free Supabase
 project's ID and publishable key, and press **Go**; send anybody the link it puts in
 your address bar. Nothing connects until you do that, so a one-machine show pays
 nothing for it — but a `connect` that is absent at build time is a collaboration
-button that does not exist, which is why it is in `src/velcro.worker.js` from the
+button that does not exist, which is why it is in `src/studio/velcro.worker.js` from the
 start.
 
 Shows are encrypted by default. The key is generated for you, rides the URL
@@ -93,14 +93,14 @@ for the Supabase steps and what to do when somebody has to be shut out.
 
 ## Where things live
 
-| Path                      | What it is                                                     |
-| ------------------------- | -------------------------------------------------------------- |
-| `src/studio.js`           | The registry: name, id, control surface, one entry per graphic |
-| `src/config.js`           | `STUDIO_ID` — names the IndexedDB store and every channel      |
-| `src/velcro.worker.js`    | The SharedWorker that owns state. No React in here             |
-| `src/mutations/`          | Your own state changes, alongside the built-in ones            |
-| `src/control/Control.jsx` | The operator's board                                           |
-| `src/sources/`            | One component per graphic                                      |
+| Path                          | What it is                                                     |
+| ----------------------------- | -------------------------------------------------------------- |
+| `src/studio.js`               | The registry: name, id, control surface, one entry per graphic |
+| `src/studio/config.js`        | `STUDIO_ID` — names the IndexedDB store and every channel      |
+| `src/studio/velcro.worker.js` | The SharedWorker that owns state. No React in here             |
+| `src/mutations/`              | Your own state changes, alongside the built-in ones            |
+| `src/control/Control.jsx`     | The operator's board                                           |
+| `src/sources/`                | One component per graphic                                      |
 
 Components come from one of two entry points, and which one a file uses says which
 half of the show it belongs to:

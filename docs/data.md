@@ -56,7 +56,7 @@ before any question of tidiness.
 A studio hands its mutations to the host when the worker starts:
 
 ```js
-// src/velcro.worker.js
+// src/studio/velcro.worker.js
 import { createVelcroHost } from '@single-studio/core/worker'
 
 import { mutations } from './mutations'
@@ -314,7 +314,7 @@ Not all data is typed by an operator. A scoring API, a bracket service, a socket
 a clock of your own — a studio owns those, and they belong in the worker:
 
 ```js
-// src/velcro.worker.js
+// src/studio/velcro.worker.js
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
