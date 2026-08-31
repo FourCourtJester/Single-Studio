@@ -3,6 +3,36 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## 0.4.0
+
+### Breaking
+
+- **`StudioApp` is now `Studio`.**
+
+  ```js
+  import { Studio } from '@single-studio/core'
+
+  createRoot(document.getElementById('app')).render(<Studio studio={studio} />)
+  ```
+
+  The old name said what it was built out of rather than what it is. One import and
+  one tag in `src/main.jsx`; nothing else changes.
+
+  The starter template now asks for `^0.4.0` rather than `^0.3.0` — a template
+  pinned to the old range would install a version without `Studio` in it.
+
+### Changed
+
+- **Fewer comments in the starter template.** A file whose first screen is
+  commentary about problems the framework had is a file that reads as somebody
+  else's notes rather than as your studio. What is left says what a file is for and
+  whether you need to touch it.
+
+- `index.html` says on line one that it is Vite's entry point and can be left alone.
+  `main.jsx` says what it does. `index.css` links to Tailwind's own documentation,
+  which is the thing an author who has not met Tailwind actually needs. `config.js`
+  explains what `STUDIO_ID` names and why it sits in a file of its own.
+
 ## 0.3.6
 
 ### Fixed

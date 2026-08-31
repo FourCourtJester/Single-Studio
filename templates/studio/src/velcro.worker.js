@@ -28,7 +28,9 @@ const connect = (context) => {
   // A Supabase project reference resolves to https. Anything else is somebody's own
   // relay, which this template does not carry a client for.
   if (!/^https?:/.test(context.url)) {
-    throw new Error(`This studio only knows how to reach a Supabase project, and ${context.url} is not one. To run your own relay, add y-websocket and a branch here.`)
+    throw new Error(
+      `This studio only knows how to reach a Supabase project, and ${context.url} is not one. To run your own relay, add y-websocket and a branch here.`,
+    )
   }
 
   return connectSupabase(context)

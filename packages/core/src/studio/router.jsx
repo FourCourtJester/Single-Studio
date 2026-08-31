@@ -55,7 +55,7 @@ export function createStudioRouter(studio) {
  * @param {ReturnType<typeof import('./defineStudio').defineStudio>} props.studio - from `defineStudio`
  * @param {import('react').ReactNode} [props.fallback] - shown while a page's chunk loads
  */
-export function StudioApp({ studio, fallback }) {
+export function Studio({ studio, fallback }) {
   return (
     <StudioProvider studio={studio} fallback={fallback}>
       <Room />

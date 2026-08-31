@@ -75,7 +75,7 @@ export function DraftProvider({ children }) {
 export function useDraft() {
   const context = useContext(DraftContext)
 
-  if (!context) throw new Error('Missing <DraftProvider>. Render your studio with StudioApp, which provides one.')
+  if (!context) throw new Error('Missing <DraftProvider>. Render your studio with Studio, which provides one.')
 
   return context
 }
