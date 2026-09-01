@@ -530,6 +530,17 @@ back in. Every source component does that already — the interesting part is _h
 The prop is a space-separated list of variant names, and what each one looks like
 is CSS — so a new motion costs a rule rather than a code path.
 
+`cut` is the one that does nothing:
+
+```jsx
+<Variable name="clock" transition="cut" />
+```
+
+A clock that fades every second is a clock drawing attention to itself once a
+second. `cut` swaps the value with no animation, the way a vision mixer cuts rather
+than dissolves. Note that leaving the prop off is **not** the same thing — the
+default is `fade`.
+
 Every transitioning element is in exactly one of **four phases**:
 
 | Phase      | Meaning                      |

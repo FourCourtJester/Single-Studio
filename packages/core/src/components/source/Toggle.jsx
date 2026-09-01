@@ -8,7 +8,7 @@ const NAMESPACE = 'toggles'
 /**
  * @typedef {object} ToggleProps
  * @property {string} name - Names a value under `toggles` — e.g. `lowerthird`.
- * @property {import("react").ReactNode} [children] - Shown while the toggle is on.
+ * @property {import("react").ReactNode} [children] - Rendered always; visible while the toggle is on.
  * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -18,6 +18,18 @@ const NAMESPACE = 'toggles'
  *
  * Hidden until the path has loaded, so a source rebuilt mid-show never flashes its
  * contents before finding out it was supposed to be off.
+ *
+ * **The children stay mounted while it is off**, hidden rather than removed. An
+ * empty box has no size, so anything laid out around a toggle moves when it turns
+ * on and moves back when it turns off -- and a percentage transform measured
+ * against a collapsed box is zero, which parks a slide exactly where it should have
+ * landed. Both are the kind of fault that looks fine until the one take where it
+ * matters.
+ *
+ * The cost is that what is inside keeps running while it is off. That is usually
+ * what you want -- a clock behind a hidden lower third should be showing the right
+ * time when it appears, not starting from zero -- but anything genuinely expensive
+ * belongs behind its own toggle rather than inside this one.
  *
  * @example
  * <Toggle name="lowerthird">
@@ -37,7 +49,7 @@ export function Toggle({ name, children, className, ...rest }) {
 
   return (
     <Transition trigger={active} className={cx('ss-toggle', className)} {...rest}>
-      {active ? children : null}
+      {children}
     </Transition>
   )
 }

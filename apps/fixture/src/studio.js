@@ -28,5 +28,6 @@ export const studio = defineStudio({
     // Throws on render, on purpose. The end-to-end suite uses it to prove a crashed
     // graphic paints nothing on air and shows itself under `?debug`.
     broken: () => import('./sources/Broken'),
+    spacing: () => import('./sources/Spacing'),
   },
 })

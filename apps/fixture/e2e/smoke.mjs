@@ -1317,6 +1317,35 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
+// -- A toggle that is off still holds its place -------------------------------
+// An empty box has no size, so anything laid out around a toggle used to move when
+// it turned on and move back when it turned off. Worse, a percentage transform
+// measured against a collapsed box is zero, which parks a slide exactly where it
+// should have landed -- a fault that looks fine until the take where it matters.
+{
+  const spacing = await context.newPage()
+
+  await spacing.goto(`${BASE}/#/source/spacing`)
+  await spacing.waitForSelector('.marker-below')
+  await spacing.waitForTimeout(600)
+
+  const box = await spacing.locator('.probe-toggle').boundingBox()
+  const opacity = await spacing.locator('.probe-toggle').evaluate((el) => getComputedStyle(el).opacity)
+
+  check(Math.round(box.height) === 96, 'a toggle that is off still occupies its space')
+  check(opacity === '0', 'and is hidden rather than removed')
+
+  // `cut` is a variant like any other -- the component knows nothing about it, so
+  // what proves it works is what the element computes to.
+  const cut = await spacing.locator('.probe-cut').evaluate((el) => getComputedStyle(el).transitionDuration)
+  const fade = await spacing.locator('.probe-fade').evaluate((el) => getComputedStyle(el).transitionDuration)
+
+  check(parseFloat(cut) === 0, 'transition="cut" computes to no duration at all')
+  check(parseFloat(fade) > 0, 'while the default still fades')
+
+  await spacing.close()
+}
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

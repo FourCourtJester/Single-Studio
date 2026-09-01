@@ -24,6 +24,23 @@ Both packages share a version — `@single-studio/core` and
 
   The error reaches the console either way.
 
+- **`transition="cut"`** — no animation at all, the way a vision mixer cuts rather
+  than dissolves. A clock that fades every second is a clock drawing attention to
+  itself once a second. Leaving the prop off is not the same thing: the default is
+  `fade`.
+
+### Changed
+
+- **A `Toggle` that is off keeps its children mounted**, hidden rather than removed.
+  An empty box has no size, so anything laid out around a toggle moved when it
+  turned on and moved back when it turned off — and a percentage transform measured
+  against a collapsed box is zero, which parks a slide exactly where it should have
+  landed.
+
+  The cost is that what is inside keeps running while it is off, which is usually
+  what you want: a clock behind a hidden lower third should show the right time when
+  it appears, not start from zero.
+
 - **`Scene` takes a `width` and a `height`.** A graphic fills its browser source by
   default, which is what you want on air — OBS decides the size and the graphic
   follows. These pin it instead, which is what you want while building one: a
