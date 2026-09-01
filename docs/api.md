@@ -680,7 +680,9 @@ export default function Scoreboard() {
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | The graphic. |
 | `className` | `string` |  | Added to the component's own classes. |
+| `height` | `number \| string` |  | A fixed height. A number is pixels; a string is used as written. |
 | `vars` | `Record<string, string>` |  | CSS custom property to value name, e.g. `{ "--accent": "home.color" }`. |
+| `width` | `number \| string` |  | A fixed width. A number is pixels; a string is used as written. |
 
 <a id="source-variable"></a>
 

@@ -11,6 +11,8 @@ const NAMESPACE = 'variables'
  * @typedef {object} SceneProps
  * @property {import("react").ReactNode} [children] - The graphic.
  * @property {Record<string, string>} [vars] - CSS custom property to value name, e.g. `{ "--accent": "home.color" }`.
+ * @property {number|string} [width] - A fixed width. A number is pixels; a string is used as written.
+ * @property {number|string} [height] - A fixed height. A number is pixels; a string is used as written.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -38,6 +40,17 @@ const NAMESPACE = 'variables'
  * A value holding nothing is left unset rather than blanked, so the fallback in
  * `var()` still applies.
  *
+ * A scene fills its browser source, which is what you want on air -- OBS decides the
+ * size and the graphic follows. `width` and `height` pin it instead, which is worth
+ * having while building one: a 1920x1080 scene in a browser tab is what the source
+ * will actually look like, rather than whatever shape the window happens to be.
+ *
+ *   <Scene width={1920} height={1080}>
+ *
+ * A class cannot do this. `h-full` and `h-[1080px]` have the same specificity, so
+ * which one wins is decided by the order Tailwind emits them in rather than the
+ * order they are written -- these set the style directly, which always wins.
+ *
  * @example
  * export default function Scoreboard() {
  *   return (
@@ -55,7 +68,7 @@ const NAMESPACE = 'variables'
  *
  * @param {SceneProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Scene({ children, className, vars, style, ...rest }) {
+export function Scene({ children, className, vars, width, height, style, ...rest }) {
   // Rebuilt only when the map's contents change, not on every render -- an inline
   // object literal is a new object each time, and the hook subscribes off this.
   const signature = JSON.stringify(vars ?? {})
@@ -67,8 +80,18 @@ export function Scene({ children, className, vars, style, ...rest }) {
 
   const resolved = useVelcroVars(paths)
 
+  // A bare number is pixels, because that is what anybody typing 1920 means. A
+  // string is passed through, so `50vw` and `100%` work too.
+  const size = (value) => (typeof value === 'number' ? `${value}px` : value)
+
   return (
-    <div className={cx('ss-scene relative h-full w-full overflow-hidden', className)} style={{ ...resolved, ...style }} {...rest}>
+    <div
+      className={cx('ss-scene relative overflow-hidden', width === undefined && 'w-full', height === undefined && 'h-full', className)}
+      // Dropped from the class list rather than layered over, so what is in the
+      // element inspector is what is happening.
+      style={{ ...resolved, ...(width === undefined ? {} : { width: size(width) }), ...(height === undefined ? {} : { height: size(height) }), ...style }}
+      {...rest}
+    >
       {children}
     </div>
   )

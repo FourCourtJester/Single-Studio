@@ -3,6 +3,27 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## Unreleased
+
+### Added
+
+- **`Scene` takes a `width` and a `height`.** A graphic fills its browser source by
+  default, which is what you want on air — OBS decides the size and the graphic
+  follows. These pin it instead, which is what you want while building one: a
+  1920×1080 scene in a browser tab is what the source will actually look like.
+
+  ```jsx
+  <Scene width={1920} height={1080}>
+  ```
+
+  A number is pixels; a string is used as written, so `50vw` and `100%` work. The
+  matching `w-full` / `h-full` is dropped rather than layered over, so what the
+  element inspector shows is what is happening.
+
+  A class could not do this: `h-full` and `h-[1080px]` have the same specificity, so
+  which one wins is decided by the order Tailwind emits them rather than the order
+  they are written.
+
 ## 0.4.0
 
 ### Breaking
