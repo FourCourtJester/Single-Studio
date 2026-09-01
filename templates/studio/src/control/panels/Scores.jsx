@@ -1,11 +1,7 @@
-// YOURS — a panel on the board.
 import { Field, Panel, Stepper, SwapButton } from '@single-studio/core/control'
 
-// One panel, in its own file. Add another beside it and put it in Control.jsx.
-//
-// Every control binds to a path and knows nothing about any other, so a panel is
-// plain composition -- there is no wiring between these and the graphics that read
-// the same paths.
+// A panel on the operator's board. Each control binds to a path; a graphic reading
+// the same path shows what an operator types here.
 export default function Scores() {
   return (
     <Panel title="Scores">

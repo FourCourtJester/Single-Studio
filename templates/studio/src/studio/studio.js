@@ -1,30 +1,18 @@
-// YOURS — what this studio is called, and what it registers.
 import { defineStudio, sourcesFrom } from '@single-studio/core'
 
 import { STUDIO_ID } from './config'
 
-// Every graphic in src/sources/ becomes a browser source. Add a file, and its URL
-// appears in the control surface's Browser sources list, named and ready to paste
-// into OBS -- there is no registry to keep in step.
+// What this studio is called, and what it is made of.
 //
-// The key comes from the path: `Scoreboard.jsx` is `scoreboard`, `LowerThird.jsx` is
-// `lower-third`, and a folder groups, so `sources/lower-thirds/Single.jsx` is
-// `lower-thirds/single` and shows up in OBS as "Lower Thirds / Single".
+// Every .jsx file in src/sources becomes a browser source. Add one and its URL
+// appears in the board's Browser sources list, ready to paste into OBS.
 //
-// **src/sources/ is only for graphics.** Anything in there becomes a browser source,
-// so a shared plate, a hook or a helper belongs somewhere else -- src/components/ is
-// the obvious home. A file put there by mistake turns up in the operator's list and
-// in OBS, which is a confusing way to find out.
+// The name comes from the path: `Scoreboard.jsx` is `scoreboard`, `LowerThird.jsx`
+// is `lower-third`, and a folder groups -- `sources/lower-thirds/Single.jsx` shows
+// up as "Lower Thirds / Single".
 //
-// `import.meta.glob` is resolved by Vite at build time, not at runtime: it becomes a
-// literal object of dynamic imports before any code runs, so every graphic is still
-// code-split into its own chunk and nothing is loaded until it is opened.
-//
-// Prefer to name them yourself? Pass a plain object instead, and this file is the
-// only place that changes:
-//
-//   sources: { scoreboard: () => import('./sources/Scoreboard') },
-
+// Only graphics belong in src/sources. Anything else in there turns up in the
+// operator's list and in OBS; put shared pieces in src/components.
 export const studio = defineStudio({
   name: 'My Studio',
   id: STUDIO_ID,

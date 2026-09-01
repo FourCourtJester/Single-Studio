@@ -1,4 +1,3 @@
-// YOURS — a panel on the board.
 import { Panel, ResetButton, Select } from '@single-studio/core/control'
 
 export default function Match() {

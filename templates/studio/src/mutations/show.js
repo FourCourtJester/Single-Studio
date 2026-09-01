@@ -1,9 +1,4 @@
-// YOURS — example mutations. Keep, edit or delete them.
-// Two examples that ship with the template, to be kept, edited or deleted.
-//
-// Your own belong in custom.js, or in a file per area of the show as it grows --
-// mutations/index.js merges them. See docs/data.md for the whole surface.
-
+// Two examples, to keep, edit or delete. Your own belong in custom.js.
 export const show = {
   /** Fresh series: zero the scores, drop the round clock. One change on air. */
   'my:reset'(ctx) {

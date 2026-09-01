@@ -93,8 +93,6 @@ for the Supabase steps and what to do when somebody has to be shut out.
 
 ## Where things live
 
-Every file says which it is on its first line, so you can tell from inside it too.
-
 ### Yours
 
 Making this studio your own means editing these and nothing else.
