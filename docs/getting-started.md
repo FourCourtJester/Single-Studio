@@ -803,6 +803,30 @@ Vite gives each graphic its own chunk, and CSS imported this way rides along wit
 it: a browser source pointed at the scoreboard never downloads the podium's rules.
 Measured on the demo, a one-rule file came out as its own 0.05 kB asset.
 
+**It needs no boilerplate.** Do not import Tailwind or the framework's styles at the
+top — plain rules are all it takes, and the utility classes in your JSX already come
+from `index.css`, which every page loads.
+
+The exception is `@apply` and `theme()`, which need to know your theme. Point them at
+it with `@reference`, which reads it without emitting anything:
+
+```css
+/* src/sources/podium.css */
+@reference '../css/index.css';
+
+.podium-plate {
+  @apply rounded-lg bg-sky-600;
+}
+```
+
+Forgetting it fails the build rather than silently dropping the rule, and the error
+names `@reference` — so this is a thing you meet once.
+
+**`@import 'tailwindcss'` is the wrong fix**, and it is the one that looks right. It
+works, and it copies the whole utility layer into that graphic's stylesheet: the same
+file went from **0.22 kB to 17.84 kB**. `@reference` gives the same result at the
+smaller size.
+
 **Import it from `index.css`**, and it is part of the one stylesheet every page
 loads:
 
