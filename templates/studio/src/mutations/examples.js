@@ -1,5 +1,13 @@
-// Two examples, to keep, edit or delete. Your own belong in custom.js.
-export const show = {
+// Worked examples. Nothing imports this file -- read them, copy what is useful, or
+// delete it.
+//
+// To try them, merge them in mutations/index.js:
+//
+//   import { examples } from './examples'
+//
+//   export const mutations = { ...examples, ... }
+
+export const examples = {
   /** Fresh series: zero the scores, drop the round clock. One change on air. */
   'my:reset'(ctx) {
     ctx.write([

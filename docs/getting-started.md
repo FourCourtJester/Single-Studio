@@ -166,7 +166,7 @@ means.
 ### Add a mutation
 
 ```js
-// src/mutations/custom.js
+// src/mutations/index.js
 export const mutations = {
   'my:new-period'(ctx) {
     ctx.write([['variables.period', String(Number(ctx.read('variables.period') || 0) + 1)]])

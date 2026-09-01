@@ -10,7 +10,7 @@ import Scores from './panels/Scores'
 // page, alongside the image store and the browser-source URLs to paste into OBS.
 //
 // To change several things with one click, write a mutation in
-// src/mutations/custom.js and dispatch it:
+// src/mutations/index.js and dispatch it:
 //
 //   const mutate = useVelcroMutate()
 //

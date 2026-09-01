@@ -101,7 +101,7 @@ Making this studio your own means editing these and nothing else.
 | ----------------------------- | ------------------------------------------------------------- |
 | `src/control/`                | The operator's board — `Control.jsx` composes `panels/`       |
 | `src/sources/`                | One component per graphic. Each becomes an OBS browser source |
-| `src/mutations/`              | How your show's data changes — `custom.js` starts empty       |
+| `src/mutations/`              | How your show's data changes — `index.js` starts empty        |
 | `src/studio/studio.js`        | What the studio is called, and what it registers              |
 | `src/studio/config.js`        | `STUDIO_ID`. Set it once, when you start                      |
 | `src/studio/velcro.worker.js` | What the show connects to: plugins, and collaboration         |
