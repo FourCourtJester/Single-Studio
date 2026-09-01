@@ -537,9 +537,7 @@ is CSS — so a new motion costs a rule rather than a code path.
 ```
 
 A clock that fades every second is a clock drawing attention to itself once a
-second. `cut` swaps the value with no animation, the way a vision mixer cuts rather
-than dissolves. Note that leaving the prop off is **not** the same thing — the
-default is `fade`.
+second. Leaving the prop off is **not** the same thing — the default is `fade`.
 
 Every transitioning element is in exactly one of **four phases**:
 
@@ -556,6 +554,7 @@ or inspect any of them.
 | Motion        | What it does                                               |
 | ------------- | ---------------------------------------------------------- |
 | `fade`        | The default. Opacity only.                                 |
+| `cut`         | No animation at all. Swaps, the way a mixer cuts           |
 | `slide-up`    | Arrives travelling upward (starts below its place)         |
 | `slide-down`  | Arrives travelling downward                                |
 | `slide-left`  | Arrives travelling leftward (starts to the right)          |
