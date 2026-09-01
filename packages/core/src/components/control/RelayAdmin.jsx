@@ -52,7 +52,7 @@ const apiFor = (url, room) => {
 
 export function RelayAdmin({ label = 'Operators', className, ...rest }) {
   const { room, configured, url } = useSyncStatus()
-  // Read-only here: StudioApp owns the joining, and three components racing to
+  // Read-only here: Studio owns the joining, and three components racing to
   // attach would each tear down the last one's provider.
   const { config } = useRelay({ auto: false })
   const [secret, setSecret] = useState(stored)

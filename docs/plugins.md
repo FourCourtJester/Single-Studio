@@ -36,7 +36,7 @@ tarballs, that `cp`, and the handler below build with no other change.
 A plugin is one import and one array entry, in your worker entry:
 
 ```js
-// src/velcro.worker.js
+// src/studio/velcro.worker.js
 import { createVelcroHost } from '@single-studio/core/worker'
 import { rocketLeague, RocketLeagueHandler } from './plugins/rocket-league'
 

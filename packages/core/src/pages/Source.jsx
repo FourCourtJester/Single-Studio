@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { usePageTitle } from '../hooks/usePageTitle'
+import { titleize } from '../toolkits/slug'
 import { layerNameFromUrl } from '../toolkits/url'
 import { useStudio } from '../studio/context'
 import { NotFoundPage } from './NotFound'
@@ -25,7 +26,10 @@ export function SourcePage() {
   // source wants that name and nothing appended to it.
   const named = layerNameFromUrl()
 
-  usePageTitle(...(named ? [named] : [name, studio.name]))
+  // Titled the same way the operator's own Browser sources list titles it, from the
+  // same function -- so `lower-thirds/single` reads "Lower Thirds / Single" in both
+  // places rather than as a slug in one and a name in the other.
+  usePageTitle(...(named ? [named] : [titleize(name), studio.name]))
 
   // Hold the whole graphic until the store is reachable.
   //

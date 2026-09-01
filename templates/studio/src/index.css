@@ -1,8 +1,0 @@
-@import 'tailwindcss';
-@import '@single-studio/core/styles.css';
-
-/*
- * Tailwind only scans files it knows about. The framework's components live in
- * node_modules, so point Tailwind at them or their utility classes get stripped.
- */
-@source '../node_modules/@single-studio/core/dist';

@@ -90,10 +90,18 @@ a control surface, a graphic, and a Pages deploy already wired. `npm install` pu
 
 Two folders are the ones you will live in:
 
-| Folder         | Holds                                                |
-| -------------- | ---------------------------------------------------- |
-| `src/control/` | The operator's board                                 |
-| `src/sources/` | One file per graphic — each becomes a browser source |
+| Folder         | Holds                                                   |
+| -------------- | ------------------------------------------------------- |
+| `src/control/` | The operator's board — `Control.jsx` composes `panels/` |
+| `src/sources/` | One file per graphic — each becomes a browser source    |
+
+Then, as you need them:
+
+|                  |                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `src/mutations/` | How your show's data changes — see [Your own data](/data)                                   |
+| `src/studio/`    | The studio itself: what it is called, what it registers, and the worker that holds the show |
+| `src/css/`       | Tailwind, and anywhere you want your own CSS                                                |
 
 The rest is wiring that already works. Have a look around the
 [template repository](https://github.com/FourCourtJester/Single-Studio-Template)
@@ -158,7 +166,7 @@ means.
 ### Add a mutation
 
 ```js
-// src/mutations/custom.js
+// src/mutations/index.js
 export const mutations = {
   'my:new-period'(ctx) {
     ctx.write([['variables.period', String(Number(ctx.read('variables.period') || 0) + 1)]])
@@ -857,7 +865,7 @@ The board and the graphics have to be in the same place. Check both:
 
 - The control surface is an OBS **custom browser dock**, not a separate browser
   window.
-- `STUDIO_ID` in `src/config.js` matches the one the worker is given. A mismatch
+- `STUDIO_ID` in `src/studio/config.js` matches the one the worker is given. A mismatch
   logs a warning in the browser console.
 
 ### A source is blank in OBS but works in a browser

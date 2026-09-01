@@ -1,12 +1,14 @@
+// Hands your studio to the framework, which routes the operator's board and each
+// graphic.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { StudioApp } from '@single-studio/core'
+import { Studio } from '@single-studio/core'
 
-import { studio } from './studio'
-import './index.css'
+import { studio } from './studio/studio'
+import './css/index.css'
 
 createRoot(document.getElementById('app')).render(
   <StrictMode>
-    <StudioApp studio={studio} />
+    <Studio studio={studio} />
   </StrictMode>,
 )

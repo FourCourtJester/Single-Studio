@@ -1,9 +1,13 @@
-// Two examples that ship with the template, to be kept, edited or deleted.
+// Worked examples. Nothing imports this file -- read them, copy what is useful, or
+// delete it.
 //
-// Your own belong in custom.js, or in a file per area of the show as it grows --
-// mutations/index.js merges them. See docs/data.md for the whole surface.
+// To try them, merge them in mutations/index.js:
+//
+//   import { examples } from './examples'
+//
+//   export const mutations = { ...examples, ... }
 
-export const show = {
+export const examples = {
   /** Fresh series: zero the scores, drop the round clock. One change on air. */
   'my:reset'(ctx) {
     ctx.write([

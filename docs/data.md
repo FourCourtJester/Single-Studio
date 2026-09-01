@@ -23,7 +23,7 @@ pulling data in from somewhere that is not a person.
 ## The shortest version
 
 ```js
-// src/mutations/custom.js
+// src/mutations/index.js
 export const mutations = {
   'my:new-period'(ctx) {
     const period = Number(ctx.read('variables.period') ?? 0)
@@ -56,7 +56,7 @@ before any question of tidiness.
 A studio hands its mutations to the host when the worker starts:
 
 ```js
-// src/velcro.worker.js
+// src/studio/velcro.worker.js
 import { createVelcroHost } from '@single-studio/core/worker'
 
 import { mutations } from './mutations'
@@ -100,17 +100,17 @@ survives. **It cannot be a function**, which is why the operations below take
 
 `ctx` is the transaction:
 
-| | |
-| --- | --- |
-| `ctx.read(path)` | The current value at a path. `undefined` if nothing is there. |
-| `ctx.collect(prefix)` | Every member of a collection, as `{ key: value }`. |
-| `ctx.list(prefix, opts)` | The same, ordered, as `[key, value]` entries. |
-| `ctx.write(pairs)` | Apply `[path, value]` pairs. Empty values delete the path. |
-| `ctx.add(path, n)` | Add to a counter — safe when two operators do it at once. |
-| `ctx.now()` | The time **in the room**, not on this machine. |
-| `ctx.<operation>(payload)` | Any built-in below — `ctx.set(…)`, `ctx.append(…)`. |
-| `ctx.run(name, payload)` | Any mutation by name, your own included. |
-| `ctx.doc` `ctx.state` `ctx.clientId` | The Yjs document underneath, if you need it. |
+|                                      |                                                               |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `ctx.read(path)`                     | The current value at a path. `undefined` if nothing is there. |
+| `ctx.collect(prefix)`                | Every member of a collection, as `{ key: value }`.            |
+| `ctx.list(prefix, opts)`             | The same, ordered, as `[key, value]` entries.                 |
+| `ctx.write(pairs)`                   | Apply `[path, value]` pairs. Empty values delete the path.    |
+| `ctx.add(path, n)`                   | Add to a counter — safe when two operators do it at once.     |
+| `ctx.now()`                          | The time **in the room**, not on this machine.                |
+| `ctx.<operation>(payload)`           | Any built-in below — `ctx.set(…)`, `ctx.append(…)`.           |
+| `ctx.run(name, payload)`             | Any mutation by name, your own included.                      |
+| `ctx.doc` `ctx.state` `ctx.clientId` | The Yjs document underneath, if you need it.                  |
 
 A mutation of your own is usually two or three built-ins under one name, so they
 are on the context rather than behind an import:
@@ -145,17 +145,17 @@ This is the decision that matters, and it is not about tidiness — it is about 
 happens when two people touch the same list inside the half-second it takes an
 edit to replicate.
 
-| Your data | Store it as | Because |
-| --- | --- | --- |
-| One value | A path | `variables.home.name` |
-| A record with fields | One path per field | `variables.home.name`, `variables.home.score` — fields merge independently |
-| A number people adjust | A counter (`ctx.add`) | Two `+1`s make `+2` instead of `+1` |
-| A list with **one** author | An array at one path | Ordered, simple, and last-write-wins |
-| A list **several people** add to | A collection | One path per member, so concurrent adds both survive |
+| Your data                        | Store it as           | Because                                                                    |
+| -------------------------------- | --------------------- | -------------------------------------------------------------------------- |
+| One value                        | A path                | `variables.home.name`                                                      |
+| A record with fields             | One path per field    | `variables.home.name`, `variables.home.score` — fields merge independently |
+| A number people adjust           | A counter (`ctx.add`) | Two `+1`s make `+2` instead of `+1`                                        |
+| A list with **one** author       | An array at one path  | Ordered, simple, and last-write-wins                                       |
+| A list **several people** add to | A collection          | One path per member, so concurrent adds both survive                       |
 
 ### Records are just paths
 
-There is no special support for objects because the path *is* the nesting:
+There is no special support for objects because the path _is_ the nesting:
 
 ```js
 ctx.write([
@@ -177,7 +177,7 @@ spreadsheet. It is ordered, it is easy to read, and it is last-write-wins:
 
 ```js
 // Two operators, both adding, within the replication window:
-ctx.read('variables.queue')   // ['Ada']
+ctx.read('variables.queue') // ['Ada']
 // operator A pushes 'Grace', operator B pushes 'Katherine'
 // after they sync:  ['Ada', 'Grace']      ← Katherine is gone, silently
 ```
@@ -251,7 +251,7 @@ special.
 
 A collection buys most of what an ordered CRDT list buys — concurrent add and
 remove, consistent order everywhere — while staying ordinary values at ordinary
-paths. What it does not buy is two operators reordering the *same* list at the same
+paths. What it does not buy is two operators reordering the _same_ list at the same
 moment, which resolves last-write-wins on the field being sorted. In a broadcast
 studio that has not been worth the rest of the cost.
 
@@ -262,28 +262,28 @@ Every one of these is available from `mutate(name, payload)` on a board and as
 
 ### Values
 
-| Mutation | Payload | Does |
-| --- | --- | --- |
-| `set` | `{ 'variables.home.name': 'Broncos' }` | Write paths. Empty values delete. |
-| `merge` | `{ 'variables.home.name': maybe }` | Like `set`, but skips empty values instead of deleting. |
-| `unset` | `'toggles.lower'` or `['a', 'b']` | Delete paths. |
-| `toggle` | `'toggles.lower'` | Flip a boolean. |
-| `only` | `{ group: [...], active: 'x' }` | Turn one on, the rest off. |
-| `swap` | `['home.name', 'home.score', 'away.name', 'away.score']` | Cut the list in half; the halves trade position for position. |
-| `clear` | `{ prefix, except }` | Wipe everything, or everything under a prefix. |
+| Mutation | Payload                                                  | Does                                                          |
+| -------- | -------------------------------------------------------- | ------------------------------------------------------------- |
+| `set`    | `{ 'variables.home.name': 'Broncos' }`                   | Write paths. Empty values delete.                             |
+| `merge`  | `{ 'variables.home.name': maybe }`                       | Like `set`, but skips empty values instead of deleting.       |
+| `unset`  | `'toggles.lower'` or `['a', 'b']`                        | Delete paths.                                                 |
+| `toggle` | `'toggles.lower'`                                        | Flip a boolean.                                               |
+| `only`   | `{ group: [...], active: 'x' }`                          | Turn one on, the rest off.                                    |
+| `swap`   | `['home.name', 'home.score', 'away.name', 'away.score']` | Cut the list in half; the halves trade position for position. |
+| `clear`  | `{ prefix, except }`                                     | Wipe everything, or everything under a prefix.                |
 
 ### Counters
 
-| Mutation | Payload | Does |
-| --- | --- | --- |
+| Mutation    | Payload                         | Does                      |
+| ----------- | ------------------------------- | ------------------------- |
 | `increment` | `{ 'variables.home.score': 1 }` | Add. Concurrent adds sum. |
-| `decrement` | `{ 'variables.home.score': 1 }` | Subtract. |
+| `decrement` | `{ 'variables.home.score': 1 }` | Subtract.                 |
 
 ### Objects
 
-| Mutation | Payload | Does |
-| --- | --- | --- |
-| `patch` | `{ path, value }` | Merge fields into the object at a path, leaving the rest. |
+| Mutation | Payload           | Does                                                      |
+| -------- | ----------------- | --------------------------------------------------------- |
+| `patch`  | `{ path, value }` | Merge fields into the object at a path, leaving the rest. |
 
 One level deep, on purpose. A deep merge has to guess whether a nested object
 replaces or merges, and there is no answer that is right for both a settings blob
@@ -291,22 +291,22 @@ and a list of players. Velcro's answer to nesting is the path.
 
 ### Arrays at one path
 
-| Mutation | Payload | Does |
-| --- | --- | --- |
-| `push` | `{ path, value }` or `{ path, values: [...] }` | Append. Creates the array if absent. |
-| `pull` | `{ path, at }`, `{ path, where }`, `{ path, value }` | Remove by index, by matching fields, or by value. |
-| `move` | `{ path, from, to }` | Reorder. |
+| Mutation | Payload                                              | Does                                              |
+| -------- | ---------------------------------------------------- | ------------------------------------------------- |
+| `push`   | `{ path, value }` or `{ path, values: [...] }`       | Append. Creates the array if absent.              |
+| `pull`   | `{ path, at }`, `{ path, where }`, `{ path, value }` | Remove by index, by matching fields, or by value. |
+| `move`   | `{ path, from, to }`                                 | Reorder.                                          |
 
 All three refuse to run on a path holding something that is not an array, rather
 than replacing it.
 
 ### Collections
 
-| Mutation | Payload | Does |
-| --- | --- | --- |
-| `append` | `{ path, value }` or `{ path, key, value }` | Add a member. Generated keys sort by insertion. |
-| `replace` | `{ path, values: { key: value } }` | Make the collection match exactly. Adds, updates, deletes. |
-| `unset` | `'variables.roster.<key>'` | Remove a member — a member is just a path. |
+| Mutation  | Payload                                     | Does                                                       |
+| --------- | ------------------------------------------- | ---------------------------------------------------------- |
+| `append`  | `{ path, value }` or `{ path, key, value }` | Add a member. Generated keys sort by insertion.            |
+| `replace` | `{ path, values: { key: value } }`          | Make the collection match exactly. Adds, updates, deletes. |
+| `unset`   | `'variables.roster.<key>'`                  | Remove a member — a member is just a path.                 |
 
 ## Data from somewhere else
 
@@ -314,7 +314,7 @@ Not all data is typed by an operator. A scoring API, a bracket service, a socket
 a clock of your own — a studio owns those, and they belong in the worker:
 
 ```js
-// src/velcro.worker.js
+// src/studio/velcro.worker.js
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
@@ -333,7 +333,7 @@ createVelcroHost({
 ```
 
 ```js
-// src/mutations/custom.js
+// src/mutations/index.js
 export const mutations = {
   'feed:game'(ctx, game) {
     // Fields the feed owns. An operator's own edits to other paths are untouched.
@@ -361,7 +361,7 @@ the same paths. Started here it runs once, because the SharedWorker is the one
 thing a machine has exactly one of.
 
 **Behind `owns()`, because one room may have five machines.** That guard is false
-once somebody else has ticked *This machine runs OBS* in the Collaborate dialog.
+once somebody else has ticked _This machine runs OBS_ in the Collaborate dialog.
 Ingress needs a single owner, and that is the one the room already knows: the
 machine that has to display the show is the machine that should be talking to
 anybody's API. Everybody else gets the same data a moment later through
@@ -419,7 +419,7 @@ stored does nothing at all**: no frame, no persistence, no re-render.
 
 ```js
 mutate('set', { 'variables.feed': { home: 1, away: 2 } })
-mutate('set', { 'variables.feed': { home: 1, away: 2 } })  // costs nothing
+mutate('set', { 'variables.feed': { home: 1, away: 2 } }) // costs nothing
 ```
 
 The comparison is structural, not by reference, so a fresh object off `JSON.parse`
@@ -544,7 +544,7 @@ export default function Roster() {
 }
 ```
 
-Note what the graphic does *not* do: no `namespace`, no store wiring, no loading
+Note what the graphic does _not_ do: no `namespace`, no store wiring, no loading
 flag. `Toggle` holds it off air until an operator asks for it, and the list is
 whatever the store says at that instant.
 
