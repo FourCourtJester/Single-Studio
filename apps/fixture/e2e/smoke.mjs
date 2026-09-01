@@ -1317,6 +1317,35 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
+// -- A graphic that crashes ---------------------------------------------------
+// On air it must paint nothing. A missing lower third reads as a cue that did not
+// fire; a red error box reads as the broadcast being broken. `?debug` -- which an
+// author types and which the Browser sources list never puts in a URL -- shows it
+// instead.
+//
+// Its own context, because a crash here would otherwise land in the `crashes` list
+// that every other page shares and fail the run at the bottom.
+{
+  const broken = await context.browser().newContext()
+  const onAir = await broken.newPage()
+
+  await onAir.goto(`${BASE}/#/source/broken`)
+  await onAir.waitForTimeout(1200)
+
+  check((await onAir.locator('body').innerText()).trim() === '', 'a crashed graphic paints nothing on air')
+  check((await onAir.locator('.ss-source-crashed').count()) === 0, 'and shows no error card over the scene')
+
+  const desk = await broken.newPage()
+
+  await desk.goto(`${BASE}/#/source/broken?debug`)
+  await desk.waitForTimeout(1200)
+
+  check(await becomes(desk, () => Boolean(document.querySelector('.ss-source-crashed'))), 'the same graphic shows the crash under ?debug')
+  check(/cannot read properties/i.test(await desk.locator('.ss-source-crashed').innerText()), 'with the error that actually happened')
+
+  await broken.close()
+}
+
 // the silent failure the guard exists to convert into a visible one.
 const legacy = await context.newPage()
 await legacy.addInitScript(() => {

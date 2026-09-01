@@ -33,3 +33,31 @@ export function layerNameFromUrl(href = typeof window === 'undefined' ? '' : win
     return null
   }
 }
+
+/**
+ * Whether this page was asked to show its own errors.
+ *
+ * `?debug` on a graphic, which is a thing an author types while building one and a
+ * thing OBS never has -- the URL the Browser sources list hands over does not carry
+ * it. So the same build shows a crash on a desk and shows nothing on air, decided
+ * by the address rather than by how it was compiled.
+ *
+ * Deliberately not `import.meta.env.DEV`. The framework is a library: that value is
+ * resolved when *core* is built, not when a studio is, so it would say the same
+ * thing in `npm run dev` as it does on air.
+ */
+export function debugFromUrl(href = typeof window === 'undefined' ? '' : window.location.href) {
+  if (!href) return false
+
+  try {
+    const url = new URL(href, 'http://localhost')
+
+    if (url.searchParams.has('debug')) return true
+
+    const hash = url.hash.indexOf('?')
+
+    return hash !== -1 && new URLSearchParams(url.hash.slice(hash + 1)).has('debug')
+  } catch {
+    return false
+  }
+}

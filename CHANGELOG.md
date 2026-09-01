@@ -7,6 +7,23 @@ Both packages share a version — `@single-studio/core` and
 
 ### Added
 
+- **A crash no longer takes the page with it.** One broken component used to blank
+  a whole graphic or the whole board, with only a console trace to say why.
+
+  What replaces it differs by half, because the right answer does:
+
+  - **A graphic paints nothing.** A missing lower third reads as a cue that did not
+    fire; a red error card over a live scene reads as the broadcast being broken.
+  - **Add `?debug` to a graphic's URL** and it shows the crash instead — a thing you
+    type while building one, and a thing the Browser sources list never puts in a
+    URL. The same build is silent on air and loud on your desk, decided by the
+    address rather than by how it was compiled.
+  - **The board shows it.** It is not on air, and an operator staring at a panel
+    that silently stopped existing cannot tell whether they mis-clicked or the
+    studio broke. It says the show is unaffected, and offers to try again.
+
+  The error reaches the console either way.
+
 - **`Scene` takes a `width` and a `height`.** A graphic fills its browser source by
   default, which is what you want on air — OBS decides the size and the graphic
   follows. These pin it instead, which is what you want while building one: a
