@@ -779,8 +779,46 @@ Tailwind v4. A studio's CSS entry needs three lines:
 ```css
 @import 'tailwindcss';
 @import '@single-studio/core/styles.css';
-@source '../node_modules/@single-studio/core/dist';
+@source '../../node_modules/@single-studio/core/dist';
 ```
+
+If your editor underlines `@source` as an unknown rule, it is wrong — Tailwind v4
+adds at-rules the built-in CSS checker has not been taught. The template ships a
+`.vscode/settings.json` that silences it, and recommends the Tailwind IntelliSense
+extension, which understands them properly.
+
+### Splitting it up
+
+Two ways, and they are not equivalent — one of them keeps a graphic's CSS out of
+every other graphic.
+
+**Import it from the graphic**, and it becomes that graphic's own stylesheet:
+
+```jsx
+// src/sources/Podium.jsx
+import './podium.css'
+```
+
+Vite gives each graphic its own chunk, and CSS imported this way rides along with
+it: a browser source pointed at the scoreboard never downloads the podium's rules.
+Measured on the demo, a one-rule file came out as its own 0.05 kB asset.
+
+**Import it from `index.css`**, and it is part of the one stylesheet every page
+loads:
+
+```css
+@import 'tailwindcss';
+@import '@single-studio/core/styles.css';
+@import './game.css';
+@source '../../node_modules/@single-studio/core/dist';
+```
+
+Right for anything shared — brand colours, a plate every graphic uses, `@theme`
+tokens. CSS requires `@import` to come before any other rule, so these stay at the
+top, above `@source`.
+
+The rule of thumb: **if only one graphic uses it, import it from that graphic.**
+Otherwise `index.css`.
 
 That `@source` line is required. Tailwind scans your files for utility classes, and
 the framework's components live in `node_modules` — without it their classes get

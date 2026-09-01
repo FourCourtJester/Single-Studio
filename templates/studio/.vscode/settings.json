@@ -1,0 +1,7 @@
+{
+  // Tailwind v4 adds at-rules the built-in CSS checker does not know, so it flags
+  // `@source`, `@theme` and `@apply` as unknown. They are not; the build is fine.
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore"
+}
