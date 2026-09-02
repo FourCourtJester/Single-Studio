@@ -657,7 +657,12 @@ await guest.goto(`${BASE}/#/source/lower-thirds/guest`)
 await guest.waitForSelector('.ss-scene')
 
 const guestPicker = control.locator('.ss-image-picker').filter({ hasText: 'Headshot' })
-await guestPicker.locator('.ss-browse').click()
+// `force` because this button summons a modal that covers it. Playwright dispatches
+// the click, the dialog opens over the button, and its own follow-up actionability
+// check then finds the element covered -- so it retries, into a state its first
+// click created, until it times out. Nothing is wrong with the page: the dialog is
+// open by then, which is what the next line asserts.
+await guestPicker.locator('.ss-browse').click({ force: true })
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open === true), 'Browse opens the library as a modal')
 
 // Sized by insets, so it fills the viewport but never touches its edges. A dialog
