@@ -3,6 +3,61 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## Unreleased
+
+### Added
+
+- **A crash no longer takes the page with it.** One broken component used to blank
+  a whole graphic or the whole board, with only a console trace to say why.
+
+  What replaces it differs by half, because the right answer does:
+
+  - **A graphic paints nothing.** A missing lower third reads as a cue that did not
+    fire; a red error card over a live scene reads as the broadcast being broken.
+  - **Add `?debug` to a graphic's URL** and it shows the crash instead — a thing you
+    type while building one, and a thing the Browser sources list never puts in a
+    URL. The same build is silent on air and loud on your desk, decided by the
+    address rather than by how it was compiled.
+  - **The board shows it.** It is not on air, and an operator staring at a panel
+    that silently stopped existing cannot tell whether they mis-clicked or the
+    studio broke. It says the show is unaffected, and offers to try again.
+
+  The error reaches the console either way.
+
+- **`transition="cut"`** — no animation at all, the way a vision mixer cuts rather
+  than dissolves. A clock that fades every second is a clock drawing attention to
+  itself once a second. Leaving the prop off is not the same thing: the default is
+  `fade`.
+
+### Changed
+
+- **A `Toggle` that is off keeps its children mounted**, hidden rather than removed.
+  An empty box has no size, so anything laid out around a toggle moved when it
+  turned on and moved back when it turned off — and a percentage transform measured
+  against a collapsed box is zero, which parks a slide exactly where it should have
+  landed.
+
+  The cost is that what is inside keeps running while it is off, which is usually
+  what you want: a clock behind a hidden lower third should show the right time when
+  it appears, not start from zero.
+
+- **`Scene` takes a `width` and a `height`.** A graphic fills its browser source by
+  default, which is what you want on air — OBS decides the size and the graphic
+  follows. These pin it instead, which is what you want while building one: a
+  1920×1080 scene in a browser tab is what the source will actually look like.
+
+  ```jsx
+  <Scene width={1920} height={1080}>
+  ```
+
+  A number is pixels; a string is used as written, so `50vw` and `100%` work. The
+  matching `w-full` / `h-full` is dropped rather than layered over, so what the
+  element inspector shows is what is happening.
+
+  A class could not do this: `h-full` and `h-[1080px]` have the same specificity, so
+  which one wins is decided by the order Tailwind emits them rather than the order
+  they are written.
+
 ## 0.4.0
 
 ### Breaking

@@ -680,7 +680,9 @@ export default function Scoreboard() {
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | The graphic. |
 | `className` | `string` |  | Added to the component's own classes. |
+| `height` | `number \| string` |  | A fixed height. A number is pixels; a string is used as written. |
 | `vars` | `Record<string, string>` |  | CSS custom property to value name, e.g. `{ "--accent": "home.color" }`. |
+| `width` | `number \| string` |  | A fixed width. A number is pixels; a string is used as written. |
 
 <a id="source-variable"></a>
 
@@ -807,7 +809,7 @@ Shows its children while a toggle is on, and animates them in and out. This is h
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | Shown while the toggle is on. |
+| `children` | `ReactNode` |  | Rendered always; visible while the toggle is on. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |

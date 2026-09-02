@@ -25,5 +25,9 @@ export const studio = defineStudio({
     sponsor: () => import('./sources/Sponsor'),
     ticker: () => import('./sources/Ticker'),
     'lower-thirds/guest': () => import('./sources/Guest'),
+    // Throws on render, on purpose. The end-to-end suite uses it to prove a crashed
+    // graphic paints nothing on air and shows itself under `?debug`.
+    broken: () => import('./sources/Broken'),
+    spacing: () => import('./sources/Spacing'),
   },
 })

@@ -248,17 +248,11 @@ check(
 // strand a board when somebody closes a laptop with a field open.
 await nameField(operator).fill('Ashfall')
 
-check(
-  await becomes(host.page, () => document.querySelector('.ss-field-busy')?.textContent.includes('Sam')),
-  'a field being edited elsewhere says who has it',
-)
+check(await becomes(host.page, () => document.querySelector('.ss-field-busy')?.textContent.includes('Sam')), 'a field being edited elsewhere says who has it')
 
 await save(operator)
 
-check(
-  await becomes(host.page, () => !document.querySelector('.ss-field-busy')),
-  'and stops saying so once they save',
-)
+check(await becomes(host.page, () => !document.querySelector('.ss-field-busy')), 'and stops saying so once they save')
 
 // -- The image library -------------------------------------------------------
 // The index replicates; the bytes do not. Without this the failure is silent and
@@ -269,10 +263,7 @@ check(
 // The rule that removes it: files are added on the machine running OBS, URLs by
 // anybody. A file's bytes exist only where they were dropped; a URL is a reference
 // every machine fetches for itself.
-check(
-  (await host.page.locator('.ss-asset-library input[aria-label="Add image files"]').count()) === 1,
-  'the machine running OBS is offered a file input',
-)
+check((await host.page.locator('.ss-asset-library input[aria-label="Add image files"]').count()) === 1, 'the machine running OBS is offered a file input')
 
 // Polled rather than read once: the operator learns the role from the host's
 // awareness state, so there is a moment after joining where it does not yet know
@@ -392,10 +383,7 @@ check(
 await nameField(host).fill('Freeholders')
 await save(host)
 
-check(
-  await becomes(graphic, () => /freeholders/i.test(document.querySelector('.ss-scene')?.innerText ?? '')),
-  'the graphic keeps working with the relay gone',
-)
+check(await becomes(graphic, () => /freeholders/i.test(document.querySelector('.ss-scene')?.innerText ?? '')), 'the graphic keeps working with the relay gone')
 
 await nameField(operator).fill('Dry Harbour')
 await save(operator)
@@ -431,10 +419,7 @@ check(
 
 await host.page.waitForTimeout(2000)
 
-check(
-  await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 30000),
-  'and notices it coming back',
-)
+check(await becomes(host.page, () => document.querySelector('.ss-sync-status')?.dataset.state === 'connected', null, 30000), 'and notices it coming back')
 
 check((await indicator(host).count()) === 1, 'the indicator is one control, not one per state')
 
@@ -538,7 +523,10 @@ const shown = (await invited.page.locator('.ss-invite-link').textContent()).trim
 
 await invited.page.locator('.ss-invite-copy').click()
 
-check(await becomes(invited.page, () => /copied/i.test(document.querySelector('.ss-invite-copy')?.textContent ?? '')), 'the invite can be copied rather than selected by hand')
+check(
+  await becomes(invited.page, () => /copied/i.test(document.querySelector('.ss-invite-copy')?.textContent ?? '')),
+  'the invite can be copied rather than selected by hand',
+)
 check((await invited.page.evaluate(() => navigator.clipboard.readText())) === shown, 'and what lands on the clipboard is the link that was on screen')
 
 // Rotation moved out of here. This panel is for handing the show to somebody, and

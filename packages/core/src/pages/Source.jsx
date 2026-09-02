@@ -2,8 +2,9 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { usePageTitle } from '../hooks/usePageTitle'
+import { ErrorBoundary } from '../components/common/ErrorBoundary'
 import { titleize } from '../toolkits/slug'
-import { layerNameFromUrl } from '../toolkits/url'
+import { debugFromUrl, layerNameFromUrl } from '../toolkits/url'
 import { useStudio } from '../studio/context'
 import { NotFoundPage } from './NotFound'
 
@@ -13,6 +14,18 @@ import { NotFoundPage } from './NotFound'
  * Nothing is added around the studio's own markup and the background stays
  * transparent -- OBS composites this straight over the scene.
  */
+/** Only ever rendered under `?debug`, so it can afford to be loud. */
+const crashed = (error, retry) => (
+  <div className="ss-source-crashed absolute inset-0 flex flex-col items-start gap-2 overflow-auto bg-rose-950/95 p-4 font-mono text-xs text-rose-100">
+    <strong className="text-sm">This graphic crashed.</strong>
+    <pre className="whitespace-pre-wrap">{error?.stack || String(error)}</pre>
+    <button type="button" onClick={retry} className="rounded border border-rose-400/60 px-2 py-1 hover:bg-rose-500/20">
+      Try again
+    </button>
+    <p className="text-rose-300/80">Shown because this URL has ?debug. Without it a crashed graphic renders nothing.</p>
+  </div>
+)
+
 export function SourcePage() {
   // The whole splat, not one segment: a key may be `lower-thirds/single`, and
   // react-router hands a splat back under '*'.
@@ -62,6 +75,7 @@ export function SourcePage() {
   }
 
   const theme = params.get('theme')
+  const debug = debugFromUrl()
 
   return (
     <div
@@ -71,9 +85,15 @@ export function SourcePage() {
       className="ss-source h-screen w-screen overflow-hidden bg-transparent"
     >
       {ready ? (
-        <Suspense fallback={null}>
-          <View />
-        </Suspense>
+        // Nothing on air when a graphic crashes: a missing lower third reads as a
+        // cue that did not fire, where a red box reads as the broadcast being
+        // broken. `?debug` -- which an author types and OBS never has -- shows it
+        // instead. The console gets it either way.
+        <ErrorBoundary label={name} fallback={debug ? crashed : undefined}>
+          <Suspense fallback={null}>
+            <View />
+          </Suspense>
+        </ErrorBoundary>
       ) : null}
     </div>
   )

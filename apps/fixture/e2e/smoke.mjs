@@ -657,7 +657,12 @@ await guest.goto(`${BASE}/#/source/lower-thirds/guest`)
 await guest.waitForSelector('.ss-scene')
 
 const guestPicker = control.locator('.ss-image-picker').filter({ hasText: 'Headshot' })
-await guestPicker.locator('.ss-browse').click()
+// `force` because this button summons a modal that covers it. Playwright dispatches
+// the click, the dialog opens over the button, and its own follow-up actionability
+// check then finds the element covered -- so it retries, into a state its first
+// click created, until it times out. Nothing is wrong with the page: the dialog is
+// open by then, which is what the next line asserts.
+await guestPicker.locator('.ss-browse').click({ force: true })
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open === true), 'Browse opens the library as a modal')
 
 // Sized by insets, so it fills the viewport but never touches its edges. A dialog
@@ -1317,6 +1322,64 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
+// -- A toggle that is off still holds its place -------------------------------
+// An empty box has no size, so anything laid out around a toggle used to move when
+// it turned on and move back when it turned off. Worse, a percentage transform
+// measured against a collapsed box is zero, which parks a slide exactly where it
+// should have landed -- a fault that looks fine until the take where it matters.
+{
+  const spacing = await context.newPage()
+
+  await spacing.goto(`${BASE}/#/source/spacing`)
+  await spacing.waitForSelector('.marker-below')
+  await spacing.waitForTimeout(600)
+
+  const box = await spacing.locator('.probe-toggle').boundingBox()
+  const opacity = await spacing.locator('.probe-toggle').evaluate((el) => getComputedStyle(el).opacity)
+
+  check(Math.round(box.height) === 96, 'a toggle that is off still occupies its space')
+  check(opacity === '0', 'and is hidden rather than removed')
+
+  // `cut` is a variant like any other -- the component knows nothing about it, so
+  // what proves it works is what the element computes to.
+  const cut = await spacing.locator('.probe-cut').evaluate((el) => getComputedStyle(el).transitionDuration)
+  const fade = await spacing.locator('.probe-fade').evaluate((el) => getComputedStyle(el).transitionDuration)
+
+  check(parseFloat(cut) === 0, 'transition="cut" computes to no duration at all')
+  check(parseFloat(fade) > 0, 'while the default still fades')
+
+  await spacing.close()
+}
+
+// -- A graphic that crashes ---------------------------------------------------
+// On air it must paint nothing. A missing lower third reads as a cue that did not
+// fire; a red error box reads as the broadcast being broken. `?debug` -- which an
+// author types and which the Browser sources list never puts in a URL -- shows it
+// instead.
+//
+// Its own context, because a crash here would otherwise land in the `crashes` list
+// that every other page shares and fail the run at the bottom.
+{
+  const broken = await context.browser().newContext()
+  const onAir = await broken.newPage()
+
+  await onAir.goto(`${BASE}/#/source/broken`)
+  await onAir.waitForTimeout(1200)
+
+  check((await onAir.locator('body').innerText()).trim() === '', 'a crashed graphic paints nothing on air')
+  check((await onAir.locator('.ss-source-crashed').count()) === 0, 'and shows no error card over the scene')
+
+  const desk = await broken.newPage()
+
+  await desk.goto(`${BASE}/#/source/broken?debug`)
+  await desk.waitForTimeout(1200)
+
+  check(await becomes(desk, () => Boolean(document.querySelector('.ss-source-crashed'))), 'the same graphic shows the crash under ?debug')
+  check(/cannot read properties/i.test(await desk.locator('.ss-source-crashed').innerText()), 'with the error that actually happened')
+
+  await broken.close()
+}
+
 // the silent failure the guard exists to convert into a visible one.
 const legacy = await context.newPage()
 await legacy.addInitScript(() => {

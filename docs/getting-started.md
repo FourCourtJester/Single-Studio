@@ -530,6 +530,15 @@ back in. Every source component does that already — the interesting part is _h
 The prop is a space-separated list of variant names, and what each one looks like
 is CSS — so a new motion costs a rule rather than a code path.
 
+`cut` is the one that does nothing:
+
+```jsx
+<Variable name="clock" transition="cut" />
+```
+
+A clock that fades every second is a clock drawing attention to itself once a
+second. Leaving the prop off is **not** the same thing — the default is `fade`.
+
 Every transitioning element is in exactly one of **four phases**:
 
 | Phase      | Meaning                      |
@@ -545,6 +554,7 @@ or inspect any of them.
 | Motion        | What it does                                               |
 | ------------- | ---------------------------------------------------------- |
 | `fade`        | The default. Opacity only.                                 |
+| `cut`         | No animation at all. Swaps, the way a mixer cuts           |
 | `slide-up`    | Arrives travelling upward (starts below its place)         |
 | `slide-down`  | Arrives travelling downward                                |
 | `slide-left`  | Arrives travelling leftward (starts to the right)          |
@@ -779,8 +789,70 @@ Tailwind v4. A studio's CSS entry needs three lines:
 ```css
 @import 'tailwindcss';
 @import '@single-studio/core/styles.css';
-@source '../node_modules/@single-studio/core/dist';
+@source '../../node_modules/@single-studio/core/dist';
 ```
+
+If your editor underlines `@source` as an unknown rule, it is wrong — Tailwind v4
+adds at-rules the built-in CSS checker has not been taught. The template ships a
+`.vscode/settings.json` that silences it, and recommends the Tailwind IntelliSense
+extension, which understands them properly.
+
+### Splitting it up
+
+Two ways, and they are not equivalent — one of them keeps a graphic's CSS out of
+every other graphic.
+
+**Import it from the graphic**, and it becomes that graphic's own stylesheet:
+
+```jsx
+// src/sources/Podium.jsx
+import './podium.css'
+```
+
+Vite gives each graphic its own chunk, and CSS imported this way rides along with
+it: a browser source pointed at the scoreboard never downloads the podium's rules.
+Measured on the demo, a one-rule file came out as its own 0.05 kB asset.
+
+**It needs no boilerplate.** Do not import Tailwind or the framework's styles at the
+top — plain rules are all it takes, and the utility classes in your JSX already come
+from `index.css`, which every page loads.
+
+The exception is `@apply` and `theme()`, which need to know your theme. Point them at
+it with `@reference`, which reads it without emitting anything:
+
+```css
+/* src/sources/podium.css */
+@reference '../css/index.css';
+
+.podium-plate {
+  @apply rounded-lg bg-sky-600;
+}
+```
+
+Forgetting it fails the build rather than silently dropping the rule, and the error
+names `@reference` — so this is a thing you meet once.
+
+**`@import 'tailwindcss'` is the wrong fix**, and it is the one that looks right. It
+works, and it copies the whole utility layer into that graphic's stylesheet: the same
+file went from **0.22 kB to 17.84 kB**. `@reference` gives the same result at the
+smaller size.
+
+**Import it from `index.css`**, and it is part of the one stylesheet every page
+loads:
+
+```css
+@import 'tailwindcss';
+@import '@single-studio/core/styles.css';
+@import './game.css';
+@source '../../node_modules/@single-studio/core/dist';
+```
+
+Right for anything shared — brand colours, a plate every graphic uses, `@theme`
+tokens. CSS requires `@import` to come before any other rule, so these stay at the
+top, above `@source`.
+
+The rule of thumb: **if only one graphic uses it, import it from that graphic.**
+Otherwise `index.css`.
 
 That `@source` line is required. Tailwind scans your files for utility classes, and
 the framework's components live in `node_modules` — without it their classes get

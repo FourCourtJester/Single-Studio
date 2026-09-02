@@ -15,25 +15,6 @@ Left here rather than in a chat, so it survives.
   v2.72 names are documented where CI cannot reach. Five-line change once they are
   to hand. See [rocket-league.md](rocket-league.md).
 
-## A `none` transition on `Variable`
-
-Found while watching the replay: a clock written to `variables.period` fades out and
-in every second.
-
-Not a bug in `Transition` — it already guards the case its comment names, "a running
-clock must not animate once a second", but that guard is for a value that is
-_unchanged_ between renders. A clock counting down genuinely changes, so it animates,
-correctly, and looks wrong.
-
-`Transition` defaults to `transition = 'fade'` and `Variable` forwards the prop
-through `...rest`, so the shape of the fix is: make `none` mean _no animation at
-all_, rather than a variant class with no keyframes behind it. Check what
-`transition="none"` does today before assuming it does nothing — it may currently
-fall through to the fade.
-
-Worth deciding at the same time whether a value that ticks wants a component of its
-own rather than a prop, the way `Timer` already is.
-
 ## Publishing the plugin packages
 
 All four are `private: true`, so `@single-studio/plugin-rocket-league` is a 404 on

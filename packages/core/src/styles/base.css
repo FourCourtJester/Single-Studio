@@ -55,7 +55,43 @@
     opacity: 0;
   }
 
+  /*
+   * Off, but still occupying its space.
+   *
+   * A Toggle keeps its children mounted so the layout around it does not move when
+   * it turns on. Invisible is not the same as gone, though: nothing hidden should be
+   * catching a click or being read out, and on a graphic there is no reason for it
+   * to be hit-testable at all.
+   */
+  .ss-inactive {
+    pointer-events: none;
+  }
+
   .ss-active {
+    opacity: 1;
+  }
+
+  /*
+   * No transition at all -- a cut, in the vision-mixing sense.
+   *
+   * Named for what it is rather than for what it lacks. `none` would read as "no
+   * transition prop given", which is a different thing entirely: leaving the prop
+   * off gets you a fade.
+   *
+   * It is not just a zero duration. The phases either side of a swap sit at zero
+   * opacity, so a duration of nought would still blink through them -- a fade fast
+   * enough to look like a fault rather than a cut. These hold the content visible
+   * across the swap, and only the resting `inactive` state hides it.
+   *
+   * The state machine reads its timing from computed style, so nothing in the
+   * component knows this variant exists.
+   */
+  .ss-cut {
+    --ss-duration: 0s;
+  }
+
+  .ss-cut.ss-exiting,
+  .ss-cut.ss-entering {
     opacity: 1;
   }
 
