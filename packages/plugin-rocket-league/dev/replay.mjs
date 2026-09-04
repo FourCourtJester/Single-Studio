@@ -11,7 +11,7 @@
 //
 // So this speaks the shape the documentation describes, on the port the plugin
 // expects, and plays a short match on a loop: kickoff, a couple of goals with their
-// replays, a demolition, and a podium. Point the plugin at 127.0.0.1:49122 and the
+// replays, a demolition, and a podium. Point the plugin at 127.0.0.1:49124 and the
 // board moves.
 //
 //   node dev/replay.mjs            # every client gets a fresh match
@@ -29,7 +29,7 @@ const arg = (name, fallback) => {
   return at === -1 ? fallback : process.argv[at + 1]
 }
 
-const PORT = Number(arg('port', 49122))
+const PORT = Number(arg('port', 49124))
 const RATE = Number(arg('rate', 30))
 
 const BLUE = 0

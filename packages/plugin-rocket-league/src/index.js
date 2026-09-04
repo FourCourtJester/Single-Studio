@@ -92,7 +92,7 @@ class RocketLeague extends SocketService {
 
   get url() {
     const host = this.config.host || '127.0.0.1'
-    const port = Number(this.config.port) || 49122
+    const port = Number(this.config.port) || 49124
 
     // The path is configurable because Psyonix's WebSocket endpoint is documented
     // where this could not read it. A bare `ws://host:port` is the usual shape and
@@ -397,7 +397,7 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
           'Close Rocket League.',
           'Open Documents\\My Games\\Rocket League\\TAGame\\Config. On Windows that is where the game keeps its settings, and the file to edit is the one in there — not the copy beside the installed game.',
           'Look for a file with StatsAPI in the name. If there is not one, create TAStatsAPI.ini there.',
-          'In it, under the [TAGame.MatchStatsExporter_TA] heading, set PacketSendRate to 30 and Port to 49122.',
+          'In it, under the [TAGame.MatchStatsExporter_TA] heading, set PacketSendRate to 30 and Port to 49124.',
           'Save the file and start Rocket League. The settings are only read at startup.',
           'Press Save and reconnect here.',
         ],
@@ -424,7 +424,7 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
     ],
     config: [
       { key: 'host', label: 'Host', default: '127.0.0.1', help: 'The machine running the game. Usually this one.' },
-      { key: 'port', label: 'Port', type: 'number', default: 49122, help: 'Whatever you set as Port in the ini file.' },
+      { key: 'port', label: 'Port', type: 'number', default: 49124, help: 'Whatever you set as Port in the ini file.' },
       { key: 'path', label: 'Path', default: '', help: 'Leave blank. Only needed if the endpoint turns out to want one.' },
       {
         key: 'stateEvery',

@@ -79,10 +79,14 @@ describe('the address', () => {
     expect(sockets[1].url).toBe('ws://127.0.0.1:49122/ws')
   })
 
-  it('falls back to what the ini file usually says', () => {
+  it('falls back to the port the game listens on when nothing is configured', () => {
+    // The one test that pins the default. Every other one hands a port over, which
+    // is how a wrong default goes unnoticed -- the plugin connects perfectly in the
+    // suite and nowhere else. The 49122 above is deliberately *not* the default, so
+    // those tests fail if configuration is ignored.
     build(RocketLeagueHandler, { host: '', port: '' }).open()
 
-    expect(sockets[0].url).toBe('ws://127.0.0.1:49122')
+    expect(sockets[0].url).toBe('ws://127.0.0.1:49124')
   })
 })
 

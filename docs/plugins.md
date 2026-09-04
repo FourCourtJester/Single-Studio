@@ -230,12 +230,12 @@ finds nothing costs one request and nothing else.
 
 ```js
 config: [
-  { key: 'port', label: 'Port', type: 'number', default: 49122, help: 'From the ini file.' },
+  { key: 'port', label: 'Port', type: 'number', default: 49124, help: 'From the ini file.' },
   { key: 'apiKey', label: 'API key', type: 'secret' },
 ],
 help: [
   { type: 'text', text: 'This is off by default; turning it on means editing one file.' },
-  { type: 'steps', items: ['Close the game.', 'Open DefaultStatsAPI.ini.', 'Set Port to 49122.'] },
+  { type: 'steps', items: ['Close the game.', 'Open DefaultStatsAPI.ini.', 'Set Port to 49124.'] },
   { type: 'note', text: 'Settings are only read at startup.' },
   { type: 'link', href: 'https://example.com/docs', label: 'The documentation' },
 ],

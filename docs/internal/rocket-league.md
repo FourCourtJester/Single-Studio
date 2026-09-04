@@ -13,8 +13,8 @@ files with nothing to run alongside it.
 
 ## Still to confirm
 
-- The WebSocket URL and port after 2.72, and the `TAStatsAPI.ini` /
-  `DefaultStatsAPI.ini` keys that enable it. Pre-2.72 the TCP port was 49123, under
+- The WebSocket path after 2.72, and the `TAStatsAPI.ini` / `DefaultStatsAPI.ini`
+  keys that enable it. Pre-2.72 the TCP port was 49123, under
   `[TAGame.MatchStatsExporter_TA]`, with `PacketSendRate` capped at 120 and 0
   disabling the feature. Config is read at client start, so changes need a restart.
 - Whether anything is emitted on connect, or whether a client sees nothing until the
@@ -29,6 +29,10 @@ The config directory on Windows:
 ```
 %USERPROFILE%\Documents\My Games\Rocket League\TAGame\Config\
 ```
+
+The WebSocket port is **49124** — not the 49123 the pre-2.72 TCP socket used, and
+not the 49122 this plugin shipped with until somebody looked. It is the plugin's
+default and the port `dev/replay.mjs` serves on.
 
 Checked by somebody with the game installed, which is the only way any of this gets
 checked -- Psyonix's documentation is blocked from this container. It is the user's
@@ -212,7 +216,7 @@ was written in.
 ## Watching it work without the game
 
 `pnpm --filter @single-studio/plugin-rocket-league replay` serves the Stats API shape
-on `ws://127.0.0.1:49122` and plays a short match on a loop — kickoff, three goals
+on `ws://127.0.0.1:49124` and plays a short match on a loop — kickoff, three goals
 with their replay sequences, a demolition, a podium — then starts again. The demo
 studio registers the plugin, so `pnpm fixture` plus that command is a moving
 scoreboard with nothing installed.
