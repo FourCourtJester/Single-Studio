@@ -53,10 +53,21 @@ library, or type `slides` into the box above the drop zone before adding files. 
 panel says how many it found; check that before air, because it counts only images
 whose bytes are on _this_ machine.
 
-## Two numbers worth knowing
+## The knobs
 
-`--vg-top` in `src/sources/Scoreboard.css` is how far below the top edge the bar
-hangs — the one thing to nudge if the game's own plate is in the way.
+`src/sources/Scoreboard.css` opens with four custom properties, and every
+dimension on the match bar is one of them:
 
-`DWELL_MS` in `src/sources/Standby.jsx` is how long each picture holds. The
-cross-fade and the slow zoom are both paced off it.
+|               |                                                                         |
+| ------------- | ----------------------------------------------------------------------- |
+| `--vg-top`    | how far below the top edge the plates hang, clearing the game's own bar |
+| `--vg-width`  | the span the two plates are pushed to the outer edges of                |
+| `--vg-plate`  | how wide each plate is                                                  |
+| `--vg-height` | how tall they are                                                       |
+
+The dead space in the middle — the room the in-game HUD needs — is not set
+anywhere. It is whatever `--vg-width` has left after two plates, so widen the span
+or narrow the plates to open it.
+
+`DWELL_MS` at the top of `src/sources/Standby.jsx` is how long each picture holds.
+The cross-fade and the slow zoom are both paced off it.

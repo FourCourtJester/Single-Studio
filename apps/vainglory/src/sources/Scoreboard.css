@@ -5,25 +5,37 @@
 
 .vg {
   /*
-   * How far below the top edge the overlay hangs.
+   * The knobs. Everything on this graphic is one of these four.
    *
-   * The one number to change on the night. The game's own plate sits across the top
-   * of the screen; this clears it. Both the bar and the mark hang off it, so they
-   * cannot drift apart.
+   * --vg-top     how far below the top edge the plates hang, clearing the game's
+   *              own bar
+   * --vg-width   the span the two plates are pushed to the edges of
+   * --vg-plate   how wide each plate is
+   * --vg-height  how tall they are
+   *
+   * The dead space in the middle is not set anywhere -- it is what --vg-width has
+   * left after two plates. Widen the span or narrow the plates to open it.
    */
   --vg-top: 1.25rem;
+  --vg-width: 96rem;
+  --vg-plate: 30rem;
+  --vg-height: 5.5rem;
 
   padding-top: var(--vg-top);
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
 .vg-bar {
-  height: 5.5rem;
+  width: var(--vg-width);
+  height: var(--vg-height);
+}
+
+/* Square, because the game is. */
+.vg-plate {
+  width: var(--vg-plate);
+  color: #fff;
   background: linear-gradient(180deg, rgb(11 20 38 / 0.94), rgb(6 12 24 / 0.94));
-  border-bottom: 2px solid rgb(234 179 8 / 0.65);
   box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.45);
-  /* Narrows toward the bottom, the way a broadcast plate does. */
-  clip-path: polygon(0 0, 100% 0, calc(100% - 2.25rem) 100%, 2.25rem 100%);
 }
 
 .vg-name {
@@ -48,15 +60,6 @@
   font-size: 3rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.vg-pip {
-  align-self: center;
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-inline: 0.85rem;
-  background: rgb(234 179 8);
-  transform: rotate(45deg);
 }
 
 /*
