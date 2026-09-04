@@ -4,6 +4,9 @@
  */
 
 .vg-standby {
+  /* Longer than the framework's default: this fade is meant to be watched. */
+  --ss-fade: 1400ms;
+
   /* A base under the artwork. Unlike the match bar this graphic is not composited
      over the game -- it *is* the picture, and a transparent gap between fades would
      show whatever OBS has underneath. */
@@ -11,75 +14,32 @@
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
-.vg-slides {
-  position: absolute;
-  inset: 0;
-}
-
 /*
- * Every slide is mounted and stacked; only opacity moves. The fade is longer than a
- * normal transition on purpose -- this one is meant to be watched rather than not
- * noticed.
+ * What a slide does. The framework stacks the pictures and cross-fades between
+ * them; the ambient drift is ours.
+ *
+ * Each slide rests where its own drift ends. `both` holds the end of the travel
+ * only while the animation is applied, and losing `data-on` takes it away -- so a
+ * drift that ended anywhere else would jump back at the moment the picture began
+ * fading out, in full view.
+ *
+ * Alternating direction is what stops five slides reading as one long zoom.
  */
-.vg-slide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 1400ms linear;
-}
-
-.vg-slide[data-on] {
-  opacity: 1;
-}
-
-/* <Image> wraps its <img> in the transition element; both have to fill the frame. */
-.vg-slide .ss-image {
-  position: absolute;
-  inset: 0;
-}
-
-.vg-slide .ss-image img {
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  object-fit: cover;
+.vg-standby .ss-slide .ss-image img {
+  transform: scale(1.09) translate3d(-1.1%, -0.9%, 0);
   transform-origin: center;
   will-change: transform;
 }
 
-/*
- * Each slide rests where its own drift ends.
- *
- * `both` holds the end of the travel only for as long as the animation is
- * applied, and the swap takes it away -- so a slide whose drift ended anywhere
- * other than its resting transform jumped back at the exact moment it began
- * fading out, in full view. Half of them did: the alternate keyframes happen to
- * end at the resting transform and the first ones do not, so the fault appeared
- * on every other picture and looked like a fluke.
- *
- * Naming the resting transform per variant is what makes losing the animation a
- * no-op. Measured: a 9% jump before, none after.
- */
-.vg-slide .ss-image img {
-  transform: scale(1.09) translate3d(-1.1%, -0.9%, 0);
-}
-
-.vg-slide:nth-child(even) .ss-image img {
+.vg-standby .ss-slide:nth-child(even) .ss-image img {
   transform: none;
 }
 
-/*
- * The ambient drift, paced off the same constant as the interval that advances
- * the slides (--standby-dwell, set in the component).
- *
- * Alternating direction is what stops five slides reading as one long zoom.
- */
-.vg-slide[data-on] .ss-image img {
+.vg-standby .ss-slide[data-on] .ss-image img {
   animation: vg-drift var(--standby-dwell, 9s) linear both;
 }
 
-.vg-slide:nth-child(even)[data-on] .ss-image img {
+.vg-standby .ss-slide:nth-child(even)[data-on] .ss-image img {
   animation-name: vg-drift-alt;
 }
 
