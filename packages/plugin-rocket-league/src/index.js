@@ -171,7 +171,6 @@ class RocketLeague extends SocketService {
     }
 
     this.emit(name, payload)
-    this.emit('*', name, payload)
   }
 
   /**
@@ -203,7 +202,6 @@ class RocketLeague extends SocketService {
 
     for (const [name, items] of this.#batches) {
       this.emit(name, items)
-      this.emit('*', name, items)
     }
 
     this.#batches.clear()
@@ -224,6 +222,14 @@ class RocketLeague extends SocketService {
    * is whatever arrived on a window boundary rather than what is actually on the
    * pitch. Coalescing costs one held reference and means the final state always
    * lands.
+   */
+  /*
+   * Nothing here emits `'*'` by hand. The emitter fans every event out to wildcard
+   * listeners already, prepending the name -- so emitting it again delivered
+   * everything twice to anybody taking the whole feed, while `score` and `state`
+   * (which never did) arrived once. Two events for one goal reads as the game
+   * sending duplicates, which is the kind of thing a studio works around rather
+   * than reports.
    */
   #tick(data) {
     const score = scoreOf(data)
