@@ -16,10 +16,10 @@
    * The dead space in the middle is not set anywhere -- it is what --vg-width has
    * left after two plates. Widen the span or narrow the plates to open it.
    */
-  --vg-top: 1.25rem;
-  --vg-width: 96rem;
-  --vg-plate: 30rem;
-  --vg-height: 5.5rem;
+  --vg-top: 2px;
+  --vg-width: 53.59rem;
+  --vg-plate: 18rem;
+  --vg-height: 2.05rem;
 
   padding-top: var(--vg-top);
   font-family: ui-sans-serif, system-ui, sans-serif;
@@ -34,15 +34,18 @@
 .vg-plate {
   width: var(--vg-plate);
   color: #fff;
-  background: linear-gradient(180deg, rgb(11 20 38 / 0.94), rgb(6 12 24 / 0.94));
+  background: linear-gradient(180deg, rgb(11 20 38 / 0.74), rgb(6 12 24 / 0.74));
   box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.45);
 }
 
 .vg-name {
-  font-size: 2.1rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  text-align: center;
 }
 
 /*
@@ -55,10 +58,10 @@
  */
 .vg-score {
   display: flex;
-  width: 5.5rem;
+  width: 3.5rem;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: 2rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
