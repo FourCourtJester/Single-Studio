@@ -1619,6 +1619,32 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   check(parseFloat(cut) === 0, 'transition="cut" computes to no duration at all')
   check(parseFloat(fade) > 0, 'while the default still fades')
 
+  // A value inside a sentence.
+  //
+  // Not a check on where the element ended up: React builds the DOM through
+  // createElement rather than by parsing markup, so a block child stays nested
+  // inside the <p> instead of the parser closing it early. What actually breaks is
+  // the *line* -- a block element takes the full width and puts the words either
+  // side of it on their own rows, so the sentence comes apart visually while every
+  // structural assertion still passes.
+  const sentence = await spacing.evaluate(() => {
+    const value = document.querySelector('.probe-inline')
+    const line = parseFloat(getComputedStyle(document.querySelector('.probe-sentence')).lineHeight)
+
+    return {
+      tag: value?.tagName.toLowerCase(),
+      display: getComputedStyle(value).display,
+      // How many line-heights tall the paragraph is: one if it reads as a sentence.
+      lines: Math.round(document.querySelector('.probe-sentence').getBoundingClientRect().height / line),
+      reads: document.querySelector('.probe-sentence')?.innerText.replace(/\s+/g, ' ').trim(),
+    }
+  })
+
+  console.log(`  a value in a sentence: ${JSON.stringify(sentence)}`)
+  check(sentence.tag === 'span', `a value renders inline by default (got <${sentence.tag}>)`)
+  check(sentence.lines === 1, `and sits on the line it was written on rather than breaking it (${sentence.lines} lines tall)`)
+  check(sentence.reads === 'Playing A tonight', 'so the sentence reads as written')
+
   await spacing.close()
 }
 

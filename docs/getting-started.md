@@ -227,6 +227,11 @@ The full generated reference, with every prop, is [api.md](api.md).
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                                                    |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                                                           |
 
+`Variable`, `Timer` and `Clock` render a `<span>`, so a value can sit inside a
+sentence without breaking the line it is on. Pass `as` for anything else — `as="div"`
+if you want it to fill its own row. Every other component is a container and renders
+a `<div>`.
+
 Every one of these except `Clock`, `Ticker` and `Slideshow` takes a `transition`
 prop — see [Transitions](#transitions). `Slideshow` cross-fades between pictures
 instead, over `--ss-fade`; anything beyond that is a rule of your own on

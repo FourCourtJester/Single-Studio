@@ -8,6 +8,7 @@ const now = (locale, options) => new Date().toLocaleTimeString(locale, options)
  * @typedef {object} ClockProps
  * @property {string} [locale] - A [BCP 47 language tag](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#locale_identification_and_negotiation), e.g. `en-GB`. Defaults to the browser's.
  * @property {Intl.DateTimeFormatOptions} [options] - Passed straight to [`Intl.DateTimeFormat`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat#options).
+ * @property {string} [as] - The element to render. Defaults to `"span"`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -36,7 +37,7 @@ const now = (locale, options) => new Date().toLocaleTimeString(locale, options)
  *
  * @param {ClockProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Clock({ locale, options, className, ...rest }) {
+export function Clock({ locale, options, as = 'span', className, ...rest }) {
   const [time, setTime] = useState(() => now(locale, options))
 
   useEffect(() => {
@@ -48,9 +49,11 @@ export function Clock({ locale, options, className, ...rest }) {
     return () => clearInterval(timer)
   }, [locale, options])
 
+  const Tag = as
+
   return (
-    <div className={cx('ss-clock tabular-nums', className)} {...rest}>
+    <Tag className={cx('ss-clock tabular-nums', className)} {...rest}>
       {time}
-    </div>
+    </Tag>
   )
 }

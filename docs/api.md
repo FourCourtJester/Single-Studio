@@ -713,6 +713,7 @@ One value on air, as text. This is the component most graphics are mostly made o
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
+| `as` | `string` |  | The element to render. Defaults to `"span"`, so a value can sit inside a sentence. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `fallback` | `string` |  | Shown when the value is empty. Defaults to `""`. |
 | `fit` | `boolean \| number` |  | Shrink the text to fit its box. A number caps how far. |
@@ -911,6 +912,7 @@ A clock on air, reading whichever kind was stored — a countdown, a count-up, o
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
+| `as` | `string` |  | The element to render. Defaults to `"span"`. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `fallback` | `string` |  | Shown when no clock is set. Defaults to `"00:00"`. |
 | `limit` | `string \| number` |  | How long a count-up may run — `"2:00"`, or seconds. Past it, the element gets `data-over` and `ss-over`. |
@@ -968,6 +970,7 @@ The time of day, from the machine the graphic is running on. Nothing replicates 
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
+| `as` | `string` |  | The element to render. Defaults to `"span"`. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `locale` | `string` |  | A [BCP 47 language tag](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#locale_identification_and_negotiation), e.g. `en-GB`. Defaults to the browser's. |
 | `options` | `Intl.DateTimeFormatOptions` |  | Passed straight to [`Intl.DateTimeFormat`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat#options). |

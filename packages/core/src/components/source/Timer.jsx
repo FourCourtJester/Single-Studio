@@ -14,6 +14,7 @@ const NAMESPACE = 'timers'
  * @property {string} [fallback] - Shown when no clock is set. Defaults to `"00:00"`.
  * @property {string|number} [limit] - How long a count-up may run — `"2:00"`, or seconds. Past it, the element gets `data-over` and `ss-over`.
  * @property {() => void} [onComplete] - Called once, when a countdown reaches zero.
+ * @property {string} [as] - The element to render. Defaults to `"span"`.
  * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -66,7 +67,7 @@ const NAMESPACE = 'timers'
  *
  * @param {TimerProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Timer({ name, fallback = '00:00', limit, onComplete, className, ...rest }) {
+export function Timer({ name, fallback = '00:00', limit, onComplete, as = 'span', className, ...rest }) {
   const { active, running, text, loaded, mode, elapsed } = useTimer(`${NAMESPACE}.${name}`)
   const was = useRef(running)
 
@@ -81,7 +82,13 @@ export function Timer({ name, fallback = '00:00', limit, onComplete, className, 
   const over = allowed > 0 && mode === 'up' && elapsed >= allowed
 
   return (
-    <Transition trigger={loaded && active} data-over={over ? '' : undefined} className={cx('ss-timer tabular-nums', over && 'ss-over', className)} {...rest}>
+    <Transition
+      trigger={loaded && active}
+      as={as}
+      data-over={over ? '' : undefined}
+      className={cx('ss-timer tabular-nums', over && 'ss-over', className)}
+      {...rest}
+    >
       {loaded ? (active ? text : fallback) : null}
     </Transition>
   )

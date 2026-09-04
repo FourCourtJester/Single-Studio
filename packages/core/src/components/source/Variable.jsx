@@ -11,6 +11,7 @@ const NAMESPACE = 'variables'
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [fallback] - Shown when the value is empty. Defaults to `""`.
  * @property {boolean|number} [fit] - Shrink the text to fit its box. A number caps how far.
+ * @property {string} [as] - The element to render. Defaults to `"span"`, so a value can sit inside a sentence.
  * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -36,12 +37,12 @@ const NAMESPACE = 'variables'
  *
  * @param {VariableProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Variable({ name, fallback = '', fit = false, className, ...rest }) {
+export function Variable({ name, fallback = '', fit = false, as = 'span', className, ...rest }) {
   const { value, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
   const text = value === undefined || value === '' ? fallback : String(value)
 
   return (
-    <Transition trigger={loaded ? text : false} className={cx('ss-variable', className)} {...rest}>
+    <Transition trigger={loaded ? text : false} as={as} className={cx('ss-variable', className)} {...rest}>
       {loaded ? fit ? <Fit>{text}</Fit> : text : null}
     </Transition>
   )
