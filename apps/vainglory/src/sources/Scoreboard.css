@@ -45,21 +45,23 @@
   text-transform: uppercase;
 }
 
-.vg-stripe {
-  width: 0.375rem;
-  height: 2.6rem;
-  border-radius: 999px;
-}
-
+/*
+ * The team's colour, filled. The background is set inline from the board's colour
+ * picker; everything else about the block lives here.
+ *
+ * The shadow is what keeps a white numeral off a pale accent. It is not a fix for
+ * every choice -- pick something near-white for a team and a white numeral will
+ * struggle whatever this does -- but it holds across anything with body in it.
+ */
 .vg-score {
   display: flex;
   width: 5.5rem;
   align-items: center;
   justify-content: center;
-  background: rgb(255 255 255 / 0.06);
   font-size: 3rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
 }
 
 /*

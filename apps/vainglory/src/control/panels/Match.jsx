@@ -2,6 +2,9 @@ import { useVelcroMutate } from '@single-studio/core'
 import { Break, ColorPicker, Field, ImagePicker, Panel, Stepper, SwapButton } from '@single-studio/core/control'
 
 /** One side. Same controls both, so the board reads the way the bar does. */
+// The near-white preset is gone on purpose: the score block is now filled with
+// this colour and the numeral on it is white, so offering a near-white swatch was
+// offering an invisible score.
 function Side({ side, title, colour }) {
   return (
     <>
@@ -11,7 +14,7 @@ function Side({ side, title, colour }) {
         name={`${side}.color`}
         label={`${title} accent`}
         fallback={colour}
-        presets={['#38bdf8', '#fb7185', '#eab308', '#22c55e', '#a855f7', '#f8fafc']}
+        presets={['#38bdf8', '#fb7185', '#eab308', '#22c55e', '#a855f7', '#f97316']}
       />
     </>
   )

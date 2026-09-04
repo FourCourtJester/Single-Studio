@@ -22,8 +22,12 @@ export default function Scoreboard() {
     <Scene className="vg flex flex-col items-center" vars={{ '--home': 'home.color', '--away': 'away.color' }}>
       <div className="vg-bar flex items-stretch justify-between">
         {/*
-          The two sides mirror each other, scores innermost so the scoreline reads
-          across the HUD rather than around it.
+          The two sides mirror each other, scores at the outer edges with each
+          name reading away from its own score, so a pair stays together and the
+          empty half of each plate falls beside the gap.
+
+          The score block is the team's colour -- one block of it, rather than a
+          rule that has to be noticed.
 
           Each name is a bounded flex item rather than one free to grow. `fit`
           measures the box it is given, and an unbounded box has room for anything
@@ -32,22 +36,20 @@ export default function Scoreboard() {
           narrower than its own text.
         */}
         <div className="vg-plate flex items-stretch">
-          <div className="flex min-w-0 grow items-center gap-5 pr-5 pl-8">
-            <Variable name="home.name" fallback="Team A" transition="flip ease-sharp" fit className="vg-name min-w-0 flex-1 text-right" />
-            <span className="vg-stripe" style={{ background: 'var(--home, #38bdf8)' }} />
-          </div>
-          <div className="vg-score">
+          <div className="vg-score" style={{ background: 'var(--home, #38bdf8)' }}>
             <Variable name="home.score" fallback="0" transition="slide-up ease-back" />
+          </div>
+          <div className="flex min-w-0 grow items-center pr-8 pl-6">
+            <Variable name="home.name" fallback="Team A" transition="flip ease-sharp" fit className="vg-name min-w-0 flex-1 text-left" />
           </div>
         </div>
 
         <div className="vg-plate flex items-stretch">
-          <div className="vg-score">
-            <Variable name="away.score" fallback="0" transition="slide-up ease-back" />
+          <div className="flex min-w-0 grow items-center pr-6 pl-8">
+            <Variable name="away.name" fallback="Team B" transition="flip ease-sharp" fit className="vg-name min-w-0 flex-1 text-right" />
           </div>
-          <div className="flex min-w-0 grow items-center gap-5 pr-8 pl-5">
-            <span className="vg-stripe" style={{ background: 'var(--away, #fb7185)' }} />
-            <Variable name="away.name" fallback="Team B" transition="flip ease-sharp" fit className="vg-name min-w-0 flex-1 text-left" />
+          <div className="vg-score" style={{ background: 'var(--away, #fb7185)' }}>
+            <Variable name="away.score" fallback="0" transition="slide-up ease-back" />
           </div>
         </div>
       </div>
