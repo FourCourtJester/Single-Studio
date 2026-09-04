@@ -7,6 +7,32 @@ Both packages share a version — `@single-studio/core` and
 
 ### Added
 
+- **`Tally` — a number said in icons.** Three demolitions is three icons, not the
+  word three, and until now that was a `Array.from({ length: n })` in every studio
+  that wanted it.
+
+  ```jsx
+  <Tally name="home.demolitions" src="./icons/demo.svg" />
+  <Tally name="home.games" of={3} src="./pips/won.svg" empty="./pips/empty.svg" />
+  ```
+
+  - **Only what changed animates.** A fourth demolition brings in a fourth icon and
+    leaves the three already on screen alone. A row that re-animates in full every
+    time the count moves reads as the graphic glitching rather than as something
+    having happened — which is what wrapping the row in one transition gets you.
+  - **`of` makes it a race** — that many marks, the count filled in, the rest
+    waiting. The row holds its width from the first frame, so nothing beside it
+    shifts as a series is won. It is the number of _marks_, not the length of the
+    race: a best-of-five is three of these, because three is what wins it. A number
+    or a path, so an operator can set it.
+  - **A count is bounded; a race is not.** Forty of anything is not a number anyone
+    reads off a row of icons, so a plain count stops at `max` — but clamping
+    quietly would be a lie on air, so the row carries `data-count` with the real
+    figure and `data-over`/`ss-over` when there was more than it could show.
+
+  Every mark carries `data-filled` when it is one, so filled and empty are
+  distinguishable in a stylesheet even when both are the same picture.
+
 - **`Slideshow` — a folder of pictures, playing.** What a standby screen is made
   of, and until now a thing every studio wrote for itself.
 

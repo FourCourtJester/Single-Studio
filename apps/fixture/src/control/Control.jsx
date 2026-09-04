@@ -79,6 +79,19 @@ export default function Control() {
       <Draft side="home" title="Home" />
       <Draft side="away" title="Away" />
 
+      {/* Both shapes of a count said in icons. Objectives is a plain count -- three
+          taken is three marks, nothing at zero. The series is a race: as many marks
+          as it takes to win it, the won ones filled. */}
+      <Panel title="Tallies">
+        <Cycle name="series" label="Games to win" options={['1', '2', '3', '4']} />
+        <Break />
+        <Stepper name="home.objectives" label="Home objectives" />
+        <Stepper name="away.objectives" label="Away objectives" />
+        <Break />
+        <Stepper name="home.games" label="Home games" />
+        <Stepper name="away.games" label="Away games" />
+      </Panel>
+
       <Panel title="Clocks">
         {/* All three kinds, side by side. The round timer takes a typed duration --
             seconds or m:ss -- because five minutes is a guess about someone else's

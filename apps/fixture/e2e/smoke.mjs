@@ -557,6 +557,152 @@ check(
   'the folder name is replaced, not nested under',
 )
 
+// -- A count said in icons ----------------------------------------------------
+// Three objectives is three marks, not the word three. `source` is already open on
+// the match scene, so this drives the board and watches what goes to air.
+{
+  // `source` is open on the scoreboard; the tallies are on the match scene.
+  const scene = await context.newPage()
+
+  await scene.goto(`${BASE}/#/source/match`)
+  await scene.waitForSelector('.ss-scene')
+
+  const objectives = control.locator('.ss-stepper input[aria-label="Home objectives"]')
+  const set = async (locator, to) => {
+    await locator.fill(String(to))
+    await locator.press('Enter')
+  }
+
+  await set(objectives, 3)
+  check(await becomes(scene, () => document.querySelectorAll('.ss-tally').length > 0, null, 8000), 'a tally reaches the scene')
+
+  check(
+    await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 3),
+    'a count of three draws three marks',
+  )
+
+  // Zero is an empty space rather than a placeholder: the row *is* the count.
+  await set(objectives, 0)
+  check(await becomes(scene, () => !document.querySelector('.tally-objectives')), 'and nothing at all at zero')
+
+  // A stuck key costs a clamp, not the layout -- but clamping quietly would put a
+  // wrong number on air, so the real one is still on the element.
+  await set(objectives, 40)
+  check(
+    await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 12),
+    'an unreadable count is clamped',
+  )
+  check(
+    await becomes(scene, () => document.querySelector('.tally-objectives')?.dataset.count === '40'),
+    'and the row still carries what the count really was, so a studio can say so',
+  )
+  check(await becomes(scene, () => document.querySelector('.tally-objectives')?.hasAttribute('data-over')), 'and marks itself as having overflowed')
+
+  // Only what changed animates. A row that re-animates in full every time the
+  // count moves reads as the graphic glitching rather than as something having
+  // happened -- and it is what wrapping the whole row in one transition gets you.
+  await set(objectives, 2)
+  await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 2)
+  await scene.waitForTimeout(500)
+
+  // Watched rather than sampled. The entrance is two frames wide, so polling for a
+  // mark caught mid-animation is a race that passes or fails on timing. Every phase
+  // change is recorded instead, and the assertion is about which marks changed at
+  // all -- which is the actual claim.
+  await scene.evaluate(() => {
+    window.__phases = []
+
+    const row = document.querySelector('.tally-objectives')
+    const watch = new MutationObserver((records) => {
+      const marks = [...row.querySelectorAll('.ss-tally-mark')]
+
+      for (const record of records) {
+        // Marks only. <Image> is a transition of its own and carries data-state
+        // too, so an unfiltered observer reports the picture inside a mark fading
+        // in as though a mark had moved.
+        if (!record.target.classList.contains('ss-tally-mark')) continue
+
+        window.__phases.push({ at: marks.indexOf(record.target), state: record.target.dataset.state })
+      }
+    })
+
+    watch.observe(row, { attributes: true, attributeFilter: ['data-state'], subtree: true })
+  })
+
+  await set(objectives, 3)
+  await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 3)
+  await scene.waitForTimeout(600)
+
+  const phases = await scene.evaluate(() => window.__phases)
+
+  console.log(`  phase changes on a 2 -> 3: ${JSON.stringify(phases)}`)
+  check(
+    phases.some((phase) => phase.at === 2),
+    'the mark that was added animates in',
+  )
+  check(
+    phases.every((phase) => phase.at === 2),
+    'and the two already on screen are left alone, rather than the whole row re-animating',
+  )
+
+  await set(objectives, 0)
+  await scene.close()
+}
+
+// -- Out of a fixed number ----------------------------------------------------
+// The other shape: as many marks as it takes to win, the won ones filled. The row
+// holds its width from the first frame, so nothing beside it moves as it fills.
+{
+  const scene = await context.newPage()
+
+  await scene.goto(`${BASE}/#/source/match`)
+  await scene.waitForSelector('.ss-scene')
+
+  const games = control.locator('.ss-stepper input[aria-label="Home games"]')
+  const race = () => scene.locator('.tally-series').first()
+
+  // Off "None" and onto three, which is what wins a best-of-five. A cycle steps
+  // through its options, so that is three presses rather than one.
+  const length = control.locator('.ss-cycle:has-text("Games to win")')
+
+  for (let i = 0; i < 3; i += 1) await length.click()
+
+  const filled = () =>
+    scene.evaluate(() => {
+      const row = document.querySelector('.tally-series')
+
+      return row ? { marks: row.querySelectorAll('.ss-tally-mark').length, on: row.querySelectorAll('.ss-tally-mark[data-filled]').length } : null
+    })
+
+  await games.fill('0')
+  await games.press('Enter')
+
+  const empty = await becomes(scene, () => {
+    const row = document.querySelector('.tally-series')
+
+    return row && row.querySelectorAll('.ss-tally-mark').length > 1 && row.querySelectorAll('.ss-tally-mark[data-filled]').length === 0
+  })
+
+  check(empty, 'a race draws its whole length before anything is won')
+
+  const before = await race().boundingBox()
+
+  await games.fill('1')
+  await games.press('Enter')
+  check(
+    await becomes(scene, () => document.querySelector('.tally-series')?.querySelectorAll('.ss-tally-mark[data-filled]').length === 1),
+    'and fills one as one is won',
+  )
+
+  const after = await race().boundingBox()
+
+  // The whole reason a race draws its empties: the name above it must not move.
+  check(Math.abs(before.width - after.width) < 1, 'without the row changing width, so nothing beside it shifts')
+
+  console.log(`  race: ${JSON.stringify(await filled())}, width ${Math.round(before.width)} -> ${Math.round(after.width)}`)
+  await scene.close()
+}
+
 // -- A folder of pictures, playing --------------------------------------------
 // The eight units filed under `units/` just above are the show. Nothing in the
 // studio lists them; the graphic asks the library for the group -- which is why

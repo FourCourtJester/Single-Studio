@@ -9,6 +9,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | ---------------- | --------- | ------ |
 | Text             | [`Field`](#control-field), [`TextArea`](#control-textarea) | [`Variable`](#source-variable) |
 | Number           | [`Stepper`](#control-stepper) | [`Variable`](#source-variable) |
+| A number, in icons | [`Stepper`](#control-stepper) | [`Tally`](#source-tally) |
 | One of a list    | [`Select`](#control-select), [`Cycle`](#control-cycle) | [`Variable`](#source-variable) |
 | A yes/no         | [`Cycle`](#control-cycle) with one option | [`Variable`](#source-variable) |
 | Colour           | [`ColorPicker`](#control-colorpicker) | [`Scene`](#source-scene) `vars` |
@@ -646,6 +647,7 @@ arrived, so a graphic reopening mid-show never flashes a placeholder over the pr
 - [`Image`](#source-image)
 - [`ImageList`](#source-imagelist)
 - [`Slideshow`](#source-slideshow)
+- [`Tally`](#source-tally)
 - [`Toggle`](#source-toggle)
 - [`Timer`](#source-timer)
 - [`Ticker`](#source-ticker)
@@ -817,6 +819,42 @@ A folder of pictures, playing. What a standby screen is made of.
 | `name` | `string` |  | Names a list under `variables` — e.g. `standby.slides`. Takes over from `group` whenever it holds anything. |
 | `order` | `'sequence' \| 'shuffle'` |  | In order, or a fresh deal each pass. Defaults to `"sequence"`. |
 | `preload` | `number` |  | How many either side of the current one hold a decoded image. Defaults to `1`. |
+
+<a id="source-tally"></a>
+
+### Tally
+
+---
+
+`import { Tally } from '@single-studio/core/source'`
+
+A number said in icons. Three demolitions is three icons, not the word three.
+
+```jsx
+<Tally name="home.demolitions" src="./icons/demo.svg" />
+```
+
+```jsx
+// A best-of-five: three to win, won ones filled
+<Tally name="home.games" of={3} src="./pips/won.svg" empty="./pips/empty.svg" />
+```
+
+```jsx
+// The race length is the operator's
+<Tally name="home.games" of="series.wins" src="./pips/won.svg" />
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `alt` | `string` |  | Alt text for every mark. |
+| `className` | `string` |  | Added to the component's own classes. |
+| `empty` | `string` |  | The mark for one not yet filled. Without it an unfilled mark holds its space and shows nothing. |
+| `itemClassName` | `string` |  | Added to each mark rather than to the row. |
+| `max` | `number` |  | The most marks to draw without an `of`. Defaults to `12`; `0` for no bound. |
+| `name` | `string` | Yes | Names a count under `variables` — e.g. `home.demolitions`. |
+| `of` | `number \| string` |  | Draw this many marks and fill the count — a number, or a path an operator sets. |
+| `src` | `string` | Yes | The mark. A path, a URL, or a library entry, the same as `Image` takes. |
+| `transition` | `string` |  | Motion variants for a mark arriving or filling, space-separated — e.g. `"zoom ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 
 <a id="source-toggle"></a>
 

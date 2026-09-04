@@ -1,5 +1,5 @@
 import { useVelcroValue } from '@single-studio/core'
-import { Image, ImageList, Scene, Timer, Toggle, Variable } from '@single-studio/core/source'
+import { Image, ImageList, Scene, Tally, Timer, Toggle, Variable } from '@single-studio/core/source'
 
 import { ARMY_SIZE, COMMANDERS, MAPS, labelOf } from '../roster'
 
@@ -41,6 +41,26 @@ function Side({ side, accent }) {
         <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white/5">
           <Image name={`${side}.commander`} src="./commanders/:value:.svg" transition="zoom ease-back" alt="" />
         </div>
+      </div>
+
+      {/*
+        Both shapes of a count said in icons, side by side.
+
+        Objectives is a plain count: three taken is three marks, and nothing at all
+        at zero. The series is a race -- as many marks as it takes to win it, the
+        won ones filled -- so the row holds its width from the first frame and the
+        name above it never shifts as the games are played.
+      */}
+      <div className={`flex items-center gap-4 ${side === 'away' ? 'flex-row-reverse' : ''}`}>
+        <Tally
+          name={`${side}.objectives`}
+          src="./marks/objective.svg"
+          transition="zoom ease-back"
+          className="tally-objectives"
+          itemClassName="h-4 w-4"
+          alt=""
+        />
+        <Tally name={`${side}.games`} of="series" src="./marks/won.svg" empty="./marks/empty.svg" className="tally-series" itemClassName="h-4 w-4" alt="" />
       </div>
 
       <Toggle name="armies" transition="slide-up ease-back" style={{ '--ss-shift': '1.75rem', '--ss-duration': '420ms' }}>

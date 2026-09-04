@@ -90,10 +90,26 @@ function map(label) {
   )
 }
 
+/**
+ * A tally mark: a small solid emblem, and the hollow version of it.
+ *
+ * Deliberately plain. These are read at a glance, several in a row, at the size of
+ * a full stop on a broadcast -- an icon with detail in it is a smudge.
+ */
+function mark(label) {
+  const h = hue(label)
+  const hollow = label.endsWith('empty')
+
+  return svg(
+    `<path d="M64 10 118 64 64 118 10 64Z" fill="${hollow ? 'none' : `hsl(${h} 85% 60%)`}" stroke="hsl(${h} 80% ${hollow ? 45 : 75}%)" stroke-width="10"/>`,
+  )
+}
+
 export const FACTIONS = ['Vanguard', 'Syndicate', 'Freeholders']
 export const COMMANDERS = ['Kestrel', 'Vulcan', 'Wren', 'Solomon', 'Iris', 'Ash']
 export const UNITS = ['Rifleman', 'Missile Squad', 'Scout Bike', 'Battle Tank', 'Artillery', 'Gunship', 'Sniper', 'Engineer']
 export const MAPS = ['Dry Harbour', 'Redline', 'Ashfall']
+export const MARKS = ['objective', 'won', 'empty']
 
 const slug = (label) =>
   label
@@ -106,6 +122,7 @@ const SETS = [
   ['commanders', COMMANDERS, commander],
   ['units', UNITS, unit],
   ['maps', MAPS, map],
+  ['marks', MARKS, mark],
 ]
 
 async function main() {
