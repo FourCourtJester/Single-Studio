@@ -922,7 +922,19 @@ check(
 )
 check(modal.height > 400, 'and takes the height it is given rather than hugging its content')
 
-await control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first().click()
+// Narrow the library before picking. By this point it holds several groups, the
+// tile grid scrolls, and a tile below the fold ends up under the dialog's own
+// header -- the click then hit-tests onto the dialog rather than the button and
+// retries until it times out. That is the flake this suite has now seen twice, and
+// the mechanism is read off the CI log rather than reproduced here.
+//
+// Filtering is what an operator does with a hundred images anyway, and it puts the
+// tile at a predictable place instead of forcing a click at an unpredictable one.
+const pick = control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first()
+
+await control.locator('.ss-asset-dialog input[aria-label="Filter images"]').fill('vandals')
+await pick.waitFor({ state: 'visible' })
+await pick.click()
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open !== true), 'picking an entry closes the modal')
 
 await control.locator('.ss-field:has-text("Guest name") input').fill('Ada Okafor')
