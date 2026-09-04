@@ -49,10 +49,29 @@
 }
 
 /*
- * The ambient drift, paced off the same constant as the interval that advances the
- * slides (--standby-dwell, set in the component). `both` holds the end of the
- * travel through the cross-fade, so the outgoing picture does not snap back to
- * where it started while it is still visible.
+ * Each slide rests where its own drift ends.
+ *
+ * `both` holds the end of the travel only for as long as the animation is
+ * applied, and the swap takes it away -- so a slide whose drift ended anywhere
+ * other than its resting transform jumped back at the exact moment it began
+ * fading out, in full view. Half of them did: the alternate keyframes happen to
+ * end at the resting transform and the first ones do not, so the fault appeared
+ * on every other picture and looked like a fluke.
+ *
+ * Naming the resting transform per variant is what makes losing the animation a
+ * no-op. Measured: a 9% jump before, none after.
+ */
+.vg-slide .ss-image img {
+  transform: scale(1.09) translate3d(-1.1%, -0.9%, 0);
+}
+
+.vg-slide:nth-child(even) .ss-image img {
+  transform: none;
+}
+
+/*
+ * The ambient drift, paced off the same constant as the interval that advances
+ * the slides (--standby-dwell, set in the component).
  *
  * Alternating direction is what stops five slides reading as one long zoom.
  */
