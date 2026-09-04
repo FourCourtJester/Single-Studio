@@ -1,5 +1,5 @@
 import { useAssetLibrary } from '@single-studio/core'
-import { AssetLibrary, Break, CountdownTo, Field, Panel, Toggle } from '@single-studio/core/control'
+import { AssetLibrary, Break, CountdownTo, Panel, TextArea, Toggle } from '@single-studio/core/control'
 
 import { SLIDE_PREFIX } from '../../show'
 
@@ -10,7 +10,9 @@ export default function Standby() {
   return (
     <>
       <Panel title="Standby">
-        <Field name="standby.message" label="Message" placeholder="Coming up next" className="basis-full" />
+        {/* Line breaks are kept on air -- see .vg-card. Type it the way it should
+            read, rather than hoping a long sentence wraps somewhere sensible. */}
+        <TextArea name="standby.message" label="Message" rows={2} placeholder="Coming up next" className="basis-full" />
         <Toggle name="standby.card" label="message" />
         <Break />
         <CountdownTo name="golive" label="Live at" />

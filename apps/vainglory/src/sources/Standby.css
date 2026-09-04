@@ -132,7 +132,15 @@
 }
 
 .vg-card {
+  /*
+   * `pre-line` keeps the operator's line breaks and still wraps a line too long
+   * for the card. `pre-wrap` would keep their trailing spaces and indentation
+   * too, which is not something anyone means to put on air.
+   */
+  max-width: min(60rem, 70vw);
   padding: 1rem 2.75rem;
+  line-height: 1.25;
+  white-space: pre-line;
   border: 1px solid rgb(255 255 255 / 0.12);
   border-radius: 0.75rem;
   background: rgb(3 7 18 / 0.78);
