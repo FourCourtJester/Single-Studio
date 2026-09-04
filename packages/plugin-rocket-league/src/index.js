@@ -389,8 +389,8 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
         type: 'steps',
         items: [
           'Close Rocket League.',
-          'Open the config folder. Your own settings are in Documents\\My Games\\Rocket League\\TAGame\\Config; the installed defaults are under TAGame\\Config where the game itself is.',
-          'Look for a file with StatsAPI in the name. If there is not one, create TAStatsAPI.ini in your own config folder — that is the one the game reads.',
+          'Open Documents\\My Games\\Rocket League\\TAGame\\Config. On Windows that is where the game keeps its settings, and the file to edit is the one in there — not the copy beside the installed game.',
+          'Look for a file with StatsAPI in the name. If there is not one, create TAStatsAPI.ini there.',
           'In it, under the [TAGame.MatchStatsExporter_TA] heading, set PacketSendRate to 30 and Port to 49122.',
           'Save the file and start Rocket League. The settings are only read at startup.',
           'Press Save and reconnect here.',

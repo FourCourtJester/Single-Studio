@@ -19,18 +19,30 @@ files with nothing to run alongside it.
   disabling the feature. Config is read at client start, so changes need a restart.
 - Whether anything is emitted on connect, or whether a client sees nothing until the
   next tick.
-- **Where the file actually is.** The install directory and the user's
-  `Documents\My Games\Rocket League\TAGame\Config` are both plausible, and Unreal's
-  convention -- `DefaultX.ini` shipped, `X.ini` written by the user -- suggests the
-  second, which is where every other Rocket League setting lives. Not established.
+- Whether a StatsAPI file is there by default or has to be created. The folder is
+  confirmed below; what is inside it is not.
 
-  This one had already been got wrong once. The plugin's help panel named a single
-  path in the install directory as though it were known, and somebody following it
-  went looking for a file that was not there. Everything above is on this list
-  because it has _not_ been checked; the help panel now says so rather than
-  inheriting the confidence of a numbered list.
+## Confirmed on a real machine
 
-Neither blocks the plugin. **Host, port and path are config fields**, so the address
+The config directory on Windows:
+
+```
+%USERPROFILE%\Documents\My Games\Rocket League\TAGame\Config\
+```
+
+Checked by somebody with the game installed, which is the only way any of this gets
+checked -- Psyonix's documentation is blocked from this container. It is the user's
+config directory rather than the one beside the installed game, which is how every
+other Rocket League setting works.
+
+Worth recording why this section exists at all. The help panel used to name a single
+path inside the install directory, in a numbered list, with no hedge -- while this
+file had the same question filed under "still to confirm". The uncertainty was
+written down and then lost on the way into user-facing text, and somebody following
+the panel went looking for a file that was not there. Anything still on that list is
+on it because it has not been checked, and the panel now says as much.
+
+Neither of the remaining unknowns blocks the plugin. **Host, port and path are config fields**, so the address
 is a settings change on the night rather than a release — which is why they exist
 rather than being constants. The second question is why there is no watchdog: the
 game is silent whenever nobody is in a match, so a silence budget would drop a
