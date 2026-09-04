@@ -43,6 +43,31 @@ export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
 const FLOOR_MS = 100
 
 /**
+ * The payload, whichever way it arrived.
+ *
+ * The game double-encodes: the frame is JSON, and `Data` inside it is *another*
+ * JSON string rather than an object. Read straight through, every field lookup on
+ * it is `undefined` -- so a clock reads zero, a score reads zero, and nothing
+ * throws, because a shape's `?? 0` turns the miss into a plausible number. The only
+ * visible symptom is a graphic that is confidently wrong.
+ *
+ * Both forms are accepted rather than the string alone, because what the pre-2.72
+ * socket sent is not written down anywhere this could check, and taking an object
+ * as it comes costs nothing.
+ */
+function unwrap(data) {
+  if (typeof data !== 'string') return data
+
+  try {
+    return JSON.parse(data)
+  } catch {
+    // Not JSON after all. Hand it over as it came rather than losing it -- an
+    // unknown event's `raw` is the only way anybody finds out what the game sent.
+    return data
+  }
+}
+
+/**
  * Events that arrive faster than anything can react to them, and are worth keeping
  * anyway.
  *
@@ -151,7 +176,7 @@ class RocketLeague extends SocketService {
 
   async receive(raw) {
     const type = raw?.Event
-    const data = raw?.Data
+    const data = unwrap(raw?.Data)
 
     if (!type) return
 

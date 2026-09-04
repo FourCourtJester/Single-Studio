@@ -25,8 +25,14 @@ class FakeSocket {
     for (const fn of this.listeners.open ?? []) fn()
   }
 
+  /**
+   * One frame, shaped the way the game shapes it: `Data` is a JSON *string* inside
+   * the JSON frame, not an object. Sending an object here is what let a
+   * double-encoded payload reach a studio unparsed -- every shape read `undefined`
+   * and reported zero, and the suite was perfectly happy.
+   */
   send(Event, Data) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data }) })
+    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data: JSON.stringify(Data) }) })
   }
 }
 

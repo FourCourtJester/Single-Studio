@@ -24,8 +24,14 @@ class FakeSocket {
     for (const fn of this.listeners.open ?? []) fn()
   }
 
+  /**
+   * One frame, shaped the way the game shapes it: `Data` is a JSON *string* inside
+   * the JSON frame, not an object. Sending an object here is what let a
+   * double-encoded payload reach a studio unparsed -- every shape read `undefined`
+   * and reported zero, and the suite was perfectly happy.
+   */
   send(Event, Data) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data }) })
+    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data: JSON.stringify(Data) }) })
   }
 }
 
@@ -87,6 +93,63 @@ describe('the address', () => {
     build(RocketLeagueHandler, { host: '', port: '' }).open()
 
     expect(sockets[0].url).toBe('ws://localhost:49124')
+  })
+})
+
+describe('the payload the game actually sends', () => {
+  it('computes a clock from a double-encoded frame', () => {
+    // The reported symptom, and the cheapest thing to regress: `seconds` read zero
+    // on air while the frame plainly carried TimeSeconds: 177. Nothing threw --
+    // `data?.TimeSeconds` on a string is undefined, and the shape's `?? 0` turns
+    // that into a number a scoreboard will happily display.
+    const { MyShow, spies } = watching(['onClock'])
+
+    build(MyShow).open()
+    sockets[0].open()
+    sockets[0].send('ClockUpdatedSeconds', { MatchGuid: '7DD9', TimeSeconds: 177, bOvertime: false })
+
+    expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ seconds: 177, overtime: false }))
+  })
+
+  it('takes the payload as an object too, since the older socket may have sent one', () => {
+    const seen = []
+
+    class MyShow extends RocketLeagueHandler {
+      onClock(data) {
+        seen.push(data)
+      }
+    }
+
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+    // Straight past the fake's encoding, as an object.
+    plugin.receive({ Event: 'ClockUpdatedSeconds', Data: { TimeSeconds: 42 } })
+
+    expect(seen[0]).toMatchObject({ seconds: 42 })
+  })
+
+  it('hands over text that is not JSON rather than losing it', () => {
+    // An unknown event's `raw` is how anybody finds out what the game sent, so a
+    // payload this cannot parse has to survive rather than become null.
+    const seen = []
+
+    class MyShow extends RocketLeagueHandler {
+      static handles = { ...RocketLeagueHandler.handles, '*': 'onAny' }
+
+      onAny(name, payload) {
+        seen.push([name, payload])
+      }
+    }
+
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+    plugin.receive({ Event: 'SomethingNew', Data: 'not json at all' })
+
+    expect(seen[0]).toEqual(['SomethingNew', { raw: 'not json at all' }])
   })
 })
 

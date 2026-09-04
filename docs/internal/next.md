@@ -25,3 +25,13 @@ template and the published tarballs.
 Blocked on the reviews and on each plugin having a template. Note that a first
 publish of a new name cannot use OIDC and needs the token path again; see
 [releasing.md](releasing.md).
+
+## Rocket League: `raw` on every payload
+
+Every event carries `raw` alongside its shaped fields, which is what makes an
+unknown event legible and what makes a known one noisy. Asked for as a switch on
+the plugin panel rather than a constant -- on while you are finding out what the
+game sends, off for a show.
+
+Not urgent: it costs a reference, not a copy, and nothing downstream is confused by
+it. Worth doing when the panel next gets attention.

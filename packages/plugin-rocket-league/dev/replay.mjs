@@ -90,7 +90,9 @@ function play(socket) {
   const send = (Event, Data = {}) => {
     if (socket.readyState !== socket.OPEN) return
 
-    socket.send(JSON.stringify({ Event, Data: { MatchGuid: match, ...Data } }))
+    // `Data` is a JSON *string*, not an object -- which is what the game sends, and
+    // the reason this server exists is to be wrong in the same ways it is.
+    socket.send(JSON.stringify({ Event, Data: JSON.stringify({ MatchGuid: match, ...Data }) }))
   }
 
   const at = (seconds, fn) => timers.push(setTimeout(fn, seconds * 1000))
