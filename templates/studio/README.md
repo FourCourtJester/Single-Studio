@@ -28,18 +28,16 @@ makes a build today and a build in six months the same build.
 
 **Pages has to be switched on once, and this workflow cannot do it for itself.**
 Enabling Pages from inside an action needs a personal access token with `repo` scope,
-which is a worse thing to keep around than one click. Either click it — **Settings →
-Pages → Source → GitHub Actions** — or start the repository with `gh`, which is
-already signed in as you:
+which is a worse thing to keep around than one click. Switch **Settings → Pages →
+Source** to **GitHub Actions**, or run:
 
 ```bash
-gh repo create my-studio --template FourCourtJester/Single-Studio-Template --public --clone
-gh api -X POST repos/<you>/my-studio/pages -f build_type=workflow
+gh api -X POST repos/<you>/<this-repo>/pages -f build_type=workflow
 ```
 
-The second line is idempotent: a repository that already has Pages on answers `409`
-and nothing changes. Skip it and the first deploy fails on a repository nobody has
-touched yet, for a reason that reads like a broken template.
+Either is idempotent — a repository that already has Pages on answers `409`. Skip it
+and the first deploy fails on a repository nobody has touched yet, for a reason that
+reads like a broken template.
 
 ## Where things live
 

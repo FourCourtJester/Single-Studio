@@ -6,7 +6,17 @@ You do not clone Single Studio, and you do not need a copy of this repository.
 A studio is your own repository with `@single-studio/core` as a dependency.
 
 Press **[Use this template](https://github.com/FourCourtJester/Single-Studio-Template)**
-on Single-Studio-Template, name your repository, and clone it:
+on Single-Studio-Template, name your repository, and clone it.
+
+With `gh` instead, the same two steps also switch Pages on, which is the one thing
+you would otherwise have to do by hand before the first deploy:
+
+```bash
+gh repo create my-studio --template FourCourtJester/Single-Studio-Template --public --clone
+gh api -X POST repos/<you>/my-studio/pages -f build_type=workflow
+```
+
+Then, in the repository:
 
 ```bash
 npm install
