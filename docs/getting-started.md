@@ -923,6 +923,16 @@ The template ships a Pages workflow, so there is nothing to run. Switch **Settin
 `https://<you>.github.io/<your-repo>/#/` — the URL you paste into an OBS custom
 browser dock, and the one every invite link is built from.
 
+That switch is the one manual step, and the workflow cannot make it for you:
+enabling Pages from inside an action needs a personal access token with `repo`
+scope, which is a worse thing to keep around than one click. If you would rather
+not click, `gh` is already signed in as you and the call is idempotent — a
+repository that already has Pages on answers `409`:
+
+```bash
+gh api -X POST repos/<you>/<your-repo>/pages -f build_type=workflow
+```
+
 To build it yourself:
 
 ```bash
