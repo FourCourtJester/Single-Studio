@@ -269,15 +269,20 @@ policy:
 - **`score`** whenever either number changes, throttle or no throttle. `GoalScored`
   says who scored, not what the score became, so a studio counting goals itself is
   wrong the first time it misses one.
-- **`state`** at most every `stateEvery` milliseconds, default 250, **floored at
-  100**. A typed `0` switches it off and goals and the clock still arrive; a
-  _cleared_ field is not a typed zero and falls back to the default; a typed `8`
-  becomes 100.
+- **`state`** **every 100ms, fixed**, and not settable from anywhere. Goals and the
+  clock arrive as they happen regardless.
 
-The floor is a decision rather than a measurement, though the measurements agree
-with it: nothing on a stream changes visibly more than ten times a second, and every
-emit a handler turns into a write is charged at the rates above. It is a floor and
-not a default because a default is only the value somebody has not changed yet.
+The rate is a decision rather than a measurement, though the measurements agree with
+it: nothing on a stream changes visibly more than ten times a second, and every emit
+a handler turns into a write is charged at the rates above.
+
+It was a panel field (`stateEvery`, default 250, floored at 100, `0` for off) and is
+not one any more. There was no answer an operator could give that beat the fixed one,
+and a number that can be typed is a number that gets typed -- one show at 16ms
+filling a document nobody can join late, another at 2000 wondering why the boost
+meter stutters, both of them our bug to explain. Studios upgrading still carry the
+old key in saved config; it is ignored, which is pinned by a test, because the value
+most likely to be sitting there is the `0` that used to mean silence.
 
 The state is **collected, not dropped**. The newest tick is held and handed on when
 the window opens, rather than emitting whichever tick happens to land on a boundary.

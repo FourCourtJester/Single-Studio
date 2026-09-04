@@ -41,7 +41,7 @@ const listening = (Handler) => {
     mutate: vi.fn(),
     owner: () => true,
     studio: 's',
-    config: { host: '127.0.0.1', port: 49122, path: '', stateEvery: 250 },
+    config: { host: '127.0.0.1', port: 49122, path: '' },
   })
 
   plugin.open()

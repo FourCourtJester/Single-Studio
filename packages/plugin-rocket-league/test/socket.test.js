@@ -40,7 +40,7 @@ const build = (Handler = RocketLeagueHandler, over = {}) =>
     mutate: vi.fn(),
     owner: () => true,
     studio: 's',
-    config: { host: '127.0.0.1', port: 49122, path: '', stateEvery: 250, ...over },
+    config: { host: '127.0.0.1', port: 49122, path: '', ...over },
   })
 
 /** Watch what a studio's handler is told. */
@@ -317,10 +317,10 @@ describe('the tick', () => {
   })
 
   it('gives the score the moment it changes, whatever the throttle says', async () => {
-    // A scoreboard a quarter of a second late is a scoreboard that is wrong on the
-    // replay.
+    // A scoreboard a tenth of a second late is a scoreboard that is wrong on the
+    // replay. Both ticks land inside one throttle window, and both scores go out.
     const { MyShow, spies } = watching(['onScore'])
-    const plugin = build(MyShow, { stateEvery: 10_000 })
+    const plugin = build(MyShow)
 
     plugin.open()
     sockets[0].open()
@@ -348,7 +348,7 @@ describe('the tick', () => {
     // Every one carries each player's boost and speed. A studio writing those into
     // a replicated document spends kilobytes a second on numbers already stale.
     const { MyShow, spies } = watching(['onState'])
-    const plugin = build(MyShow, { stateEvery: 250 })
+    const plugin = build(MyShow)
 
     plugin.open()
     sockets[0].open()
@@ -358,28 +358,29 @@ describe('the tick', () => {
     clock.mockReturnValue(1_000)
     sockets[0].send('UpdateState', tick(0, 0, 10))
 
-    clock.mockReturnValue(1_100)
+    // Inside the window: held, not sent.
+    clock.mockReturnValue(1_050)
     sockets[0].send('UpdateState', tick(0, 0, 20))
 
-    clock.mockReturnValue(1_400)
+    clock.mockReturnValue(1_200)
     sockets[0].send('UpdateState', tick(0, 0, 30))
 
     expect(spies.onState).toHaveBeenCalledTimes(2)
   })
 
-  it('will not go faster than ten a second, whatever is typed', async () => {
-    // The ceiling, not a default. Nothing on a stream changes visibly more often
-    // than this, and every emit a handler turns into a write is four megabytes a
-    // match at the rate the game is capable of.
+  it('will not go faster than ten a second', async () => {
+    // Nothing on a stream changes visibly more often than this, and every emit a
+    // handler turns into a write is four megabytes a match at the rate the game is
+    // capable of.
     const { MyShow, spies } = watching(['onState'])
-    const plugin = build(MyShow, { stateEvery: 8 })
+    const plugin = build(MyShow)
 
     plugin.open()
     sockets[0].open()
 
     const clock = vi.spyOn(Date, 'now')
 
-    // Ten ticks across 90ms: inside the floor, outside the number that was typed.
+    // Ten ticks across 90ms, all inside one window.
     for (let i = 0; i < 10; i += 1) {
       clock.mockReturnValue(1_000 + i * 10)
       sockets[0].send('UpdateState', tick(0, 0, i))
@@ -400,7 +401,7 @@ describe('the tick', () => {
 
     try {
       const { MyShow, spies } = watching(['onState'])
-      const plugin = build(MyShow, { stateEvery: 100 })
+      const plugin = build(MyShow)
 
       plugin.open()
       sockets[0].open()
@@ -434,7 +435,7 @@ describe('the tick', () => {
 
     try {
       const { MyShow, spies } = watching(['onState'])
-      const plugin = build(MyShow, { stateEvery: 100 })
+      const plugin = build(MyShow)
 
       plugin.open()
       sockets[0].open()
@@ -455,12 +456,15 @@ describe('the tick', () => {
     }
   })
 
-  it('keeps the default when the field is cleared, rather than reading blank as off', async () => {
-    // A number input that has been emptied reports NaN, and an older stored value
-    // can be a string. Neither is somebody asking for silence -- only a typed 0 is.
+  it('ignores a rate left in stored config by an older version', async () => {
+    // `stateEvery` was a field on this panel once, so a studio that has been running
+    // since then still has whatever its operator typed sitting in saved config --
+    // including the `0` that used to mean "send me nothing". Config outlives the
+    // field that wrote it, and the rate is no longer anybody's to set: the tick goes
+    // out ten times a second for all of these.
     const { MyShow, spies } = watching(['onState'])
 
-    for (const stateEvery of [Number.NaN, '', null, undefined]) {
+    for (const stateEvery of [0, 8, 2_000, '', Number.NaN]) {
       sockets.length = 0
 
       build(MyShow, { stateEvery }).open()
@@ -468,19 +472,13 @@ describe('the tick', () => {
       sockets[0].send('UpdateState', tick(0, 0))
     }
 
-    expect(spies.onState).toHaveBeenCalledTimes(4)
+    expect(spies.onState).toHaveBeenCalledTimes(5)
   })
 
-  it('switches the state event off entirely at zero, and still reports goals', async () => {
-    const { MyShow, spies } = watching(['onState', 'onScore'])
-    const plugin = build(MyShow, { stateEvery: 0 })
+  it('offers no way to set the rate on the panel', async () => {
+    // The other half of the test above: nothing writes that config key any more.
+    const keys = rocketLeague(RocketLeagueHandler).config.map((field) => field.key)
 
-    plugin.open()
-    sockets[0].open()
-
-    sockets[0].send('UpdateState', tick(1, 0))
-
-    expect(spies.onState).not.toHaveBeenCalled()
-    expect(spies.onScore).toHaveBeenCalledWith({ blue: 1, orange: 0 })
+    expect(keys).toEqual(['host', 'port', 'path'])
   })
 })
