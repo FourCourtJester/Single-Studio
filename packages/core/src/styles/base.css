@@ -96,6 +96,16 @@
   }
 
   /*
+   * Text fitted to its box, and inline-block for a reason that is easy to undo by
+   * accident: an inline element reports `scrollWidth` as 0, and that measurement is
+   * the whole of how Fit picks a size. Inline so it can live inside a paragraph,
+   * block so it can be measured -- inline-block is the only thing that is both.
+   */
+  .ss-fit {
+    display: inline-block;
+  }
+
+  /*
    * A slideshow stacks its pictures and cross-fades between them.
    *
    * Stacking is not cosmetic -- without it the pictures lay out one under another

@@ -24,13 +24,14 @@ are, copy the plugin's `src` folder into your studio — it depends on nothing b
 cp -r ../Single-Studio/packages/plugin-rocket-league/src src/plugins/rocket-league
 ```
 
-Then import from `./plugins/rocket-league` instead of the package name. Everything
+Then import from `../plugins/rocket-league` instead of the package name — the worker
+lives in `src/studio/`, so the copy at `src/plugins/` is one level up. Everything
 else on this page is identical either way — the plugin depends on nothing the
 template does not already have, so there is no install step and nothing to
 configure.
 
-This was checked rather than assumed: a clean template, the published `0.3.6`
-tarballs, that `cp`, and the handler below build with no other change.
+This was checked rather than assumed: a clean template on the published `0.5.0`
+packages, that `cp`, and the worker below build with no other change.
 :::
 
 A plugin is one import and one array entry, in your worker entry:
@@ -38,10 +39,10 @@ A plugin is one import and one array entry, in your worker entry:
 ```js
 // src/studio/velcro.worker.js
 import { createVelcroHost } from '@single-studio/core/worker'
-import { rocketLeague, RocketLeagueHandler } from './plugins/rocket-league'
+import { rocketLeague, RocketLeagueHandler } from '../plugins/rocket-league'
 
 import { STUDIO_ID } from './config'
-import { mutations } from './mutations'
+import { mutations } from '../mutations'
 
 class MyShow extends RocketLeagueHandler {
   onScore({ blue, orange }) {

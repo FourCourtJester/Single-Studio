@@ -6,7 +6,17 @@ You do not clone Single Studio, and you do not need a copy of this repository.
 A studio is your own repository with `@single-studio/core` as a dependency.
 
 Press **[Use this template](https://github.com/FourCourtJester/Single-Studio-Template)**
-on Single-Studio-Template, name your repository, and clone it:
+on Single-Studio-Template, name your repository, and clone it.
+
+With `gh` instead, the same two steps also switch Pages on, which is the one thing
+you would otherwise have to do by hand before the first deploy:
+
+```bash
+gh repo create my-studio --template FourCourtJester/Single-Studio-Template --public --clone
+gh api -X POST repos/<you>/my-studio/pages -f build_type=workflow
+```
+
+Then, in the repository:
 
 ```bash
 npm install
@@ -216,6 +226,11 @@ The full generated reference, with every prop, is [api.md](api.md).
 | `Tally`     | `variables.<name>` | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.   |
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                                                    |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                                                           |
+
+`Variable`, `Timer` and `Clock` render a `<span>`, so a value can sit inside a
+sentence without breaking the line it is on. Pass `as` for anything else — `as="div"`
+if you want it to fill its own row. Every other component is a container and renders
+a `<div>`.
 
 Every one of these except `Clock`, `Ticker` and `Slideshow` takes a `transition`
 prop — see [Transitions](#transitions). `Slideshow` cross-fades between pictures
@@ -922,6 +937,16 @@ The template ships a Pages workflow, so there is nothing to run. Switch **Settin
 → Pages → Source** to **GitHub Actions**, push to `main`, and the board lands at
 `https://<you>.github.io/<your-repo>/#/` — the URL you paste into an OBS custom
 browser dock, and the one every invite link is built from.
+
+That switch is the one manual step, and the workflow cannot make it for you:
+enabling Pages from inside an action needs a personal access token with `repo`
+scope, which is a worse thing to keep around than one click. If you would rather
+not click, `gh` is already signed in as you and the call is idempotent — a
+repository that already has Pages on answers `409`:
+
+```bash
+gh api -X POST repos/<you>/<your-repo>/pages -f build_type=workflow
+```
 
 To build it yourself:
 

@@ -26,6 +26,19 @@ Commit the lockfile that first install produces. Nothing breaks without it — t
 deploy workflow survives a repository that has never been installed — but it is what
 makes a build today and a build in six months the same build.
 
+**Pages has to be switched on once, and this workflow cannot do it for itself.**
+Enabling Pages from inside an action needs a personal access token with `repo` scope,
+which is a worse thing to keep around than one click. Switch **Settings → Pages →
+Source** to **GitHub Actions**, or run:
+
+```bash
+gh api -X POST repos/<you>/<this-repo>/pages -f build_type=workflow
+```
+
+Either is idempotent — a repository that already has Pages on answers `409`. Skip it
+and the first deploy fails on a repository nobody has touched yet, for a reason that
+reads like a broken template.
+
 ## Where things live
 
 | Path                     | What it is                                                      |

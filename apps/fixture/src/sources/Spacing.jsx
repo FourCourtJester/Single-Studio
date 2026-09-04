@@ -16,6 +16,16 @@ export default function Probe() {
       <div className="marker-below h-6 bg-rose-600">below</div>
       <Variable name="probe.text" fallback="A" transition="cut" className="probe-cut" />
       <Variable name="probe.text" fallback="A" className="probe-fade" />
+
+      {/*
+        A value inside a sentence, which is the case that used to come apart. The
+        text components render a span; a div here would be invalid inside a <p>, and
+        the browser does not complain -- it closes the paragraph, drops the div after
+        it, and opens a fresh empty one, so the graphic silently loses its layout.
+      */}
+      <p className="probe-sentence">
+        Playing <Variable name="probe.text" fallback="A" className="probe-inline" /> tonight
+      </p>
     </Scene>
   )
 }

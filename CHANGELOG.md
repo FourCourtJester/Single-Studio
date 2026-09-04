@@ -3,6 +3,29 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
+## Unreleased
+
+### Changed
+
+- **A value renders a `<span>`, not a `<div>`.** `Variable`, `Timer` and `Clock` are
+  text, and a block element cannot sit in a sentence — put one in a `<p>` and the
+  words either side of it end up on their own rows.
+
+  Nothing else moves: a flex or grid parent blockifies its children, so inside the
+  layouts a graphic actually uses the computed display is unchanged, `fit` included.
+  It differs only in plain block flow, where a `<div>` filled the width and a
+  `<span>` does not — so a studio relying on that (`text-center`, `w-full` on the
+  value itself) wants `as="div"` back, or the class moved to the parent.
+
+  `as` was always reachable, through the rest-spread onto `Transition`, and
+  documented nowhere. It is a real prop on all three now, and typed.
+
+- **`Fit` renders a `<span>`, and the stylesheet makes it `inline-block`.** Both
+  halves matter: a span so it can live inside one, and inline-block because an
+  _inline_ element reports `scrollWidth` as 0 — which is the single measurement the
+  size search depends on. Measured, for the same overflowing text: inline `0`,
+  inline-block `219`, block `219`.
+
 ## 0.5.0
 
 ### Added
