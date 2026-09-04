@@ -567,13 +567,26 @@ check(
   await scene.goto(`${BASE}/#/source/match`)
   await scene.waitForSelector('.ss-scene')
 
-  const objectives = control.locator('.ss-stepper input[aria-label="Home objectives"]')
-  const set = async (locator, to) => {
-    await locator.fill(String(to))
-    await locator.press('Enter')
+  /**
+   * Type a number into a stepper and wait for it to land.
+   *
+   * The waiting is the point. A stepper skips a write whose value equals the one it
+   * is already showing -- a no-op write is not a write -- so a number typed before
+   * the previous one has come back through the store reads as exactly that and is
+   * dropped. Asserting on the *scene* is not enough: that is a different page with
+   * its own subscription, and the board can still be a render behind. This failed
+   * in CI and not here, which is what a race that only loses under load looks like.
+   */
+  const set = async (label, to) => {
+    const input = control.locator(`.ss-stepper input[aria-label="${label}"]`)
+
+    await input.fill(String(to))
+    await input.press('Enter')
+
+    return becomes(control, (want) => document.querySelector(`.ss-stepper input[aria-label="${want.label}"]`)?.value === String(want.to), { label, to })
   }
 
-  await set(objectives, 3)
+  check(await set('Home objectives', 3), 'a typed count lands on the board')
   check(await becomes(scene, () => document.querySelectorAll('.ss-tally').length > 0, null, 8000), 'a tally reaches the scene')
 
   check(
@@ -582,12 +595,12 @@ check(
   )
 
   // Zero is an empty space rather than a placeholder: the row *is* the count.
-  await set(objectives, 0)
+  await set('Home objectives', 0)
   check(await becomes(scene, () => !document.querySelector('.tally-objectives')), 'and nothing at all at zero')
 
   // A stuck key costs a clamp, not the layout -- but clamping quietly would put a
   // wrong number on air, so the real one is still on the element.
-  await set(objectives, 40)
+  await set('Home objectives', 40)
   check(
     await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 12),
     'an unreadable count is clamped',
@@ -601,7 +614,7 @@ check(
   // Only what changed animates. A row that re-animates in full every time the
   // count moves reads as the graphic glitching rather than as something having
   // happened -- and it is what wrapping the whole row in one transition gets you.
-  await set(objectives, 2)
+  await set('Home objectives', 2)
   await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 2)
   await scene.waitForTimeout(500)
 
@@ -629,7 +642,7 @@ check(
     watch.observe(row, { attributes: true, attributeFilter: ['data-state'], subtree: true })
   })
 
-  await set(objectives, 3)
+  await set('Home objectives', 3)
   await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 3)
   await scene.waitForTimeout(600)
 
@@ -645,7 +658,7 @@ check(
     'and the two already on screen are left alone, rather than the whole row re-animating',
   )
 
-  await set(objectives, 0)
+  await set('Home objectives', 0)
   await scene.close()
 }
 
@@ -658,7 +671,14 @@ check(
   await scene.goto(`${BASE}/#/source/match`)
   await scene.waitForSelector('.ss-scene')
 
-  const games = control.locator('.ss-stepper input[aria-label="Home games"]')
+  const set = async (label, to) => {
+    const input = control.locator(`.ss-stepper input[aria-label="${label}"]`)
+
+    await input.fill(String(to))
+    await input.press('Enter')
+
+    return becomes(control, (want) => document.querySelector(`.ss-stepper input[aria-label="${want.label}"]`)?.value === String(want.to), { label, to })
+  }
   const race = () => scene.locator('.tally-series').first()
 
   // Off "None" and onto three, which is what wins a best-of-five. A cycle steps
@@ -674,8 +694,7 @@ check(
       return row ? { marks: row.querySelectorAll('.ss-tally-mark').length, on: row.querySelectorAll('.ss-tally-mark[data-filled]').length } : null
     })
 
-  await games.fill('0')
-  await games.press('Enter')
+  await set('Home games', 0)
 
   const empty = await becomes(scene, () => {
     const row = document.querySelector('.tally-series')
@@ -687,8 +706,7 @@ check(
 
   const before = await race().boundingBox()
 
-  await games.fill('1')
-  await games.press('Enter')
+  check(await set('Home games', 1), 'a win lands on the board')
   check(
     await becomes(scene, () => document.querySelector('.tally-series')?.querySelectorAll('.ss-tally-mark[data-filled]').length === 1),
     'and fills one as one is won',
