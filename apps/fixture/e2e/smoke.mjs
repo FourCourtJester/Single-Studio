@@ -557,6 +557,80 @@ check(
   'the folder name is replaced, not nested under',
 )
 
+// -- A folder of pictures, playing --------------------------------------------
+// The eight units filed under `units/` just above are the show. Nothing in the
+// studio lists them; the graphic asks the library for the group -- which is why
+// this sits next to the upload that puts them there, rather than after the section
+// further down that empties the library out again.
+{
+  const on = () => [...document.querySelectorAll('.ss-slide')].findIndex((slide) => slide.hasAttribute('data-on'))
+
+  // `context.newPage()`, not `browser.newPage()`: the latter opens a fresh context
+  // with its own empty IndexedDB, so the library the graphic reads would be bare
+  // and the slideshow would correctly have nothing to play.
+  const slides = await context.newPage()
+
+  slides.on('pageerror', (error) => crashes.push(`standby: ${error.message}`))
+  await slides.goto(`${BASE}/#/source/standby`)
+
+  check(await becomes(slides, () => document.querySelectorAll('.ss-slide').length === 8), 'every picture in the group gets a slide')
+  check(await becomes(slides, () => document.querySelectorAll('.ss-slide[data-on]').length === 1), 'and exactly one of them is on')
+
+  // Only the near ones hold a decoded image. A full-frame decode is megabytes and
+  // a folder can be hundreds, so the element is always there -- keeping nth-child
+  // stable -- and the picture inside it is not.
+  check(
+    await becomes(slides, () => document.querySelectorAll('.ss-slide img').length === 3),
+    'only the current picture and its neighbours are decoded, not the whole folder',
+  )
+  check(
+    await becomes(slides, () => {
+      const all = [...document.querySelectorAll('.ss-slide')]
+      const at = all.findIndex((slide) => slide.hasAttribute('data-on'))
+
+      return all[at].querySelector('img') && all[(at + 1) % all.length].querySelector('img')
+    }),
+    'and the one coming next is among them, so a change is a fade rather than a wait',
+  )
+
+  const first = await slides.evaluate(on)
+
+  check(
+    await becomes(slides, (was) => [...document.querySelectorAll('.ss-slide')].findIndex((s) => s.hasAttribute('data-on')) !== was, first, 4000),
+    'it advances on its own',
+  )
+
+  // The claim the whole design rests on. Two browser sources on one graphic --
+  // programme and preview, or two machines -- run their own render loops and share
+  // no state. If the picture came off a counter they would drift apart within
+  // minutes; it comes off the clock, so they cannot.
+  const second = await context.newPage()
+
+  second.on('pageerror', (error) => crashes.push(`standby (second): ${error.message}`))
+  await second.goto(`${BASE}/#/source/standby`)
+  await second.waitForSelector('.ss-slide[data-on]')
+
+  let agreed = 0
+  let disagreed = 0
+
+  for (let i = 0; i < 12; i += 1) {
+    const [a, b] = await Promise.all([slides.evaluate(on), second.evaluate(on)])
+
+    if (a === b) agreed += 1
+    else disagreed += 1
+    await slides.waitForTimeout(350)
+  }
+
+  console.log(`  two outputs sampled 12 times: ${agreed} agreed, ${disagreed} did not`)
+  // Not "always": a sample can straddle a boundary the two pages cross a few
+  // milliseconds apart. Drift would fail this outright, and a counter opened
+  // seconds later would disagree on nearly every sample.
+  check(disagreed <= 1, 'a second output opened later shows the same picture, having agreed with nobody')
+
+  await slides.close()
+  await second.close()
+}
+
 // -- Picking from the library ------------------------------------------------
 const sponsor = await context.newPage()
 await sponsor.goto(`${BASE}/#/source/sponsor`)

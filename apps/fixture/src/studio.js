@@ -29,5 +29,6 @@ export const studio = defineStudio({
     // graphic paints nothing on air and shows itself under `?debug`.
     broken: () => import('./sources/Broken'),
     spacing: () => import('./sources/Spacing'),
+    standby: () => import('./sources/Standby'),
   },
 })

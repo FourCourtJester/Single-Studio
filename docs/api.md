@@ -14,6 +14,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | Colour           | [`ColorPicker`](#control-colorpicker) | [`Scene`](#source-scene) `vars` |
 | A picture        | [`ImagePicker`](#control-imagepicker), [`ImageSelect`](#control-imageselect) | [`Image`](#source-image) |
 | Several pictures | [`ImageSelect`](#control-imageselect) `multiple` | [`ImageList`](#source-imagelist) |
+| A folder of them | the image library | [`Slideshow`](#source-slideshow) |
 | On or off        | [`Toggle`](#control-toggle), [`ImageToggle`](#control-imagetoggle) | [`Toggle`](#source-toggle) |
 | Counting down    | [`Countdown`](#control-countdown), [`CountdownTo`](#control-countdownto) | [`Timer`](#source-timer) |
 | Counting up      | [`Stopwatch`](#control-stopwatch) | [`Timer`](#source-timer) |
@@ -644,6 +645,7 @@ arrived, so a graphic reopening mid-show never flashes a placeholder over the pr
 - [`Variable`](#source-variable)
 - [`Image`](#source-image)
 - [`ImageList`](#source-imagelist)
+- [`Slideshow`](#source-slideshow)
 - [`Toggle`](#source-toggle)
 - [`Timer`](#source-timer)
 - [`Ticker`](#source-ticker)
@@ -748,6 +750,7 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 | `alt` | `string` |  | Alt text. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `fallback` | `string` |  | URL used when the value is empty or fails to load. |
+| `fit` | `'cover' \| 'contain' \| 'fill' \| 'none' \| 'scale-down'` |  | Fill the box this way instead of sitting inside it — `"cover"` for a backdrop. |
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `slug` | `boolean` |  | [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) the value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` |  | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
@@ -784,6 +787,36 @@ Several pictures from one value — what `ImageSelect multiple` writes. Each ent
 | `slug` | `boolean` |  | [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) each value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` |  | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
+
+<a id="source-slideshow"></a>
+
+### Slideshow
+
+---
+
+`import { Slideshow } from '@single-studio/core/source'`
+
+A folder of pictures, playing. What a standby screen is made of.
+
+```jsx
+<Slideshow group="slides" every={9} order="shuffle" />
+```
+
+```jsx
+// The folder, unless the operator has picked from it
+<Slideshow group="slides" name="standby.slides" every="0:12" />
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Added to the component's own classes. |
+| `every` | `string \| number` |  | How long each picture holds — seconds, or `"m:ss"`. Defaults to `8`. |
+| `fit` | `'cover' \| 'contain'` |  | How a picture fills the frame. Defaults to `"cover"`. |
+| `group` | `string` |  | Plays everything in the image library filed under this group — `"slides"` reads `slides/…`. |
+| `limit` | `number` |  | Play at most this many. |
+| `name` | `string` |  | Names a list under `variables` — e.g. `standby.slides`. Takes over from `group` whenever it holds anything. |
+| `order` | `'sequence' \| 'shuffle'` |  | In order, or a fresh deal each pass. Defaults to `"sequence"`. |
+| `preload` | `number` |  | How many either side of the current one hold a decoded image. Defaults to `1`. |
 
 <a id="source-toggle"></a>
 
