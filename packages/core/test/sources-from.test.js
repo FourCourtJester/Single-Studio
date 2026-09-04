@@ -36,6 +36,14 @@ describe('naming sources from their files', () => {
     expect(Object.keys(sourcesFrom({ './scenes/Match.jsx': load }))).toEqual(['match'])
   })
 
+  it('names a graphic the same however far up the glob had to reach', () => {
+    // A studio whose definition lives in src/studio globs `../sources/**`, and the
+    // `..` must not be mistaken for the folder to drop. This is what the shipped
+    // template does, so getting it wrong breaks every URL in a new studio.
+    expect(Object.keys(sourcesFrom({ '../sources/Scoreboard.jsx': load }))).toEqual(['scoreboard'])
+    expect(Object.keys(sourcesFrom({ '../../sources/lower-thirds/Guest.jsx': load }))).toEqual(['lower-thirds/guest'])
+  })
+
   it('handles a file with no folder above it', () => {
     // Dropping "the folder that was globbed" must not drop the only segment there
     // is, or a flat glob names everything the empty string.
