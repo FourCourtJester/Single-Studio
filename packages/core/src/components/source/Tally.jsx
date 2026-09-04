@@ -73,7 +73,11 @@ export function Tally({ name, src, of, empty, max = MARKS, alt = '', transition,
   const named = of !== undefined && of !== null && of !== '' && !Number.isFinite(literal) ? String(of) : null
   const race = useVelcroState(named ? `${NAMESPACE}.${named}` : undefined)
 
-  if (!loaded) return null
+  // Both paths, not just the count. Each subscription hydrates on its own round
+  // trip, so a race whose length has not arrived yet would draw `count` marks and
+  // reflow to its real length a moment later -- which is the shift that drawing the
+  // empties exists to prevent.
+  if (!loaded || (named && !race.loaded)) return null
 
   const { marks, filled, count, over } = tallyOf({ value, of: named ? race.value : of, max })
 

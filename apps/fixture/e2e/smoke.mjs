@@ -729,21 +729,42 @@ check(
     await becomes(slides, () => document.querySelectorAll('.ss-slide img').length === 3),
     'only the current picture and its neighbours are decoded, not the whole folder',
   )
+  // Which ones, specifically: the picture that comes on has to be decoded *at the
+  // moment it comes on*. Asserting that the list neighbour is decoded proves
+  // nothing -- the window used to be built from indices, so that held by
+  // construction -- and it is not what a shuffled show asks for, where the next
+  // picture is wherever the deal put it.
+  //
+  // Watched rather than sampled, for the same reason as the tally: polling either
+  // side of a change reads the state at the wrong instant. <Image> renders nothing
+  // until it has decoded, so "did the slide contain a picture the moment it was
+  // switched on" is exactly the question, and a mutation record answers it.
+  await slides.evaluate(() => {
+    window.__ons = []
+
+    const show = document.querySelector('.ss-slideshow')
+    const watch = new MutationObserver((records) => {
+      for (const record of records) {
+        if (!record.target.hasAttribute('data-on')) continue
+
+        const all = [...show.querySelectorAll('.ss-slide')]
+
+        window.__ons.push({ at: all.indexOf(record.target), had: Boolean(record.target.querySelector('img')) })
+      }
+    })
+
+    watch.observe(show, { attributes: true, attributeFilter: ['data-on'], subtree: true })
+  })
+
+  await slides.waitForTimeout(11000)
+
+  const ons = await slides.evaluate(() => window.__ons)
+
+  console.log(`  slides coming on: ${ons.map((o) => `${o.at}${o.had ? '' : ' (BLANK)'}`).join(', ')}`)
+  check(ons.length >= 4, `it advances on its own (${ons.length} changes in 11s)`)
   check(
-    await becomes(slides, () => {
-      const all = [...document.querySelectorAll('.ss-slide')]
-      const at = all.findIndex((slide) => slide.hasAttribute('data-on'))
-
-      return all[at].querySelector('img') && all[(at + 1) % all.length].querySelector('img')
-    }),
-    'and the one coming next is among them, so a change is a fade rather than a wait',
-  )
-
-  const first = await slides.evaluate(on)
-
-  check(
-    await becomes(slides, (was) => [...document.querySelectorAll('.ss-slide')].findIndex((s) => s.hasAttribute('data-on')) !== was, first, 4000),
-    'it advances on its own',
+    ons.every((o) => o.had),
+    `every picture was decoded at the moment it came on, so a change is a fade rather than a wait (${ons.filter((o) => o.had).length}/${ons.length})`,
   )
 
   // The claim the whole design rests on. Two browser sources on one graphic --

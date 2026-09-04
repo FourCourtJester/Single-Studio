@@ -105,3 +105,32 @@ export function slideFor({ tick, count, order = 'sequence' }) {
 
   return deck(count, Math.floor(tick / count))[at]
 }
+
+/** `asset:` refs, and only those this machine holds the bytes for. */
+const showable = (ref, assets) => !String(ref).startsWith('asset:') || assets.some((entry) => `asset:${entry.key}` === ref && entry.here)
+
+/**
+ * Which pictures a slideshow plays.
+ *
+ * A pick beats a group, and whether there *is* a pick is a question about what the
+ * operator chose -- not about which of their files happen to be on this machine.
+ * Filtering first makes an empty pick indistinguishable from no pick at all, so a
+ * machine missing those bytes falls through and plays the whole group instead: two
+ * outputs, two different shows, and neither of them says why.
+ *
+ * What is left out either way is anything unshowable here. The library replicates
+ * what *exists* to everyone, but a file dropped on a producer's laptop has bytes
+ * that live only there, and a slide with nothing behind it is a blank on air.
+ *
+ * @param {object} input
+ * @param {string[]} [input.picked] - what the operator chose, if a path was named
+ * @param {string|null} [input.prefix] - the group to play otherwise, ending in `/`
+ * @param {Array<{ key: string, here?: boolean }>} [input.assets] - the library
+ * @param {number} [input.limit] - play at most this many
+ */
+export function picturesFor({ picked = [], prefix = null, assets = [], limit = 0 }) {
+  const fromGroup = prefix ? assets.filter((entry) => entry.here && entry.key.startsWith(prefix)).map((entry) => `asset:${entry.key}`) : []
+  const all = picked.length ? picked.filter((ref) => showable(ref, assets)) : fromGroup
+
+  return limit > 0 ? all.slice(0, limit) : all
+}

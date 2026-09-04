@@ -92,6 +92,19 @@ Both packages share a version — `@single-studio/core` and
   itself once a second. Leaving the prop off is not the same thing: the default is
   `fade`.
 
+### Fixed
+
+- **A graphic in a studio built from the template answered to the wrong URL.** The
+  template keeps its studio definition in `src/studio`, so it globs `../sources/**`
+  — and the `..` was counted as a path segment, leaving every graphic named
+  `sources/scoreboard` rather than `scoreboard`. A browser source URL that resolves
+  to nothing, a stray folder in the OBS layer name, and a page title to match.
+
+  True of every studio started from the template since the `src/studio` restructure
+  in 0.4.0. It went unnoticed because the two things that exercise the glob look
+  elsewhere: the demo registers its sources by hand, and the template check counts
+  code-split chunks rather than the keys those chunks answer to.
+
 ### Changed
 
 - **A `Toggle` that is off keeps its children mounted**, hidden rather than removed.

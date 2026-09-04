@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { slideFor, slideTick, untilNextSlide } from '../src/toolkits/slideshow'
+import { picturesFor, slideFor, slideTick, untilNextSlide } from '../src/toolkits/slideshow'
 
 // The picture is arithmetic on the clock rather than a counter somebody advances,
 // which is what lets two browser sources and two machines show the same one
@@ -101,5 +101,60 @@ describe('shuffled', () => {
     expect(seen.size).toBe(6)
     // 100 each in exact passes; the seam swap moves nothing between passes.
     expect([...seen.values()].every((n) => n === 100)).toBe(true)
+  })
+})
+
+describe('which pictures play', () => {
+  const here = (key) => ({ key, here: true })
+  const elsewhere = (key) => ({ key, here: false })
+  const library = [here('slides/a'), here('slides/b'), elsewhere('slides/c'), here('other/d')]
+
+  it('plays a group, in the order the library holds it', () => {
+    expect(picturesFor({ prefix: 'slides/', assets: library })).toEqual(['asset:slides/a', 'asset:slides/b'])
+  })
+
+  it('leaves out what this machine cannot paint', () => {
+    // The library replicates what exists to everyone; a file dropped on a
+    // producer's laptop has bytes that live only there, and a slide with nothing
+    // behind it is a blank on air.
+    expect(picturesFor({ prefix: 'slides/', assets: library })).not.toContain('asset:slides/c')
+  })
+
+  it('plays nothing rather than everything when no group was named', () => {
+    expect(picturesFor({ assets: library })).toEqual([])
+  })
+
+  it('lets a pick beat the group', () => {
+    expect(picturesFor({ picked: ['asset:other/d'], prefix: 'slides/', assets: library })).toEqual(['asset:other/d'])
+  })
+
+  it('keeps the pick in the order it was picked, not the order the library holds', () => {
+    expect(picturesFor({ picked: ['asset:slides/b', 'asset:slides/a'], prefix: 'slides/', assets: library })).toEqual(['asset:slides/b', 'asset:slides/a'])
+  })
+
+  it('falls back to the group only when nothing was picked at all', () => {
+    expect(picturesFor({ picked: [], prefix: 'slides/', assets: library })).toEqual(['asset:slides/a', 'asset:slides/b'])
+  })
+
+  it('does not quietly play the group when the pick is unshowable here', () => {
+    // The bug this covers: filtering before the fallback made "picked nothing" and
+    // "picked things this machine has not got" the same question. A producer's
+    // laptop would answer it by playing the whole folder instead of the pick --
+    // two outputs, two different shows, and neither of them says why.
+    expect(picturesFor({ picked: ['asset:slides/c'], prefix: 'slides/', assets: library })).toEqual([])
+  })
+
+  it('passes a plain URL through, since nothing local has to hold it', () => {
+    expect(picturesFor({ picked: ['https://example.com/a.png'], assets: library })).toEqual(['https://example.com/a.png'])
+  })
+
+  it('caps how many play', () => {
+    expect(picturesFor({ prefix: 'slides/', assets: library, limit: 1 })).toEqual(['asset:slides/a'])
+    expect(picturesFor({ prefix: 'slides/', assets: library, limit: 0 })).toHaveLength(2)
+  })
+
+  it('has nothing to play with an empty library', () => {
+    expect(picturesFor({ prefix: 'slides/', assets: [] })).toEqual([])
+    expect(picturesFor({})).toEqual([])
   })
 })
