@@ -389,13 +389,18 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
         type: 'steps',
         items: [
           'Close Rocket League.',
-          'Open <Rocket League install>\\TAGame\\Config\\DefaultStatsAPI.ini in a text editor. If there is a TAStatsAPI.ini beside it, edit that one instead.',
-          'Under [TAGame.MatchStatsExporter_TA], set PacketSendRate to 30 and Port to 49122.',
+          'Open the config folder. Your own settings are in Documents\\My Games\\Rocket League\\TAGame\\Config; the installed defaults are under TAGame\\Config where the game itself is.',
+          'Look for a file with StatsAPI in the name. If there is not one, create TAStatsAPI.ini in your own config folder — that is the one the game reads.',
+          'In it, under the [TAGame.MatchStatsExporter_TA] heading, set PacketSendRate to 30 and Port to 49122.',
           'Save the file and start Rocket League. The settings are only read at startup.',
           'Press Save and reconnect here.',
         ],
       },
       { type: 'note', text: 'PacketSendRate of 0 switches the feature off entirely. Anything above about 30 is more than a scoreboard can use.' },
+      {
+        type: 'note',
+        text: 'The file name, the heading and the port above come from the API as it was before v2.72 and have not been confirmed against the WebSocket mode this plugin uses. If the game will not connect, host, port and path are all fields on this panel — change them here rather than in the game.',
+      },
       {
         type: 'text',
         text: 'Every tick is read whatever these settings say. “Full state every” only controls how often the whole picture is handed on — and since nothing on a stream changes visibly more than ten times a second, 100ms is as fast as it will go.',

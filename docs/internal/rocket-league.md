@@ -19,6 +19,16 @@ files with nothing to run alongside it.
   disabling the feature. Config is read at client start, so changes need a restart.
 - Whether anything is emitted on connect, or whether a client sees nothing until the
   next tick.
+- **Where the file actually is.** The install directory and the user's
+  `Documents\My Games\Rocket League\TAGame\Config` are both plausible, and Unreal's
+  convention -- `DefaultX.ini` shipped, `X.ini` written by the user -- suggests the
+  second, which is where every other Rocket League setting lives. Not established.
+
+  This one had already been got wrong once. The plugin's help panel named a single
+  path in the install directory as though it were known, and somebody following it
+  went looking for a file that was not there. Everything above is on this list
+  because it has _not_ been checked; the help panel now says so rather than
+  inheriting the confidence of a numbered list.
 
 Neither blocks the plugin. **Host, port and path are config fields**, so the address
 is a settings change on the night rather than a release — which is why they exist
