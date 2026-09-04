@@ -113,6 +113,23 @@ Then, as you need them:
 | `src/studio/`    | The studio itself: what it is called, what it registers, and the worker that holds the show |
 | `src/css/`       | Tailwind, and anywhere you want your own CSS                                                |
 
+### Name it
+
+`src/studio/config.js` is the one file worth editing before anything else:
+
+```js
+export const STUDIO_NAME = 'My Studio'
+export const STUDIO_ID = 'my-studio'
+```
+
+`STUDIO_NAME` is the label — it titles the board, and OBS shows it in front of every
+browser source (`SS - My Studio - Lower Thirds / Single`). Change it whenever you
+like.
+
+`STUDIO_ID` is where the show is filed. It names the databases and the shared worker
+that the board, the previews and every browser source find each other through, so
+changing it after you have built something starts you on an empty show. Pick it once.
+
 The rest is wiring that already works. Have a look around the
 [template repository](https://github.com/FourCourtJester/Single-Studio-Template)
 if you want the full tour.
@@ -978,6 +995,9 @@ board's **Browser sources** menu — the copy button includes everything needed.
 
 `STUDIO_ID` is the name your show is filed under, so renaming it starts a fresh
 one. Nothing is lost: put the old `STUDIO_ID` back and the show returns.
+
+If you only meant to retitle it, change `STUDIO_NAME` instead — that one is a label
+and nothing reads it back.
 
 ### Do graphics survive being hidden in OBS?
 
