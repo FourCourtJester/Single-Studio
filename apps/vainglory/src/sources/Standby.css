@@ -87,16 +87,43 @@
   gap: 0.4rem;
 }
 
+/*
+ * A hairline of black around the text.
+ *
+ * The scrim handles a slide that is bright along the bottom; this handles one that
+ * is bright *and* busy, where a gradient cannot buy contrast against detail. Both
+ * are cheap and neither is sufficient alone.
+ *
+ * `paint-order` is what makes it a hairline rather than a diet. A text stroke is
+ * centred on the outline, so half of it lands inside the glyph and thins the
+ * letterform -- painting the stroke first and the fill over it puts the whole width
+ * outside. Where `paint-order` is not honoured the stroke simply goes back to being
+ * centred, which at these widths reads as slightly heavier text rather than as a
+ * fault, so there is nothing to feature-detect.
+ */
+.vg-eyebrow,
+.vg-digits,
+.vg-card {
+  -webkit-text-stroke: var(--vg-stroke, 1px) #000;
+  paint-order: stroke fill;
+}
+
 .vg-eyebrow {
   font-size: 1rem;
   letter-spacing: 0.5em;
   /* Letter-spacing is trailing, so a centred word sits half a space left. */
   text-indent: 0.5em;
   text-transform: uppercase;
-  color: rgb(226 232 240 / 0.85);
+  /* Pure white, not a soft grey. At this size the stroke is most of what is
+     holding the letter up, and a translucent fill against a pale slide leaves
+     nothing inside it. */
+  color: #fff;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.7);
 }
 
 .vg-digits {
+  --vg-stroke: 2px;
+
   font-size: 6rem;
   font-weight: 700;
   line-height: 1;
