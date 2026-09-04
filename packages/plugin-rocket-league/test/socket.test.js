@@ -86,7 +86,7 @@ describe('the address', () => {
     // those tests fail if configuration is ignored.
     build(RocketLeagueHandler, { host: '', port: '' }).open()
 
-    expect(sockets[0].url).toBe('ws://127.0.0.1:49124')
+    expect(sockets[0].url).toBe('ws://localhost:49124')
   })
 })
 

@@ -11,7 +11,7 @@
 //
 // So this speaks the shape the documentation describes, on the port the plugin
 // expects, and plays a short match on a loop: kickoff, a couple of goals with their
-// replays, a demolition, and a podium. Point the plugin at 127.0.0.1:49124 and the
+// replays, a demolition, and a podium. Point the plugin at localhost:49124 and the
 // board moves.
 //
 //   node dev/replay.mjs            # every client gets a fresh match
@@ -222,5 +222,5 @@ server.on('connection', (socket) => {
   play(socket)
 })
 
-console.log(`[replay] Rocket League Stats API on ws://127.0.0.1:${PORT} at ${RATE}Hz`)
+console.log(`[replay] Rocket League Stats API on ws://localhost:${PORT} at ${RATE}Hz`)
 console.log('[replay] set that host and port in Settings -> Plugins -> Rocket League')

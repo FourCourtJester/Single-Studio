@@ -91,7 +91,7 @@ class RocketLeague extends SocketService {
   #batch = null
 
   get url() {
-    const host = this.config.host || '127.0.0.1'
+    const host = this.config.host || 'localhost'
     const port = Number(this.config.port) || 49124
 
     // The path is configurable because Psyonix's WebSocket endpoint is documented
@@ -405,7 +405,7 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
       { type: 'note', text: 'PacketSendRate of 0 switches the feature off entirely. Anything above about 30 is more than a scoreboard can use.' },
       {
         type: 'note',
-        text: 'The file name, the heading and the port above come from the API as it was before v2.72 and have not been confirmed against the WebSocket mode this plugin uses. If the game will not connect, host, port and path are all fields on this panel — change them here rather than in the game.',
+        text: 'The address this connects to — localhost:49124 — is confirmed against the game. The file name and the heading above come from the API as it was before v2.72 and are not; if you cannot find them, or the game will not connect, host, port and path are all fields on this panel and can be changed here rather than in the game.',
       },
       {
         type: 'text',
@@ -423,7 +423,7 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
       },
     ],
     config: [
-      { key: 'host', label: 'Host', default: '127.0.0.1', help: 'The machine running the game. Usually this one.' },
+      { key: 'host', label: 'Host', default: 'localhost', help: 'The machine running the game. Usually this one.' },
       { key: 'port', label: 'Port', type: 'number', default: 49124, help: 'Whatever you set as Port in the ini file.' },
       { key: 'path', label: 'Path', default: '', help: 'Leave blank. Only needed if the endpoint turns out to want one.' },
       {
