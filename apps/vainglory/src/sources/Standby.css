@@ -1,0 +1,136 @@
+/*
+ * Imported by Standby.jsx, so the slideshow's styling ships in that graphic's chunk
+ * rather than with the match bar.
+ */
+
+.vg-standby {
+  /* A base under the artwork. Unlike the match bar this graphic is not composited
+     over the game -- it *is* the picture, and a transparent gap between fades would
+     show whatever OBS has underneath. */
+  background: #05070d;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.vg-slides {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * Every slide is mounted and stacked; only opacity moves. The fade is longer than a
+ * normal transition on purpose -- this one is meant to be watched rather than not
+ * noticed.
+ */
+.vg-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1400ms linear;
+}
+
+.vg-slide[data-on] {
+  opacity: 1;
+}
+
+/* <Image> wraps its <img> in the transition element; both have to fill the frame. */
+.vg-slide .ss-image {
+  position: absolute;
+  inset: 0;
+}
+
+.vg-slide .ss-image img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/*
+ * The ambient drift, paced off the same constant as the interval that advances the
+ * slides (--standby-dwell, set in the component). `both` holds the end of the
+ * travel through the cross-fade, so the outgoing picture does not snap back to
+ * where it started while it is still visible.
+ *
+ * Alternating direction is what stops five slides reading as one long zoom.
+ */
+.vg-slide[data-on] .ss-image img {
+  animation: vg-drift var(--standby-dwell, 9s) linear both;
+}
+
+.vg-slide:nth-child(even)[data-on] .ss-image img {
+  animation-name: vg-drift-alt;
+}
+
+.vg-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(3 6 14 / 0.5) 0%, rgb(3 6 14 / 0) 30%, rgb(3 6 14 / 0) 48%, rgb(3 6 14 / 0.88) 100%);
+}
+
+.vg-stack {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.vg-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.vg-eyebrow {
+  font-size: 1rem;
+  letter-spacing: 0.5em;
+  /* Letter-spacing is trailing, so a centred word sits half a space left. */
+  text-indent: 0.5em;
+  text-transform: uppercase;
+  color: rgb(226 232 240 / 0.85);
+}
+
+.vg-digits {
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0.25rem 1.5rem rgb(0 0 0 / 0.6);
+}
+
+.vg-card {
+  padding: 1rem 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 0.75rem;
+  background: rgb(3 7 18 / 0.78);
+  font-size: 2.25rem;
+  color: #fff;
+  text-align: center;
+  backdrop-filter: blur(6px);
+}
+
+@keyframes vg-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.09) translate3d(-1.1%, -0.9%, 0);
+  }
+}
+
+@keyframes vg-drift-alt {
+  from {
+    transform: scale(1.09) translate3d(1.1%, 0.6%, 0);
+  }
+
+  to {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
