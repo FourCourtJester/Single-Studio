@@ -7,6 +7,69 @@ Both packages share a version — `@single-studio/core` and
 
 ### Added
 
+- **`Tally` — a number said in icons.** Three demolitions is three icons, not the
+  word three, and until now that was a `Array.from({ length: n })` in every studio
+  that wanted it.
+
+  ```jsx
+  <Tally name="home.demolitions" src="./icons/demo.svg" />
+  <Tally name="home.games" of={3} src="./pips/won.svg" empty="./pips/empty.svg" />
+  ```
+
+  - **Only what changed animates.** A fourth demolition brings in a fourth icon and
+    leaves the three already on screen alone. A row that re-animates in full every
+    time the count moves reads as the graphic glitching rather than as something
+    having happened — which is what wrapping the row in one transition gets you.
+  - **`of` makes it a race** — that many marks, the count filled in, the rest
+    waiting. The row holds its width from the first frame, so nothing beside it
+    shifts as a series is won. It is the number of _marks_, not the length of the
+    race: a best-of-five is three of these, because three is what wins it. A number
+    or a path, so an operator can set it.
+  - **A count is bounded; a race is not.** Forty of anything is not a number anyone
+    reads off a row of icons, so a plain count stops at `max` — but clamping
+    quietly would be a lie on air, so the row carries `data-count` with the real
+    figure and `data-over`/`ss-over` when there was more than it could show.
+
+  Every mark carries `data-filled` when it is one, so filled and empty are
+  distinguishable in a stylesheet even when both are the same picture.
+
+- **`Slideshow` — a folder of pictures, playing.** What a standby screen is made
+  of, and until now a thing every studio wrote for itself.
+
+  ```jsx
+  <Slideshow group="slides" every={9} order="shuffle" />
+  ```
+
+  Point it at a group in the image library and loading the show is dropping a
+  folder on the board — there is no list in the studio to keep in step with what
+  the operator actually uploaded. Name a path as well and an operator can curate:
+  the pick takes over from the group whenever it holds anything.
+
+  - **The picture is decided by the clock, not by a timer.** A counter belongs to
+    whichever tab is running it, and a show has several — programme, preview, a
+    second machine in the room — which drift apart within minutes. Reading it off
+    the time in the room means every output lands on the same picture at the same
+    instant, having agreed with nobody, and a browser source reopened mid-show
+    comes back in step rather than starting the deck again.
+  - **`order="shuffle"` deals rather than picks.** Every picture is shown once
+    before any is shown twice, and no picture is repeated across the seam between
+    two passes — an independent random pick would show the same wallpaper twice
+    running often enough to look like a fault.
+  - **It only plays what the machine can actually paint.** The library replicates
+    what exists to everyone, but a file dropped on a producer's laptop has bytes
+    that live only there. Those are left out rather than going out blank.
+  - **Only the pictures near the current one hold a decoded image.** A full-frame
+    decode is megabytes and a folder can be hundreds. Every slide keeps its
+    element either way, so `:nth-child` in a stylesheet is stable.
+
+  The framework stacks the pictures and cross-fades over `--ss-fade`. What a slide
+  _does_ beyond that — a drift, a wipe, a cut — is a rule of your own on
+  `.ss-slide[data-on]`, the same way a transition is a class name.
+
+- **`Image` takes `fit`.** `fit="cover"` fills the box instead of sitting inside
+  it, which is what a backdrop wants and what no stylesheet could express: the
+  sizing on the image is a utility class, and a rule in any layer loses to it.
+
 - **A crash no longer takes the page with it.** One broken component used to blank
   a whole graphic or the whole board, with only a console trace to say why.
 
@@ -28,6 +91,19 @@ Both packages share a version — `@single-studio/core` and
   than dissolves. A clock that fades every second is a clock drawing attention to
   itself once a second. Leaving the prop off is not the same thing: the default is
   `fade`.
+
+### Fixed
+
+- **A graphic in a studio built from the template answered to the wrong URL.** The
+  template keeps its studio definition in `src/studio`, so it globs `../sources/**`
+  — and the `..` was counted as a path segment, leaving every graphic named
+  `sources/scoreboard` rather than `scoreboard`. A browser source URL that resolves
+  to nothing, a stray folder in the OBS layer name, and a page title to match.
+
+  True of every studio started from the template since the `src/studio` restructure
+  in 0.4.0. It went unnoticed because the two things that exercise the glob look
+  elsewhere: the demo registers its sources by hand, and the template check counts
+  code-split chunks rather than the keys those chunks answer to.
 
 ### Changed
 

@@ -33,10 +33,15 @@ import { slugify } from '../toolkits/slug'
  */
 function keyFor(path) {
   const segments = String(path)
-    .replace(/^\.\//, '')
     .replace(/\.[a-z]+$/i, '')
     .split('/')
     .filter(Boolean)
+    // `.` and `..` are where the glob was written from, not part of the name. A
+    // studio that keeps its definition in a subfolder globs `../sources/**`, and
+    // counting `..` as a segment made "drop the globbed folder" drop the `..`
+    // instead -- naming every graphic `sources/scoreboard`, which is a browser
+    // source URL that resolves to nothing.
+    .filter((part) => part !== '.' && part !== '..')
 
   // Drop the globbed folder itself, but never the only thing there is.
   const parts = segments.length > 1 ? segments.slice(1) : segments

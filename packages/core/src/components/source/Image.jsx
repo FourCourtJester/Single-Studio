@@ -21,6 +21,7 @@ const REFERRER_POLICY = 'no-referrer'
  * @property {string} [src] - URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works.
  * @property {boolean} [slug] - [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) the value first — "Single Studio" becomes `single-studio`.
  * @property {string} [fallback] - URL used when the value is empty or fails to load.
+ * @property {'cover'|'contain'|'fill'|'none'|'scale-down'} [fit] - Fill the box this way instead of sitting inside it — `"cover"` for a backdrop.
  * @property {string} [alt] - Alt text.
  * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
@@ -111,7 +112,7 @@ function preload(url) {
  *
  * @param {ImageProps & import("react").ImgHTMLAttributes<HTMLElement>} props
  */
-export function Image({ name, value: literal, src = ':value:', slug = false, fallback, alt = '', className, ...rest }) {
+export function Image({ name, value: literal, src = ':value:', slug = false, fallback, alt = '', fit, className, ...rest }) {
   const { value: stored, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
   // A literal value stands in for the store, so a component that already holds a
   // value -- one row of a list, say -- can reuse all of the loading machinery below
@@ -163,7 +164,19 @@ export function Image({ name, value: literal, src = ':value:', slug = false, fal
 
   return (
     <Transition trigger={shown} className={cx('ss-image', className)} {...rest}>
-      <img src={shown} alt={alt} referrerPolicy={REFERRER_POLICY} className="max-h-full max-w-full object-contain" />
+      <img
+        src={shown}
+        alt={alt}
+        referrerPolicy={REFERRER_POLICY}
+        className="max-h-full max-w-full object-contain"
+        /*
+         * `fit` fills the box rather than sitting inside it, and does so as an
+         * inline style because the classes above are Tailwind utilities -- a
+         * stylesheet rule in any layer loses to them, so a background that has to
+         * cover its frame could not be expressed in CSS at all.
+         */
+        style={fit ? { width: '100%', height: '100%', maxWidth: 'none', maxHeight: 'none', objectFit: fit } : undefined}
+      />
     </Transition>
   )
 }

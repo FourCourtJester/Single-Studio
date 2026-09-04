@@ -1,0 +1,150 @@
+/*
+ * Imported by Standby.jsx, so the slideshow's styling ships in that graphic's chunk
+ * rather than with the match bar.
+ */
+
+.vg-standby {
+  /* Longer than the framework's default: this fade is meant to be watched. */
+  --ss-fade: 1400ms;
+
+  /* A base under the artwork. Unlike the match bar this graphic is not composited
+     over the game -- it *is* the picture, and a transparent gap between fades would
+     show whatever OBS has underneath. */
+  background: #05070d;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * What a slide does. The framework stacks the pictures and cross-fades between
+ * them; the ambient drift is ours.
+ *
+ * Each slide rests where its own drift ends. `both` holds the end of the travel
+ * only while the animation is applied, and losing `data-on` takes it away -- so a
+ * drift that ended anywhere else would jump back at the moment the picture began
+ * fading out, in full view.
+ *
+ * Alternating direction is what stops five slides reading as one long zoom.
+ */
+.vg-standby .ss-slide .ss-image img {
+  transform: scale(1.09) translate3d(-1.1%, -0.9%, 0);
+  transform-origin: center;
+  will-change: transform;
+}
+
+.vg-standby .ss-slide:nth-child(even) .ss-image img {
+  transform: none;
+}
+
+.vg-standby .ss-slide[data-on] .ss-image img {
+  animation: vg-drift var(--standby-dwell, 9s) linear both;
+}
+
+.vg-standby .ss-slide:nth-child(even)[data-on] .ss-image img {
+  animation-name: vg-drift-alt;
+}
+
+.vg-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(3 6 14 / 0.5) 0%, rgb(3 6 14 / 0) 30%, rgb(3 6 14 / 0) 48%, rgb(3 6 14 / 0.88) 100%);
+}
+
+.vg-stack {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.vg-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/*
+ * A hairline of black around the text.
+ *
+ * The scrim handles a slide that is bright along the bottom; this handles one that
+ * is bright *and* busy, where a gradient cannot buy contrast against detail. Both
+ * are cheap and neither is sufficient alone.
+ *
+ * `paint-order` is what makes it a hairline rather than a diet. A text stroke is
+ * centred on the outline, so half of it lands inside the glyph and thins the
+ * letterform -- painting the stroke first and the fill over it puts the whole width
+ * outside. Where `paint-order` is not honoured the stroke simply goes back to being
+ * centred, which at these widths reads as slightly heavier text rather than as a
+ * fault, so there is nothing to feature-detect.
+ */
+.vg-eyebrow,
+.vg-digits,
+.vg-card {
+  -webkit-text-stroke: var(--vg-stroke, 1px) #000;
+  paint-order: stroke fill;
+}
+
+.vg-eyebrow {
+  font-size: 1rem;
+  letter-spacing: 0.5em;
+  /* Letter-spacing is trailing, so a centred word sits half a space left. */
+  text-indent: 0.5em;
+  text-transform: uppercase;
+  /* Pure white, not a soft grey. At this size the stroke is most of what is
+     holding the letter up, and a translucent fill against a pale slide leaves
+     nothing inside it. */
+  color: #fff;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.7);
+}
+
+.vg-digits {
+  --vg-stroke: 2px;
+
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0.25rem 1.5rem rgb(0 0 0 / 0.6);
+}
+
+.vg-card {
+  /*
+   * `pre-line` keeps the operator's line breaks and still wraps a line too long
+   * for the card. `pre-wrap` would keep their trailing spaces and indentation
+   * too, which is not something anyone means to put on air.
+   */
+  max-width: min(60rem, 70vw);
+  padding: 1rem 2.75rem;
+  line-height: 1.25;
+  white-space: pre-line;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 0.75rem;
+  background: rgb(3 7 18 / 0.78);
+  font-size: 2.25rem;
+  color: #fff;
+  text-align: center;
+  backdrop-filter: blur(6px);
+}
+
+@keyframes vg-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.09) translate3d(-1.1%, -0.9%, 0);
+  }
+}
+
+@keyframes vg-drift-alt {
+  from {
+    transform: scale(1.09) translate3d(1.1%, 0.6%, 0);
+  }
+
+  to {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}

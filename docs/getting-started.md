@@ -212,11 +212,15 @@ The full generated reference, with every prop, is [api.md](api.md).
 | `Toggle`    | `toggles.<name>`   | Shows or hides its children.                                                                                     |
 | `Timer`     | `timers.<name>`    | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran. |
 | `ImageList` | `variables.<name>` | A row of images from a multi-valued path. Same loading rules as `Image`.                                         |
+| `Slideshow` | the image library  | A folder of pictures, playing. Picks the one on screen off the time in the room, so every output agrees.         |
+| `Tally`     | `variables.<name>` | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.   |
 | `Clock`     | — (local)          | Wall clock. Never replicates.                                                                                    |
 | `Ticker`    | `variables.<name>` | Crawl at a constant px/sec, swaps text between passes.                                                           |
 
-Every one of these except `Clock` and `Ticker` takes a `transition` prop — see
-[Transitions](#transitions).
+Every one of these except `Clock`, `Ticker` and `Slideshow` takes a `transition`
+prop — see [Transitions](#transitions). `Slideshow` cross-fades between pictures
+instead, over `--ss-fade`; anything beyond that is a rule of your own on
+`.ss-slide[data-on]`.
 
 **Control** — the operator's board:
 

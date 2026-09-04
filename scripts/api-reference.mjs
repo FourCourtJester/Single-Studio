@@ -60,7 +60,7 @@ const AUTHORED = {
     'Confirm',
     'Hotkeys',
   ],
-  source: ['Scene', 'Variable', 'Image', 'ImageList', 'Toggle', 'Timer', 'Ticker', 'Clock'],
+  source: ['Scene', 'Variable', 'Image', 'ImageList', 'Slideshow', 'Tally', 'Toggle', 'Timer', 'Ticker', 'Clock'],
 }
 
 /** First sentence of a doc comment: what the thing is, before why it is that way. */
@@ -274,11 +274,13 @@ air — and they meet at a path. That pairing is the whole mental model:
 | ---------------- | --------- | ------ |
 | Text             | ${dash('Field')}, ${dash('TextArea')} | ${air('Variable')} |
 | Number           | ${dash('Stepper')} | ${air('Variable')} |
+| A number, in icons | ${dash('Stepper')} | ${air('Tally')} |
 | One of a list    | ${dash('Select')}, ${dash('Cycle')} | ${air('Variable')} |
 | A yes/no         | ${dash('Cycle')} with one option | ${air('Variable')} |
 | Colour           | ${dash('ColorPicker')} | ${air('Scene')} \`vars\` |
 | A picture        | ${dash('ImagePicker')}, ${dash('ImageSelect')} | ${air('Image')} |
 | Several pictures | ${dash('ImageSelect')} \`multiple\` | ${air('ImageList')} |
+| A folder of them | the image library | ${air('Slideshow')} |
 | On or off        | ${dash('Toggle')}, ${dash('ImageToggle')} | ${air('Toggle')} |
 | Counting down    | ${dash('Countdown')}, ${dash('CountdownTo')} | ${air('Timer')} |
 | Counting up      | ${dash('Stopwatch')} | ${air('Timer')} |

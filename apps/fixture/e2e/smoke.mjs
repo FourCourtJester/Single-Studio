@@ -557,6 +557,265 @@ check(
   'the folder name is replaced, not nested under',
 )
 
+// -- A count said in icons ----------------------------------------------------
+// Three objectives is three marks, not the word three. `source` is already open on
+// the match scene, so this drives the board and watches what goes to air.
+{
+  // `source` is open on the scoreboard; the tallies are on the match scene.
+  const scene = await context.newPage()
+
+  await scene.goto(`${BASE}/#/source/match`)
+  await scene.waitForSelector('.ss-scene')
+
+  /**
+   * Type a number into a stepper and wait for it to land.
+   *
+   * The waiting is the point. A stepper skips a write whose value equals the one it
+   * is already showing -- a no-op write is not a write -- so a number typed before
+   * the previous one has come back through the store reads as exactly that and is
+   * dropped. Asserting on the *scene* is not enough: that is a different page with
+   * its own subscription, and the board can still be a render behind. This failed
+   * in CI and not here, which is what a race that only loses under load looks like.
+   */
+  const set = async (label, to) => {
+    const input = control.locator(`.ss-stepper input[aria-label="${label}"]`)
+
+    await input.fill(String(to))
+    await input.press('Enter')
+
+    return becomes(control, (want) => document.querySelector(`.ss-stepper input[aria-label="${want.label}"]`)?.value === String(want.to), { label, to })
+  }
+
+  check(await set('Home objectives', 3), 'a typed count lands on the board')
+  check(await becomes(scene, () => document.querySelectorAll('.ss-tally').length > 0, null, 8000), 'a tally reaches the scene')
+
+  check(
+    await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 3),
+    'a count of three draws three marks',
+  )
+
+  // Zero is an empty space rather than a placeholder: the row *is* the count.
+  await set('Home objectives', 0)
+  check(await becomes(scene, () => !document.querySelector('.tally-objectives')), 'and nothing at all at zero')
+
+  // A stuck key costs a clamp, not the layout -- but clamping quietly would put a
+  // wrong number on air, so the real one is still on the element.
+  await set('Home objectives', 40)
+  check(
+    await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 12),
+    'an unreadable count is clamped',
+  )
+  check(
+    await becomes(scene, () => document.querySelector('.tally-objectives')?.dataset.count === '40'),
+    'and the row still carries what the count really was, so a studio can say so',
+  )
+  check(await becomes(scene, () => document.querySelector('.tally-objectives')?.hasAttribute('data-over')), 'and marks itself as having overflowed')
+
+  // Only what changed animates. A row that re-animates in full every time the
+  // count moves reads as the graphic glitching rather than as something having
+  // happened -- and it is what wrapping the whole row in one transition gets you.
+  await set('Home objectives', 2)
+  await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 2)
+  await scene.waitForTimeout(500)
+
+  // Watched rather than sampled. The entrance is two frames wide, so polling for a
+  // mark caught mid-animation is a race that passes or fails on timing. Every phase
+  // change is recorded instead, and the assertion is about which marks changed at
+  // all -- which is the actual claim.
+  await scene.evaluate(() => {
+    window.__phases = []
+
+    const row = document.querySelector('.tally-objectives')
+    const watch = new MutationObserver((records) => {
+      const marks = [...row.querySelectorAll('.ss-tally-mark')]
+
+      for (const record of records) {
+        // Marks only. <Image> is a transition of its own and carries data-state
+        // too, so an unfiltered observer reports the picture inside a mark fading
+        // in as though a mark had moved.
+        if (!record.target.classList.contains('ss-tally-mark')) continue
+
+        window.__phases.push({ at: marks.indexOf(record.target), state: record.target.dataset.state })
+      }
+    })
+
+    watch.observe(row, { attributes: true, attributeFilter: ['data-state'], subtree: true })
+  })
+
+  await set('Home objectives', 3)
+  await becomes(scene, () => document.querySelector('.tally-objectives')?.querySelectorAll('.ss-tally-mark').length === 3)
+  await scene.waitForTimeout(600)
+
+  const phases = await scene.evaluate(() => window.__phases)
+
+  console.log(`  phase changes on a 2 -> 3: ${JSON.stringify(phases)}`)
+  check(
+    phases.some((phase) => phase.at === 2),
+    'the mark that was added animates in',
+  )
+  check(
+    phases.every((phase) => phase.at === 2),
+    'and the two already on screen are left alone, rather than the whole row re-animating',
+  )
+
+  await set('Home objectives', 0)
+  await scene.close()
+}
+
+// -- Out of a fixed number ----------------------------------------------------
+// The other shape: as many marks as it takes to win, the won ones filled. The row
+// holds its width from the first frame, so nothing beside it moves as it fills.
+{
+  const scene = await context.newPage()
+
+  await scene.goto(`${BASE}/#/source/match`)
+  await scene.waitForSelector('.ss-scene')
+
+  const set = async (label, to) => {
+    const input = control.locator(`.ss-stepper input[aria-label="${label}"]`)
+
+    await input.fill(String(to))
+    await input.press('Enter')
+
+    return becomes(control, (want) => document.querySelector(`.ss-stepper input[aria-label="${want.label}"]`)?.value === String(want.to), { label, to })
+  }
+  const race = () => scene.locator('.tally-series').first()
+
+  // Off "None" and onto three, which is what wins a best-of-five. A cycle steps
+  // through its options, so that is three presses rather than one.
+  const length = control.locator('.ss-cycle:has-text("Games to win")')
+
+  for (let i = 0; i < 3; i += 1) await length.click()
+
+  const filled = () =>
+    scene.evaluate(() => {
+      const row = document.querySelector('.tally-series')
+
+      return row ? { marks: row.querySelectorAll('.ss-tally-mark').length, on: row.querySelectorAll('.ss-tally-mark[data-filled]').length } : null
+    })
+
+  await set('Home games', 0)
+
+  const empty = await becomes(scene, () => {
+    const row = document.querySelector('.tally-series')
+
+    return row && row.querySelectorAll('.ss-tally-mark').length > 1 && row.querySelectorAll('.ss-tally-mark[data-filled]').length === 0
+  })
+
+  check(empty, 'a race draws its whole length before anything is won')
+
+  const before = await race().boundingBox()
+
+  check(await set('Home games', 1), 'a win lands on the board')
+  check(
+    await becomes(scene, () => document.querySelector('.tally-series')?.querySelectorAll('.ss-tally-mark[data-filled]').length === 1),
+    'and fills one as one is won',
+  )
+
+  const after = await race().boundingBox()
+
+  // The whole reason a race draws its empties: the name above it must not move.
+  check(Math.abs(before.width - after.width) < 1, 'without the row changing width, so nothing beside it shifts')
+
+  console.log(`  race: ${JSON.stringify(await filled())}, width ${Math.round(before.width)} -> ${Math.round(after.width)}`)
+  await scene.close()
+}
+
+// -- A folder of pictures, playing --------------------------------------------
+// The eight units filed under `units/` just above are the show. Nothing in the
+// studio lists them; the graphic asks the library for the group -- which is why
+// this sits next to the upload that puts them there, rather than after the section
+// further down that empties the library out again.
+{
+  const on = () => [...document.querySelectorAll('.ss-slide')].findIndex((slide) => slide.hasAttribute('data-on'))
+
+  // `context.newPage()`, not `browser.newPage()`: the latter opens a fresh context
+  // with its own empty IndexedDB, so the library the graphic reads would be bare
+  // and the slideshow would correctly have nothing to play.
+  const slides = await context.newPage()
+
+  slides.on('pageerror', (error) => crashes.push(`standby: ${error.message}`))
+  await slides.goto(`${BASE}/#/source/standby`)
+
+  check(await becomes(slides, () => document.querySelectorAll('.ss-slide').length === 8), 'every picture in the group gets a slide')
+  check(await becomes(slides, () => document.querySelectorAll('.ss-slide[data-on]').length === 1), 'and exactly one of them is on')
+
+  // Only the near ones hold a decoded image. A full-frame decode is megabytes and
+  // a folder can be hundreds, so the element is always there -- keeping nth-child
+  // stable -- and the picture inside it is not.
+  check(
+    await becomes(slides, () => document.querySelectorAll('.ss-slide img').length === 3),
+    'only the current picture and its neighbours are decoded, not the whole folder',
+  )
+  // Which ones, specifically: the picture that comes on has to be decoded *at the
+  // moment it comes on*. Asserting that the list neighbour is decoded proves
+  // nothing -- the window used to be built from indices, so that held by
+  // construction -- and it is not what a shuffled show asks for, where the next
+  // picture is wherever the deal put it.
+  //
+  // Watched rather than sampled, for the same reason as the tally: polling either
+  // side of a change reads the state at the wrong instant. <Image> renders nothing
+  // until it has decoded, so "did the slide contain a picture the moment it was
+  // switched on" is exactly the question, and a mutation record answers it.
+  await slides.evaluate(() => {
+    window.__ons = []
+
+    const show = document.querySelector('.ss-slideshow')
+    const watch = new MutationObserver((records) => {
+      for (const record of records) {
+        if (!record.target.hasAttribute('data-on')) continue
+
+        const all = [...show.querySelectorAll('.ss-slide')]
+
+        window.__ons.push({ at: all.indexOf(record.target), had: Boolean(record.target.querySelector('img')) })
+      }
+    })
+
+    watch.observe(show, { attributes: true, attributeFilter: ['data-on'], subtree: true })
+  })
+
+  await slides.waitForTimeout(11000)
+
+  const ons = await slides.evaluate(() => window.__ons)
+
+  console.log(`  slides coming on: ${ons.map((o) => `${o.at}${o.had ? '' : ' (BLANK)'}`).join(', ')}`)
+  check(ons.length >= 4, `it advances on its own (${ons.length} changes in 11s)`)
+  check(
+    ons.every((o) => o.had),
+    `every picture was decoded at the moment it came on, so a change is a fade rather than a wait (${ons.filter((o) => o.had).length}/${ons.length})`,
+  )
+
+  // The claim the whole design rests on. Two browser sources on one graphic --
+  // programme and preview, or two machines -- run their own render loops and share
+  // no state. If the picture came off a counter they would drift apart within
+  // minutes; it comes off the clock, so they cannot.
+  const second = await context.newPage()
+
+  second.on('pageerror', (error) => crashes.push(`standby (second): ${error.message}`))
+  await second.goto(`${BASE}/#/source/standby`)
+  await second.waitForSelector('.ss-slide[data-on]')
+
+  let agreed = 0
+  let disagreed = 0
+
+  for (let i = 0; i < 12; i += 1) {
+    const [a, b] = await Promise.all([slides.evaluate(on), second.evaluate(on)])
+
+    if (a === b) agreed += 1
+    else disagreed += 1
+    await slides.waitForTimeout(350)
+  }
+
+  console.log(`  two outputs sampled 12 times: ${agreed} agreed, ${disagreed} did not`)
+  // Not "always": a sample can straddle a boundary the two pages cross a few
+  // milliseconds apart. Drift would fail this outright, and a counter opened
+  // seconds later would disagree on nearly every sample.
+  check(disagreed <= 1, 'a second output opened later shows the same picture, having agreed with nobody')
+
+  await slides.close()
+  await second.close()
+}
+
 // -- Picking from the library ------------------------------------------------
 const sponsor = await context.newPage()
 await sponsor.goto(`${BASE}/#/source/sponsor`)
@@ -681,7 +940,19 @@ check(
 )
 check(modal.height > 400, 'and takes the height it is given rather than hugging its content')
 
-await control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first().click()
+// Narrow the library before picking. By this point it holds several groups, the
+// tile grid scrolls, and a tile below the fold ends up under the dialog's own
+// header -- the click then hit-tests onto the dialog rather than the button and
+// retries until it times out. That is the flake this suite has now seen twice, and
+// the mechanism is read off the CI log rather than reproduced here.
+//
+// Filtering is what an operator does with a hundred images anyway, and it puts the
+// tile at a predictable place instead of forcing a click at an unpredictable one.
+const pick = control.locator('.ss-asset-dialog .ss-asset-tile button[title*="vandals"]').first()
+
+await control.locator('.ss-asset-dialog input[aria-label="Filter images"]').fill('vandals')
+await pick.waitFor({ state: 'visible' })
+await pick.click()
 check(await becomes(control, () => document.querySelector('.ss-asset-dialog')?.open !== true), 'picking an entry closes the modal')
 
 await control.locator('.ss-field:has-text("Guest name") input').fill('Ada Okafor')

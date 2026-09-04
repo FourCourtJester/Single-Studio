@@ -8,6 +8,53 @@
  */
 @source '../node_modules/@single-studio/core/dist';
 
+/*
+ * What a slide does, which the framework deliberately does not decide. `Slideshow`
+ * stacks the pictures and cross-fades; the ambient drift is here.
+ *
+ * Each slide rests where its own drift ends. `both` holds the end of the travel
+ * only while the animation is applied, and losing `data-on` takes it away -- so a
+ * drift that ended anywhere else would jump back at the moment the picture began
+ * fading out, in full view.
+ */
+@layer components {
+  .standby .ss-slide .ss-image img {
+    transform: scale(1.08) translate3d(-1%, -0.8%, 0);
+  }
+
+  .standby .ss-slide:nth-child(even) .ss-image img {
+    transform: none;
+  }
+
+  .standby .ss-slide[data-on] .ss-image img {
+    animation: standby-drift 2s linear both;
+  }
+
+  .standby .ss-slide:nth-child(even)[data-on] .ss-image img {
+    animation-name: standby-drift-alt;
+  }
+}
+
+@keyframes standby-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.08) translate3d(-1%, -0.8%, 0);
+  }
+}
+
+@keyframes standby-drift-alt {
+  from {
+    transform: scale(1.08) translate3d(1%, 0.5%, 0);
+  }
+
+  to {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
 /* Graphics are authored at a fixed size; OBS scales the browser source. */
 @layer components {
   .scoreboard {

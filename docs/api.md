@@ -9,11 +9,13 @@ air — and they meet at a path. That pairing is the whole mental model:
 | ---------------- | --------- | ------ |
 | Text             | [`Field`](#control-field), [`TextArea`](#control-textarea) | [`Variable`](#source-variable) |
 | Number           | [`Stepper`](#control-stepper) | [`Variable`](#source-variable) |
+| A number, in icons | [`Stepper`](#control-stepper) | [`Tally`](#source-tally) |
 | One of a list    | [`Select`](#control-select), [`Cycle`](#control-cycle) | [`Variable`](#source-variable) |
 | A yes/no         | [`Cycle`](#control-cycle) with one option | [`Variable`](#source-variable) |
 | Colour           | [`ColorPicker`](#control-colorpicker) | [`Scene`](#source-scene) `vars` |
 | A picture        | [`ImagePicker`](#control-imagepicker), [`ImageSelect`](#control-imageselect) | [`Image`](#source-image) |
 | Several pictures | [`ImageSelect`](#control-imageselect) `multiple` | [`ImageList`](#source-imagelist) |
+| A folder of them | the image library | [`Slideshow`](#source-slideshow) |
 | On or off        | [`Toggle`](#control-toggle), [`ImageToggle`](#control-imagetoggle) | [`Toggle`](#source-toggle) |
 | Counting down    | [`Countdown`](#control-countdown), [`CountdownTo`](#control-countdownto) | [`Timer`](#source-timer) |
 | Counting up      | [`Stopwatch`](#control-stopwatch) | [`Timer`](#source-timer) |
@@ -644,6 +646,8 @@ arrived, so a graphic reopening mid-show never flashes a placeholder over the pr
 - [`Variable`](#source-variable)
 - [`Image`](#source-image)
 - [`ImageList`](#source-imagelist)
+- [`Slideshow`](#source-slideshow)
+- [`Tally`](#source-tally)
 - [`Toggle`](#source-toggle)
 - [`Timer`](#source-timer)
 - [`Ticker`](#source-ticker)
@@ -748,6 +752,7 @@ A picture chosen by a value the operator controls. Loads and decodes off-screen 
 | `alt` | `string` |  | Alt text. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `fallback` | `string` |  | URL used when the value is empty or fails to load. |
+| `fit` | `'cover' \| 'contain' \| 'fill' \| 'none' \| 'scale-down'` |  | Fill the box this way instead of sitting inside it — `"cover"` for a backdrop. |
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `slug` | `boolean` |  | [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) the value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` |  | URL template; `:value:` is replaced. Defaults to `":value:"`, so a pasted URL just works. |
@@ -784,6 +789,72 @@ Several pictures from one value — what `ImageSelect multiple` writes. Each ent
 | `slug` | `boolean` |  | [Slugify](https://github.com/FourCourtJester/Single-Studio/blob/main/packages/core/src/toolkits/slug.js) each value first — "Single Studio" becomes `single-studio`. |
 | `src` | `string` |  | URL template; `:value:` is replaced by each entry. Defaults to `":value:"`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
+
+<a id="source-slideshow"></a>
+
+### Slideshow
+
+---
+
+`import { Slideshow } from '@single-studio/core/source'`
+
+A folder of pictures, playing. What a standby screen is made of.
+
+```jsx
+<Slideshow group="slides" every={9} order="shuffle" />
+```
+
+```jsx
+// The folder, unless the operator has picked from it
+<Slideshow group="slides" name="standby.slides" every="0:12" />
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Added to the component's own classes. |
+| `every` | `string \| number` |  | How long each picture holds — seconds, or `"m:ss"`. Defaults to `8`. |
+| `fit` | `'cover' \| 'contain'` |  | How a picture fills the frame. Defaults to `"cover"`. |
+| `group` | `string` |  | Plays everything in the image library filed under this group — `"slides"` reads `slides/…`. |
+| `limit` | `number` |  | Play at most this many. |
+| `name` | `string` |  | Names a list under `variables` — e.g. `standby.slides`. Takes over from `group` whenever it holds anything. |
+| `order` | `'sequence' \| 'shuffle'` |  | In order, or a fresh deal each pass. Defaults to `"sequence"`. |
+| `preload` | `number` |  | How many either side of the current one hold a decoded image. Defaults to `1`. |
+
+<a id="source-tally"></a>
+
+### Tally
+
+---
+
+`import { Tally } from '@single-studio/core/source'`
+
+A number said in icons. Three demolitions is three icons, not the word three.
+
+```jsx
+<Tally name="home.demolitions" src="./icons/demo.svg" />
+```
+
+```jsx
+// A best-of-five: three to win, won ones filled
+<Tally name="home.games" of={3} src="./pips/won.svg" empty="./pips/empty.svg" />
+```
+
+```jsx
+// The race length is the operator's
+<Tally name="home.games" of="series.wins" src="./pips/won.svg" />
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `alt` | `string` |  | Alt text for every mark. |
+| `className` | `string` |  | Added to the component's own classes. |
+| `empty` | `string` |  | The mark for one not yet filled. Without it an unfilled mark holds its space and shows nothing. |
+| `itemClassName` | `string` |  | Added to each mark rather than to the row. |
+| `max` | `number` |  | The most marks to draw without an `of`. Defaults to `12`; `0` for no bound. |
+| `name` | `string` | Yes | Names a count under `variables` — e.g. `home.demolitions`. |
+| `of` | `number \| string` |  | Draw this many marks and fill the count — a number, or a path an operator sets. |
+| `src` | `string` | Yes | The mark. A path, a URL, or a library entry, the same as `Image` takes. |
+| `transition` | `string` |  | Motion variants for a mark arriving or filling, space-separated — e.g. `"zoom ease-back"`. See [the transitions guide](getting-started.md#transitions). |
 
 <a id="source-toggle"></a>
 

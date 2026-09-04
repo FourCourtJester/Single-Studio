@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+@import '@single-studio/core/styles.css';
+
+/* Tailwind only scans files it knows about, and the framework's components live in
+   node_modules. Without this their classes get stripped from the build. */
+@source '../../node_modules/@single-studio/core/dist';
+
+/* Nothing shared between the two graphics, so nothing here: each imports its own
+   stylesheet and ships it in its own chunk. */

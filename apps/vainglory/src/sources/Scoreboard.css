@@ -1,0 +1,114 @@
+/*
+ * Imported by Scoreboard.jsx rather than from css/index.css, so it ships in that
+ * graphic's own chunk instead of with every other source.
+ */
+
+.vg {
+  /*
+   * The knobs. Everything on this graphic is one of these four.
+   *
+   * --vg-top     how far below the top edge the plates hang, clearing the game's
+   *              own bar
+   * --vg-width   the span the two plates are pushed to the edges of
+   * --vg-plate   how wide each plate is
+   * --vg-height  how tall they are
+   *
+   * The dead space in the middle is not set anywhere -- it is what --vg-width has
+   * left after two plates. Widen the span or narrow the plates to open it.
+   */
+  --vg-top: 2px;
+  --vg-width: 53.59rem;
+  --vg-plate: 18rem;
+  --vg-height: 2.05rem;
+
+  padding-top: var(--vg-top);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.vg-bar {
+  width: var(--vg-width);
+  height: var(--vg-height);
+}
+
+/* Square, because the game is. */
+.vg-plate {
+  width: var(--vg-plate);
+  color: #fff;
+  background: linear-gradient(180deg, rgb(11 20 38 / 0.74), rgb(6 12 24 / 0.74));
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.45);
+}
+
+.vg-name {
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/*
+ * The team's colour, filled. The background is set inline from the board's colour
+ * picker; everything else about the block lives here.
+ *
+ * The shadow is what keeps a white numeral off a pale accent. It is not a fix for
+ * every choice -- pick something near-white for a team and a white numeral will
+ * struggle whatever this does -- but it holds across anything with body in it.
+ */
+.vg-score {
+  display: flex;
+  width: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+}
+
+/*
+ * A box with a size, not just a height.
+ *
+ * <Image> renders an <img> that is `max-h-full max-w-full object-contain`, and a
+ * percentage max-width resolves against the parent. Give the parent an automatic
+ * width and that percentage has nothing to measure: the image comes out zero wide
+ * and the mark simply is not there, with no error and an <img> in the DOM. Both
+ * dimensions are stated here, and object-contain keeps the aspect inside them.
+ */
+.vg-logo {
+  display: flex;
+  width: 20rem;
+  height: 4.25rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.1rem;
+  filter: drop-shadow(0 0.25rem 0.75rem rgb(0 0 0 / 0.55));
+}
+
+/*
+ * Fill the box explicitly rather than leaving it to `max-width: 100%`.
+ *
+ * <Image> wraps its <img> in the transition element, so the percentage is measured
+ * against a wrapper that is itself sized by its content -- and an SVG with only a
+ * viewBox has no intrinsic size to break the loop with. The result is a 0x0 image
+ * that is present, decoded and invisible. Stating both dimensions and letting
+ * object-fit do the work is what makes any file the operator uploads behave.
+ *
+ * These rules are unlayered, so they outrank the utilities on the element.
+ */
+.vg-logo .ss-image {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.vg-logo img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}

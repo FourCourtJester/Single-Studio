@@ -96,6 +96,45 @@
   }
 
   /*
+   * A slideshow stacks its pictures and cross-fades between them.
+   *
+   * Stacking is not cosmetic -- without it the pictures lay out one under another
+   * and the graphic is a column rather than a slideshow -- so it lives here. It
+   * fills its nearest positioned ancestor, which inside a Scene is the scene, and
+   * a studio that wants one in a box says so in its own stylesheet.
+   *
+   * Every picture stays in the DOM, so `:nth-child` is stable and a stylesheet can
+   * alternate what slides do without the rules moving from one picture to another
+   * as the show runs.
+   *
+   * The fade is the one piece of motion here, because a slideshow that cuts to
+   * black between pictures is broken rather than austere. Set `--ss-fade` to `0s`
+   * for a straight cut. Anything beyond that -- a drift, a wipe, a push -- is the
+   * studio's, on `.ss-slide[data-on]`.
+   */
+  .ss-slideshow {
+    position: absolute;
+    inset: 0;
+  }
+
+  .ss-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity var(--ss-fade, 1200ms) linear;
+  }
+
+  .ss-slide[data-on] {
+    opacity: 1;
+  }
+
+  /* The picture fills the slide; <Image fit> handles the img inside it. */
+  .ss-slide .ss-image {
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
    * Motion variants.
    *
    * The state machine only ever sets three phase classes; what those phases look
