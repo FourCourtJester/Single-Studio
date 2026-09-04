@@ -6,6 +6,8 @@
 // show's. A studio author should write `onGoalScored({ scorer })` without ever
 // learning what `bOvertime` is called or which team is 0.
 
+import { formatDuration } from '@single-studio/core/worker'
+
 /** Blue is 0 and orange is 1. Everybody says the colours; nobody says the numbers. */
 export const SIDES = ['blue', 'orange']
 
@@ -166,7 +168,19 @@ export const EVENTS = {
 
   ClockUpdatedSeconds: {
     emit: 'clock',
-    shape: (data) => ({ seconds: data?.TimeSeconds ?? 0, overtime: Boolean(data?.bOvertime) }),
+    /*
+     * `text` alongside `seconds`, because every studio receiving this wants the same
+     * `mm:ss` and would otherwise write it -- badly, at first, since the minute
+     * boundary and the padding are where hand-rolled clocks go wrong.
+     *
+     * The framework's own formatter, not a local one, so a clock from a plugin and a
+     * clock from `Timer` read identically on the same scoreboard.
+     */
+    shape: (data) => {
+      const seconds = Number(data?.TimeSeconds) || 0
+
+      return { seconds, text: formatDuration(seconds * 1000), overtime: Boolean(data?.bOvertime) }
+    },
   },
 
   PlayerJoined: { emit: 'playerJoined', shape: (data) => ({ name: data?.PlayerName ?? null, id: data?.PrimaryId ?? null }) },

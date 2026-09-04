@@ -111,6 +111,31 @@ describe('the payload the game actually sends', () => {
     expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ seconds: 177, overtime: false }))
   })
 
+  it('hands over a clock face beside the number, so every studio does not write one', () => {
+    const { MyShow, spies } = watching(['onClock'])
+
+    build(MyShow).open()
+    sockets[0].open()
+    sockets[0].send('ClockUpdatedSeconds', { TimeSeconds: 177 })
+
+    expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ text: '02:57' }))
+  })
+
+  it('formats the edges the way the rest of the framework does', () => {
+    // The same formatter `Timer` uses, so a clock from a plugin and a clock from a
+    // stored timer read identically on one scoreboard. The minute boundary and the
+    // zero are where hand-rolled versions go wrong.
+    const { MyShow, spies } = watching(['onClock'])
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+
+    for (const seconds of [0, 5, 60, 599, 3600]) plugin.receive({ Event: 'ClockUpdatedSeconds', Data: { TimeSeconds: seconds } })
+
+    expect(spies.onClock.mock.calls.map(([payload]) => payload.text)).toEqual(['00:00', '00:05', '01:00', '09:59', '1:00:00'])
+  })
+
   it('takes the payload as an object too, since the older socket may have sent one', () => {
     const seen = []
 
