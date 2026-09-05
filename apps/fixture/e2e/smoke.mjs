@@ -1369,6 +1369,45 @@ const openLibrary = async () => {
 const closeLibrary = () => control.locator('.ss-asset-dialog[open] button[aria-label="Close the image library"]').click()
 const tiles = () => control.locator('.ss-asset-dialog[open] .ss-asset-tile').count()
 
+/*
+ * Loading the show while the show is on air.
+ *
+ * The first people to use `Slideshow` hit this within a day: pictures dropped on
+ * the board mid-programme never reached a graphic already playing, and came back on
+ * a reload -- so the bytes had been there the whole time. The library's index
+ * replicates and was arriving; what did not was the local half, "do I hold this?",
+ * which only re-read when the page that did the writing said so. A browser source
+ * is a different page, so nothing ever told it.
+ *
+ * Two pages on purpose. Checking on the board alone passes either way, since that
+ * page notifies itself, and is exactly the shape of test that let this ship.
+ *
+ * Down here rather than beside the upload that fills the group, because this adds
+ * to the library and every check that counts tiles has run by now -- and the two
+ * counts still ahead of it, the reset's and the purge's, are both taken below.
+ */
+{
+  const playing = await context.newPage()
+
+  playing.on('pageerror', (error) => crashes.push(`standby (playing): ${error.message}`))
+  await playing.goto(`${BASE}/#/source/standby`)
+  await playing.waitForSelector('.ss-slide[data-on]')
+
+  const held = await playing.evaluate(() => document.querySelectorAll('.ss-slide').length)
+
+  // Two files, so the name field means "group": one would make `units` the name of
+  // a single asset rather than a folder to file it under.
+  await library.locator('input[aria-label="Asset name"]').fill('units')
+  await library.locator('input[aria-label="Add image files"]').setInputFiles([asset('maps/ashfall.svg'), asset('maps/redline.svg')])
+
+  check(
+    await becomes(playing, (n) => document.querySelectorAll('.ss-slide').length === n + 2, held, 20000),
+    `a picture added to the group mid-show reaches a graphic already on air (${held} -> ${held + 2}, no reload)`,
+  )
+
+  await playing.close()
+}
+
 await openLibrary()
 const before = await tiles()
 await closeLibrary()
