@@ -24,8 +24,14 @@ class FakeSocket {
     for (const fn of this.listeners.open ?? []) fn()
   }
 
+  /**
+   * One frame, shaped the way the game shapes it: `Data` is a JSON *string* inside
+   * the JSON frame, not an object. Sending an object here is what let a
+   * double-encoded payload reach a studio unparsed -- every shape read `undefined`
+   * and reported zero, and the suite was perfectly happy.
+   */
   send(Event, Data) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data }) })
+    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data: JSON.stringify(Data) }) })
   }
 }
 
@@ -34,7 +40,7 @@ const build = (Handler = RocketLeagueHandler, over = {}) =>
     mutate: vi.fn(),
     owner: () => true,
     studio: 's',
-    config: { host: '127.0.0.1', port: 49122, path: '', stateEvery: 250, ...over },
+    config: { host: '127.0.0.1', port: 49122, path: '', ...over },
   })
 
 /** Watch what a studio's handler is told. */
@@ -79,10 +85,96 @@ describe('the address', () => {
     expect(sockets[1].url).toBe('ws://127.0.0.1:49122/ws')
   })
 
-  it('falls back to what the ini file usually says', () => {
+  it('falls back to the port the game listens on when nothing is configured', () => {
+    // The one test that pins the default. Every other one hands a port over, which
+    // is how a wrong default goes unnoticed -- the plugin connects perfectly in the
+    // suite and nowhere else. The 49122 above is deliberately *not* the default, so
+    // those tests fail if configuration is ignored.
     build(RocketLeagueHandler, { host: '', port: '' }).open()
 
-    expect(sockets[0].url).toBe('ws://127.0.0.1:49122')
+    expect(sockets[0].url).toBe('ws://localhost:49124')
+  })
+})
+
+describe('the payload the game actually sends', () => {
+  it('computes a clock from a double-encoded frame', () => {
+    // The reported symptom, and the cheapest thing to regress: `seconds` read zero
+    // on air while the frame plainly carried TimeSeconds: 177. Nothing threw --
+    // `data?.TimeSeconds` on a string is undefined, and the shape's `?? 0` turns
+    // that into a number a scoreboard will happily display.
+    const { MyShow, spies } = watching(['onClock'])
+
+    build(MyShow).open()
+    sockets[0].open()
+    sockets[0].send('ClockUpdatedSeconds', { MatchGuid: '7DD9', TimeSeconds: 177, bOvertime: false })
+
+    expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ seconds: 177, overtime: false }))
+  })
+
+  it('hands over a clock face beside the number, so every studio does not write one', () => {
+    const { MyShow, spies } = watching(['onClock'])
+
+    build(MyShow).open()
+    sockets[0].open()
+    sockets[0].send('ClockUpdatedSeconds', { TimeSeconds: 177 })
+
+    expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ text: '02:57' }))
+  })
+
+  it('formats the edges the way the rest of the framework does', () => {
+    // The same formatter `Timer` uses, so a clock from a plugin and a clock from a
+    // stored timer read identically on one scoreboard. The minute boundary and the
+    // zero are where hand-rolled versions go wrong.
+    const { MyShow, spies } = watching(['onClock'])
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+
+    for (const seconds of [0, 5, 60, 599, 3600]) plugin.receive({ Event: 'ClockUpdatedSeconds', Data: { TimeSeconds: seconds } })
+
+    expect(spies.onClock.mock.calls.map(([payload]) => payload.text)).toEqual(['00:00', '00:05', '01:00', '09:59', '1:00:00'])
+  })
+
+  it('takes the payload as an object too, since the older socket may have sent one', () => {
+    const seen = []
+
+    class MyShow extends RocketLeagueHandler {
+      onClock(data) {
+        seen.push(data)
+      }
+    }
+
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+    // Straight past the fake's encoding, as an object.
+    plugin.receive({ Event: 'ClockUpdatedSeconds', Data: { TimeSeconds: 42 } })
+
+    expect(seen[0]).toMatchObject({ seconds: 42 })
+  })
+
+  it('hands over text that is not JSON rather than losing it', () => {
+    // An unknown event's `raw` is how anybody finds out what the game sent, so a
+    // payload this cannot parse has to survive rather than become null.
+    const seen = []
+
+    class MyShow extends RocketLeagueHandler {
+      static handles = { ...RocketLeagueHandler.handles, '*': 'onAny' }
+
+      onAny(name, payload) {
+        seen.push([name, payload])
+      }
+    }
+
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+    plugin.receive({ Event: 'SomethingNew', Data: 'not json at all' })
+
+    expect(seen[0]).toEqual(['SomethingNew', { raw: 'not json at all' }])
   })
 })
 
@@ -225,10 +317,10 @@ describe('the tick', () => {
   })
 
   it('gives the score the moment it changes, whatever the throttle says', async () => {
-    // A scoreboard a quarter of a second late is a scoreboard that is wrong on the
-    // replay.
+    // A scoreboard a tenth of a second late is a scoreboard that is wrong on the
+    // replay. Both ticks land inside one throttle window, and both scores go out.
     const { MyShow, spies } = watching(['onScore'])
-    const plugin = build(MyShow, { stateEvery: 10_000 })
+    const plugin = build(MyShow)
 
     plugin.open()
     sockets[0].open()
@@ -256,7 +348,7 @@ describe('the tick', () => {
     // Every one carries each player's boost and speed. A studio writing those into
     // a replicated document spends kilobytes a second on numbers already stale.
     const { MyShow, spies } = watching(['onState'])
-    const plugin = build(MyShow, { stateEvery: 250 })
+    const plugin = build(MyShow)
 
     plugin.open()
     sockets[0].open()
@@ -266,28 +358,29 @@ describe('the tick', () => {
     clock.mockReturnValue(1_000)
     sockets[0].send('UpdateState', tick(0, 0, 10))
 
-    clock.mockReturnValue(1_100)
+    // Inside the window: held, not sent.
+    clock.mockReturnValue(1_050)
     sockets[0].send('UpdateState', tick(0, 0, 20))
 
-    clock.mockReturnValue(1_400)
+    clock.mockReturnValue(1_200)
     sockets[0].send('UpdateState', tick(0, 0, 30))
 
     expect(spies.onState).toHaveBeenCalledTimes(2)
   })
 
-  it('will not go faster than ten a second, whatever is typed', async () => {
-    // The ceiling, not a default. Nothing on a stream changes visibly more often
-    // than this, and every emit a handler turns into a write is four megabytes a
-    // match at the rate the game is capable of.
+  it('will not go faster than ten a second', async () => {
+    // Nothing on a stream changes visibly more often than this, and every emit a
+    // handler turns into a write is four megabytes a match at the rate the game is
+    // capable of.
     const { MyShow, spies } = watching(['onState'])
-    const plugin = build(MyShow, { stateEvery: 8 })
+    const plugin = build(MyShow)
 
     plugin.open()
     sockets[0].open()
 
     const clock = vi.spyOn(Date, 'now')
 
-    // Ten ticks across 90ms: inside the floor, outside the number that was typed.
+    // Ten ticks across 90ms, all inside one window.
     for (let i = 0; i < 10; i += 1) {
       clock.mockReturnValue(1_000 + i * 10)
       sockets[0].send('UpdateState', tick(0, 0, i))
@@ -308,7 +401,7 @@ describe('the tick', () => {
 
     try {
       const { MyShow, spies } = watching(['onState'])
-      const plugin = build(MyShow, { stateEvery: 100 })
+      const plugin = build(MyShow)
 
       plugin.open()
       sockets[0].open()
@@ -342,7 +435,7 @@ describe('the tick', () => {
 
     try {
       const { MyShow, spies } = watching(['onState'])
-      const plugin = build(MyShow, { stateEvery: 100 })
+      const plugin = build(MyShow)
 
       plugin.open()
       sockets[0].open()
@@ -363,12 +456,15 @@ describe('the tick', () => {
     }
   })
 
-  it('keeps the default when the field is cleared, rather than reading blank as off', async () => {
-    // A number input that has been emptied reports NaN, and an older stored value
-    // can be a string. Neither is somebody asking for silence -- only a typed 0 is.
+  it('ignores a rate left in stored config by an older version', async () => {
+    // `stateEvery` was a field on this panel once, so a studio that has been running
+    // since then still has whatever its operator typed sitting in saved config --
+    // including the `0` that used to mean "send me nothing". Config outlives the
+    // field that wrote it, and the rate is no longer anybody's to set: the tick goes
+    // out ten times a second for all of these.
     const { MyShow, spies } = watching(['onState'])
 
-    for (const stateEvery of [Number.NaN, '', null, undefined]) {
+    for (const stateEvery of [0, 8, 2_000, '', Number.NaN]) {
       sockets.length = 0
 
       build(MyShow, { stateEvery }).open()
@@ -376,19 +472,13 @@ describe('the tick', () => {
       sockets[0].send('UpdateState', tick(0, 0))
     }
 
-    expect(spies.onState).toHaveBeenCalledTimes(4)
+    expect(spies.onState).toHaveBeenCalledTimes(5)
   })
 
-  it('switches the state event off entirely at zero, and still reports goals', async () => {
-    const { MyShow, spies } = watching(['onState', 'onScore'])
-    const plugin = build(MyShow, { stateEvery: 0 })
+  it('offers no way to set the rate on the panel', async () => {
+    // The other half of the test above: nothing writes that config key any more.
+    const keys = rocketLeague(RocketLeagueHandler).config.map((field) => field.key)
 
-    plugin.open()
-    sockets[0].open()
-
-    sockets[0].send('UpdateState', tick(1, 0))
-
-    expect(spies.onState).not.toHaveBeenCalled()
-    expect(spies.onScore).toHaveBeenCalledWith({ blue: 1, orange: 0 })
+    expect(keys).toEqual(['host', 'port', 'path'])
   })
 })

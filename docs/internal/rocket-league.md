@@ -13,10 +13,11 @@ files with nothing to run alongside it.
 
 ## Still to confirm
 
-- The WebSocket URL and port after 2.72, and the `TAStatsAPI.ini` /
-  `DefaultStatsAPI.ini` keys that enable it. Pre-2.72 the TCP port was 49123, under
-  `[TAGame.MatchStatsExporter_TA]`, with `PacketSendRate` capped at 120 and 0
-  disabling the feature. Config is read at client start, so changes need a restart.
+- Which file and heading actually enable it. A connection has been made, so
+  _something_ turns it on, but not which of `TAStatsAPI.ini` /
+  `DefaultStatsAPI.ini` or whether `[TAGame.MatchStatsExporter_TA]`,
+  `PacketSendRate` and the 120 cap carried over from the pre-2.72 TCP API. Config is
+  read at client start, so changes need a restart.
 - Whether anything is emitted on connect, or whether a client sees nothing until the
   next tick.
 - Whether a StatsAPI file is there by default or has to be created. The folder is
@@ -29,6 +30,17 @@ The config directory on Windows:
 ```
 %USERPROFILE%\Documents\My Games\Rocket League\TAGame\Config\
 ```
+
+**A studio has connected to the real game at `ws://localhost:49124`.** That is the
+first end-to-end confirmation this file has, and it settles the address: not the
+49123 the pre-2.72 TCP socket used, and not the 49122 this plugin shipped with until
+somebody looked. No path was needed. Both are the plugin's defaults now, and the
+port is what `dev/replay.mjs` serves on.
+
+`localhost` rather than `127.0.0.1` because that is what was tested. The two are not
+always the same thing — `localhost` may resolve to `::1` first, and a server bound
+only to IPv4 refuses it — so the one that has been seen to work is the one that
+ships. The replay server binds every interface and answers to both, checked.
 
 Checked by somebody with the game installed, which is the only way any of this gets
 checked -- Psyonix's documentation is blocked from this container. It is the user's
@@ -212,7 +224,7 @@ was written in.
 ## Watching it work without the game
 
 `pnpm --filter @single-studio/plugin-rocket-league replay` serves the Stats API shape
-on `ws://127.0.0.1:49122` and plays a short match on a loop — kickoff, three goals
+on `ws://localhost:49124` and plays a short match on a loop — kickoff, three goals
 with their replay sequences, a demolition, a podium — then starts again. The demo
 studio registers the plugin, so `pnpm fixture` plus that command is a moving
 scoreboard with nothing installed.
@@ -257,15 +269,20 @@ policy:
 - **`score`** whenever either number changes, throttle or no throttle. `GoalScored`
   says who scored, not what the score became, so a studio counting goals itself is
   wrong the first time it misses one.
-- **`state`** at most every `stateEvery` milliseconds, default 250, **floored at
-  100**. A typed `0` switches it off and goals and the clock still arrive; a
-  _cleared_ field is not a typed zero and falls back to the default; a typed `8`
-  becomes 100.
+- **`state`** **every 100ms, fixed**, and not settable from anywhere. Goals and the
+  clock arrive as they happen regardless.
 
-The floor is a decision rather than a measurement, though the measurements agree
-with it: nothing on a stream changes visibly more than ten times a second, and every
-emit a handler turns into a write is charged at the rates above. It is a floor and
-not a default because a default is only the value somebody has not changed yet.
+The rate is a decision rather than a measurement, though the measurements agree with
+it: nothing on a stream changes visibly more than ten times a second, and every emit
+a handler turns into a write is charged at the rates above.
+
+It was a panel field (`stateEvery`, default 250, floored at 100, `0` for off) and is
+not one any more. There was no answer an operator could give that beat the fixed one,
+and a number that can be typed is a number that gets typed -- one show at 16ms
+filling a document nobody can join late, another at 2000 wondering why the boost
+meter stutters, both of them our bug to explain. Studios upgrading still carry the
+old key in saved config; it is ignored, which is pinned by a test, because the value
+most likely to be sitting there is the `0` that used to mean silence.
 
 The state is **collected, not dropped**. The newest tick is held and handed on when
 the window opens, rather than emitting whichever tick happens to land on a boundary.

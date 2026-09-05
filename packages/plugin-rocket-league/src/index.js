@@ -29,7 +29,7 @@ export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
  * knows one already can send it with `this.plugin.send({ Command, Data })`.
  */
 /**
- * The fastest the tick is ever passed on, whatever an operator types.
+ * How often the tick is passed on, and how often the batches drain. Not settable.
  *
  * A policy decision rather than a measurement, though the measurements agree with
  * it: nothing on a stream updates visibly more than ten times a second, and the
@@ -37,10 +37,39 @@ export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
  * already generous for something an eye is watching, and the events that carry
  * meaning -- goals, the clock, the whistle -- do not come through here at all.
  *
- * A floor rather than a default, because the default is only the value somebody has
- * not changed yet. This is the value they cannot.
+ * Not a field on the panel, because there is no answer an operator could give that
+ * is better than this one. A number that can be typed is a number that gets typed:
+ * one show ends up at 16ms and fills a document nobody can join late, another at
+ * 2000 and wonders why the boost meter stutters. Both are our bug to explain. The
+ * day something genuinely needs a different rate, that will be a reason to add it
+ * back -- and there will be a reason to give it, which is the part missing now.
  */
-const FLOOR_MS = 100
+const EVERY_MS = 100
+
+/**
+ * The payload, whichever way it arrived.
+ *
+ * The game double-encodes: the frame is JSON, and `Data` inside it is *another*
+ * JSON string rather than an object. Read straight through, every field lookup on
+ * it is `undefined` -- so a clock reads zero, a score reads zero, and nothing
+ * throws, because a shape's `?? 0` turns the miss into a plausible number. The only
+ * visible symptom is a graphic that is confidently wrong.
+ *
+ * Both forms are accepted rather than the string alone, because what the pre-2.72
+ * socket sent is not written down anywhere this could check, and taking an object
+ * as it comes costs nothing.
+ */
+function unwrap(data) {
+  if (typeof data !== 'string') return data
+
+  try {
+    return JSON.parse(data)
+  } catch {
+    // Not JSON after all. Hand it over as it came rather than losing it -- an
+    // unknown event's `raw` is the only way anybody finds out what the game sent.
+    return data
+  }
+}
 
 /**
  * Events that arrive faster than anything can react to them, and are worth keeping
@@ -91,8 +120,8 @@ class RocketLeague extends SocketService {
   #batch = null
 
   get url() {
-    const host = this.config.host || '127.0.0.1'
-    const port = Number(this.config.port) || 49122
+    const host = this.config.host || 'localhost'
+    const port = Number(this.config.port) || 49124
 
     // The path is configurable because Psyonix's WebSocket endpoint is documented
     // where this could not read it. A bare `ws://host:port` is the usual shape and
@@ -127,31 +156,17 @@ class RocketLeague extends SocketService {
    * full by every board that joins late -- on numbers stale before anybody reads
    * them.
    *
-   * Four a second is the default and is plenty; ten a second is the ceiling, and
-   * `FLOOR_MS` is what makes it one. The events that carry meaning -- goals, the
-   * clock, the whistle -- arrive as their own messages and are never throttled.
+   * Ten a second, for everybody, always. See `EVERY_MS` for why that is not a
+   * setting. The events that carry meaning -- goals, the clock, the whistle --
+   * arrive as their own messages and are never throttled.
    */
   get stateEveryMs() {
-    // Not `|| 250`: an operator who types 0 means "stop sending me the tick", and a
-    // falsy check would hand them the default instead -- the one value in the field
-    // that has to work is the one that switch would swallow.
-    const set = this.config.stateEvery
-
-    if (set === '' || set === null || set === undefined) return 250
-
-    const every = Number(set)
-
-    if (!Number.isFinite(every) || every < 0) return 250
-
-    // Zero passes through as off. Anything else is held to the floor, so a typed 8
-    // is 100 rather than 8 -- and the person who typed it gets the plugin they
-    // expected rather than the one that fills a database.
-    return every === 0 ? 0 : Math.max(FLOOR_MS, every)
+    return EVERY_MS
   }
 
   async receive(raw) {
     const type = raw?.Event
-    const data = raw?.Data
+    const data = unwrap(raw?.Data)
 
     if (!type) return
 
@@ -192,7 +207,7 @@ class RocketLeague extends SocketService {
     if (batch) batch.push(dated)
     else this.#batches.set(name, [dated])
 
-    this.#batch ??= setTimeout(() => this.#drain(), FLOOR_MS)
+    this.#batch ??= setTimeout(() => this.#drain(), EVERY_MS)
   }
 
   /** Hand over everything collected, as one list per event. */
@@ -240,8 +255,6 @@ class RocketLeague extends SocketService {
     }
 
     const every = this.stateEveryMs
-
-    if (!every) return
 
     // Replaced, not queued. There is no value in yesterday's tick.
     this.#pending = data
@@ -397,7 +410,7 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
           'Close Rocket League.',
           'Open Documents\\My Games\\Rocket League\\TAGame\\Config. On Windows that is where the game keeps its settings, and the file to edit is the one in there — not the copy beside the installed game.',
           'Look for a file with StatsAPI in the name. If there is not one, create TAStatsAPI.ini there.',
-          'In it, under the [TAGame.MatchStatsExporter_TA] heading, set PacketSendRate to 30 and Port to 49122.',
+          'In it, under the [TAGame.MatchStatsExporter_TA] heading, set PacketSendRate to 30 and Port to 49124.',
           'Save the file and start Rocket League. The settings are only read at startup.',
           'Press Save and reconnect here.',
         ],
@@ -405,11 +418,11 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
       { type: 'note', text: 'PacketSendRate of 0 switches the feature off entirely. Anything above about 30 is more than a scoreboard can use.' },
       {
         type: 'note',
-        text: 'The file name, the heading and the port above come from the API as it was before v2.72 and have not been confirmed against the WebSocket mode this plugin uses. If the game will not connect, host, port and path are all fields on this panel — change them here rather than in the game.',
+        text: 'The address this connects to — localhost:49124 — is confirmed against the game. The file name and the heading above come from the API as it was before v2.72 and are not; if you cannot find them, or the game will not connect, host, port and path are all fields on this panel and can be changed here rather than in the game.',
       },
       {
         type: 'text',
-        text: 'Every tick is read whatever these settings say. “Full state every” only controls how often the whole picture is handed on — and since nothing on a stream changes visibly more than ten times a second, 100ms is as fast as it will go.',
+        text: 'Every tick is read whatever these settings say. The whole picture is handed on ten times a second, which is not adjustable — nothing on a stream changes visibly faster than that, and goals and the clock arrive as they happen either way.',
       },
       {
         type: 'text',
@@ -423,16 +436,9 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
       },
     ],
     config: [
-      { key: 'host', label: 'Host', default: '127.0.0.1', help: 'The machine running the game. Usually this one.' },
-      { key: 'port', label: 'Port', type: 'number', default: 49122, help: 'Whatever you set as Port in the ini file.' },
+      { key: 'host', label: 'Host', default: 'localhost', help: 'The machine running the game. Usually this one.' },
+      { key: 'port', label: 'Port', type: 'number', default: 49124, help: 'Whatever you set as Port in the ini file.' },
       { key: 'path', label: 'Path', default: '', help: 'Leave blank. Only needed if the endpoint turns out to want one.' },
-      {
-        key: 'stateEvery',
-        label: 'Full state every (ms)',
-        type: 'number',
-        default: 250,
-        help: 'The game ticks up to 120 times a second; this is how often that is passed on. 100 is the fastest allowed, 0 switches it off, and goals and the clock arrive either way.',
-      },
     ],
     create: (context) => {
       const plugin = new RocketLeague(context)

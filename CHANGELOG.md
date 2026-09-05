@@ -7,6 +7,26 @@ Both packages share a version — `@single-studio/core` and
 
 ### Changed
 
+- **`ResetButton` and `SwapButton` ask before they act.** Both now arm on the first
+  press and do it on the second, the way the reset in the menu always has. Pass
+  `confirm={false}` to either for the old single press.
+
+  `ResetButton` has taken a `confirm` prop since it existed, defaulting to off. A
+  guard nobody opts into is not a guard: it was found the way these things are
+  always found, by a mis-aimed click clearing a scoreboard on air, in front of an
+  audience, with no undo. `SwapButton` had no guard at all and needs one for the
+  same reason — a swap is reversible in principle and instantly wrong on air in
+  practice.
+
+  Everything else on a board still acts on one press. `Toggle`, `Cycle`, `Stepper`,
+  `ImageToggle`, `ImageSelect` and the clocks are all undone by pressing again, and
+  an operator cutting a lower third cannot be made to double-click.
+
+  Both buttons now render through `Confirm`, so they take its outlined `danger` and
+  `warn` styling rather than their own solid fills. `.ss-reset` and `.ss-swap` are
+  still on the element; a studio that styled either keeps its rules, and a studio
+  that relied on the fill will see it change.
+
 - **A value renders a `<span>`, not a `<div>`.** `Variable`, `Timer` and `Clock` are
   text, and a block element cannot sit in a sentence — put one in a `<p>` and the
   words either side of it end up on their own rows.

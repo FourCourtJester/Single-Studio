@@ -164,6 +164,13 @@ IndexedDB database and every channel. When those drifted apart during
 development, the app looked connected while talking to nobody — so the client now
 adopts the id the **host** reports and warns on a mismatch.
 
+`STUDIO_NAME` sits beside it in the same file and is display-only. Both are there
+rather than one being a literal in `studio.js`, so that what a studio is called is
+one file an author edits rather than a string they have to go and find — and so the
+two names are visibly the two different things they are: `defineStudio` falls back
+to `id: name` when no id is given, which is a convenience nobody should reach for
+by accident.
+
 ## Routes
 
 ```
