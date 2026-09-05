@@ -63,6 +63,12 @@ export function useAssetUrl(value) {
 // IndexedDB has no change notification, so a write bumps a version every mounted
 // library re-reads. An image added in the modal has to appear in the picker behind
 // it without a reload.
+//
+// This is per-page, and deliberately not more: `listeners` is module state, so it
+// reaches every hook in *this* JavaScript context and nothing outside it. The board
+// and each browser source are separate documents with their own module instances,
+// which is why the effect below also re-reads when the replicated index changes --
+// see the comment there.
 let version = 0
 const listeners = new Set()
 const bump = () => {
@@ -84,6 +90,24 @@ export function useAssetLibrary() {
     return () => listeners.delete(setTick)
   }, [])
 
+  /*
+   * Re-read on `shared` as well as on `tick`.
+   *
+   * `tick` only ever fires in the page that did the writing. A file added on the
+   * board therefore reached a browser source's *index* -- that replicates -- while
+   * the source's answer to "do I hold the bytes?" stayed at whatever it was when
+   * the page mounted. `here` is false for a file entry with no local row, and
+   * everything that picks images filters on `here`, so the picture existed
+   * everywhere except where it was needed and came back on a reload.
+   *
+   * The index is the trigger because adding bytes always writes it too (`share`,
+   * below) and does so after the bytes are in, so by the time another page sees the
+   * entry the row it is about to look for is already there. Removals unset the same
+   * key and land the same way. `shared` is only replaced when the subscription
+   * fires, so this cannot loop.
+   *
+   * `list()` reads the entries store, not the blobs, so a re-read is metadata.
+   */
   useEffect(() => {
     let live = true
 
@@ -94,7 +118,7 @@ export function useAssetLibrary() {
     return () => {
       live = false
     }
-  }, [store, tick])
+  }, [store, tick, shared])
 
   /**
    * What the room knows, plus what this machine can actually render.

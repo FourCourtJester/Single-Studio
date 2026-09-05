@@ -470,6 +470,32 @@ between segments, and a magnifier joined onto the dropdown that opens the librar
 as a modal for adding, renaming and deleting. The same `AssetLibrary` component
 serves both.
 
+#### Playing a folder
+
+`Slideshow` points at a group rather than a list, so loading the show is dropping
+a folder on the board:
+
+```jsx
+<Slideshow group="slides" every={9} order="shuffle" />
+```
+
+Two things worth knowing before you put one on air:
+
+**An empty group renders nothing at all** — no element, not an empty one, and no
+timer running behind it. That means there is nothing to style for the empty case:
+if you want a holding card while the folder fills up, put it in the studio as a
+sibling, where it can say what this show is waiting for.
+
+**It follows the library while it plays.** Pictures added to the group during a
+programme join the deck without a reload, and removing one takes it out. Loading
+the show and running it are the same act, which is the point of pointing at a group
+instead of writing a list.
+
+It only plays what the machine it is running on can actually paint. A file lives in
+the browser that added it, so a picture dropped on a producer's laptop shows up in
+everyone's library but only plays where its bytes are — see the box above. Images
+added by URL have no bytes to be missing and play everywhere.
+
 ### Picking by picture
 
 When the choice _is_ a picture — a faction crest, a commander portrait, a map —
