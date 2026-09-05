@@ -269,8 +269,8 @@ instead, over `--ss-fade`; anything beyond that is a rule of your own on
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.   |
 | `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                               |
 | `Toggle`       | `toggles.<name>`   | `group` names a radio group; buttons sharing one are exclusive.           |
-| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                                  |
-| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.                 |
+| `SwapButton`   | any paths          | Trades values pairwise, outermost first. Asks first; `confirm={false}` opts out. |
+| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". Asks first; `confirm={false}` opts out. |
 | `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
 | `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.               |
 | `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                         |
@@ -777,9 +777,17 @@ works, but only while no text field has focus, since otherwise you would be typi
 it. The dialog says so when you pick one, and warns you if the browser would take
 the combination before the board ever sees it.
 
-Buttons — `Stepper`'s &minus;/+, `Toggle`, `ImageToggle`, `ImageSelect`, `SwapButton`,
-`ResetButton`, `Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
-half-finished state to protect.
+Buttons — `Stepper`'s &minus;/+, `Toggle`, `ImageToggle`, `ImageSelect`,
+`Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single
+deliberate press with no half-finished state to protect, and all of them are undone
+by pressing again.
+
+**`ResetButton` and `SwapButton` ask first**, because those two are not. A reset
+unsets values with no undo, and a swap puts both team names and both scores on the
+wrong side of a live scoreboard. One press arms the button and it says so, a second
+does it, and a few seconds of silence disarms it — so a board left alone never sits
+with a live "wipe the show" under the cursor. Pass `confirm={false}` to either one
+for the single press, where the worst outcome is small and speed matters more.
 
 `Stepper`'s **field** is the exception among them, and stages like the text ones do:
 typing "10" passes through "1", and a board that wrote every keystroke would put a

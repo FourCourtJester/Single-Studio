@@ -180,6 +180,19 @@ const sides = async () => ({
 check(await becomes(control, () => document.querySelectorAll('.ss-stepper input')[1]?.value === '1'), 'the away score reaches 1 before the sides are read')
 
 const sidesBefore = await sides()
+
+// One press arms, it does not swap. The guard is the point: a mis-aimed click puts
+// both names and both scores on the wrong side of a live scoreboard, and the
+// operator's next ten seconds go on working out what happened rather than on the
+// show.
+await control.locator('.ss-swap').click()
+await control.waitForTimeout(600)
+check(JSON.stringify(await sides()) === JSON.stringify(sidesBefore), 'one press on a swap arms it rather than trading the sides')
+check(
+  await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-swap')?.textContent ?? '')),
+  'and says a second press is what finishes it',
+)
+
 await control.locator('.ss-swap').click()
 await control.waitForTimeout(600)
 const sidesAfter = await sides()
@@ -190,6 +203,7 @@ check(sidesAfter.homeScore === sidesBefore.awayScore && sidesAfter.awayScore ===
 
 // Back again, which both proves it is its own inverse and leaves the board as this
 // section found it -- everything below reads the same values.
+await control.locator('.ss-swap').click()
 await control.locator('.ss-swap').click()
 await control.waitForTimeout(600)
 check(JSON.stringify(await sides()) === JSON.stringify(sidesBefore), 'and swapping again puts every value back where it started')
@@ -482,6 +496,16 @@ check(filed?.includes('rifleman'), 'and the tile shows the name inside the group
 
 // The dropdown is where this pays for itself: an optgroup is a menu you aim at
 // rather than a list you read.
+//
+// Waited on before it is read. The picker fills from the library a beat after the
+// tiles do, so a bare `evaluate` here samples whatever the dropdown happened to
+// hold and fails on the group's *contents* while passing on the group itself --
+// which is exactly how it failed, intermittently, and reads as a grouping bug
+// rather than a test that did not wait.
+await becomes(control, () =>
+  [...(document.querySelector('.ss-image-picker select')?.querySelectorAll('optgroup option') ?? [])].some((o) => o.textContent === 'rifleman'),
+)
+
 const options = await control.evaluate(() => {
   const select = document.querySelector('.ss-image-picker select')
 
@@ -1020,6 +1044,21 @@ check(
 
 // A red button reading "draft" says it is dangerous but not what it does.
 check((await control.locator('.ss-reset').first().textContent()).trim() === 'Reset draft', 'a reset button names the thing it resets')
+
+// And it asks, without being told to. The prop existed from the start and defaulted
+// to off, which is a guard nobody opts into -- so a mis-aimed press cleared a board
+// on air with no undo. The fixture passes no `confirm`; this is the default.
+const reset = control.locator('.ss-reset').first()
+
+await reset.click()
+check(await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-reset')?.textContent ?? '')), 'a reset asks before it clears, unasked')
+
+// Blur disarms, so the board is left exactly as this section found it.
+await control.locator('.ss-panel').first().click()
+check(
+  await becomes(control, () => /Reset draft/.test(document.querySelector('.ss-reset')?.textContent ?? '')),
+  'and looking away disarms it rather than leaving one live under the cursor',
+)
 
 // -- Map ---------------------------------------------------------------------
 await control.locator('.ss-image-select').filter({ hasText: 'Map' }).locator('button[data-value="redline"]').click()
