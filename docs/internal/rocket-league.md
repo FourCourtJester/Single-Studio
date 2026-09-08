@@ -254,8 +254,8 @@ Wire name to emitted name, where they differ:
 | `GoalScored`                                              | `goal`                                       |
 | `GoalReplayStart` / `GoalReplayWillEnd` / `GoalReplayEnd` | `replayStart` / `replayEnding` / `replayEnd` |
 | `ClockUpdatedSeconds`                                     | `clock`                                      |
-| `BallHit`                                                 | `ballHits` (a list)                          |
-| `BoostPickup`                                             | `boostPickups` (a list)                      |
+| `BallHit`                                                 | `ballHit`                                    |
+| `BoostPickup`                                             | `boostPickup`                                |
 | `ReplayCreated`                                           | `replaySaved`                                |
 | `StatfeedEvent`, and `StatFeedEvent`                      | `statfeed`                                   |
 | `UpdateState`                                             | `score`, `state`                             |
@@ -291,39 +291,39 @@ with the second, a studio's last word on a match is a moment before the whistle.
 costs one held reference. Normalising only what is emitted is the other half of it —
 `gameState()` runs ten times a second at most, whatever the feed does.
 
-### Two collations, in opposite directions
+### Only the tick is held
 
-`ballHit` and `boostPickup` are throttled too, and not the same way.
+`ballHit` and `boostPickup` were batched once — collected into dated lists and
+drained every 100ms, on the argument that a dribble is a touch every few frames and
+no graphic changes for one.
 
-A dribble is a touch every few frames and six players crossing a pitch take boost
-pads continuously. Neither is something a graphic changes for — nobody has ever cut
-to a lower third because somebody touched the ball — but both are exactly what a
-stats package wants afterwards. Dropping them would throw away the only thing they
-are good for.
+The argument is sound and was being applied in the wrong place. It is a claim about
+what a *show* does with these events, and a plugin does not know that. A studio
+animating on a boost pickup cannot have it arrive up to a tenth of a second after the
+pickup and still land with it; a studio that only wants them for stats can collect
+them itself, on the handler, and pays the volume by choosing to. Holding them back
+served the second case, which did not need help, at the first case's expense.
 
-So the two throttles collate in opposite directions:
+The 120-a-second problem is `UpdateState` alone. That one arrives whether anybody is
+looking or not, no show can use it at that rate, and it is the one place a rate is
+ours rather than an integrator's. Ball touches and boost pickups are their own
+messages and are not that.
 
-| Kind       | Example    | Between windows        | Handed over  |
-| ---------- | ---------- | ---------------------- | ------------ |
-| **Sample** | `state`    | Newest replaces oldest | The last one |
-| **Fact**   | `ballHits` | Appended               | All of them  |
+So: **`state` is throttled, everything else is emitted on arrival.** The names went
+back to singular with the shape — `onBallHit(hit)`, `onBoostPickup(pickup)` — and the
+`at` stamp went with the batching, since a handler receiving an event as it happens
+can date it more accurately than we can.
 
-Each fact is dated on the way in, because that is the information batching would
-otherwise destroy: twelve touches handed over together are a dribble or twelve
-separate touches depending on when each happened, and by the time the batch arrives
-there is nothing left to tell them apart with.
+| Kind       | Example | Between windows        | Handed over  |
+| ---------- | ------- | ---------------------- | ------------ |
+| **Sample** | `state` | Newest replaces oldest | The last one |
+| **Event**  | *all the rest* | Nothing to hold | As it arrives |
 
-The name changes with the shape — `ballHits`, not `ballHit`. A studio author
-overriding `onBallHit` that quietly started receiving an array would find out on
-air; one overriding `onBallHits(hits)` is told by the signature.
-
-Facts have no leading edge, unlike the tick. Sending the first one immediately and
-batching the rest would mean a burst — the whole case this exists for — still costs
-two emits where it should cost one. An empty window emits nothing at all.
-
-Everything else is immediate. A goal held back a tenth of a second is a graphic a
-tenth of a second late for no saving worth having; goals, the stat feed and the
-whistle happen a few times a match.
+The advice that came with the batching still holds, just on the other side of the
+seam: a `mutate` per touch is a transaction, an IndexedDB write and a broadcast
+each. A handler that only counts them should collect on the instance and write the
+run in one call. That is documented in [plugins.md](../plugins.md), where the person
+who needs it is reading.
 
 Booleans lose their `b`, teams gain a `side` of `blue` or `orange`, and team colours
 gain the `#` that makes them CSS.

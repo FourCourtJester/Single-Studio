@@ -373,7 +373,7 @@ An on/off button for a path under `toggles`, which is what a graphic watches to 
 
 `import { SwapButton } from '@single-studio/core/control'`
 
-Trade two sides of the board — teams changing ends. Writes immediately.
+Trade two sides of the board — teams changing ends. Asks first.
 
 ```jsx
 <SwapButton label="sides" names={['home.name', 'home.score', 'away.name', 'away.score']} />
@@ -396,6 +396,7 @@ Trade two sides of the board — teams changing ends. Writes immediately.
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | Replaces the generated text. |
 | `className` | `string` |  | Added to the component's own classes. |
+| `confirm` | `boolean` |  | Ask before trading. Defaults to `true`; pass `confirm={false}` to trade on one press. |
 | `label` | `string` |  | Names what gets traded, on the button. Defaults to `"Swap"`. |
 | `names` | `string[]` |  | One side, then the other, spelled the same way. Cut in half and traded. |
 | `paths` | `string[]` |  | Full paths, for trading values outside `variables`. |
@@ -408,22 +409,22 @@ Trade two sides of the board — teams changing ends. Writes immediately.
 
 `import { ResetButton } from '@single-studio/core/control'`
 
-Clear a set of values back to each source's own fallback. It unsets rather than writing empties, so a graphic falls back rather than going blank. Writes immediately.
+Clear a set of values back to each source's own fallback. It unsets rather than writing empties, so a graphic falls back rather than going blank. Asks first.
 
 ```jsx
 <ResetButton label="scores" names={['home.score', 'away.score']} />
 ```
 
 ```jsx
-// Ask first, for something that would hurt mid-show
-<ResetButton label="the draft" names={['home.army', 'away.army']} confirm />
+// One press, for something trivial to put back
+<ResetButton label="the note" names={['lowerthird.note']} confirm={false} />
 ```
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | Replaces the generated "Reset `<label>`" text. |
 | `className` | `string` |  | Added to the component's own classes. |
-| `confirm` | `boolean` |  | Arm on the first press, clear on the second. |
+| `confirm` | `boolean` |  | Ask before clearing. Defaults to `true`; pass `confirm={false}` for a button that fires on one press. |
 | `label` | `string` |  | Names what gets cleared: the button reads "Reset `<label>`". Defaults to `"Reset"`. |
 | `names` | `string[]` |  | Cleared back to each source's own fallback. |
 | `paths` | `string[]` |  | Full paths, for clearing `toggles` or `timers` in the same press. |

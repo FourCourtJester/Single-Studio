@@ -107,32 +107,45 @@ complete list. Rocket League's is:
 | The match      | `onMatchCreated` `onMatchReady` `onCountdown` `onRoundStarted` `onPaused` `onUnpaused` `onMatchEnded` `onMatchDestroyed` `onPodium` |
 | Replays        | `onReplayStart` `onReplayEnding` `onReplayEnd` `onReplaySaved`                                                                      |
 | Players        | `onPlayerJoined` `onPlayerLeft`                                                                                                     |
-| Batched        | `onBallHits` `onBoostPickups`                                                                                                       |
+| The frequent   | `onBallHit` `onBoostPickup`                                                                                                         |
 | Everything     | `onState`                                                                                                                           |
 
 `onReplayEnding` is the one worth knowing about: a graphic that waits for
 `onReplayEnd` is already late, because the cut back to play has happened. That is
 the cue to start animating in.
 
-### Some events arrive as lists
+### Some events are frequent
 
-`onBallHits` and `onBoostPickups` hand you an **array**, not one event:
+Every event arrives as it happens, one call each — including `onBallHit` and
+`onBoostPickup`, which can be very frequent. A dribble is a touch every few frames,
+and six cars crossing a pitch take boost pads continuously.
+
+They arrive that way because what to do about it is yours to decide, not the
+plugin's. A graphic that animates on a boost pickup has to land with the pickup; a
+tenth of a second of helpful buffering would put the animation somewhere else
+entirely. A studio that only wants these for stats afterwards can collect them
+itself and pay for the volume by choosing to.
+
+**If you are only counting them, do not write on each one.** A `mutate` per touch is
+a transaction, an IndexedDB write and a broadcast each. Collect on the handler — it
+is an ordinary class, and instance state is free — and write the run in one call:
 
 ```js
-onBallHits(hits) {
-  // [{ by, before, after, where, at }, …]
-  this.mutate('push', { path: 'variables.touches', values: hits })
+#touches = []
+
+onBallHit(hit) {
+  this.#touches.push({ ...hit, at: Date.now() })
+}
+
+onGoal() {
+  this.mutate('push', { path: 'variables.touches', values: this.#touches })
+  this.#touches = []
 }
 ```
 
-A dribble is a touch every few frames, and six cars crossing a pitch take boost pads
-continuously. None of them is worth a graphic, but all of them are worth keeping for
-the stats afterwards — so they are collected and handed over at most ten times a
-second, each one dated on the way in.
-
-**Write the batch in one call.** A loop calling `this.mutate` per item is one
-transaction, one IndexedDB write and one broadcast _each_, which puts back exactly
-what the batching removed. `push` takes `values` for this reason.
+The one event that *is* held back is `onState`, the whole-match tick, which the game
+sends up to 120 times a second whether anybody is looking or not. That one is passed
+on ten times a second and is not adjustable — see the plugin's own panel.
 
 ## What your handler is given
 

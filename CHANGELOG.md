@@ -7,6 +7,25 @@ Both packages share a version — `@single-studio/core` and
 
 ### Changed
 
+- **Rocket League: `onBallHit` and `onBoostPickup` arrive as they happen.** They were
+  `onBallHits(hits)` and `onBoostPickups(pickups)`, collected into dated lists and
+  handed over every 100ms. Rename the methods and take one payload where you took an
+  array; the `at` field is gone, since a handler receiving an event as it happens can
+  date it more accurately than the plugin can.
+
+  The batching was reasoning about what a *show* does with these events, which is not
+  the plugin's to decide. A studio animating on a boost pickup cannot have it land a
+  tenth of a second after the pickup; a studio that only counts them can collect them
+  itself and pay the volume by choosing to. Holding them back served the second case,
+  which needed no help, at the first case's expense.
+
+  The 120-a-second problem is `UpdateState` alone — that arrives whether anybody is
+  watching or not, and is still passed on ten times a second. Everything else is now
+  emitted on arrival, which is what `onGoal` and `onStatfeed` always did.
+
+  If you only want these for stats, collect on the handler and write the run in one
+  call rather than mutating per touch — see [plugins.md](docs/plugins.md).
+
 - **`ResetButton` and `SwapButton` ask before they act.** Both now arm on the first
   press and do it on the second, the way the reset in the menu always has. Pass
   `confirm={false}` to either for the old single press.

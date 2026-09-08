@@ -204,91 +204,80 @@ describe('events', () => {
 describe('the frequent events', () => {
   const hit = (speed) => ({ Players: [{ Name: 'A', TeamNum: 0 }], Ball: { PreHitSpeed: speed, PostHitSpeed: speed + 100, Location: { X: 1, Y: 2, Z: 3 } } })
 
-  it('arrive as one dated list rather than one event each', async () => {
-    // A dribble is a touch every few frames. Nobody cuts to a graphic for one, and
-    // a studio writing on each would be doing the thing the throttle exists to
-    // stop -- but they are exactly what a stats package wants afterwards, so
-    // dropping them is not the answer either.
+  it('arrive one at a time, as they happen', async () => {
+    // These used to be collected into dated lists on a 100ms drain, on the argument
+    // that a dribble is a touch every few frames and no graphic changes for one.
+    //
+    // That argument is about what a *show* does with them, which is not this
+    // plugin's to decide. A studio triggering an animation on a boost pickup cannot
+    // have it arrive up to a tenth of a second late and still land with the pickup;
+    // a studio collating them for stats can collate them itself, and pays for that
+    // by choosing to. Holding them back served neither and cost the first one
+    // everything.
+    //
+    // The 120-a-second problem is `UpdateState`, which is the tick and is throttled
+    // where it arrives. Ball touches and boost pickups are their own messages and
+    // are not that.
+    const { MyShow, spies } = watching(['onBallHit'])
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+
+    sockets[0].send('BallHit', hit(100))
+    sockets[0].send('BallHit', hit(200))
+    sockets[0].send('BallHit', hit(300))
+
+    // Three touches, three calls, before any timer could have run.
+    expect(spies.onBallHit).toHaveBeenCalledTimes(3)
+    expect(spies.onBallHit.mock.calls.map(([one]) => one.before)).toEqual([100, 200, 300])
+  })
+
+  it('hand over one payload rather than a list of one', async () => {
+    // The rename is the signature telling the truth: `onBallHits(hits)` was a list
+    // and `onBallHit(hit)` is a touch. An author reading the method name should not
+    // have to find out by indexing into it.
+    const { MyShow, spies } = watching(['onBoostPickup'])
+    const plugin = build(MyShow)
+
+    plugin.open()
+    sockets[0].open()
+
+    sockets[0].send('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 100, BoostType: 'BigPad' })
+
+    const [pickup] = spies.onBoostPickup.mock.calls[0]
+
+    expect(Array.isArray(pickup)).toBe(false)
+    expect(pickup.by.name).toBe('A')
+    expect(pickup.amount).toBe(100)
+    expect(pickup.kind).toBe('BigPad')
+  })
+
+  it('do not wait on a timer that no longer exists', async () => {
+    // The regression this replaces: with fake timers installed and never advanced,
+    // the old build had said nothing at all here.
     vi.useFakeTimers()
 
     try {
-      const { MyShow, spies } = watching(['onBallHits'])
+      const { MyShow, spies } = watching(['onBallHit', 'onBoostPickup'])
       const plugin = build(MyShow)
 
       plugin.open()
       sockets[0].open()
 
       sockets[0].send('BallHit', hit(100))
-      vi.advanceTimersByTime(20)
-      sockets[0].send('BallHit', hit(200))
-      vi.advanceTimersByTime(20)
-      sockets[0].send('BallHit', hit(300))
+      sockets[0].send('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 12 })
 
-      // Nothing yet: no leading edge, or a burst would cost two emits instead of
-      // the one it should.
-      expect(spies.onBallHits).not.toHaveBeenCalled()
-
-      vi.advanceTimersByTime(100)
-
-      expect(spies.onBallHits).toHaveBeenCalledTimes(1)
-
-      const [hits] = spies.onBallHits.mock.calls[0]
-
-      expect(hits.map((one) => one.before)).toEqual([100, 200, 300])
-      // Dated on the way in, because that is what batching would otherwise
-      // destroy: twelve touches handed over together are a dribble or twelve
-      // separate touches depending on when each happened.
-      expect(hits[1].at - hits[0].at).toBe(20)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('keep each kind in its own list', async () => {
-    vi.useFakeTimers()
-
-    try {
-      const { MyShow, spies } = watching(['onBallHits', 'onBoostPickups'])
-      const plugin = build(MyShow)
-
-      plugin.open()
-      sockets[0].open()
-
-      sockets[0].send('BallHit', hit(100))
-      sockets[0].send('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 100 })
-      sockets[0].send('BallHit', hit(200))
-
-      vi.advanceTimersByTime(100)
-
-      expect(spies.onBallHits.mock.calls[0][0]).toHaveLength(2)
-      expect(spies.onBoostPickups.mock.calls[0][0]).toHaveLength(1)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('say nothing at all in a window where nothing happened', async () => {
-    vi.useFakeTimers()
-
-    try {
-      const { MyShow, spies } = watching(['onBallHits'])
-      const plugin = build(MyShow)
-
-      plugin.open()
-      sockets[0].open()
-
-      vi.advanceTimersByTime(1_000)
-
-      expect(spies.onBallHits).not.toHaveBeenCalled()
+      expect(spies.onBallHit).toHaveBeenCalledTimes(1)
+      expect(spies.onBoostPickup).toHaveBeenCalledTimes(1)
     } finally {
       vi.useRealTimers()
     }
   })
 
   it('do not hold back the events that mean something', async () => {
-    // The guard on over-applying this. A goal batched for a tenth of a second is a
-    // graphic a tenth of a second late, for no saving worth having -- goals happen
-    // a few times a match.
+    // Kept from when these were batched: nothing but the tick is ever held, and
+    // this is what says so.
     const { MyShow, spies } = watching(['onGoal', 'onStatfeed', 'onCrossbar'])
     const plugin = build(MyShow)
 

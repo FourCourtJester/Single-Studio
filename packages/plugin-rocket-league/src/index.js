@@ -29,13 +29,18 @@ export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
  * knows one already can send it with `this.plugin.send({ Command, Data })`.
  */
 /**
- * How often the tick is passed on, and how often the batches drain. Not settable.
+ * How often the tick is passed on. Not settable.
+ *
+ * This is `UpdateState` and nothing else. The game sends it up to 120 times a
+ * second whether anybody is looking or not, and no show can use that -- which makes
+ * it the one place a rate is ours to decide rather than an integrator's.
  *
  * A policy decision rather than a measurement, though the measurements agree with
  * it: nothing on a stream updates visibly more than ten times a second, and the
  * document pays for every emit that a handler turns into a write. Ten a second is
  * already generous for something an eye is watching, and the events that carry
- * meaning -- goals, the clock, the whistle -- do not come through here at all.
+ * meaning -- goals, the clock, the whistle, a boost taken -- do not come through
+ * here at all. They arrive as their own messages, and go out as they arrive.
  *
  * Not a field on the panel, because there is no answer an operator could give that
  * is better than this one. A number that can be typed is a number that gets typed:
@@ -71,27 +76,6 @@ function unwrap(data) {
   }
 }
 
-/**
- * Events that arrive faster than anything can react to them, and are worth keeping
- * anyway.
- *
- * A dribble is a ball hit every few frames, and six players crossing a pitch take
- * boost pads continuously. Neither is something a graphic changes for -- nobody has
- * ever cut to a lower third because somebody touched the ball -- but both are
- * exactly what a stats package wants afterwards, so throttling them by dropping
- * would throw away the only thing they are good for.
- *
- * So they collate the other way round from the tick. `state` is a sample, where the
- * newest reading makes every earlier one worthless and keeping the last is the whole
- * job. These are facts: each one happened, none replaces another, and the batch is
- * the thing worth handing over. Same ceiling, opposite collation.
- *
- * The name changes with the shape. A studio author overriding `onBallHits(hits)` is
- * told by the signature that they are getting a list; one overriding `onBallHit`
- * that quietly started receiving an array would find out on air.
- */
-const BATCHED = { ballHit: 'ballHits', boostPickup: 'boostPickups' }
-
 class RocketLeague extends SocketService {
   static serviceName = 'rocket-league'
 
@@ -112,12 +96,6 @@ class RocketLeague extends SocketService {
 
   /** The timer that will pass it on. */
   #flush = null
-
-  /** Facts collected since the last batch went out, by the name they go out under. */
-  #batches = new Map()
-
-  /** The timer that will send them. */
-  #batch = null
 
   get url() {
     const host = this.config.host || 'localhost'
@@ -177,49 +155,8 @@ class RocketLeague extends SocketService {
     }
 
     const { name, payload } = normalise(type, data)
-    const batched = BATCHED[name]
-
-    if (batched) {
-      this.#collect(batched, payload)
-
-      return
-    }
 
     this.emit(name, payload)
-  }
-
-  /**
-   * Hold onto one fact until the batch goes out.
-   *
-   * Dated on the way in, because that is the information the batching would
-   * otherwise destroy: twelve touches handed over together are a dribble or twelve
-   * separate touches depending on when each happened, and by the time the batch
-   * arrives there is no way left to tell.
-   *
-   * No leading edge, unlike the tick. Sending the first one immediately and then
-   * batching the rest would mean the common case -- a burst -- still costs two
-   * emits where it should cost one.
-   */
-  #collect(name, payload) {
-    const batch = this.#batches.get(name)
-    const dated = { ...payload, at: Date.now() }
-
-    if (batch) batch.push(dated)
-    else this.#batches.set(name, [dated])
-
-    this.#batch ??= setTimeout(() => this.#drain(), EVERY_MS)
-  }
-
-  /** Hand over everything collected, as one list per event. */
-  #drain() {
-    clearTimeout(this.#batch)
-    this.#batch = null
-
-    for (const [name, items] of this.#batches) {
-      this.emit(name, items)
-    }
-
-    this.#batches.clear()
   }
 
   /**
@@ -293,11 +230,8 @@ class RocketLeague extends SocketService {
 
   async close() {
     clearTimeout(this.#flush)
-    clearTimeout(this.#batch)
     this.#flush = null
-    this.#batch = null
     this.#pending = null
-    this.#batches.clear()
 
     await super.close()
   }
@@ -336,8 +270,8 @@ export class RocketLeagueHandler extends PluginHandler {
     crossbar: 'onCrossbar',
 
     /** Both arrive as lists of dated facts, at most ten times a second. */
-    ballHits: 'onBallHits',
-    boostPickups: 'onBoostPickups',
+    ballHit: 'onBallHit',
+    boostPickup: 'onBoostPickup',
 
     playerJoined: 'onPlayerJoined',
     playerLeft: 'onPlayerLeft',
@@ -382,9 +316,9 @@ export class RocketLeagueHandler extends PluginHandler {
 
   onCrossbar() {}
 
-  onBallHits() {}
+  onBallHit() {}
 
-  onBoostPickups() {}
+  onBoostPickup() {}
 
   onPlayerJoined() {}
 
@@ -422,11 +356,11 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
       },
       {
         type: 'text',
-        text: 'Every tick is read whatever these settings say. The whole picture is handed on ten times a second, which is not adjustable — nothing on a stream changes visibly faster than that, and goals and the clock arrive as they happen either way.',
+        text: 'Every tick is read whatever these settings say. The whole picture is handed on ten times a second, which is not adjustable — nothing on a stream changes visibly faster than that. Only the tick is held back; every other event arrives as it happens.',
       },
       {
         type: 'text',
-        text: 'Ball touches and boost pickups arrive the same way, as dated lists ten times a second rather than one event each. A dribble is a touch every few frames, and none of them is worth a graphic — but all of them are worth keeping for the stats afterwards.',
+        text: 'Everything else arrives as it happens, one event each — ball touches and boost pickups included, and those two can be frequent. What is worth reacting to and what is worth only counting is the studio’s decision, not this plugin’s.',
       },
       { type: 'text', text: 'Leave Path blank unless connecting fails — it exists for the case where the endpoint wants one.' },
       { type: 'link', href: 'https://www.rocketleague.com/developer/stats-api', label: 'Psyonix’s Stats API documentation' },
@@ -450,4 +384,4 @@ export const rocketLeague = (Handler = RocketLeagueHandler) =>
   })
 
 /** Every event the plugin can emit, for anybody enumerating them. */
-export const EMITS = [...new Set([...Object.values(EVENTS).map((entry) => BATCHED[entry.emit] ?? entry.emit), 'score', 'state'])]
+export const EMITS = [...new Set([...Object.values(EVENTS).map((entry) => entry.emit), 'score', 'state'])]
