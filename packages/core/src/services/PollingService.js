@@ -17,6 +17,11 @@ import { Service } from './Service'
 //      frequent: a read that finds no change costs one request and nothing else.
 //   3. **A floor on the interval**, so a typed 1 cannot spend an hour's quota in a
 //      minute and get a key rate limited mid-show.
+//   4. **A deadline on each read.** `fetch` has no timeout of its own: a request
+//      that connects and then stalls neither resolves nor rejects, so a first poll
+//      that hits one never settles and the plugin sits there with no retry and
+//      nothing to say. This is the polling half of the failure written up in
+//      docs/internal/host-hang.md, and it is bounded here for the same reason.
 //
 // A subclass writes `read`, and a `key` if the default comparison is wrong for it.
 
@@ -39,6 +44,22 @@ export class PollingService extends Service {
     return 5
   }
 
+  /**
+   * How long one read may take before it counts as failed, or 0 to wait forever.
+   *
+   * Ten seconds because this is one request for a small answer, not a download. A
+   * feed that cannot manage that is not busy, and being wrong costs a retry on the
+   * next tick -- which is what a request that had the manners to fail would have
+   * cost anyway.
+   *
+   * Raise it on a subclass whose `read` does more than one round trip.
+   *
+   * @returns {number} Milliseconds.
+   */
+  get readBudgetMs() {
+    return 10_000
+  }
+
   /** What the config says, or 30, but never below the floor. */
   get everySeconds() {
     return Math.max(this.floorSeconds, Number(this.config.every) || 30)
@@ -50,11 +71,45 @@ export class PollingService extends Service {
    * Throwing is how a subclass says "this is broken" -- see `fatal` for the
    * difference between broken and merely unavailable.
    *
+   * The signal is the read's deadline, and passing it to `fetch` is what makes the
+   * request actually stop rather than merely stop being waited on. A subclass that
+   * ignores it is still protected -- the deadline is enforced here either way -- it
+   * just leaves the request running until the far end gives up.
+   *
+   * @param {AbortSignal} [_signal]
    * @returns {Promise<unknown>}
    * @abstract
    */
-  async read() {
+  async read(_signal) {
     throw new Error(`${this.name} must implement \`read\``)
+  }
+
+  /**
+   * One read, held to its deadline.
+   *
+   * Raced rather than left to the signal alone, because the signal only helps if
+   * the subclass wired it up. This is the part the base class can guarantee.
+   */
+  async #ask() {
+    const budget = this.readBudgetMs
+
+    if (!budget) return this.read()
+
+    const controller = new AbortController()
+    let timer = null
+
+    const late = new Promise((_resolve, reject) => {
+      timer = setTimeout(() => {
+        controller.abort()
+        reject(new Error(`${this.name} did not answer within ${Math.round(budget / 1000)}s.`))
+      }, budget)
+    })
+
+    try {
+      return await Promise.race([this.read(controller.signal), late])
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   /**
@@ -126,7 +181,7 @@ export class PollingService extends Service {
     let value
 
     try {
-      value = await this.read()
+      value = await this.#ask()
     } catch (error) {
       if (first) throw error
 

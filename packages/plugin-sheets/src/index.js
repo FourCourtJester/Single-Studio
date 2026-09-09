@@ -29,8 +29,11 @@ class Sheets extends PollingService {
     return 5
   }
 
-  async read() {
-    const response = await fetch(urlFor({ id: this.config.id, range: this.config.range, key: this.config.key }))
+  async read(signal) {
+    // Handed to `fetch` so the deadline actually stops the request. The base class
+    // enforces it either way, but without this the abandoned request keeps running
+    // and the next tick's poll queues up behind somebody else's stalled socket.
+    const response = await fetch(urlFor({ id: this.config.id, range: this.config.range, key: this.config.key }), { signal })
     const body = await response.json().catch(() => ({}))
 
     if (!response.ok) {

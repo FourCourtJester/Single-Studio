@@ -248,6 +248,32 @@ service's deadline changes no status at all, because `dropped()` already refuses
 retry one. They now count connection attempts and pending timers respectively, and
 each fails against the specific line it guards.
 
+## The same failure on the polling side
+
+`PollingService` had it too, and for the same reason one layer down: `fetch` has no
+timeout of its own. A request that connects and then stalls neither resolves nor
+rejects, so `open()` -- which awaits the first poll deliberately, to report a wrong
+id or a refused key straight away -- never settled. Measured before the fix: after
+two simulated minutes, one read, `start()` unresolved, status `idle`, `problem` null.
+A dead plugin with nothing to say for itself.
+
+After the host fix that no longer takes the studio down, which is the point of having
+made that change first. It still left the plugin silently dead, and silence is the
+expensive part.
+
+So `readBudgetMs`, ten seconds, mirroring `connectBudgetMs`. Two halves:
+
+- **A race in the base class**, so the deadline holds whatever the subclass does.
+- **An `AbortSignal` passed to `read(signal)`**, so a subclass that wires it into
+  `fetch` actually stops the request rather than merely stopping waiting on it. An
+  abandoned request holds its connection until the far end gives up, and on a
+  five-second interval those stack. `plugin-sheets` passes it.
+
+Pinned by four tests -- three in `packages/core/test/service.test.js` and one in
+`packages/plugin-sheets/test/polling.test.js` -- each confirmed to fail against the
+line it guards. The abort one fails if the signal is not passed, separately from the
+race, so the two halves are checked independently.
+
 ## Still open
 
 - **Nothing sets a status while a handshake is in progress.** A connecting service

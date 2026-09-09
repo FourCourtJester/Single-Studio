@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { Service } from '../src/services/Service'
+import { PollingService } from '../src/services/PollingService'
 import { SocketService } from '../src/services/SocketService'
 
 // Ingress ownership. Not a permission model -- a quota and a race.
@@ -334,6 +335,105 @@ describe('a connection that is accepted and then abandoned', () => {
 
       expect(made.status).toBe('idle')
       expect(made.attempts).toBe(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('a poll that connects and then stalls', () => {
+  /**
+   * The polling half of docs/internal/host-hang.md.
+   *
+   * `fetch` has no timeout of its own. A request that connects and then goes quiet
+   * neither resolves nor rejects, so a first poll that hits one never settles --
+   * `open()` never returns, `start()` never finishes, and the retry that exists for
+   * exactly this never runs. Since the host no longer waits for plugins that is not
+   * fatal to the studio any more, but the plugin is dead with nothing to say for
+   * itself, which is the part that cost the hours last time.
+   */
+  class Stalls extends PollingService {
+    static serviceName = 'stalls'
+
+    reads = 0
+
+    aborted = 0
+
+    async read(signal) {
+      this.reads += 1
+      signal?.addEventListener('abort', () => {
+        this.aborted += 1
+      })
+
+      return new Promise(() => {})
+    }
+  }
+
+  const stalling = () => new Stalls({ mutate: () => {}, owner: () => true, config: {} })
+
+  it('gives up on the read rather than waiting for the length of the show', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const made = stalling()
+      let settled = false
+
+      made.start().then(() => {
+        settled = true
+      })
+
+      await vi.advanceTimersByTimeAsync(9_000)
+      expect(settled).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(1_500)
+
+      expect(settled).toBe(true)
+      expect(made.status).toBe('error')
+      expect(made.problem).toMatch(/did not answer within 10s/)
+
+      await made.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('asks again, which before this it never did', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const made = stalling()
+
+      made.start()
+      // Past the deadline, short of the first backoff step at +500ms.
+      await vi.advanceTimersByTimeAsync(10_100)
+      expect(made.reads).toBe(1)
+
+      // 500ms is the first backoff step, and the retry runs `start` again.
+      await vi.advanceTimersByTimeAsync(600)
+
+      expect(made.reads).toBe(2)
+
+      await made.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('tells the read to stop, not just to be ignored', async () => {
+    // Being ignored is not the same as being cancelled: an abandoned request holds
+    // a connection until the far end gives up, and on a five-second interval those
+    // pile up.
+    vi.useFakeTimers()
+
+    try {
+      const made = stalling()
+
+      made.start()
+      await vi.advanceTimersByTimeAsync(10_100)
+
+      expect(made.aborted).toBe(1)
+
+      await made.stop()
     } finally {
       vi.useRealTimers()
     }

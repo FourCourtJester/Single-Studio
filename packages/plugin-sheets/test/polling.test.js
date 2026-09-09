@@ -192,3 +192,29 @@ describe('when Google refuses later', () => {
     expect(dropped).toHaveBeenCalled()
   })
 })
+
+describe('a read that stalls', () => {
+  it('hands the deadline to fetch, so the request stops rather than being ignored', async () => {
+    // Being ignored is not being cancelled. An abandoned request holds its
+    // connection until Google gives up, and on a five-second interval those stack.
+    let seen = null
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, options) => {
+        seen = options?.signal ?? null
+
+        return ok([['Team'], ['Broncos']])
+      }),
+    )
+
+    const plugin = build()
+
+    await plugin.start()
+
+    expect(seen).toBeInstanceOf(AbortSignal)
+    expect(seen.aborted).toBe(false)
+
+    await plugin.stop()
+  })
+})

@@ -27,6 +27,12 @@ Both packages share a version — `@single-studio/core` and
   Written up in `docs/internal/host-hang.md`, including what is still open — there is
   no connect deadline, so `connecting` is where a hanging plugin stays.
 
+- **A poll that stalls now gives up after ten seconds.** `PollingService` has a
+  `readBudgetMs`, and hands `read(signal)` an `AbortSignal` so a subclass can stop
+  the request rather than merely stop waiting on it. `fetch` has no timeout of its
+  own, so a request that connected and then went quiet left the plugin dead with
+  nothing to say for itself.
+
 - **A socket that is accepted and then abandoned now gives up after ten seconds.**
   `SocketService` has a `connectBudgetMs`, overridable per service.
 
