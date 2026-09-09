@@ -41,6 +41,29 @@ export const MINIMUM_VERSIONS = [
 ]
 
 /**
+ * The same promise, in the spelling a build tool wants.
+ *
+ * Vite's `build.cssTarget` falls back to `build.target`, which is a *JavaScript*
+ * target: `es2022` says nothing about CSS, so the CSS pipeline is told nothing and
+ * lowers nothing. Anything Tailwind processes is lowered by Lightning CSS on the way
+ * through and is fine either way; a stylesheet imported straight from a component
+ * misses that and ships exactly as written -- so a studio using CSS nesting shipped
+ * rules that do nothing at all on any browser older than Chrome 112.
+ *
+ * Silent in both directions, which is why it sat unnoticed: it is invisible on any
+ * browser new enough to run the CSS as written, and that is every browser anybody
+ * develops on. It would first appear on somebody else's older machine, as whole
+ * blocks of a stylesheet failing at once.
+ *
+ * Derived from the table above rather than written out again, because the two have
+ * to agree and a config file is not where anybody looks for a support policy. OBS is
+ * left out: it is Chromium, and its own version numbering means nothing to esbuild.
+ */
+export const CSS_TARGET = MINIMUM_VERSIONS.filter(([browser]) => browser !== 'OBS (embedded browser)').map(
+  ([browser, version]) => `${browser.split(' ')[0].toLowerCase()}${version}`,
+)
+
+/**
  * Does this browser honour `{ type: 'module' }` on SharedWorker?
  *
  * Uses a blob URL holding an empty script so the probe is silent either way: a

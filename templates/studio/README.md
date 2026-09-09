@@ -4,8 +4,15 @@ A [Single Studio](https://fourcourtjester.github.io/Single-Studio/) broadcast
 graphics project: an operator's board that runs as a dock inside OBS, and one
 browser source per graphic.
 
-One repo per show. The repo's name is the show's address, the studio's `name` is its
-label, and neither has to match anything on any server.
+One repo per show. The repo's name is the show's address, `STUDIO_NAME` is its label,
+and neither has to match anything on any server.
+
+Both names live in `src/studio/config.js`, which is the first file worth editing:
+
+```js
+export const STUDIO_NAME = 'My Studio' // shown to people; change it any time
+export const STUDIO_ID = 'my-studio' // where the show is filed; changing it starts an empty one
+```
 
 ## Run it
 

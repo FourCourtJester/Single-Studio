@@ -142,35 +142,45 @@ describe('when a plugin misbehaves', () => {
     // browser gives up. Started in a row, that plugin decides when every plugin
     // after it may begin.
     let release
+    let connected = false
     const hanging = definePlugin({
       name: 'slow',
       create: () => {
         const runtime = new PluginBase('slow')
 
-        runtime.start = () => new Promise((resolve) => (release = resolve))
+        runtime.start = () =>
+          new Promise((resolve) => {
+            release = () => {
+              connected = true
+              resolve()
+            }
+          })
 
         return runtime
       },
     })
 
     let quick
-    let everything = false
 
     const studio = host([hanging, fake('quick', { onCreate: (r) => (quick = r) })])
-
-    studio.started.then(() => {
-      everything = true
-    })
 
     // Started in a row this never arrives, because the first plugin never resolves.
     await until(() => quick?.started === 1, 'the second plugin to start')
 
-    // And the first one really is still hanging, so this is concurrency rather
-    // than the slow one having quietly finished.
-    expect(everything).toBe(false)
+    // And the studio is up while the first one is still hanging.
+    //
+    // This line used to assert the opposite -- that `started` had *not* resolved --
+    // which was the bug rather than the behaviour. Every port message queues behind
+    // `started`, so a plugin that never answered took the whole board down with it.
+    // Waiting on the connections was never what the await was for; reading each
+    // plugin's stored config is, and that is all it does now.
+    await studio.started
+
+    // Still hanging, so the studio really did come up around it rather than the
+    // slow plugin having quietly finished.
+    expect(connected).toBe(false)
 
     release()
-    await studio.started
   })
 
   it('rejects anything that did not come from definePlugin', async () => {
@@ -589,5 +599,248 @@ describe('help', () => {
     const help = [{ type: 'steps', items: ['One'] }]
 
     expect(JSON.parse(JSON.stringify(help))).toEqual(help)
+  })
+})
+
+describe('a plugin whose connection never settles', () => {
+  /**
+   * The failure this exists for, found on a real machine and written up in
+   * docs/internal/host-hang.md.
+   *
+   * `SocketService.open()` settles on the socket's `open` or its `error`, and an
+   * address that accepts a connection and then does nothing sends neither. On the
+   * machine that found it, VS Code had the game's port in its forwarded list: it
+   * bound loopback, accepted, and tried to hand the connection to a container where
+   * nothing was listening.
+   *
+   * That is a plugin that never finishes starting, which is survivable. What was
+   * not survivable is that `started` awaited it and every port message queues
+   * behind `started` -- so a studio with one unreachable plugin rendered nothing at
+   * all, on every source, with no error anywhere an operator would look. The
+   * natural readings are "my toggles are off" and "the feed is not arriving", and
+   * both are wrong: the store never comes up, so every diagnostic built on reading
+   * the store is blank too.
+   */
+  const wedged = (name) =>
+    definePlugin({
+      name,
+      create: () => {
+        const runtime = new PluginBase(name)
+
+        // Never resolves, never rejects. The point.
+        runtime.start = () => new Promise(() => {})
+
+        return runtime
+      },
+    })
+
+  /** A page, watching its own port, as the transport tests do it. */
+  const page = (made) => {
+    const { port1, port2 } = new MessageChannel()
+    const seen = []
+
+    port1.onmessage = ({ data }) => seen.push(data)
+    port1.start()
+    made.connect(port2)
+
+    return { port: port1, seen, close: () => (port1.close(), port2.close()) }
+  }
+
+  it('does not stop the worker answering a page', async () => {
+    const made = host([wedged('black-hole')])
+    const { port, seen, close } = page(made)
+
+    try {
+      await until(() => seen.some((message) => message?.type === 'ready'), 'the page to be told the show is ready')
+
+      port.postMessage({ type: 'subscribe', path: 'variables.home.name' })
+      await until(() => seen.some((message) => message?.type === 'value' && message.path === 'variables.home.name'), 'a subscription to be answered')
+
+      port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.name': 'Broncos' } })
+      await until(() => Doc.read(made.doc, 'variables.home.name') === 'Broncos', 'a mutation to land')
+    } finally {
+      close()
+    }
+  })
+
+  it('leaves the rest of the studio running', async () => {
+    // One broken plugin is not a broken show -- the same rule the concurrent start
+    // already followed, now holding when the broken one never finishes at all.
+    const fine = fake('fine')
+    const made = host([wedged('black-hole'), fine])
+
+    await made.started
+    await until(() => made.plugins.get('fine')?.started === 1, 'the healthy plugin to start')
+
+    expect(made.plugins.has('black-hole')).toBe(true)
+  })
+
+  it('still says what it is doing, on the panel', async () => {
+    // The board has to be able to render the settings while one plugin is stuck,
+    // or the operator's only route to changing the address is also gone.
+    const made = host([wedged('black-hole')])
+
+    await made.started
+
+    const listed = await made.pluginManifest()
+
+    expect(listed.map((entry) => entry.name)).toEqual(['black-hole'])
+  })
+})
+
+describe('one plugin asking another', () => {
+  /**
+   * The commonest integration in broadcast: one source of truth driving a different
+   * piece of software. The game reports a goal, and OBS cuts to the replay.
+   *
+   * A handler's `command()` reaches its own plugin and stops there, and a mutation
+   * is declared at module scope with no plugin to close over -- so before this the
+   * honest answer was a module-level map wired up by hand in `onReady`, which is a
+   * back channel around the emit/handle design and, being template source, was
+   * copied into every studio and exercised by none of them.
+   */
+  const commandable = (name, hooks = {}) =>
+    definePlugin({
+      name,
+      create: () => {
+        const runtime = new PluginBase(name)
+
+        runtime.sent = []
+        runtime.start = () => {}
+        runtime.command = (command, data) => {
+          if (command === 'unknown') throw new Error(`${name} has no command "unknown"`)
+
+          runtime.sent.push([command, data])
+
+          return hooks.owns === false ? false : true
+        }
+        runtime.ask = async (request, data) => ({ request, data, from: name })
+
+        return runtime
+      },
+    })
+
+  it('reaches a plugin that is not the one asking, from a mutation', async () => {
+    const made = createVelcroHost({
+      name: 'bridge-test',
+      persist: false,
+      plugins: [commandable('obs')],
+      mutations: {
+        'obs:scene'(ctx, { name }) {
+          return ctx.ask('obs', 'scene', { name })
+        },
+      },
+    })
+
+    await made.started
+
+    expect(made.mutate('obs:scene', { name: 'Podium' })).toBe(true)
+    expect(made.plugins.get('obs').sent).toEqual([['scene', { name: 'Podium' }]])
+  })
+
+  it('is quiet about a plugin that is not installed', async () => {
+    // A show not driving OBS tonight is the ordinary case, not a fault, and a studio
+    // should not have to guard every call.
+    const made = createVelcroHost({
+      name: 'bridge-quiet',
+      persist: false,
+      plugins: [],
+      mutations: {
+        'obs:scene'(ctx, { name }) {
+          return ctx.ask('obs', 'scene', { name })
+        },
+      },
+    })
+
+    await made.started
+
+    expect(made.mutate('obs:scene', { name: 'Podium' })).toBe(false)
+  })
+
+  it('still throws on a command the plugin does not take', async () => {
+    // That is a typo in studio code, and the far end would swallow the frame without
+    // a word. The quiet case above is about a plugin being absent, not about a name
+    // being wrong.
+    const made = createVelcroHost({
+      name: 'bridge-typo',
+      persist: false,
+      plugins: [commandable('obs')],
+      mutations: {
+        'obs:oops'(ctx) {
+          return ctx.ask('obs', 'unknown', {})
+        },
+      },
+    })
+
+    await made.started
+
+    expect(() => made.mutate('obs:oops', {})).toThrow(/no command "unknown"/)
+  })
+
+  it('says whether a plugin is running, so a studio can check before asking', async () => {
+    const made = createVelcroHost({
+      name: 'bridge-running',
+      persist: false,
+      plugins: [commandable('obs')],
+      mutations: {
+        'is:there'(ctx, { plugin }) {
+          return ctx.running(plugin)
+        },
+      },
+    })
+
+    await made.started
+
+    expect(made.mutate('is:there', { plugin: 'obs' })).toBe(true)
+    expect(made.mutate('is:there', { plugin: 'twitch' })).toBe(false)
+  })
+
+  it('reaches another plugin from a handler too, including the answer', async () => {
+    // `look` is on the handler and deliberately not on the mutation context: it
+    // returns a promise, and waiting inside a Yjs transaction is the part of
+    // "nothing but the store" that genuinely binds.
+    let seen = null
+
+    class Show extends PluginHandler {
+      static handles = {}
+    }
+
+    const made = createVelcroHost({
+      name: 'bridge-handler',
+      persist: false,
+      plugins: [
+        commandable('obs'),
+        definePlugin({
+          name: 'game',
+          create: (context) => {
+            const runtime = new PluginBase('game')
+
+            runtime.start = () => {}
+            seen = new Show({ ...context, plugin: runtime })
+
+            return runtime
+          },
+        }),
+      ],
+    })
+
+    await made.started
+
+    expect(seen.running('obs')).toBe(true)
+    expect(seen.ask('obs', 'scene', { name: 'Replay' })).toBe(true)
+    expect(made.plugins.get('obs').sent).toEqual([['scene', { name: 'Replay' }]])
+    await expect(seen.look('obs', 'GetSceneItemId', { name: 'cam' })).resolves.toEqual({
+      request: 'GetSceneItemId',
+      data: { name: 'cam' },
+      from: 'obs',
+    })
+  })
+
+  it('leaves a handler with no plugins to reach answering safely', async () => {
+    const bare = new PluginHandler({ mutate: () => {}, owner: () => true, studio: 's', plugin: null })
+
+    expect(bare.ask('obs', 'scene', {})).toBe(false)
+    expect(bare.running('obs')).toBe(false)
+    expect(bare.look('obs', 'x', {})).toBeUndefined()
   })
 })

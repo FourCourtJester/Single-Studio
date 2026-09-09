@@ -1,35 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { obs, ObsHandler } from '../src/index'
+import { FakeSocket, fakeSockets } from '@single-studio/core/testing'
+
+import { obs, OBSHandler } from '../src/index'
 import { authenticate, OP } from '../src/protocol'
 
-const sockets = []
-
-class FakeSocket {
-  constructor(url) {
-    this.url = url
-    this.sent = []
-    this.closed = false
-    this.listeners = {}
-    sockets.push(this)
-  }
-
-  addEventListener(type, fn) {
-    ;(this.listeners[type] ??= []).push(fn)
-  }
-
-  send(text) {
-    this.sent.push(JSON.parse(text))
-  }
-
-  close() {
-    this.closed = true
-  }
-
-  deliver(frame) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify(frame) })
-  }
-
+class ObsSocket extends FakeSocket {
   hello(authentication) {
     this.deliver({
       op: OP.HELLO,
@@ -63,6 +39,8 @@ class FakeSocket {
   }
 }
 
+const { sockets, Socket, reset } = fakeSockets(ObsSocket)
+
 /**
  * Wait for a frame to appear rather than for a length of time.
  *
@@ -83,12 +61,12 @@ const until = async (fn, tries = 50) => {
   return null
 }
 
-const build = (Handler = ObsHandler, over = {}) =>
+const build = (Handler = OBSHandler, over = {}) =>
   obs(Handler).create({ mutate: vi.fn(), owner: () => true, studio: 's', config: { host: 'localhost', port: 4455, password: '', events: '', ...over } })
 
 beforeEach(() => {
-  sockets.length = 0
-  vi.stubGlobal('WebSocket', FakeSocket)
+  reset()
+  vi.stubGlobal('WebSocket', Socket)
 })
 
 afterEach(() => {
@@ -98,13 +76,13 @@ afterEach(() => {
 
 describe('connecting', () => {
   it('builds the address from the configured host and port', () => {
-    build(ObsHandler, { host: '192.168.1.9', port: 4460 }).open()
+    build(OBSHandler, { host: '192.168.1.9', port: 4460 }).open()
 
     expect(sockets[0].url).toBe('ws://192.168.1.9:4460')
   })
 
   it('falls back to what OBS ships with', () => {
-    build(ObsHandler, { host: '', port: '' }).open()
+    build(OBSHandler, { host: '', port: '' }).open()
 
     expect(sockets[0].url).toBe('ws://localhost:4455')
   })
@@ -125,7 +103,7 @@ describe('connecting', () => {
   })
 
   it('answers the challenge when it does', async () => {
-    const plugin = build(ObsHandler, { password: 'hunter2' })
+    const plugin = build(OBSHandler, { password: 'hunter2' })
 
     plugin.open()
     sockets[0].hello({ challenge: 'chal', salt: 'salty' })
@@ -147,7 +125,7 @@ describe('connecting', () => {
   })
 
   it('subscribes only to the categories the wanted events live in', async () => {
-    const plugin = build(ObsHandler, { events: 'CurrentProgramSceneChanged' })
+    const plugin = build(OBSHandler, { events: 'CurrentProgramSceneChanged' })
 
     plugin.open()
     sockets[0].hello()
@@ -165,7 +143,7 @@ describe('the present, on connect', () => {
     // which on a quiet show could be the whole broadcast.
     const seen = vi.fn()
 
-    class MyShow extends ObsHandler {
+    class MyShow extends OBSHandler {
       onScene(...args) {
         seen(...args)
       }
@@ -224,7 +202,7 @@ describe('events', () => {
   it('reach the studio handler in the plugin’s shape', async () => {
     const seen = vi.fn()
 
-    class MyShow extends ObsHandler {
+    class MyShow extends OBSHandler {
       onStream(...args) {
         seen(...args)
       }
@@ -248,7 +226,7 @@ describe('events', () => {
 describe('telling OBS to do something', () => {
   /** Connected, identified, and with the connect-time reads already out of the way. */
   const talking = async (over = {}) => {
-    const plugin = build(ObsHandler, over)
+    const plugin = build(OBSHandler, over)
 
     plugin.open()
     await sockets[0].settle()

@@ -1,8 +1,28 @@
 # Releasing
 
-Two packages go to npm: `@single-studio/core` and `@single-studio/provider-supabase`.
+Six packages go to npm, in `PACKAGES` in `.github/workflows/release.yml`:
+
+| | |
+| --- | --- |
+| `@single-studio/core` | the framework |
+| `@single-studio/provider-supabase` | one of the two ways a show collaborates |
+| `@single-studio/plugin-obs`, `-sheets`, `-twitch`, `-rocket-league` | the first-party plugins |
+
 `@single-studio/relay` is `private: true` and stays out of it — it is a thing you
 deploy, not a thing you install.
+
+**All six share one version**, and the tag is checked against every one of them
+before anything publishes. That is deliberate rather than tidy: a plugin names core
+as a peer, so its range has to name a version that exists, and four ranges maintained
+separately are four chances for one to name a version that was never published —
+which npm reports at somebody else's install, not at ours. Lockstep costs a version
+bump on a package that did not change.
+
+**A plugin ships its source, not a build.** Which means Node's own resolver reads it
+rather than a bundler, and every relative import needs its `.js`. All four packed
+cleanly, installed cleanly and threw on first import the day they were made
+publishable; `verify:template` now installs and imports every package for exactly
+this reason.
 
 ## The thing that surprises everyone
 
@@ -111,6 +131,20 @@ regardless of what `files` says — so it would keep building for years after `d
 fell out of the published tarball, and the first person to find out would be the
 first person to start a project.
 
+## The four plugin names have never been published
+
+The first publish of a name cannot use OIDC — npm requires a package to _exist_
+before a trusted publisher can be attached to it — so `plugin-obs`, `plugin-sheets`,
+`plugin-twitch` and `plugin-rocket-league` each need one publish on the token path
+before the workflow can take them over.
+
+That is the same step core and the provider went through, described below. Do all
+four in one sitting, then configure trusted publishing for each on npm, then let the
+next release go out on OIDC as usual.
+
+Check what is about to go out first — `npm pack` in each, and look inside. npm
+refuses to unpublish after 72 hours.
+
 ## Worth doing once the packages exist: trusted publishing
 
 npm can authenticate a publish from GitHub Actions over OIDC instead of a stored
@@ -163,20 +197,29 @@ Worth knowing while it stays private: the published packages are public and thei
 not broken, but it is a dead link on two public npm pages, and anybody evaluating
 the package cannot read the source before installing it.
 
-## The template repository is synced by the release
+## Both template repositories are synced by the release
 
-`templates/studio` here is authoritative. The
-[template repository](https://github.com/FourCourtJester/Single-Studio-Template) is a
-mirror, pushed by the `template` job in `release.yml` once the packages are actually
-on npm.
+`templates/studio` and `templates/plugin` here are authoritative. Both mirrors are
+pushed by the `template` job in `release.yml`, as a matrix, once the packages are
+actually on npm:
 
-It works this way because the template is coupled to the framework in a way the demo
-is not. Its source calls the components by name, so an API change here forces a
-change there — 0.2.0 alone moved every import to `/control` and `/source`, renamed
-`ToggleButton`, and changed what `swap` and `group` mean. A template repository that
-missed any of it would hand somebody a studio that does not compile, and nothing
-would say so: `verify-template.mjs` would keep passing here, against the copy nobody
-uses.
+| Source | Mirror | Secret |
+| --- | --- | --- |
+| `templates/studio` | [Single-Studio-Template](https://github.com/FourCourtJester/Single-Studio-Template) | `TEMPLATE_DEPLOY_KEY` |
+| `templates/plugin` | Single-Studio-Plugin-Template | `PLUGIN_TEMPLATE_DEPLOY_KEY` |
+
+It works this way because neither template is independent of the framework the way
+the demo is. Their source calls the components and base classes by name, so an API
+change here forces a change there — 0.2.0 alone moved every import to `/control` and
+`/source`, renamed `ToggleButton`, and changed what `swap` and `group` mean; 0.6.0
+renamed two plugin handlers and moved cross-plugin calls into the framework. A
+template repository that missed any of it would hand somebody a project that does not
+compile, and nothing would say so: `verify-template.mjs` would keep passing here,
+against the copy nobody uses.
+
+The matrix runs with `fail-fast: false`, so a missing key on one does not hide the
+state of the other — on a manual check run, knowing both are wrong beats finding out
+twice.
 
 The job replaces the mirror's contents rather than merging, so a file deleted here is
 deleted there. It never force-pushes the branch, and it skips the commit entirely when
@@ -185,9 +228,16 @@ nothing changed — but it tags every release either way, so "which template goe
 
 ### The credential: a deploy key, not a token
 
-The job needs a secret called **`TEMPLATE_DEPLOY_KEY`** in _this_ repository, holding
-the **private half** of an SSH keypair whose public half is a write-enabled deploy key
-on the template repository.
+The job needs a secret **per mirror** in _this_ repository — `TEMPLATE_DEPLOY_KEY`
+and `PLUGIN_TEMPLATE_DEPLOY_KEY` — each holding the **private half** of an SSH keypair
+whose public half is a write-enabled deploy key on that mirror.
+
+Two keypairs, not one reused. A deploy key is scoped to a single repository by design,
+and that is the property worth keeping: the whole reason this is not a personal access
+token is that a leak should reach one repository rather than everything its owner can
+see.
+
+Do the following twice, once per mirror, changing the filename and the secret name.
 
 Generate it somewhere that is **not a git repository** — an absolute path into a
 temporary directory, so there is no chance of a private key landing next to files you
@@ -198,10 +248,10 @@ cd "$(mktemp -d)" && pwd            # prints where you are; the keys land here
 ssh-keygen -t ed25519 -C "single-studio template sync" -f "$PWD/template-sync" -N ""
 ```
 
-- **Public half** (`template-sync.pub`) → Single-Studio-**Template** → Settings →
+- **Public half** (`template-sync.pub`) → the **mirror** repository → Settings →
   Deploy keys → Add deploy key → **tick "Allow write access"**
 - **Private half** (`template-sync`) → Single-**Studio** → Settings → Secrets and
-  variables → Actions → `TEMPLATE_DEPLOY_KEY`
+  variables → Actions → the secret name for that mirror
 
 Paste the private half whole, including the `-----BEGIN OPENSSH PRIVATE KEY-----` and
 `-----END-----` lines and the trailing newline.

@@ -11,13 +11,13 @@ const NAMESPACE = 'variables'
  * @property {string[]} [names] - Cleared back to each source's own fallback.
  * @property {string[]} [paths] - Full paths, for clearing `toggles` or `timers` in the same press.
  * @property {string} [label] - Names what gets cleared: the button reads "Reset `<label>`". Defaults to `"Reset"`.
- * @property {boolean} [confirm] - Arm on the first press, clear on the second.
+ * @property {boolean} [confirm] - Ask before clearing. Defaults to `true`; pass `confirm={false}` for a button that fires on one press.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Reset `<label>`" text.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
  * Clear a set of values back to each source's own fallback. It unsets rather than
- * writing empties, so a graphic falls back rather than going blank. Writes immediately.
+ * writing empties, so a graphic falls back rather than going blank. Asks first.
  *
  * Uses `unset` rather than writing empty strings, so the keys are removed and each
  * source falls back to its own default. Writing '' would leave the paths present
@@ -32,20 +32,28 @@ const NAMESPACE = 'variables'
  * reach anything else in the same press -- clearing a toggle and the value it was
  * showing together, say.
  *
- * `confirm` makes it ask: the first press arms the button and says so, the second
+ * **It asks by default.** The first press arms the button and says so, the second
  * does it, and a few seconds of silence disarms it. It asks inside the page rather
  * than through `window.confirm`, which is not a style choice -- see <Confirm>.
+ *
+ * Asking was a prop you had to remember, and a guard nobody opts into is not a
+ * guard. The failure it exists for is one mis-aimed click wiping a scoreboard on
+ * air, in front of an audience, with no undo -- which is worth the second click
+ * every time, and which happened before this default changed.
+ *
+ * `confirm={false}` gives back the single press, for a button whose worst outcome
+ * is small and whose speed matters more.
  *
  * @example
  * <ResetButton label="scores" names={['home.score', 'away.score']} />
  *
  * @example
- * // Ask first, for something that would hurt mid-show
- * <ResetButton label="the draft" names={['home.army', 'away.army']} confirm />
+ * // One press, for something trivial to put back
+ * <ResetButton label="the note" names={['lowerthird.note']} confirm={false} />
  *
  * @param {ResetButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function ResetButton({ names = [], paths = [], label = 'Reset', confirm = false, className, children, ...rest }) {
+export function ResetButton({ names = [], paths = [], label = 'Reset', confirm = true, className, children, ...rest }) {
   const mutate = useVelcroMutate()
   const targets = qualify({ names, paths, namespace: NAMESPACE })
 

@@ -9,6 +9,9 @@ export { Service } from './services/Service'
 export { SocketService } from './services/SocketService'
 export { PollingService } from './services/PollingService'
 export { Emitter } from './toolkits/emitter'
+// A plugin that reports a clock wants to hand over a face as well as a number, and
+// the alternative is every plugin growing its own mm:ss.
+export { formatDuration, parseDuration } from './toolkits/time'
 export { mutations } from './velcro/mutations'
 export * as Doc from './velcro/doc'
 export * as Paths from './velcro/paths'

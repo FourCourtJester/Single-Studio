@@ -180,6 +180,19 @@ const sides = async () => ({
 check(await becomes(control, () => document.querySelectorAll('.ss-stepper input')[1]?.value === '1'), 'the away score reaches 1 before the sides are read')
 
 const sidesBefore = await sides()
+
+// One press arms, it does not swap. The guard is the point: a mis-aimed click puts
+// both names and both scores on the wrong side of a live scoreboard, and the
+// operator's next ten seconds go on working out what happened rather than on the
+// show.
+await control.locator('.ss-swap').click()
+await control.waitForTimeout(600)
+check(JSON.stringify(await sides()) === JSON.stringify(sidesBefore), 'one press on a swap arms it rather than trading the sides')
+check(
+  await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-swap')?.textContent ?? '')),
+  'and says a second press is what finishes it',
+)
+
 await control.locator('.ss-swap').click()
 await control.waitForTimeout(600)
 const sidesAfter = await sides()
@@ -191,8 +204,59 @@ check(sidesAfter.homeScore === sidesBefore.awayScore && sidesAfter.awayScore ===
 // Back again, which both proves it is its own inverse and leaves the board as this
 // section found it -- everything below reads the same values.
 await control.locator('.ss-swap').click()
+await control.locator('.ss-swap').click()
 await control.waitForTimeout(600)
 check(JSON.stringify(await sides()) === JSON.stringify(sidesBefore), 'and swapping again puts every value back where it started')
+
+// -- Fitting a long name -----------------------------------------------------
+/*
+ * The scoreboard's name sits in a `w-56` box, centred, as an unstretched flex item
+ * -- which is to say a box sized by its own text. `Fit` measured that box and asked
+ * whether the text fitted inside itself, the answer was always yes, and `fit` did
+ * nothing whatsoever. Silently: no warning, no partial effect, and invisible until
+ * somebody enters a long name on air. Every use of it in the first real show was
+ * inert, and so was this one, in our own fixture, the whole time.
+ *
+ * Measured rather than eyeballed, because "it looks smaller" is exactly the
+ * impression the broken version also gives when the name happens to be short.
+ */
+const fitted = () =>
+  source.evaluate(() => {
+    const fit = document.querySelector('.home-name .ss-fit')
+    const box = document.querySelector('.home-name')?.parentElement
+
+    if (!fit || !box) return null
+
+    const style = getComputedStyle(box)
+    const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+
+    return { width: Math.round(fit.scrollWidth), room: Math.round(room), size: parseFloat(getComputedStyle(fit).fontSize) }
+  })
+
+await homeName.fill('Kim')
+await save()
+await source.waitForFunction(() => /Kim/.test(document.querySelector('.home-name')?.textContent ?? ''))
+await source.waitForTimeout(300)
+
+const short = await fitted()
+
+check(short.width <= short.room, `a name that already fits is left alone (${short.width}px in ${short.room}px at ${short.size}px)`)
+
+await homeName.fill('Vandersteen-Rodriguez')
+await save()
+await source.waitForFunction(() => /Vandersteen/.test(document.querySelector('.home-name')?.textContent ?? ''))
+await source.waitForTimeout(400)
+
+const long = await fitted()
+
+console.log(`  fit: ${short.size}px for "Kim", ${long.size}px for "Vandersteen-Rodriguez"`)
+check(long.width <= long.room + 1, `a long name is brought inside its box (${long.width}px in ${long.room}px)`)
+check(long.size < short.size, `by shrinking it, rather than by overflowing quietly (${long.size}px against ${short.size}px)`)
+
+// Put it back, so the section below still watches the value it was written for.
+await homeName.fill('Broncos')
+await save()
+await source.waitForFunction(() => /Broncos/.test(document.querySelector('.home-name')?.textContent ?? ''))
 
 // -- Transition ordering -----------------------------------------------------
 // The regression that matters: content must swap at the *bottom* of the cycle. If
@@ -482,6 +546,16 @@ check(filed?.includes('rifleman'), 'and the tile shows the name inside the group
 
 // The dropdown is where this pays for itself: an optgroup is a menu you aim at
 // rather than a list you read.
+//
+// Waited on before it is read. The picker fills from the library a beat after the
+// tiles do, so a bare `evaluate` here samples whatever the dropdown happened to
+// hold and fails on the group's *contents* while passing on the group itself --
+// which is exactly how it failed, intermittently, and reads as a grouping bug
+// rather than a test that did not wait.
+await becomes(control, () =>
+  [...(document.querySelector('.ss-image-picker select')?.querySelectorAll('optgroup option') ?? [])].some((o) => o.textContent === 'rifleman'),
+)
+
 const options = await control.evaluate(() => {
   const select = document.querySelector('.ss-image-picker select')
 
@@ -1021,6 +1095,21 @@ check(
 // A red button reading "draft" says it is dangerous but not what it does.
 check((await control.locator('.ss-reset').first().textContent()).trim() === 'Reset draft', 'a reset button names the thing it resets')
 
+// And it asks, without being told to. The prop existed from the start and defaulted
+// to off, which is a guard nobody opts into -- so a mis-aimed press cleared a board
+// on air with no undo. The fixture passes no `confirm`; this is the default.
+const reset = control.locator('.ss-reset').first()
+
+await reset.click()
+check(await becomes(control, () => /click to confirm/i.test(document.querySelector('.ss-reset')?.textContent ?? '')), 'a reset asks before it clears, unasked')
+
+// Blur disarms, so the board is left exactly as this section found it.
+await control.locator('.ss-panel').first().click()
+check(
+  await becomes(control, () => /Reset draft/.test(document.querySelector('.ss-reset')?.textContent ?? '')),
+  'and looking away disarms it rather than leaving one live under the cursor',
+)
+
 // -- Map ---------------------------------------------------------------------
 await control.locator('.ss-image-select').filter({ hasText: 'Map' }).locator('button[data-value="redline"]').click()
 await control.locator('button:has-text("Show map")').click()
@@ -1369,6 +1458,45 @@ const openLibrary = async () => {
 const closeLibrary = () => control.locator('.ss-asset-dialog[open] button[aria-label="Close the image library"]').click()
 const tiles = () => control.locator('.ss-asset-dialog[open] .ss-asset-tile').count()
 
+/*
+ * Loading the show while the show is on air.
+ *
+ * The first people to use `Slideshow` hit this within a day: pictures dropped on
+ * the board mid-programme never reached a graphic already playing, and came back on
+ * a reload -- so the bytes had been there the whole time. The library's index
+ * replicates and was arriving; what did not was the local half, "do I hold this?",
+ * which only re-read when the page that did the writing said so. A browser source
+ * is a different page, so nothing ever told it.
+ *
+ * Two pages on purpose. Checking on the board alone passes either way, since that
+ * page notifies itself, and is exactly the shape of test that let this ship.
+ *
+ * Down here rather than beside the upload that fills the group, because this adds
+ * to the library and every check that counts tiles has run by now -- and the two
+ * counts still ahead of it, the reset's and the purge's, are both taken below.
+ */
+{
+  const playing = await context.newPage()
+
+  playing.on('pageerror', (error) => crashes.push(`standby (playing): ${error.message}`))
+  await playing.goto(`${BASE}/#/source/standby`)
+  await playing.waitForSelector('.ss-slide[data-on]')
+
+  const held = await playing.evaluate(() => document.querySelectorAll('.ss-slide').length)
+
+  // Two files, so the name field means "group": one would make `units` the name of
+  // a single asset rather than a folder to file it under.
+  await library.locator('input[aria-label="Asset name"]').fill('units')
+  await library.locator('input[aria-label="Add image files"]').setInputFiles([asset('maps/ashfall.svg'), asset('maps/redline.svg')])
+
+  check(
+    await becomes(playing, (n) => document.querySelectorAll('.ss-slide').length === n + 2, held, 20000),
+    `a picture added to the group mid-show reaches a graphic already on air (${held} -> ${held + 2}, no reload)`,
+  )
+
+  await playing.close()
+}
+
 await openLibrary()
 const before = await tiles()
 await closeLibrary()
@@ -1527,6 +1655,50 @@ check(await becomes(control, () => document.querySelector('.ss-plugin[data-plugi
 // the demo feed's and Rocket League's. Which is the point of the scoping rather than
 // an annoyance: a panel with one plugin in it never proved anything about a panel.
 const row = control.locator('.ss-plugin[data-plugin="feed"]')
+
+/*
+ * Folded away until asked for.
+ *
+ * A studio with six plugins is a scroll, and reading this panel -- is everything
+ * up? -- is what an operator does with it far more often than editing it. So the
+ * light, the name and the status word stay out, and the rest is behind the row.
+ */
+check(
+  await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body')),
+  'a connected plugin starts folded away, so a panel of them is a list rather than a scroll',
+)
+
+/*
+ * And one that is not connected opens itself.
+ *
+ * The fixture registers Rocket League as well, pointed at a game that is not
+ * running here -- which is the case this rule is for. A panel opened *because*
+ * something is wrong should not then ask which row to look in: the settings worth
+ * changing are the ones behind the plugin that is not talking.
+ *
+ * Not driven by a contrived plugin, because the honest version was already in the
+ * fixture: a real socket plugin with nothing at the other end.
+ */
+check(
+  await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="rocket-league"]')?.dataset.status !== 'connected'),
+  'the second plugin is not connected, there being no game here',
+)
+check(
+  await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="rocket-league"] .ss-plugin-body'))),
+  'and so it opens itself, rather than hiding the settings somebody came here to change',
+)
+check(
+  (await row.locator('.ss-plugin-toggle').textContent()).includes('Demo feed'),
+  'and still says which plugin it is while folded',
+)
+check(
+  (await row.locator('.ss-plugin-toggle').textContent()).includes('Connected'),
+  'and whether it is talking, which is the question being asked most of the time',
+)
+
+await row.locator('.ss-plugin-toggle').click()
+check(await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body'))), 'opening the row brings out what it can be asked')
+
 const pluginSave = row.locator('.ss-plugin-save')
 
 const label = control.locator('#ss-plugin-field-label')
@@ -1582,6 +1754,24 @@ check(
 // the plugin's standing reason as well as the save's -- and the same sentence in
 // two places reads as two problems.
 check((await row.locator('.ss-plugin-reason').count()) === 0, 'and says it once, not twice')
+
+/*
+ * And folding the row away does not take the reason with it.
+ *
+ * The save's own message lives beside the button, which is right while the button
+ * is on screen and useless once it is not. Collapsing hands back to the plugin's
+ * standing reason -- the same sentence, suppressed until now. Without that the row
+ * would fold up quiet about a plugin that is refusing to run, which is the state
+ * this panel exists to get away from.
+ */
+await row.locator('.ss-plugin-toggle').click()
+check(
+  await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-reason')?.textContent ?? '')),
+  'a folded row still says why it is not running',
+)
+check(await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body')), 'with everything else out of the way')
+
+await row.locator('.ss-plugin-toggle').click()
 
 // Put it back, so the rest of the run is not driven by a stopped plugin.
 await rate.fill('120')

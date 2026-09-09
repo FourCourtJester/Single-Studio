@@ -13,10 +13,11 @@ files with nothing to run alongside it.
 
 ## Still to confirm
 
-- The WebSocket URL and port after 2.72, and the `TAStatsAPI.ini` /
-  `DefaultStatsAPI.ini` keys that enable it. Pre-2.72 the TCP port was 49123, under
-  `[TAGame.MatchStatsExporter_TA]`, with `PacketSendRate` capped at 120 and 0
-  disabling the feature. Config is read at client start, so changes need a restart.
+- Which file and heading actually enable it. A connection has been made, so
+  _something_ turns it on, but not which of `TAStatsAPI.ini` /
+  `DefaultStatsAPI.ini` or whether `[TAGame.MatchStatsExporter_TA]`,
+  `PacketSendRate` and the 120 cap carried over from the pre-2.72 TCP API. Config is
+  read at client start, so changes need a restart.
 - Whether anything is emitted on connect, or whether a client sees nothing until the
   next tick.
 - Whether a StatsAPI file is there by default or has to be created. The folder is
@@ -29,6 +30,17 @@ The config directory on Windows:
 ```
 %USERPROFILE%\Documents\My Games\Rocket League\TAGame\Config\
 ```
+
+**A studio has connected to the real game at `ws://localhost:49124`.** That is the
+first end-to-end confirmation this file has, and it settles the address: not the
+49123 the pre-2.72 TCP socket used, and not the 49122 this plugin shipped with until
+somebody looked. No path was needed. Both are the plugin's defaults now, and the
+port is what `dev/replay.mjs` serves on.
+
+`localhost` rather than `127.0.0.1` because that is what was tested. The two are not
+always the same thing — `localhost` may resolve to `::1` first, and a server bound
+only to IPv4 refuses it — so the one that has been seen to work is the one that
+ships. The replay server binds every interface and answers to both, checked.
 
 Checked by somebody with the game installed, which is the only way any of this gets
 checked -- Psyonix's documentation is blocked from this container. It is the user's
@@ -212,7 +224,7 @@ was written in.
 ## Watching it work without the game
 
 `pnpm --filter @single-studio/plugin-rocket-league replay` serves the Stats API shape
-on `ws://127.0.0.1:49122` and plays a short match on a loop — kickoff, three goals
+on `ws://localhost:49124` and plays a short match on a loop — kickoff, three goals
 with their replay sequences, a demolition, a podium — then starts again. The demo
 studio registers the plugin, so `pnpm fixture` plus that command is a moving
 scoreboard with nothing installed.
@@ -242,8 +254,8 @@ Wire name to emitted name, where they differ:
 | `GoalScored`                                              | `goal`                                       |
 | `GoalReplayStart` / `GoalReplayWillEnd` / `GoalReplayEnd` | `replayStart` / `replayEnding` / `replayEnd` |
 | `ClockUpdatedSeconds`                                     | `clock`                                      |
-| `BallHit`                                                 | `ballHits` (a list)                          |
-| `BoostPickup`                                             | `boostPickups` (a list)                      |
+| `BallHit`                                                 | `ballHit`                                    |
+| `BoostPickup`                                             | `boostPickup`                                |
 | `ReplayCreated`                                           | `replaySaved`                                |
 | `StatfeedEvent`, and `StatFeedEvent`                      | `statfeed`                                   |
 | `UpdateState`                                             | `score`, `state`                             |
@@ -257,15 +269,20 @@ policy:
 - **`score`** whenever either number changes, throttle or no throttle. `GoalScored`
   says who scored, not what the score became, so a studio counting goals itself is
   wrong the first time it misses one.
-- **`state`** at most every `stateEvery` milliseconds, default 250, **floored at
-  100**. A typed `0` switches it off and goals and the clock still arrive; a
-  _cleared_ field is not a typed zero and falls back to the default; a typed `8`
-  becomes 100.
+- **`state`** **every 100ms, fixed**, and not settable from anywhere. Goals and the
+  clock arrive as they happen regardless.
 
-The floor is a decision rather than a measurement, though the measurements agree
-with it: nothing on a stream changes visibly more than ten times a second, and every
-emit a handler turns into a write is charged at the rates above. It is a floor and
-not a default because a default is only the value somebody has not changed yet.
+The rate is a decision rather than a measurement, though the measurements agree with
+it: nothing on a stream changes visibly more than ten times a second, and every emit
+a handler turns into a write is charged at the rates above.
+
+It was a panel field (`stateEvery`, default 250, floored at 100, `0` for off) and is
+not one any more. There was no answer an operator could give that beat the fixed one,
+and a number that can be typed is a number that gets typed -- one show at 16ms
+filling a document nobody can join late, another at 2000 wondering why the boost
+meter stutters, both of them our bug to explain. Studios upgrading still carry the
+old key in saved config; it is ignored, which is pinned by a test, because the value
+most likely to be sitting there is the `0` that used to mean silence.
 
 The state is **collected, not dropped**. The newest tick is held and handed on when
 the window opens, rather than emitting whichever tick happens to land on a boundary.
@@ -274,39 +291,39 @@ with the second, a studio's last word on a match is a moment before the whistle.
 costs one held reference. Normalising only what is emitted is the other half of it —
 `gameState()` runs ten times a second at most, whatever the feed does.
 
-### Two collations, in opposite directions
+### Only the tick is held
 
-`ballHit` and `boostPickup` are throttled too, and not the same way.
+`ballHit` and `boostPickup` were batched once — collected into dated lists and
+drained every 100ms, on the argument that a dribble is a touch every few frames and
+no graphic changes for one.
 
-A dribble is a touch every few frames and six players crossing a pitch take boost
-pads continuously. Neither is something a graphic changes for — nobody has ever cut
-to a lower third because somebody touched the ball — but both are exactly what a
-stats package wants afterwards. Dropping them would throw away the only thing they
-are good for.
+The argument is sound and was being applied in the wrong place. It is a claim about
+what a *show* does with these events, and a plugin does not know that. A studio
+animating on a boost pickup cannot have it arrive up to a tenth of a second after the
+pickup and still land with it; a studio that only wants them for stats can collect
+them itself, on the handler, and pays the volume by choosing to. Holding them back
+served the second case, which did not need help, at the first case's expense.
 
-So the two throttles collate in opposite directions:
+The 120-a-second problem is `UpdateState` alone. That one arrives whether anybody is
+looking or not, no show can use it at that rate, and it is the one place a rate is
+ours rather than an integrator's. Ball touches and boost pickups are their own
+messages and are not that.
 
-| Kind       | Example    | Between windows        | Handed over  |
-| ---------- | ---------- | ---------------------- | ------------ |
-| **Sample** | `state`    | Newest replaces oldest | The last one |
-| **Fact**   | `ballHits` | Appended               | All of them  |
+So: **`state` is throttled, everything else is emitted on arrival.** The names went
+back to singular with the shape — `onBallHit(hit)`, `onBoostPickup(pickup)` — and the
+`at` stamp went with the batching, since a handler receiving an event as it happens
+can date it more accurately than we can.
 
-Each fact is dated on the way in, because that is the information batching would
-otherwise destroy: twelve touches handed over together are a dribble or twelve
-separate touches depending on when each happened, and by the time the batch arrives
-there is nothing left to tell them apart with.
+| Kind       | Example | Between windows        | Handed over  |
+| ---------- | ------- | ---------------------- | ------------ |
+| **Sample** | `state` | Newest replaces oldest | The last one |
+| **Event**  | *all the rest* | Nothing to hold | As it arrives |
 
-The name changes with the shape — `ballHits`, not `ballHit`. A studio author
-overriding `onBallHit` that quietly started receiving an array would find out on
-air; one overriding `onBallHits(hits)` is told by the signature.
-
-Facts have no leading edge, unlike the tick. Sending the first one immediately and
-batching the rest would mean a burst — the whole case this exists for — still costs
-two emits where it should cost one. An empty window emits nothing at all.
-
-Everything else is immediate. A goal held back a tenth of a second is a graphic a
-tenth of a second late for no saving worth having; goals, the stat feed and the
-whistle happen a few times a match.
+The advice that came with the batching still holds, just on the other side of the
+seam: a `mutate` per touch is a transaction, an IndexedDB write and a broadcast
+each. A handler that only counts them should collect on the instance and write the
+run in one call. That is documented in [plugins.md](../plugins.md), where the person
+who needs it is reading.
 
 Booleans lose their `b`, teams gain a `side` of `blue` or `orange`, and team colours
 gain the `#` that makes them CSS.

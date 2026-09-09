@@ -1,6 +1,7 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
+import { Confirm } from './Confirm'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -10,11 +11,20 @@ const NAMESPACE = 'variables'
  * @property {string[]} [names] - One side, then the other, spelled the same way. Cut in half and traded.
  * @property {string[]} [paths] - Full paths, for trading values outside `variables`.
  * @property {string} [label] - Names what gets traded, on the button. Defaults to `"Swap"`.
+ * @property {boolean} [confirm] - Ask before trading. Defaults to `true`; pass `confirm={false}` to trade on one press.
  * @property {import("react").ReactNode} [children] - Replaces the generated text.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * Trade two sides of the board — teams changing ends. Writes immediately.
+ * Trade two sides of the board — teams changing ends. Asks first.
+ *
+ * **It asks by default.** One press arms it, a second does it, and a few seconds
+ * of silence disarms it. A swap is undone by swapping back, so this is `warn`
+ * rather than `danger` -- but it puts both team names and both scores on the wrong
+ * side of a scoreboard the instant it lands, live, and the second press costs less
+ * than the ten seconds an operator spends working out what just happened.
+ *
+ * `confirm={false}` gives back the single press.
  *
  * List one side, then the other, in the same order. The list is cut down the middle
  * and the halves trade position for position:
@@ -45,14 +55,24 @@ const NAMESPACE = 'variables'
  *
  * @param {SwapButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function SwapButton({ names = [], paths = [], label = 'Swap', className, children, ...rest }) {
+export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = true, className, children, ...rest }) {
   const mutate = useVelcroMutate()
   const targets = qualify({ names, paths, namespace: NAMESPACE })
+
+  const swap = () => mutate('swap', targets)
+
+  if (confirm) {
+    return (
+      <Confirm className={cx('ss-swap', className)} label={label} onConfirm={swap} tone="warn" title={label} {...rest}>
+        {children}
+      </Confirm>
+    )
+  }
 
   return (
     <button
       type="button"
-      onClick={() => mutate('swap', targets)}
+      onClick={swap}
       className={cx('ss-swap rounded-md bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-amber-400', className)}
       {...rest}
     >

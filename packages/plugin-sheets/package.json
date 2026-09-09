@@ -1,20 +1,31 @@
 {
   "name": "@single-studio/plugin-sheets",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.6.0",
   "description": "Google Sheets for Single Studio: a shared spreadsheet as a data source, with an API key and no backend.",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "single-studio",
+    "single-studio-plugin",
+    "obs",
+    "broadcast"
+  ],
   "exports": {
     ".": "./src/index.js"
   },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run"
   },
-  "dependencies": {
-    "@single-studio/core": "workspace:*"
+  "peerDependencies": {
+    "@single-studio/core": "^0.6.0"
   },
   "devDependencies": {
+    "@single-studio/core": "workspace:*",
     "vitest": "^3.2.6"
   }
 }

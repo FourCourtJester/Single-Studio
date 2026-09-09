@@ -1,6 +1,8 @@
+import { readFile } from 'node:fs/promises'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getSupport, resetSupport } from '../src/velcro/support'
+import { CSS_TARGET, getSupport, MINIMUM_VERSIONS, resetSupport } from '../src/velcro/support'
 
 // Fakes for the three shapes of browser we care about. The interesting one is
 // `StringOnlySharedWorker`: it models a pre-2020 implementation whose second
@@ -156,5 +158,42 @@ describe('capability check', () => {
     getSupport()
 
     expect(spy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('what the CSS is compiled for', () => {
+  /**
+   * `cssTarget` and `MINIMUM_VERSIONS` are the same promise written twice, in two
+   * files, one of which is a build config nobody opens. This is the thing that keeps
+   * them from drifting.
+   *
+   * Read out of the config text rather than by importing it: a Vite config imports
+   * plugins that have no business being loaded by a unit test, and what is being
+   * checked is the literal an author would edit anyway.
+   */
+  const configs = ['../../../templates/studio/vite.config.js', '../../../apps/fixture/vite.config.js']
+
+  it.each(configs)('%s pins it to the browsers the framework promises', async (where) => {
+    const text = await readFile(new URL(where, import.meta.url), 'utf8')
+    const found = text.match(/cssTarget:\s*\[([^\]]*)\]/)
+
+    expect(found, `${where} sets no cssTarget, so its CSS ships un-lowered`).toBeTruthy()
+
+    const listed = found[1]
+      .split(',')
+      .map((one) => one.trim().replace(/^['"]|['"]$/g, ''))
+      .filter(Boolean)
+
+    expect(listed).toEqual(CSS_TARGET)
+  })
+
+  it('leaves OBS out, its version numbering meaning nothing to a build tool', () => {
+    // Chromium underneath, and `obs28` is not a browser esbuild has heard of.
+    expect(MINIMUM_VERSIONS.map(([browser]) => browser)).toContain('OBS (embedded browser)')
+    expect(CSS_TARGET.join(' ')).not.toContain('obs')
+  })
+
+  it('says every other supported browser, in the spelling esbuild wants', () => {
+    expect(CSS_TARGET).toEqual(['chrome83', 'firefox114', 'safari16'])
   })
 })

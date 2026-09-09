@@ -1,10 +1,10 @@
 import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
-import { EVENTS, normalise } from './events'
-import { Protocol } from './protocol'
+import { EVENTS, normalise } from './events.js'
+import { Protocol } from './protocol.js'
 
-export { EVENTS, normalise, scopesFor } from './events'
-export { Protocol } from './protocol'
+export { EVENTS, normalise, scopesFor } from './events.js'
+export { Protocol } from './protocol.js'
 
 const EVENTSUB = 'wss://eventsub.wss.twitch.tv/ws'
 const HELIX = 'https://api.twitch.tv/helix/eventsub/subscriptions'
@@ -33,6 +33,22 @@ class Twitch extends SocketService {
   /** Not usable until subscribed, so `open()` waits for that rather than the socket. */
   get readyOnOpen() {
     return false
+  }
+
+  /**
+   * Longer than the default, because `ready()` here is much further away than a
+   * socket coming up.
+   *
+   * Between the two are a welcome frame and then one HTTP round trip per event
+   * type, in a row -- seven by default. Ten seconds is comfortable for a handshake
+   * and is not obviously comfortable for that, and being wrong is not a slow
+   * connection but a retry loop that fails at the same place every time. The
+   * deadline is still worth having: it is bounded, and the failure it exists for
+   * -- a socket accepted and then abandoned -- is not made likelier by a bigger
+   * number.
+   */
+  get connectBudgetMs() {
+    return 30_000
   }
 
   get url() {

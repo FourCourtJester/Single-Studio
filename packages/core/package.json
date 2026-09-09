@@ -1,6 +1,6 @@
 {
   "name": "@single-studio/core",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Local-first broadcast graphics framework for OBS: replicated state, source graphics, and control surfaces.",
   "license": "MIT",
   "repository": {
@@ -54,6 +54,7 @@
       "import": "./dist/worker.js",
       "default": "./dist/worker.js"
     },
+    "./testing": "./src/testing/index.js",
     "./styles.css": "./src/styles/base.css",
     "./package.json": "./package.json"
   },

@@ -1,8 +1,8 @@
 import { definePlugin, PluginHandler, PollingService } from '@single-studio/core/worker'
 
-import { explain, parse, urlFor } from './sheet'
+import { explain, parse, urlFor } from './sheet.js'
 
-export { explain, keyOf, parse, same, urlFor } from './sheet'
+export { explain, keyOf, parse, same, urlFor } from './sheet.js'
 
 /**
  * A shared spreadsheet as a data source.
@@ -21,16 +21,19 @@ export { explain, keyOf, parse, same, urlFor } from './sheet'
  * one sheet's worth of information. `Service` already answers that: exactly one
  * machine asks, and everybody else reads the replicated result.
  */
-class Sheets extends PollingService {
-  static serviceName = 'sheets'
+class GoogleSheets extends PollingService {
+  static serviceName = 'google-sheets'
 
   /** Google allows sixty reads a minute per user. One a second is a limit waiting. */
   get floorSeconds() {
     return 5
   }
 
-  async read() {
-    const response = await fetch(urlFor({ id: this.config.id, range: this.config.range, key: this.config.key }))
+  async read(signal) {
+    // Handed to `fetch` so the deadline actually stops the request. The base class
+    // enforces it either way, but without this the abandoned request keeps running
+    // and the next tick's poll queues up behind somebody else's stalled socket.
+    const response = await fetch(urlFor({ id: this.config.id, range: this.config.range, key: this.config.key }), { signal })
     const body = await response.json().catch(() => ({}))
 
     if (!response.ok) {
@@ -68,7 +71,7 @@ class Sheets extends PollingService {
 }
 
 /** The skeleton a studio fills in. */
-export class SheetsHandler extends PluginHandler {
+export class GoogleSheetsHandler extends PluginHandler {
   static handles = { rows: 'onRows', problem: 'onProblem' }
 
   onRows() {}
@@ -76,8 +79,21 @@ export class SheetsHandler extends PluginHandler {
   onProblem() {}
 }
 
-/** @param {typeof SheetsHandler} [Handler] */
-export const sheets = (Handler = SheetsHandler) =>
+/**
+ * @param {typeof GoogleSheetsHandler} [Handler]
+ * @param {{ id?: string, range?: string, header?: boolean }} [sheet]
+ *   Which spreadsheet, and which cells. **Given by the studio, not by the operator.**
+ *
+ *   A range is not a preference. The studio reading it has code that expects columns
+ *   in an order, and a range that does not match is not a different view of the same
+ *   data -- it is a graphic quietly showing the wrong column, which is the worst way
+ *   for this to fail. The same goes for the id: a studio ships knowing the shape of
+ *   the sheet it was written against.
+ *
+ *   So the operator is asked for the one thing that is genuinely theirs and cannot
+ *   be shipped -- an API key, which is a credential.
+ */
+export const sheets = (Handler = GoogleSheetsHandler, sheet = {}) =>
   definePlugin({
     name: 'sheets',
     label: 'Google Sheet',
@@ -88,11 +104,13 @@ export const sheets = (Handler = SheetsHandler) =>
         type: 'steps',
         items: [
           'Open the sheet, press Share, and set General access to "Anyone with the link" as a Viewer.',
-          'Copy the long id out of the sheet’s address — it is the part between /d/ and /edit.',
           'Go to console.cloud.google.com, make a project if you have none, and enable the Google Sheets API for it.',
           'Under APIs & Services → Credentials, create an API key and paste it above.',
-          'Set the range to the cells you want, like Standings!A1:D20.',
         ],
+      },
+      {
+        type: 'note',
+        text: 'Which sheet this reads, and which cells, come from the studio rather than from here. They have to match the graphics that read them, so they are not something to change during a show.',
       },
       { type: 'link', href: 'https://console.cloud.google.com/apis/credentials', label: 'Google Cloud credentials' },
       {
@@ -102,19 +120,18 @@ export const sheets = (Handler = SheetsHandler) =>
       { type: 'text', text: 'The first row is used as column names by default, so a heading of "Team Name" becomes teamName in your graphics.' },
     ],
     config: [
-      { key: 'id', label: 'Spreadsheet id', help: 'The long id in the sheet’s URL, between /d/ and /edit.' },
-      { key: 'range', label: 'Range', default: 'A:Z', help: 'A1 notation, like Standings!A1:D20.' },
       {
         key: 'key',
         label: 'API key',
         type: 'secret',
         help: 'A Google API key with the Sheets API enabled. The sheet must be shared as “anyone with the link can view”.',
       },
-      { key: 'every', label: 'Read every (seconds)', type: 'number', default: 30, help: 'Five is the floor. Google allows sixty reads a minute.' },
-      { key: 'header', label: 'First row is column names', type: 'boolean', default: true },
+      { key: 'every', label: 'Read every (seconds)', type: 'number', default: 10, help: 'Five is the floor. Google allows sixty reads a minute.' },
     ],
     create: (context) => {
-      const plugin = new Sheets(context)
+      // The studio's sheet wins over anything stored, because there is nowhere to
+      // store it from -- these are not fields on the panel.
+      const plugin = new GoogleSheets({ ...context, config: { ...context.config, ...sheet } })
 
       new Handler({ ...context, plugin }).attach(plugin.events)
 

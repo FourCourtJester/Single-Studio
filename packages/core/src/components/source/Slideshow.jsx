@@ -54,6 +54,15 @@ function toList(value) {
  * what *exists* to everyone, but a file dropped on a producer's laptop has bytes
  * that live only there. Those are left out rather than going out as blank slides.
  *
+ * **An empty group renders nothing at all** -- no element, not an empty one -- and
+ * arms no timer. There is deliberately nothing to style for that case: a holding
+ * card is a sibling in the studio, which can say what this show is waiting for,
+ * where a built-in one could only be blank.
+ *
+ * **It follows the library while it plays.** Dropping pictures into the group
+ * during a programme adds them to the deck without a reload, and removing them
+ * takes them out; loading the show and running it are the same act.
+ *
  * Every picture gets a `.ss-slide`, and the one on screen carries `data-on`. What
  * a slide *does* is the studio's business — cross-fade, cut, drift, wipe — the
  * same way a transition is a class name rather than more code in here. The

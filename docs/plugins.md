@@ -13,33 +13,23 @@ with it.
 
 ## Adding one to your studio
 
-::: warning The first-party plugins are not on npm yet
-`@single-studio/plugin-rocket-league` and its siblings live in the framework
-repository but are not published, so `npm install` will not find them. Until they
-are, copy the plugin's `src` folder into your studio — it depends on nothing but
-`@single-studio/core`, which you already have.
+Install it, and register it in your worker entry:
 
 ```bash
-# from your studio, with the framework cloned alongside it
-cp -r ../Single-Studio/packages/plugin-rocket-league/src src/plugins/rocket-league
+npm i @single-studio/plugin-rocket-league
 ```
 
-Then import from `../plugins/rocket-league` instead of the package name — the worker
-lives in `src/studio/`, so the copy at `src/plugins/` is one level up. Everything
-else on this page is identical either way — the plugin depends on nothing the
-template does not already have, so there is no install step and nothing to
-configure.
+The four first-party plugins — `plugin-rocket-league`, `plugin-obs`,
+`plugin-twitch`, `plugin-sheets` — share a version with the framework, so the one
+that matches your `@single-studio/core` is the one to install.
 
-This was checked rather than assumed: a clean template on the published `0.5.0`
-packages, that `cp`, and the worker below build with no other change.
-:::
 
 A plugin is one import and one array entry, in your worker entry:
 
 ```js
 // src/studio/velcro.worker.js
 import { createVelcroHost } from '@single-studio/core/worker'
-import { rocketLeague, RocketLeagueHandler } from '../plugins/rocket-league'
+import { rocketLeague, RocketLeagueHandler } from '@single-studio/plugin-rocket-league'
 
 import { STUDIO_ID } from './config'
 import { mutations } from '../mutations'
@@ -107,32 +97,64 @@ complete list. Rocket League's is:
 | The match      | `onMatchCreated` `onMatchReady` `onCountdown` `onRoundStarted` `onPaused` `onUnpaused` `onMatchEnded` `onMatchDestroyed` `onPodium` |
 | Replays        | `onReplayStart` `onReplayEnding` `onReplayEnd` `onReplaySaved`                                                                      |
 | Players        | `onPlayerJoined` `onPlayerLeft`                                                                                                     |
-| Batched        | `onBallHits` `onBoostPickups`                                                                                                       |
+| The frequent   | `onBallHit` `onBoostPickup`                                                                                                         |
 | Everything     | `onState`                                                                                                                           |
 
 `onReplayEnding` is the one worth knowing about: a graphic that waits for
 `onReplayEnd` is already late, because the cut back to play has happened. That is
 the cue to start animating in.
 
-### Some events arrive as lists
+### Some events are frequent
 
-`onBallHits` and `onBoostPickups` hand you an **array**, not one event:
+Every event arrives as it happens, one call each — including `onBallHit` and
+`onBoostPickup`, which can be very frequent. A dribble is a touch every few frames,
+and six cars crossing a pitch take boost pads continuously.
+
+They arrive that way because what to do about it is yours to decide, not the
+plugin's. A graphic that animates on a boost pickup has to land with the pickup; a
+tenth of a second of helpful buffering would put the animation somewhere else
+entirely. A studio that only wants these for stats afterwards can collect them
+itself and pay for the volume by choosing to.
+
+**If you are only counting them, do not write on each one.** A `mutate` per touch is
+a transaction, an IndexedDB write and a broadcast each. Collect on the handler — it
+is an ordinary class, and instance state is free — and write the run in one call:
 
 ```js
-onBallHits(hits) {
-  // [{ by, before, after, where, at }, …]
-  this.mutate('push', { path: 'variables.touches', values: hits })
+#touches = []
+
+onBallHit(hit) {
+  this.#touches.push({ ...hit, at: Date.now() })
+}
+
+onGoal() {
+  this.mutate('push', { path: 'variables.touches', values: this.#touches })
+  this.#touches = []
 }
 ```
 
-A dribble is a touch every few frames, and six cars crossing a pitch take boost pads
-continuously. None of them is worth a graphic, but all of them are worth keeping for
-the stats afterwards — so they are collected and handed over at most ten times a
-second, each one dated on the way in.
+The one event that *is* held back is `onState`, the whole-match tick, which the game
+sends up to 120 times a second whether anybody is looking or not. That one is passed
+on ten times a second and is not adjustable — see the plugin's own panel.
 
-**Write the batch in one call.** A loop calling `this.mutate` per item is one
-transaction, one IndexedDB write and one broadcast _each_, which puts back exactly
-what the batching removed. `push` takes `values` for this reason.
+### Publishing it
+
+A plugin ships its **source**. A studio's bundler compiles it, so there is no build
+step, no `dist`, and no bundler config to keep working — which is most of why the
+plugin template is a fraction of the size of the studio one.
+
+Two things that will bite, both of which the template already gets right:
+
+- **`@single-studio/core` must be a `peerDependency`.** As a normal dependency, npm
+  is free to install a second copy, and two copies of the framework in one worker
+  means two document registries: the plugin connects, emits, and nothing reaches the
+  show. It fails silently.
+- **Relative imports need their `.js`.** Node resolves your source, not a bundler, so
+  `from './events'` throws on install where `from './events.js'` works.
+
+The npm name is yours — `single-studio-plugin-<thing>`, or your own scope. The `name`
+inside `definePlugin` is a different thing: it is what a studio addresses the plugin
+by, and the key its settings are stored under. Keep that one short and unscoped.
 
 ## What your handler is given
 
@@ -159,7 +181,7 @@ machine running the game, your handler runs on that machine, and the command goe
 back down the same connection:
 
 ```js
-class MyShow extends ObsHandler {
+class MyShow extends OBSHandler {
   onMatchEnded() {
     this.command('scene', { name: 'Podium' })
   }
@@ -176,7 +198,63 @@ Rocket League accepts no commands yet: the game gained them in v2.72, but the wi
 names are not confirmed, and six plausible guesses would be six commands the game
 silently ignores.
 
+### Asking a different plugin
+
+`this.command()` reaches the plugin your handler belongs to. The commonest thing a
+show actually wants is one plugin driving **another** — the game reports a goal, and
+OBS cuts to the replay:
+
+```js
+class MyShow extends RocketLeagueHandler {
+  onGoal() {
+    this.ask('obs', 'scene', { name: 'Replay' })
+  }
+}
+```
+
+The first argument is the name the plugin was defined with. Three of them:
+
+|                                            |                                              |
+| ------------------------------------------ | -------------------------------------------- |
+| `this.ask(plugin, command, data)`          | one frame; returns whether it went           |
+| `await this.look(plugin, request, data)`   | asks and waits for the answer                |
+| `this.running(plugin)`                     | whether that plugin is here at all           |
+
+**Asking a plugin that is not installed is quiet.** A show not driving OBS tonight is
+the ordinary case, not a fault, so you do not have to guard every call. A *command
+name* the plugin does not take still throws, exactly as `command()` does — that one is
+a typo in your own code.
+
+`look` is for the things only the far end knows. OBS assigns a source's
+`sceneItemId` when it is added to a scene and changes it if the source is removed and
+put back, so it cannot be written down anywhere and has to be looked up from the name
+somebody typed.
+
+**From a mutation, `ctx.ask()` is the same thing**, which is how the operator's board
+reaches a plugin too — it dispatches a mutation like anything else:
+
+```js
+export const mutations = {
+  'obs:scene'(ctx, { name }) {
+    if (name) ctx.ask('obs', 'scene', { name })
+  },
+}
+```
+
+`ctx.running()` is there as well. `look` is deliberately **not**: it waits, and a
+mutation runs inside a transaction — see [Your own data](/data#rules).
+
 ## Writing your own
+
+**Start from the template.** `Single-Studio-Plugin-Template` on GitHub — press **Use
+this template** — is a working plugin with tests, ready to publish. It ships both
+shapes described below in one file, with a comment saying to pick one and delete the
+other, so neither is the one you have to invent from this page.
+
+It also ships an `AGENTS.md` covering the parts that are easy to get wrong: what
+belongs on an operator's panel versus what your plugin decides, why the framework has
+to stay a `peerDependency`, and why a relative import needs its `.js` when the package
+ships source rather than a build.
 
 Two base classes, depending on whether the thing tells you or has to be asked.
 
@@ -230,12 +308,12 @@ finds nothing costs one request and nothing else.
 
 ```js
 config: [
-  { key: 'port', label: 'Port', type: 'number', default: 49122, help: 'From the ini file.' },
+  { key: 'port', label: 'Port', type: 'number', default: 49124, help: 'From the ini file.' },
   { key: 'apiKey', label: 'API key', type: 'secret' },
 ],
 help: [
   { type: 'text', text: 'This is off by default; turning it on means editing one file.' },
-  { type: 'steps', items: ['Close the game.', 'Open DefaultStatsAPI.ini.', 'Set Port to 49122.'] },
+  { type: 'steps', items: ['Close the game.', 'Open DefaultStatsAPI.ini.', 'Set Port to 49124.'] },
   { type: 'note', text: 'Settings are only read at startup.' },
   { type: 'link', href: 'https://example.com/docs', label: 'The documentation' },
 ],

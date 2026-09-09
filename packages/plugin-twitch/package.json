@@ -1,20 +1,31 @@
 {
   "name": "@single-studio/plugin-twitch",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.6.0",
   "description": "Twitch EventSub for Single Studio: chat, follows, subs, gifts, cheers and raids, straight into a studio with no backend.",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "single-studio",
+    "single-studio-plugin",
+    "obs",
+    "broadcast"
+  ],
   "exports": {
     ".": "./src/index.js"
   },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run"
   },
-  "devDependencies": {
-    "vitest": "^3.2.6"
+  "peerDependencies": {
+    "@single-studio/core": "^0.6.0"
   },
-  "dependencies": {
-    "@single-studio/core": "workspace:*"
+  "devDependencies": {
+    "@single-studio/core": "workspace:*",
+    "vitest": "^3.2.6"
   }
 }

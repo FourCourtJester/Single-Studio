@@ -290,7 +290,28 @@ export function createVelcroHost(config = {}) {
     return { ...defaultConfig(definition.config), ...(stored && typeof stored === 'object' ? stored : {}) }
   }
 
-  const pluginContext = { mutate, owner: owns, studio: name }
+  /**
+   * Reaching a plugin that is not the one you are inside.
+   *
+   * Built here because here is the only place that holds the live map: a mutation is
+   * declared at module scope with no plugin to close over, and a handler's own
+   * `command()` reaches its own plugin and stops there. Handed to both, so a studio
+   * wiring a goal to an OBS scene change writes it in whichever of the two it
+   * already had open.
+   *
+   * `ask` and `running` also reach mutations, through `createContext`. `look` does
+   * not, and that is the line: it returns a promise, a mutation runs inside a Yjs
+   * transaction, and waiting inside one is the part of "nothing but the store" that
+   * genuinely binds. Anything needing an answer belongs in a handler, which is
+   * ordinary async code.
+   */
+  const askPlugin = (plugin, command, data) => Boolean(plugins.get(plugin)?.command?.(command, data))
+  const lookPlugin = (plugin, request, data) => plugins.get(plugin)?.ask?.(request, data)
+  const runningPlugin = (plugin) => plugins.has(plugin)
+
+  const services = { ask: askPlugin, running: runningPlugin }
+
+  const pluginContext = { mutate, owner: owns, studio: name, ask: askPlugin, look: lookPlugin, running: runningPlugin }
 
   /**
    * Why a plugin is not running, for the ones that failed before they could say so
@@ -303,31 +324,64 @@ export function createVelcroHost(config = {}) {
    */
   const troubles = new Map()
 
-  async function build(definition) {
+  /**
+   * Read a plugin's config, construct it, and set it going.
+   *
+   * `awaitStart` is the whole of the difference between the two callers, and it is
+   * not a detail. At startup nobody is waiting on any particular plugin and the
+   * studio has to come up, so the connection is left to settle on its own time. On
+   * a configure an operator has just pressed Save and is owed an answer about that
+   * one plugin, so that caller waits -- and can afford to, because it runs after
+   * `started` and holds up nothing but its own reply.
+   *
+   * @param {object} definition
+   * @param {{ awaitStart?: boolean }} [options]
+   */
+  async function build(definition, { awaitStart = false } = {}) {
     const config = await configFor(definition)
     const runtime = definition.create({ ...pluginContext, config })
 
     plugins.set(definition.name, runtime)
     troubles.delete(definition.name)
 
-    await runtime.start?.()
+    const connecting = Promise.resolve(runtime.start?.())
+
+    if (awaitStart) {
+      await connecting
+
+      return runtime
+    }
+
+    // Detached, so a start that never settles cannot hold `started` open. Its
+    // failure still has to land somewhere an operator can see, which is what this
+    // catch is for -- the caller is no longer around to do it.
+    connecting.catch((error) => {
+      troubles.set(definition.name, String(error?.message ?? error))
+      console.error(`[velcro] plugin "${definition.name}" threw while starting`, error)
+    })
 
     return runtime
   }
 
   /**
-   * Start every plugin at once, and let each fail on its own.
+   * Set every plugin going, and wait for none of them to connect.
    *
-   * Concurrent rather than one after another, which it used to be. A plugin's
-   * `start` is a handshake with somebody else's software: OBS does not resolve
-   * until it has identified, Twitch not until it has welcomed, and a socket to a
-   * machine that is switched off does not resolve or reject until the browser gives
-   * up on the connection. Awaited in a row, the slowest of those decides when the
-   * others may begin, so an operator whose Twitch is briefly unreachable watches
-   * Rocket League fail to start for reasons that have nothing to do with Rocket
-   * League.
+   * What is awaited here is each plugin's stored config -- a trip to IndexedDB --
+   * and nothing else. The connection is deliberately not: a plugin's `start` is a
+   * handshake with somebody else's software, OBS does not resolve until it has
+   * identified, Twitch not until it has welcomed, and an address that accepts a
+   * connection and then does nothing never resolves *or* rejects at all.
    *
-   * `Promise.all` never sees a rejection, because each start catches its own. That
+   * This used to await the connections, first one after another and then
+   * concurrently. Concurrency fixed the wrong half: it meant one slow plugin no
+   * longer decided when the others could begin, while one plugin that never
+   * finished still held `started` open forever -- and every port message queues
+   * behind `started`. A studio with a single unreachable plugin therefore rendered
+   * nothing at all, on every source, with no error anywhere an operator would look.
+   * See docs/internal/host-hang.md; the cause on the machine that found it was an
+   * editor forwarding the game's port into a container where nothing was listening.
+   *
+   * `Promise.all` never sees a rejection, because each build catches its own. That
    * is the point: one broken plugin is not a broken show. The rest still start, the
    * studio still runs, and an operator can type a score by hand -- which is the
    * whole reason a graphic has a fallback.
@@ -422,7 +476,7 @@ export function createVelcroHost(config = {}) {
     plugins.delete(pluginName)
 
     try {
-      await build(definition)
+      await build(definition, { awaitStart: true })
     } catch (error) {
       const why = String(error?.message ?? error)
 
@@ -492,7 +546,7 @@ export function createVelcroHost(config = {}) {
    * SharedWorker is the one thing a studio has exactly one of.
    */
   function mutate(name, payload) {
-    return apply(doc, registry, name, payload, 'local', sync.now)
+    return apply(doc, registry, name, payload, 'local', sync.now, services)
   }
 
   /**
@@ -538,7 +592,7 @@ export function createVelcroHost(config = {}) {
       // screen and something else on air. Identical to `Date.now` when nobody is
       // the clock reference, which is the single-machine default.
       case 'mutate':
-        apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now)
+        apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now, services)
         break
 
       case 'peek':
@@ -579,7 +633,7 @@ export function createVelcroHost(config = {}) {
         sync
           .detach()
           .then(() => {
-            apply(doc, registry, 'clear', {}, 'local', sync.now)
+            apply(doc, registry, 'clear', {}, 'local', sync.now, services)
 
             return persistence?.clearData()
           })

@@ -113,6 +113,23 @@ Then, as you need them:
 | `src/studio/`    | The studio itself: what it is called, what it registers, and the worker that holds the show |
 | `src/css/`       | Tailwind, and anywhere you want your own CSS                                                |
 
+### Name it
+
+`src/studio/config.js` is the one file worth editing before anything else:
+
+```js
+export const STUDIO_NAME = 'My Studio'
+export const STUDIO_ID = 'my-studio'
+```
+
+`STUDIO_NAME` is the label — it titles the board, and OBS shows it in front of every
+browser source (`SS - My Studio - Lower Thirds / Single`). Change it whenever you
+like.
+
+`STUDIO_ID` is where the show is filed. It names the databases and the shared worker
+that the board, the previews and every browser source find each other through, so
+changing it after you have built something starts you on an empty show. Pick it once.
+
 The rest is wiring that already works. Have a look around the
 [template repository](https://github.com/FourCourtJester/Single-Studio-Template)
 if you want the full tour.
@@ -252,8 +269,8 @@ instead, over `--ss-fade`; anything beyond that is a rule of your own on
 | `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.   |
 | `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                               |
 | `Toggle`       | `toggles.<name>`   | `group` names a radio group; buttons sharing one are exclusive.           |
-| `SwapButton`   | any paths          | Trades values pairwise, outermost first.                                  |
-| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". `confirm` asks first.                 |
+| `SwapButton`   | any paths          | Trades values pairwise, outermost first. Asks first; `confirm={false}` opts out. |
+| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". Asks first; `confirm={false}` opts out. |
 | `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
 | `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.               |
 | `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                         |
@@ -452,6 +469,32 @@ There is no limit in the framework. The practical ones:
 between segments, and a magnifier joined onto the dropdown that opens the library
 as a modal for adding, renaming and deleting. The same `AssetLibrary` component
 serves both.
+
+#### Playing a folder
+
+`Slideshow` points at a group rather than a list, so loading the show is dropping
+a folder on the board:
+
+```jsx
+<Slideshow group="slides" every={9} order="shuffle" />
+```
+
+Two things worth knowing before you put one on air:
+
+**An empty group renders nothing at all** — no element, not an empty one, and no
+timer running behind it. That means there is nothing to style for the empty case:
+if you want a holding card while the folder fills up, put it in the studio as a
+sibling, where it can say what this show is waiting for.
+
+**It follows the library while it plays.** Pictures added to the group during a
+programme join the deck without a reload, and removing one takes it out. Loading
+the show and running it are the same act, which is the point of pointing at a group
+instead of writing a list.
+
+It only plays what the machine it is running on can actually paint. A file lives in
+the browser that added it, so a picture dropped on a producer's laptop shows up in
+everyone's library but only plays where its bytes are — see the box above. Images
+added by URL have no bytes to be missing and play everywhere.
 
 ### Picking by picture
 
@@ -734,9 +777,17 @@ works, but only while no text field has focus, since otherwise you would be typi
 it. The dialog says so when you pick one, and warns you if the browser would take
 the combination before the board ever sees it.
 
-Buttons — `Stepper`'s &minus;/+, `Toggle`, `ImageToggle`, `ImageSelect`, `SwapButton`,
-`ResetButton`, `Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single deliberate press with no
-half-finished state to protect.
+Buttons — `Stepper`'s &minus;/+, `Toggle`, `ImageToggle`, `ImageSelect`,
+`Countdown`, `CountdownTo`, `Stopwatch`, `Cycle` — act immediately. Each is a single
+deliberate press with no half-finished state to protect, and all of them are undone
+by pressing again.
+
+**`ResetButton` and `SwapButton` ask first**, because those two are not. A reset
+unsets values with no undo, and a swap puts both team names and both scores on the
+wrong side of a live scoreboard. One press arms the button and it says so, a second
+does it, and a few seconds of silence disarms it — so a board left alone never sits
+with a live "wipe the show" under the cursor. Pass `confirm={false}` to either one
+for the single press, where the worst outcome is small and speed matters more.
 
 `Stepper`'s **field** is the exception among them, and stages like the text ones do:
 typing "10" passes through "1", and a board that wrote every keystroke would put a
@@ -978,6 +1029,9 @@ board's **Browser sources** menu — the copy button includes everything needed.
 
 `STUDIO_ID` is the name your show is filed under, so renaming it starts a fresh
 one. Nothing is lost: put the old `STUDIO_ID` back and the show returns.
+
+If you only meant to retitle it, change `STUDIO_NAME` instead — that one is a label
+and nothing reads it back.
 
 ### Do graphics survive being hidden in OBS?
 

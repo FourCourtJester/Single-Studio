@@ -421,7 +421,7 @@ export const mutations = {
 }
 
 /** Build the transaction context handed to every mutation. */
-export function createContext(doc, now = Date.now, registry = mutations) {
+export function createContext(doc, now = Date.now, registry = mutations, services = {}) {
   const bases = Doc.basesOf(doc)
   const deltas = Doc.deltasOf(doc)
 
@@ -465,6 +465,35 @@ export function createContext(doc, now = Date.now, registry = mutations) {
 
       return mutation(ctx, payload)
     },
+    /**
+     * Ask a plugin to do something -- usually a *different* plugin from whichever
+     * one set this off.
+     *
+     * The commonest integration in broadcast is one source of truth driving another
+     * piece of software: the game reports a goal, and OBS cuts to the replay. A
+     * handler's own `command()` reaches its own plugin and no further, and a
+     * mutation written at module scope has no plugin to close over at all -- so
+     * without this the honest answer was a module-level map somebody wired up in
+     * `onReady`, which is a back channel around the whole design.
+     *
+     * Quiet when there is no such plugin: a show not driving OBS tonight is the
+     * ordinary case, not a fault, and a studio should not have to guard every call.
+     * Quiet, too, when this machine does not hold the role -- the plugin answers
+     * that itself, and on a collaborating show that is every machine but one.
+     *
+     * A command the plugin does not take still throws, which is the plugin's own
+     * behaviour and worth keeping through here: that is a typo in studio code, and
+     * the far end would swallow the frame without a word.
+     *
+     * **This is the exception to "nothing but the store", and it is narrow.** The
+     * rule is about waits -- a mutation runs inside a Yjs transaction and must not
+     * block it. A command does not wait: it is one frame written to a socket that is
+     * already open, and it returns a boolean rather than a promise. Anything that
+     * needs an *answer* is `look`, which is not here, because that one does wait.
+     */
+    ask: (plugin, command, data) => Boolean(services.ask?.(plugin, command, data)),
+    /** Whether a plugin is running, for anything that wants to check before asking. */
+    running: (plugin) => Boolean(services.running?.(plugin)),
   }
 
   /**
@@ -491,7 +520,7 @@ export function createContext(doc, now = Date.now, registry = mutations) {
  * Apply a named mutation inside a single Yjs transaction, so observers see one
  * atomic change and a multi-path write never publishes a half-state.
  */
-export function apply(doc, registry, name, payload, origin = 'local', now = Date.now) {
+export function apply(doc, registry, name, payload, origin = 'local', now = Date.now, services = {}) {
   const mutation = registry[name]
 
   if (!mutation) throw new Error(`Unknown Velcro mutation: ${name}`)
@@ -499,7 +528,7 @@ export function apply(doc, registry, name, payload, origin = 'local', now = Date
   let result
 
   doc.transact(() => {
-    result = mutation(createContext(doc, now, registry), payload)
+    result = mutation(createContext(doc, now, registry, services), payload)
   }, origin)
 
   return result

@@ -1,10 +1,10 @@
 import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
-import { categoriesFor, EVENTS, normalise } from './events'
-import { authenticate, classify, identify, maskOf, request } from './protocol'
+import { categoriesFor, EVENTS, normalise } from './events.js'
+import { authenticate, classify, identify, maskOf, request } from './protocol.js'
 
-export { CATEGORY, OP, authenticate, classify, maskOf } from './protocol'
-export { EVENTS, categoriesFor, normalise } from './events'
+export { CATEGORY, OP, authenticate, classify, maskOf } from './protocol.js'
+export { EVENTS, categoriesFor, normalise } from './events.js'
 
 /**
  * OBS, over obs-websocket, in the SharedWorker.
@@ -23,7 +23,7 @@ export { EVENTS, categoriesFor, normalise } from './events'
  * *remote* operator pressing a button, which is a routing problem rather than a
  * protocol one. See architecture.md#commands.
  */
-class Obs extends SocketService {
+class OBS extends SocketService {
   static serviceName = 'obs'
 
   /**
@@ -181,7 +181,7 @@ class Obs extends SocketService {
 }
 
 /** The skeleton a studio fills in. One method per event, all no-ops. */
-export class ObsHandler extends PluginHandler {
+export class OBSHandler extends PluginHandler {
   static handles = {
     connected: 'onConnected',
     scene: 'onScene',
@@ -216,8 +216,8 @@ export class ObsHandler extends PluginHandler {
   onExit() {}
 }
 
-/** @param {typeof ObsHandler} [Handler] */
-export const obs = (Handler = ObsHandler) =>
+/** @param {typeof OBSHandler} [Handler] */
+export const obs = (Handler = OBSHandler) =>
   definePlugin({
     name: 'obs',
     label: 'OBS',
@@ -247,7 +247,7 @@ export const obs = (Handler = ObsHandler) =>
       { key: 'events', label: 'Events', help: 'Comma separated. Blank for all of them.' },
     ],
     create: (context) => {
-      const plugin = new Obs(context)
+      const plugin = new OBS(context)
 
       new Handler({ ...context, plugin }).attach(plugin.events)
 

@@ -3,9 +3,130 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
-## Unreleased
+## 0.6.0
+
+### Added
+
+- **A plugin can ask a different plugin to do something.** `ctx.ask(plugin, command,
+  data)` from a mutation, `this.ask(…)` from a handler, plus `this.look(…)` when you
+  need the answer and `running(plugin)` to check first.
+
+  `command()` only ever reached a handler's own plugin, and a mutation declared at
+  module scope has no plugin to close over — so the commonest integration in
+  broadcast, one source of truth driving another piece of software, had no route.
+  Now `onGoal() { this.ask('obs', 'scene', { name: 'Replay' }) }`.
+
+  Asking a plugin that is not installed is quiet; a command name it does not take
+  still throws. `look` is on handlers only, because it waits and a mutation runs
+  inside a transaction — see the note in [Your own data](docs/data.md).
+
+### Fixed
+
+- **One unreachable plugin no longer stops a studio rendering anything at all.** A
+  plugin's connection is no longer awaited at startup.
+
+  `started` waited for every plugin's `start()`, and every message from every page
+  queues behind `started`. `SocketService.open()` settles only on the socket's `open`
+  or `error`, so an address that accepts a connection and then does nothing settles
+  neither — and the board never handled a single message. Every source rendered
+  blank, Settings → Plugins sat on "Asking the worker…", and nothing anywhere said
+  why. Found on a real machine, where an editor was forwarding the game's port into a
+  container with nothing listening.
+
+  What `startPlugins()` awaits now is each plugin's stored config, which is what the
+  await was for. A configure still waits on the connection, so pressing Save still
+  reports a config the plugin refuses; that path runs after startup and holds up
+  nothing but its own reply. A plugin that never connects now shows as `connecting`
+  on the panel instead of taking the show with it.
+
+  Written up in `docs/internal/host-hang.md`, including what is still open — there is
+  no connect deadline, so `connecting` is where a hanging plugin stays.
+
+- **The template compiles its CSS for the browsers it promises.** `vite.config.js`
+  now sets `cssTarget`, and `CSS_TARGET` is exported from the core beside
+  `MINIMUM_VERSIONS` so the two cannot drift.
+
+  `build.target` is a JavaScript target and `cssTarget` falls back to it, so the CSS
+  pipeline was told nothing and lowered nothing. Anything Tailwind processed was fine
+  either way; a stylesheet imported straight from a component shipped exactly as
+  written, so a studio using CSS nesting shipped rules that do nothing on any browser
+  older than Chrome 112 — invisible on anything new enough to develop on.
+
+- **A poll that stalls now gives up after ten seconds.** `PollingService` has a
+  `readBudgetMs`, and hands `read(signal)` an `AbortSignal` so a subclass can stop
+  the request rather than merely stop waiting on it. `fetch` has no timeout of its
+  own, so a request that connected and then went quiet left the plugin dead with
+  nothing to say for itself.
+
+- **A socket that is accepted and then abandoned now gives up after ten seconds.**
+  `SocketService` has a `connectBudgetMs`, overridable per service.
+
+  A refused connection always backed off correctly. One that is accepted and then
+  left — an editor forwarding a port into a container with nothing listening, a proxy
+  that never completes the upgrade — fires neither `open` nor `error`, so `open()`
+  settled neither way and the retry that exists for exactly this never ran. The
+  deadline puts that case on the same path as a refusal: `error`, then the existing
+  backoff.
+
+### Fixed
+
+- **`fit` now works without the author arranging anything.** It measured its own
+  parent, and `Variable` renders it inside its own span — a box sized by its own
+  text, so the question was "does this fit inside itself", the answer was always yes,
+  and `fit` did nothing at all. Silently. Every use of it in the first real studio was
+  inert, and so was the fixture's own scoreboard: 379px of name in a 192px box, font
+  untouched.
+
+  `Fit` now finds the box by measuring rather than by guessing at `display` — shrink
+  the text right down, note every ancestor's width, restore, note them again; the
+  first ancestor whose width did not move is the one that is limiting the text.
+  Floats, flex items, `inline-block` and tables are all content-sized in some
+  configurations and not others, so a rule made of display values would be wrong for
+  the next layout somebody writes.
+
+  Nothing to change in a studio. `Timer`, `Clock` and a hand-written `<Fit>` are
+  fixed by the same change.
 
 ### Changed
+
+- **Rocket League: `onBallHit` and `onBoostPickup` arrive as they happen.** They were
+  `onBallHits(hits)` and `onBoostPickups(pickups)`, collected into dated lists and
+  handed over every 100ms. Rename the methods and take one payload where you took an
+  array; the `at` field is gone, since a handler receiving an event as it happens can
+  date it more accurately than the plugin can.
+
+  The batching was reasoning about what a *show* does with these events, which is not
+  the plugin's to decide. A studio animating on a boost pickup cannot have it land a
+  tenth of a second after the pickup; a studio that only counts them can collect them
+  itself and pay the volume by choosing to. Holding them back served the second case,
+  which needed no help, at the first case's expense.
+
+  The 120-a-second problem is `UpdateState` alone — that arrives whether anybody is
+  watching or not, and is still passed on ten times a second. Everything else is now
+  emitted on arrival, which is what `onGoal` and `onStatfeed` always did.
+
+  If you only want these for stats, collect on the handler and write the run in one
+  call rather than mutating per touch — see [plugins.md](docs/plugins.md).
+
+- **`ResetButton` and `SwapButton` ask before they act.** Both now arm on the first
+  press and do it on the second, the way the reset in the menu always has. Pass
+  `confirm={false}` to either for the old single press.
+
+  `ResetButton` has taken a `confirm` prop since it existed, defaulting to off. A
+  guard nobody opts into is not a guard: it was found the way these things are
+  always found, by a mis-aimed click clearing a scoreboard on air, in front of an
+  audience, with no undo. `SwapButton` had no guard at all and needs one for the
+  same reason — a swap is reversible in principle and instantly wrong on air in
+  practice.
+
+  Everything else on a board still acts on one press. `Toggle`, `Cycle`, `Stepper`,
+  `ImageToggle`, `ImageSelect` and the clocks are all undone by pressing again, and
+  an operator cutting a lower third cannot be made to double-click.
+
+  Both buttons now render through `Confirm`, so they take its outlined `danger` and
+  `warn` styling rather than their own solid fills. `.ss-reset` and `.ss-swap` are
+  still on the element; a studio that styled either keeps its rules, and a studio
+  that relied on the fill will see it change.
 
 - **A value renders a `<span>`, not a `<div>`.** `Variable`, `Timer` and `Clock` are
   text, and a block element cannot sit in a sentence — put one in a `<p>` and the

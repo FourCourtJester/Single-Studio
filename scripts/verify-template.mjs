@@ -37,8 +37,24 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const keep = process.argv.includes('--keep')
 
-/** Published packages, in the order the template depends on them. */
+/** What the starter template depends on, in the order it depends on them. */
 const PACKAGES = ['packages/core', 'packages/provider-supabase']
+
+/**
+ * Everything that goes to the registry, including what the template does not use.
+ *
+ * A plugin ships its *source* rather than a build, which is what makes the plugin
+ * template need no bundler -- and which moves resolution from a bundler to Node.
+ * Node does not resolve an extensionless relative import, and every file in this
+ * repository was written with one, because until now every published file went
+ * through a bundler first.
+ *
+ * That is not a hypothetical either: at the moment the plugins were made
+ * publishable, all four packed cleanly, installed cleanly, and threw on first
+ * import. Nothing else in the repository looks at a package the way somebody
+ * installing it does.
+ */
+const PLUGINS = ['packages/plugin-obs', 'packages/plugin-sheets', 'packages/plugin-twitch', 'packages/plugin-rocket-league']
 
 /**
  * What a framework package is made of, and nothing else.
@@ -65,6 +81,7 @@ const capture = (command, args, cwd) => execFileSync(command, args, { cwd, encod
 const stage = mkdtempSync(join(tmpdir(), 'single-studio-template-'))
 const tarballs = join(stage, 'tarballs')
 const project = join(stage, 'studio')
+const plugin = join(stage, 'plugin')
 
 try {
   console.log(`\n→ packing into ${tarballs}`)
@@ -74,7 +91,7 @@ try {
 
   const packed = {}
 
-  for (const dir of PACKAGES) {
+  for (const dir of [...PACKAGES, ...PLUGINS]) {
     const manifest = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
 
     /**
@@ -159,10 +176,14 @@ try {
   // range that no published version satisfies is still caught by an actual install.
   const manifest = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8'))
 
-  for (const [name, tarball] of Object.entries(packed)) {
+  // `PACKAGES`, not everything packed: the plugins are published from here too and
+  // a studio is not expected to depend on any of them.
+  for (const dir of PACKAGES) {
+    const { name } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+
     if (!manifest.dependencies?.[name]) throw new Error(`templates/studio does not depend on ${name}`)
 
-    manifest.dependencies[name] = `file:${tarball}`
+    manifest.dependencies[name] = `file:${packed[name]}`
   }
 
   writeFileSync(join(project, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
@@ -331,7 +352,76 @@ try {
 
   console.log('  every graphic and control in the template still matches its component')
 
-  console.log('\ntemplate builds against the packed packages')
+  /**
+   * And the plugin template, which has the same exposure for a different reason.
+   *
+   * A studio built from the studio template is one person's show. A plugin built
+   * from the plugin template is published to npm and installed by strangers, so a
+   * template that does not resolve `@single-studio/core` is a defect handed to
+   * everybody who starts from it -- and, unlike the studio, it fails at *their*
+   * publish rather than at ours.
+   *
+   * Verified the same way and for the same reason: from the packed tarball, with
+   * npm, outside this workspace. It is deliberately not a workspace package. If it
+   * were, it would resolve core through a link, and the one question worth asking --
+   * does what we publish satisfy what the template asks for -- would never be asked.
+   *
+   * Installed and *tested* rather than built, because a plugin has no build. It
+   * ships its source, which is the reason the template needs no bundler at all.
+   */
+  /**
+   * Every published package, imported the way Node imports it.
+   *
+   * `npm pack` proves the tarball has the right files in it and says nothing about
+   * whether they load. Installing and importing is the whole question, and it is one
+   * line of test for a failure that is total: the package installs, the studio
+   * builds, and the first `import` throws.
+   */
+  console.log('\n→ importing every published package from a real install')
+
+  const importable = join(stage, 'importable')
+
+  mkdirSync(importable, { recursive: true })
+  writeFileSync(join(importable, 'package.json'), `${JSON.stringify({ name: 'importable', private: true, type: 'module' }, null, 2)}\n`)
+  run('npm', ['install', '--no-audit', '--no-fund', ...Object.values(packed)], importable)
+
+  for (const dir of PLUGINS) {
+    const { name } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+    const exports = capture('node', ['--input-type=module', '-e', `const m = await import('${name}'); process.stdout.write(String(Object.keys(m).length))`], importable)
+
+    if (Number(exports) < 1) throw new Error(`${name} installs but exports nothing`)
+
+    console.log(`  ${name} → ${exports} exports`)
+  }
+
+  console.log('\n→ the plugin template, against the same tarball')
+  cpSync(join(root, 'templates/plugin'), plugin, { recursive: true })
+
+  const carried = capture('git', ['ls-files', 'templates/plugin'], root).split('\n').filter(Boolean)
+  const stowaways = carried.filter((file) => !PAPERWORK.test(file.split('/').at(-1)) && !/\.(js|jsx|css|json|md|html|yml|yaml|gitignore)$/i.test(file))
+
+  if (stowaways.length)
+    throw new Error(`templates/plugin carries files that are not scaffolding:\n  ${stowaways.join('\n  ')}\nEvery plugin made from the template gets a copy.`)
+
+  const pluginManifest = JSON.parse(readFileSync(join(plugin, 'package.json'), 'utf8'))
+  const core = packed['@single-studio/core']
+
+  if (!pluginManifest.peerDependencies?.['@single-studio/core'])
+    throw new Error('templates/plugin must depend on @single-studio/core as a *peer*, or a studio can end up with two copies of the framework in one worker')
+
+  // Both, and for different reasons: the peer is what a studio resolves, the dev
+  // dependency is what the template's own tests run against.
+  pluginManifest.peerDependencies['@single-studio/core'] = `file:${core}`
+  pluginManifest.devDependencies['@single-studio/core'] = `file:${core}`
+
+  writeFileSync(join(plugin, 'package.json'), `${JSON.stringify(pluginManifest, null, 2)}\n`)
+
+  run('npm', ['install', '--no-audit', '--no-fund'], plugin)
+  run('npm', ['test'], plugin)
+
+  console.log('  the plugin template installs and its tests pass against the packed core')
+
+  console.log('\ntemplates build against the packed packages')
 } finally {
   if (keep) console.log(`\nleft behind at ${project}`)
   else rmSync(stage, { recursive: true, force: true })

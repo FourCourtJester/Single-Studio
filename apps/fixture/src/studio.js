@@ -1,6 +1,6 @@
 import { defineStudio } from '@single-studio/core'
 
-import { STUDIO_ID } from './config'
+import { STUDIO_ID, STUDIO_NAME } from './config'
 
 // Everything the framework needs to know about this studio, declared once.
 //
@@ -13,9 +13,9 @@ import { STUDIO_ID } from './config'
 //
 // It also lets a key demonstrate grouping without renaming the file behind it.
 export const studio = defineStudio({
-  name: 'Demo',
+  name: STUDIO_NAME,
   id: STUDIO_ID,
-  worker: () => new SharedWorker(new URL('./velcro.worker.js', import.meta.url), { type: 'module', name: 'velcro-demo' }),
+  worker: () => new SharedWorker(new URL('./velcro.worker.js', import.meta.url), { type: 'module', name: `velcro-${STUDIO_ID}` }),
   control: () => import('./control/Control'),
   sources: {
     match: () => import('./sources/Match'),

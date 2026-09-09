@@ -129,21 +129,19 @@ importers:
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
 
   packages/plugin-obs:
-    dependencies:
+    devDependencies:
       '@single-studio/core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
       vitest:
         specifier: ^3.2.6
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
 
   packages/plugin-rocket-league:
-    dependencies:
+    devDependencies:
       '@single-studio/core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
       vitest:
         specifier: ^3.2.6
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
@@ -152,21 +150,19 @@ importers:
         version: 8.21.3
 
   packages/plugin-sheets:
-    dependencies:
+    devDependencies:
       '@single-studio/core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
       vitest:
         specifier: ^3.2.6
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
 
   packages/plugin-twitch:
-    dependencies:
+    devDependencies:
       '@single-studio/core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
       vitest:
         specifier: ^3.2.6
         version: 3.2.7(jiti@2.7.0)(lightningcss@1.32.0)
