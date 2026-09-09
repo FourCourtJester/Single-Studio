@@ -1,39 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { gameSockets } from './support'
+
 import { rocketLeague, RocketLeagueHandler } from '../src/index'
 
-const sockets = []
-
-class FakeSocket {
-  constructor(url) {
-    this.url = url
-    this.listeners = {}
-    this.closed = false
-    sockets.push(this)
-  }
-
-  addEventListener(type, fn) {
-    ;(this.listeners[type] ??= []).push(fn)
-  }
-
-  close() {
-    this.closed = true
-  }
-
-  open() {
-    for (const fn of this.listeners.open ?? []) fn()
-  }
-
-  /**
-   * One frame, shaped the way the game shapes it: `Data` is a JSON *string* inside
-   * the JSON frame, not an object. Sending an object here is what let a
-   * double-encoded payload reach a studio unparsed -- every shape read `undefined`
-   * and reported zero, and the suite was perfectly happy.
-   */
-  send(Event, Data) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data: JSON.stringify(Data) }) })
-  }
-}
+const { sockets, Socket, reset } = gameSockets()
 
 const build = (Handler = RocketLeagueHandler, over = {}) =>
   rocketLeague(Handler).create({
@@ -59,8 +30,8 @@ const watching = (methods) => {
 }
 
 beforeEach(() => {
-  sockets.length = 0
-  vi.stubGlobal('WebSocket', FakeSocket)
+  reset()
+  vi.stubGlobal('WebSocket', Socket)
 })
 
 afterEach(() => {
@@ -106,7 +77,7 @@ describe('the payload the game actually sends', () => {
 
     build(MyShow).open()
     sockets[0].open()
-    sockets[0].send('ClockUpdatedSeconds', { MatchGuid: '7DD9', TimeSeconds: 177, bOvertime: false })
+    sockets[0].frame('ClockUpdatedSeconds', { MatchGuid: '7DD9', TimeSeconds: 177, bOvertime: false })
 
     expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ seconds: 177, overtime: false }))
   })
@@ -116,7 +87,7 @@ describe('the payload the game actually sends', () => {
 
     build(MyShow).open()
     sockets[0].open()
-    sockets[0].send('ClockUpdatedSeconds', { TimeSeconds: 177 })
+    sockets[0].frame('ClockUpdatedSeconds', { TimeSeconds: 177 })
 
     expect(spies.onClock).toHaveBeenCalledWith(expect.objectContaining({ text: '02:57' }))
   })
@@ -186,7 +157,7 @@ describe('events', () => {
     plugin.open()
     sockets[0].open()
 
-    sockets[0].send('GoalScored', { Scorer: { Name: 'PlayerA', TeamNum: 0 }, GoalSpeed: 87.3 })
+    sockets[0].frame('GoalScored', { Scorer: { Name: 'PlayerA', TeamNum: 0 }, GoalSpeed: 87.3 })
 
     expect(spies.onGoal).toHaveBeenCalledWith(expect.objectContaining({ side: 'blue', speed: 87.3 }))
   })
@@ -197,7 +168,7 @@ describe('events', () => {
     plugin.open()
     sockets[0].open()
 
-    expect(() => sockets[0].send(undefined, {})).not.toThrow()
+    expect(() => sockets[0].frame(undefined, {})).not.toThrow()
   })
 })
 
@@ -224,9 +195,9 @@ describe('the frequent events', () => {
     plugin.open()
     sockets[0].open()
 
-    sockets[0].send('BallHit', hit(100))
-    sockets[0].send('BallHit', hit(200))
-    sockets[0].send('BallHit', hit(300))
+    sockets[0].frame('BallHit', hit(100))
+    sockets[0].frame('BallHit', hit(200))
+    sockets[0].frame('BallHit', hit(300))
 
     // Three touches, three calls, before any timer could have run.
     expect(spies.onBallHit).toHaveBeenCalledTimes(3)
@@ -243,7 +214,7 @@ describe('the frequent events', () => {
     plugin.open()
     sockets[0].open()
 
-    sockets[0].send('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 100, BoostType: 'BigPad' })
+    sockets[0].frame('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 100, BoostType: 'BigPad' })
 
     const [pickup] = spies.onBoostPickup.mock.calls[0]
 
@@ -265,8 +236,8 @@ describe('the frequent events', () => {
       plugin.open()
       sockets[0].open()
 
-      sockets[0].send('BallHit', hit(100))
-      sockets[0].send('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 12 })
+      sockets[0].frame('BallHit', hit(100))
+      sockets[0].frame('BoostPickup', { Player: { Name: 'A', TeamNum: 0 }, BoostAmount: 12 })
 
       expect(spies.onBallHit).toHaveBeenCalledTimes(1)
       expect(spies.onBoostPickup).toHaveBeenCalledTimes(1)
@@ -284,9 +255,9 @@ describe('the frequent events', () => {
     plugin.open()
     sockets[0].open()
 
-    sockets[0].send('GoalScored', { Scorer: { Name: 'A', TeamNum: 0 } })
-    sockets[0].send('StatfeedEvent', { EventName: 'Demolish' })
-    sockets[0].send('CrossbarHit', { BallSpeed: 90 })
+    sockets[0].frame('GoalScored', { Scorer: { Name: 'A', TeamNum: 0 } })
+    sockets[0].frame('StatfeedEvent', { EventName: 'Demolish' })
+    sockets[0].frame('CrossbarHit', { BallSpeed: 90 })
 
     expect(spies.onGoal).toHaveBeenCalledTimes(1)
     expect(spies.onStatfeed).toHaveBeenCalledTimes(1)
@@ -314,8 +285,8 @@ describe('the tick', () => {
     plugin.open()
     sockets[0].open()
 
-    sockets[0].send('UpdateState', tick(0, 0))
-    sockets[0].send('UpdateState', tick(1, 0))
+    sockets[0].frame('UpdateState', tick(0, 0))
+    sockets[0].frame('UpdateState', tick(1, 0))
 
     expect(spies.onScore).toHaveBeenCalledTimes(2)
     expect(spies.onScore).toHaveBeenLastCalledWith({ blue: 1, orange: 0 })
@@ -328,7 +299,7 @@ describe('the tick', () => {
     plugin.open()
     sockets[0].open()
 
-    for (let i = 0; i < 30; i += 1) sockets[0].send('UpdateState', tick(1, 0, i))
+    for (let i = 0; i < 30; i += 1) sockets[0].frame('UpdateState', tick(1, 0, i))
 
     expect(spies.onScore).toHaveBeenCalledTimes(1)
   })
@@ -345,14 +316,14 @@ describe('the tick', () => {
     const clock = vi.spyOn(Date, 'now')
 
     clock.mockReturnValue(1_000)
-    sockets[0].send('UpdateState', tick(0, 0, 10))
+    sockets[0].frame('UpdateState', tick(0, 0, 10))
 
     // Inside the window: held, not sent.
     clock.mockReturnValue(1_050)
-    sockets[0].send('UpdateState', tick(0, 0, 20))
+    sockets[0].frame('UpdateState', tick(0, 0, 20))
 
     clock.mockReturnValue(1_200)
-    sockets[0].send('UpdateState', tick(0, 0, 30))
+    sockets[0].frame('UpdateState', tick(0, 0, 30))
 
     expect(spies.onState).toHaveBeenCalledTimes(2)
   })
@@ -372,13 +343,13 @@ describe('the tick', () => {
     // Ten ticks across 90ms, all inside one window.
     for (let i = 0; i < 10; i += 1) {
       clock.mockReturnValue(1_000 + i * 10)
-      sockets[0].send('UpdateState', tick(0, 0, i))
+      sockets[0].frame('UpdateState', tick(0, 0, i))
     }
 
     expect(spies.onState).toHaveBeenCalledTimes(1)
 
     clock.mockReturnValue(1_100)
-    sockets[0].send('UpdateState', tick(0, 0, 99))
+    sockets[0].frame('UpdateState', tick(0, 0, 99))
 
     expect(spies.onState).toHaveBeenCalledTimes(2)
   })
@@ -395,13 +366,13 @@ describe('the tick', () => {
       plugin.open()
       sockets[0].open()
 
-      sockets[0].send('UpdateState', tick(0, 0, 10))
+      sockets[0].frame('UpdateState', tick(0, 0, 10))
 
       vi.advanceTimersByTime(40)
-      sockets[0].send('UpdateState', tick(0, 0, 20))
+      sockets[0].frame('UpdateState', tick(0, 0, 20))
 
       vi.advanceTimersByTime(40)
-      sockets[0].send('UpdateState', tick(0, 0, 30))
+      sockets[0].frame('UpdateState', tick(0, 0, 30))
 
       // One so far -- the leading edge -- and two now held, of which only the
       // second is worth anything.
@@ -429,8 +400,8 @@ describe('the tick', () => {
       plugin.open()
       sockets[0].open()
 
-      sockets[0].send('UpdateState', tick(0, 0, 10))
-      sockets[0].send('UpdateState', tick(3, 2, 99))
+      sockets[0].frame('UpdateState', tick(0, 0, 10))
+      sockets[0].frame('UpdateState', tick(3, 2, 99))
 
       // Two ticks back to back: the first goes out on the leading edge, the second
       // is inside the window and is held.
@@ -454,11 +425,11 @@ describe('the tick', () => {
     const { MyShow, spies } = watching(['onState'])
 
     for (const stateEvery of [0, 8, 2_000, '', Number.NaN]) {
-      sockets.length = 0
+      reset()
 
       build(MyShow, { stateEvery }).open()
       sockets[0].open()
-      sockets[0].send('UpdateState', tick(0, 0))
+      sockets[0].frame('UpdateState', tick(0, 0))
     }
 
     expect(spies.onState).toHaveBeenCalledTimes(5)

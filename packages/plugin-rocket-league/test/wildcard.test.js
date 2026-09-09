@@ -1,40 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { gameSockets } from './support'
+
 import { rocketLeague, RocketLeagueHandler } from '../src/index'
 
 // The other way in. A studio that wants the feed itself rather than a named hook
 // subscribes to `*` and gets every event with its name in front -- which is how you
 // find out what the game actually sends before deciding what to react to.
 
-const sockets = []
-
-class FakeSocket {
-  constructor(url) {
-    this.url = url
-    this.listeners = {}
-    sockets.push(this)
-  }
-
-  addEventListener(type, fn) {
-    ;(this.listeners[type] ??= []).push(fn)
-  }
-
-  close() {}
-
-  open() {
-    for (const fn of this.listeners.open ?? []) fn()
-  }
-
-  /**
-   * One frame, shaped the way the game shapes it: `Data` is a JSON *string* inside
-   * the JSON frame, not an object. Sending an object here is what let a
-   * double-encoded payload reach a studio unparsed -- every shape read `undefined`
-   * and reported zero, and the suite was perfectly happy.
-   */
-  send(Event, Data) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify({ Event, Data: JSON.stringify(Data) }) })
-  }
-}
+const { sockets, Socket, reset } = gameSockets()
 
 const listening = (Handler) => {
   const plugin = rocketLeague(Handler).create({
@@ -51,8 +25,8 @@ const listening = (Handler) => {
 }
 
 beforeEach(() => {
-  sockets.length = 0
-  vi.stubGlobal('WebSocket', FakeSocket)
+  reset()
+  vi.stubGlobal('WebSocket', Socket)
 })
 
 afterEach(() => {
@@ -72,7 +46,7 @@ describe('taking the whole feed', () => {
     }
 
     listening(MyShow)
-    sockets[0].send('GoalScored', { Scorer: { Name: 'Ada' }, GoalSpeed: 90 })
+    sockets[0].frame('GoalScored', { Scorer: { Name: 'Ada' }, GoalSpeed: 90 })
 
     expect(seen.map(([name]) => name)).toEqual(['goal'])
   })
@@ -93,8 +67,8 @@ describe('taking the whole feed', () => {
     }
 
     listening(MyShow)
-    sockets[0].send('GoalScored', { Scorer: { Name: 'Ada' } })
-    sockets[0].send('MatchEnded', { WinnerTeamNum: 1 })
+    sockets[0].frame('GoalScored', { Scorer: { Name: 'Ada' } })
+    sockets[0].frame('MatchEnded', { WinnerTeamNum: 1 })
 
     expect(seen).toEqual(['goal', 'matchEnded'])
   })
@@ -109,7 +83,7 @@ describe('taking the whole feed', () => {
     }
 
     listening(MyShow)
-    sockets[0].send('UpdateState', { MatchGuid: 'm1', Game: { TimeSeconds: 42, Ball: { Speed: 9 } }, Players: [] })
+    sockets[0].frame('UpdateState', { MatchGuid: 'm1', Game: { TimeSeconds: 42, Ball: { Speed: 9 } }, Players: [] })
 
     expect(seen[0]).toMatchObject({ match: 'm1', seconds: 42, ballSpeed: 9 })
   })

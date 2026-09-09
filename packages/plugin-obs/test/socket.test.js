@@ -1,35 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { FakeSocket, fakeSockets } from '@single-studio/core/testing'
+
 import { obs, OBSHandler } from '../src/index'
 import { authenticate, OP } from '../src/protocol'
 
-const sockets = []
-
-class FakeSocket {
-  constructor(url) {
-    this.url = url
-    this.sent = []
-    this.closed = false
-    this.listeners = {}
-    sockets.push(this)
-  }
-
-  addEventListener(type, fn) {
-    ;(this.listeners[type] ??= []).push(fn)
-  }
-
-  send(text) {
-    this.sent.push(JSON.parse(text))
-  }
-
-  close() {
-    this.closed = true
-  }
-
-  deliver(frame) {
-    for (const fn of this.listeners.message ?? []) fn({ data: JSON.stringify(frame) })
-  }
-
+class ObsSocket extends FakeSocket {
   hello(authentication) {
     this.deliver({
       op: OP.HELLO,
@@ -63,6 +39,8 @@ class FakeSocket {
   }
 }
 
+const { sockets, Socket, reset } = fakeSockets(ObsSocket)
+
 /**
  * Wait for a frame to appear rather than for a length of time.
  *
@@ -87,8 +65,8 @@ const build = (Handler = OBSHandler, over = {}) =>
   obs(Handler).create({ mutate: vi.fn(), owner: () => true, studio: 's', config: { host: 'localhost', port: 4455, password: '', events: '', ...over } })
 
 beforeEach(() => {
-  sockets.length = 0
-  vi.stubGlobal('WebSocket', FakeSocket)
+  reset()
+  vi.stubGlobal('WebSocket', Socket)
 })
 
 afterEach(() => {

@@ -1,40 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { FakeSocket, fakeSockets } from '@single-studio/core/testing'
 import { SocketService } from '@single-studio/core/worker'
 
 import { twitch, TwitchHandler } from '../src/index'
 
 // A WebSocket that does nothing until a test tells it to, so the handover and the
 // watchdog can be driven exactly rather than waited for.
-const sockets = []
 
-class FakeSocket {
-  constructor(url) {
-    this.url = url
-    this.closed = false
-    this.listeners = {}
-    sockets.push(this)
-  }
-
-  addEventListener(type, fn) {
-    ;(this.listeners[type] ??= []).push(fn)
-  }
-
-  close() {
-    this.closed = true
-  }
-
-  /** Deliver a message as Twitch would. */
-  send(metadata, payload) {
-    const data = JSON.stringify({ metadata: { message_id: `m-${Math.random()}`, message_timestamp: new Date().toISOString(), ...metadata }, payload })
-
-    for (const fn of this.listeners.message ?? []) fn({ data })
+class EventSubSocket extends FakeSocket {
+  /**
+   * One message, in Twitch's envelope.
+   *
+   * Named `message` rather than `send`, which it used to be. `send` is the socket's
+   * *outbound* method, so a fake using it for inbound frames could not record what
+   * the plugin sent -- and this plugin does send, on the handover.
+   */
+  message(metadata, payload) {
+    this.deliver({ metadata: { message_id: `m-${Math.random()}`, message_timestamp: new Date().toISOString(), ...metadata }, payload })
   }
 
   welcome(session = 'sess-1', keepalive = 10) {
-    this.send({ message_type: 'session_welcome' }, { session: { id: session, keepalive_timeout_seconds: keepalive } })
+    this.message({ message_type: 'session_welcome' }, { session: { id: session, keepalive_timeout_seconds: keepalive } })
   }
 }
+
+const { sockets, Socket, reset } = fakeSockets(EventSubSocket)
 
 const config = { clientId: 'cid', broadcasterId: '123', userId: '123', token: 'tok', events: 'channel.chat.message' }
 
@@ -46,8 +37,8 @@ const build = (Handler, over = {}) => {
 }
 
 beforeEach(() => {
-  sockets.length = 0
-  vi.stubGlobal('WebSocket', FakeSocket)
+  reset()
+  vi.stubGlobal('WebSocket', Socket)
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => ({ ok: true, status: 202 })),
@@ -133,7 +124,7 @@ describe('delivering', () => {
     sockets[0].welcome()
     await opening
 
-    sockets[0].send(
+    sockets[0].message(
       { message_type: 'notification' },
       {
         subscription: { type: 'channel.chat.message' },
@@ -155,7 +146,7 @@ describe('the reconnect handover', () => {
     sockets[0].welcome('sess-1')
     await opening
 
-    sockets[0].send({ message_type: 'session_reconnect' }, { session: { reconnect_url: 'wss://twitch/again' } })
+    sockets[0].message({ message_type: 'session_reconnect' }, { session: { reconnect_url: 'wss://twitch/again' } })
 
     expect(sockets).toHaveLength(2)
     expect(sockets[1].url).toBe('wss://twitch/again')
@@ -175,7 +166,7 @@ describe('the reconnect handover', () => {
 
     const before = fetch.mock.calls.length
 
-    sockets[0].send({ message_type: 'session_reconnect' }, { session: { reconnect_url: 'wss://twitch/again' } })
+    sockets[0].message({ message_type: 'session_reconnect' }, { session: { reconnect_url: 'wss://twitch/again' } })
     sockets[1].welcome('sess-2')
 
     expect(fetch.mock.calls.length).toBe(before)
@@ -210,7 +201,7 @@ describe('the watchdog', () => {
     const dropped = vi.spyOn(plugin, 'dropped').mockImplementation(() => {})
 
     vi.advanceTimersByTime(10_000)
-    sockets[0].send({ message_type: 'notification' }, { subscription: { type: 'channel.cheer' }, event: { bits: 1 } })
+    sockets[0].message({ message_type: 'notification' }, { subscription: { type: 'channel.cheer' }, event: { bits: 1 } })
     vi.advanceTimersByTime(10_000)
 
     expect(dropped).not.toHaveBeenCalled()
