@@ -29,6 +29,9 @@ import { Emitter } from '../toolkits/emitter'
  * @property {() => boolean} owner Whether this machine should be the one talking outward.
  * @property {string} studio The studio id, for naming anything the plugin persists.
  * @property {Record<string, unknown>} config What the operator set, merged over the plugin's declared defaults.
+ * @property {(plugin: string, command: string, data?: object) => boolean} [ask] Ask another plugin to do something.
+ * @property {(plugin: string, request: string, data?: object) => Promise<unknown>} [look] Ask another plugin, and wait.
+ * @property {(plugin: string) => boolean} [running] Whether another plugin is running here.
  */
 
 /**
@@ -89,6 +92,24 @@ export class PluginHandler {
     this.studio = context.studio
     this.plugin = context.plugin
     this.config = context.config ?? {}
+
+    /**
+     * Reaching a plugin that is not this one.
+     *
+     * `command` is this handler's own plugin and stops there, which is right for
+     * the common case and is only half of what a show does: the game reports a
+     * goal and *OBS* cuts to the replay. These three are the other half.
+     *
+     *   this.ask('obs', 'scene', { name: 'Podium' })      one frame, returns a boolean
+     *   await this.look('obs', 'GetSceneItemId', { … })   asks and waits
+     *   this.running('obs')                               before doing either
+     *
+     * Quiet when the named plugin is not installed or is not running here. A show
+     * not driving OBS tonight is the ordinary case, not a fault.
+     */
+    this.ask = context.ask ?? (() => false)
+    this.look = context.look ?? (() => undefined)
+    this.running = context.running ?? (() => false)
   }
 
   /**

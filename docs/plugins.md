@@ -189,6 +189,52 @@ Rocket League accepts no commands yet: the game gained them in v2.72, but the wi
 names are not confirmed, and six plausible guesses would be six commands the game
 silently ignores.
 
+### Asking a different plugin
+
+`this.command()` reaches the plugin your handler belongs to. The commonest thing a
+show actually wants is one plugin driving **another** — the game reports a goal, and
+OBS cuts to the replay:
+
+```js
+class MyShow extends RocketLeagueHandler {
+  onGoal() {
+    this.ask('obs', 'scene', { name: 'Replay' })
+  }
+}
+```
+
+The first argument is the name the plugin was defined with. Three of them:
+
+|                                            |                                              |
+| ------------------------------------------ | -------------------------------------------- |
+| `this.ask(plugin, command, data)`          | one frame; returns whether it went           |
+| `await this.look(plugin, request, data)`   | asks and waits for the answer                |
+| `this.running(plugin)`                     | whether that plugin is here at all           |
+
+**Asking a plugin that is not installed is quiet.** A show not driving OBS tonight is
+the ordinary case, not a fault, so you do not have to guard every call. A *command
+name* the plugin does not take still throws, exactly as `command()` does — that one is
+a typo in your own code.
+
+`look` is for the things only the far end knows. OBS assigns a source's
+`sceneItemId` when it is added to a scene and changes it if the source is removed and
+put back, so it cannot be written down anywhere and has to be looked up from the name
+somebody typed.
+
+**From a mutation, `ctx.ask()` is the same thing**, which is how the operator's board
+reaches a plugin too — it dispatches a mutation like anything else:
+
+```js
+export const mutations = {
+  'obs:scene'(ctx, { name }) {
+    if (name) ctx.ask('obs', 'scene', { name })
+  },
+}
+```
+
+`ctx.running()` is there as well. `look` is deliberately **not**: it waits, and a
+mutation runs inside a transaction — see [Your own data](/data#rules).
+
 ## Writing your own
 
 Two base classes, depending on whether the thing tells you or has to be asked.

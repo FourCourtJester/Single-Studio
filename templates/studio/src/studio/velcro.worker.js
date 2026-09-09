@@ -3,7 +3,6 @@ import { connectSupabase } from '@single-studio/provider-supabase'
 
 import { STUDIO_ID } from './config'
 import { mutations } from '../mutations'
-import { register } from '../mutations/plugins'
 
 // The worker that owns this studio's state, shared by every tab. No React in here.
 
@@ -36,11 +35,7 @@ createVelcroHost({
    * For data your studio owns rather than an operator: a scoring feed, a socket, a
    * clock of your own. Delete it if only people write to your show.
    */
-  onReady({ mutate, owns, plugins }) {
-    // So anything can ask a plugin for something -- see ../mutations/plugins.js.
-    // Harmless with no plugins registered, and the only wiring the bridge needs.
-    register(plugins)
-
+  onReady({ mutate, owns }) {
     if (!import.meta.env.VITE_FEED_URL) return
 
     setInterval(async () => {

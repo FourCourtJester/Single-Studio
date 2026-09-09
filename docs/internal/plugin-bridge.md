@@ -1,6 +1,8 @@
 # One plugin asking another
 
-**For folding into [plugins.md](../plugins.md), as a section after "Answering back".**
+**Done — it is in the framework, not in a template.** See "Asking a different plugin" in
+[plugins.md](../plugins.md) and the exception in [data.md](../data.md). Kept for the
+reasoning, and for the alternative that was weighed and not taken.
 Written from building it in a real studio rather than proposed: it is what
 `SS-BSU-Rocket-League-Esports` does, and it needed no framework change.
 
@@ -127,3 +129,35 @@ If it is worth going further, the smallest useful additions would be:
    since nothing currently says what it is for.
 3. **The exception in `data.md`'s "Nothing but the store"** — a sentence, so that
    following the docs carefully and doing the right thing stop being in tension.
+
+## What was actually built, and why it differs from the above
+
+The pattern here was written against the constraint of touching nothing in the
+framework, and reached a module-level map in `src/mutations/plugins.js` that a studio
+wires up from `onReady`. That constraint is what produced the setter, and once the
+decision was made deliberately it no longer applied.
+
+`createVelcroHost` already holds the live plugin map. So the map, and the `register`
+call, and the whole file, are gone: `ask` and `running` are built there and handed to
+both callers -- onto the mutation context through `createContext`, and onto
+`PluginHandler` alongside `command`. A studio writes `ctx.ask('obs', 'scene', …)` or
+`this.ask('obs', 'scene', …)` and wires nothing.
+
+Three things that moved the balance:
+
+1. **Nothing to forget.** The setter was one line in `onReady` that a studio had to
+   remember and that failed silently -- every `ask` quietly false -- if it did not.
+2. **It was untested.** As template source it shipped to every studio and was
+   exercised by none of them, and the fixture never had the wiring. Six tests now
+   cover it, including that an absent plugin is quiet and a wrong command still
+   throws.
+3. **A fix reaches everybody.** Template source is copied into a studio at scaffold
+   time and diverges from that moment.
+
+`look` did **not** move onto the mutation context, for the reason this file already
+gives: it waits. It is on the handler, where async is ordinary.
+
+The alternative weighed above -- handlers getting the registry, so
+`this.plugins.obs.command(…)` -- is still not taken, and for the reason given: it
+couples a handler to plugin internals. `this.ask('obs', …)` names the plugin without
+handing over the object.

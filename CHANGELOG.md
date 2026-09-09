@@ -5,6 +5,21 @@ Both packages share a version — `@single-studio/core` and
 
 ## Unreleased
 
+### Added
+
+- **A plugin can ask a different plugin to do something.** `ctx.ask(plugin, command,
+  data)` from a mutation, `this.ask(…)` from a handler, plus `this.look(…)` when you
+  need the answer and `running(plugin)` to check first.
+
+  `command()` only ever reached a handler's own plugin, and a mutation declared at
+  module scope has no plugin to close over — so the commonest integration in
+  broadcast, one source of truth driving another piece of software, had no route.
+  Now `onGoal() { this.ask('obs', 'scene', { name: 'Replay' }) }`.
+
+  Asking a plugin that is not installed is quiet; a command name it does not take
+  still throws. `look` is on handlers only, because it waits and a mutation runs
+  inside a transaction — see the note in [Your own data](docs/data.md).
+
 ### Fixed
 
 - **One unreachable plugin no longer stops a studio rendering anything at all.** A

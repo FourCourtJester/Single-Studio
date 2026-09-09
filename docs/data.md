@@ -663,6 +663,24 @@ whole job is to change state; anything with a wait in it belongs in the worker's
 piece of the outside world it is given, because the value it produces is stored
 rather than recomputed.
 
+The rule is about **waits**, and there is one more thing a mutation may do that is
+not a wait: `ctx.ask()` tells a plugin to do something.
+
+```js
+'obs:scene'(ctx, { name }) {
+  if (name) ctx.ask('obs', 'scene', { name })
+}
+```
+
+That is one frame written to a socket that is already open. It returns a boolean
+rather than a promise, so the transaction is never held. `ctx.running('obs')` says
+whether a plugin is there at all, though it is rarely needed — asking a plugin that
+is not installed is quiet on purpose.
+
+Anything that needs an **answer** does wait, and is not on the context for that
+reason. `this.look('obs', 'GetSceneItemId', { … })` lives on a plugin handler, which
+is ordinary async code. See [Plugins](/plugins).
+
 **Return early rather than writing rubbish.** `if (!player?.name) return` is a
 better guard than a validation layer, because the operator sees nothing happen and
 tries again, and the show never held a nameless player.

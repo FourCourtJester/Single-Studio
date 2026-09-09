@@ -290,7 +290,28 @@ export function createVelcroHost(config = {}) {
     return { ...defaultConfig(definition.config), ...(stored && typeof stored === 'object' ? stored : {}) }
   }
 
-  const pluginContext = { mutate, owner: owns, studio: name }
+  /**
+   * Reaching a plugin that is not the one you are inside.
+   *
+   * Built here because here is the only place that holds the live map: a mutation is
+   * declared at module scope with no plugin to close over, and a handler's own
+   * `command()` reaches its own plugin and stops there. Handed to both, so a studio
+   * wiring a goal to an OBS scene change writes it in whichever of the two it
+   * already had open.
+   *
+   * `ask` and `running` also reach mutations, through `createContext`. `look` does
+   * not, and that is the line: it returns a promise, a mutation runs inside a Yjs
+   * transaction, and waiting inside one is the part of "nothing but the store" that
+   * genuinely binds. Anything needing an answer belongs in a handler, which is
+   * ordinary async code.
+   */
+  const askPlugin = (plugin, command, data) => Boolean(plugins.get(plugin)?.command?.(command, data))
+  const lookPlugin = (plugin, request, data) => plugins.get(plugin)?.ask?.(request, data)
+  const runningPlugin = (plugin) => plugins.has(plugin)
+
+  const services = { ask: askPlugin, running: runningPlugin }
+
+  const pluginContext = { mutate, owner: owns, studio: name, ask: askPlugin, look: lookPlugin, running: runningPlugin }
 
   /**
    * Why a plugin is not running, for the ones that failed before they could say so
@@ -525,7 +546,7 @@ export function createVelcroHost(config = {}) {
    * SharedWorker is the one thing a studio has exactly one of.
    */
   function mutate(name, payload) {
-    return apply(doc, registry, name, payload, 'local', sync.now)
+    return apply(doc, registry, name, payload, 'local', sync.now, services)
   }
 
   /**
@@ -571,7 +592,7 @@ export function createVelcroHost(config = {}) {
       // screen and something else on air. Identical to `Date.now` when nobody is
       // the clock reference, which is the single-machine default.
       case 'mutate':
-        apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now)
+        apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now, services)
         break
 
       case 'peek':
@@ -612,7 +633,7 @@ export function createVelcroHost(config = {}) {
         sync
           .detach()
           .then(() => {
-            apply(doc, registry, 'clear', {}, 'local', sync.now)
+            apply(doc, registry, 'clear', {}, 'local', sync.now, services)
 
             return persistence?.clearData()
           })

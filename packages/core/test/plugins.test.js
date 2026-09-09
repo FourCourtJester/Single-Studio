@@ -687,3 +687,160 @@ describe('a plugin whose connection never settles', () => {
     expect(listed.map((entry) => entry.name)).toEqual(['black-hole'])
   })
 })
+
+describe('one plugin asking another', () => {
+  /**
+   * The commonest integration in broadcast: one source of truth driving a different
+   * piece of software. The game reports a goal, and OBS cuts to the replay.
+   *
+   * A handler's `command()` reaches its own plugin and stops there, and a mutation
+   * is declared at module scope with no plugin to close over -- so before this the
+   * honest answer was a module-level map wired up by hand in `onReady`, which is a
+   * back channel around the emit/handle design and, being template source, was
+   * copied into every studio and exercised by none of them.
+   */
+  const commandable = (name, hooks = {}) =>
+    definePlugin({
+      name,
+      create: () => {
+        const runtime = new PluginBase(name)
+
+        runtime.sent = []
+        runtime.start = () => {}
+        runtime.command = (command, data) => {
+          if (command === 'unknown') throw new Error(`${name} has no command "unknown"`)
+
+          runtime.sent.push([command, data])
+
+          return hooks.owns === false ? false : true
+        }
+        runtime.ask = async (request, data) => ({ request, data, from: name })
+
+        return runtime
+      },
+    })
+
+  it('reaches a plugin that is not the one asking, from a mutation', async () => {
+    const made = createVelcroHost({
+      name: 'bridge-test',
+      persist: false,
+      plugins: [commandable('obs')],
+      mutations: {
+        'obs:scene'(ctx, { name }) {
+          return ctx.ask('obs', 'scene', { name })
+        },
+      },
+    })
+
+    await made.started
+
+    expect(made.mutate('obs:scene', { name: 'Podium' })).toBe(true)
+    expect(made.plugins.get('obs').sent).toEqual([['scene', { name: 'Podium' }]])
+  })
+
+  it('is quiet about a plugin that is not installed', async () => {
+    // A show not driving OBS tonight is the ordinary case, not a fault, and a studio
+    // should not have to guard every call.
+    const made = createVelcroHost({
+      name: 'bridge-quiet',
+      persist: false,
+      plugins: [],
+      mutations: {
+        'obs:scene'(ctx, { name }) {
+          return ctx.ask('obs', 'scene', { name })
+        },
+      },
+    })
+
+    await made.started
+
+    expect(made.mutate('obs:scene', { name: 'Podium' })).toBe(false)
+  })
+
+  it('still throws on a command the plugin does not take', async () => {
+    // That is a typo in studio code, and the far end would swallow the frame without
+    // a word. The quiet case above is about a plugin being absent, not about a name
+    // being wrong.
+    const made = createVelcroHost({
+      name: 'bridge-typo',
+      persist: false,
+      plugins: [commandable('obs')],
+      mutations: {
+        'obs:oops'(ctx) {
+          return ctx.ask('obs', 'unknown', {})
+        },
+      },
+    })
+
+    await made.started
+
+    expect(() => made.mutate('obs:oops', {})).toThrow(/no command "unknown"/)
+  })
+
+  it('says whether a plugin is running, so a studio can check before asking', async () => {
+    const made = createVelcroHost({
+      name: 'bridge-running',
+      persist: false,
+      plugins: [commandable('obs')],
+      mutations: {
+        'is:there'(ctx, { plugin }) {
+          return ctx.running(plugin)
+        },
+      },
+    })
+
+    await made.started
+
+    expect(made.mutate('is:there', { plugin: 'obs' })).toBe(true)
+    expect(made.mutate('is:there', { plugin: 'twitch' })).toBe(false)
+  })
+
+  it('reaches another plugin from a handler too, including the answer', async () => {
+    // `look` is on the handler and deliberately not on the mutation context: it
+    // returns a promise, and waiting inside a Yjs transaction is the part of
+    // "nothing but the store" that genuinely binds.
+    let seen = null
+
+    class Show extends PluginHandler {
+      static handles = {}
+    }
+
+    const made = createVelcroHost({
+      name: 'bridge-handler',
+      persist: false,
+      plugins: [
+        commandable('obs'),
+        definePlugin({
+          name: 'game',
+          create: (context) => {
+            const runtime = new PluginBase('game')
+
+            runtime.start = () => {}
+            seen = new Show({ ...context, plugin: runtime })
+
+            return runtime
+          },
+        }),
+      ],
+    })
+
+    await made.started
+
+    expect(seen.running('obs')).toBe(true)
+    expect(seen.ask('obs', 'scene', { name: 'Replay' })).toBe(true)
+    expect(made.plugins.get('obs').sent).toEqual([['scene', { name: 'Replay' }]])
+    await expect(seen.look('obs', 'GetSceneItemId', { name: 'cam' })).resolves.toEqual({
+      request: 'GetSceneItemId',
+      data: { name: 'cam' },
+      from: 'obs',
+    })
+  })
+
+  it('leaves a handler with no plugins to reach answering safely', async () => {
+    const bare = new PluginHandler({ mutate: () => {}, owner: () => true, studio: 's', plugin: null })
+
+    expect(bare.ask('obs', 'scene', {})).toBe(false)
+    expect(bare.running('obs')).toBe(false)
+    expect(bare.look('obs', 'x', {})).toBeUndefined()
+  })
+})
