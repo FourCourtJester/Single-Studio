@@ -27,6 +27,16 @@ Both packages share a version — `@single-studio/core` and
   Written up in `docs/internal/host-hang.md`, including what is still open — there is
   no connect deadline, so `connecting` is where a hanging plugin stays.
 
+- **A socket that is accepted and then abandoned now gives up after ten seconds.**
+  `SocketService` has a `connectBudgetMs`, overridable per service.
+
+  A refused connection always backed off correctly. One that is accepted and then
+  left — an editor forwarding a port into a container with nothing listening, a proxy
+  that never completes the upgrade — fires neither `open` nor `error`, so `open()`
+  settled neither way and the retry that exists for exactly this never ran. The
+  deadline puts that case on the same path as a refusal: `error`, then the existing
+  backoff.
+
 ### Changed
 
 - **Rocket League: `onBallHit` and `onBoostPickup` arrive as they happen.** They were

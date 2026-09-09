@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { Service } from '../src/services/Service'
+import { SocketService } from '../src/services/SocketService'
 
 // Ingress ownership. Not a permission model -- a quota and a race.
 //
@@ -190,5 +191,151 @@ describe('a service that does not', () => {
 
     noise.mockRestore()
     vi.useRealTimers()
+  })
+})
+
+describe('a connection that is accepted and then abandoned', () => {
+  /**
+   * The one shape the retry never saw.
+   *
+   * A refused connection fires `error`, rejects `open()`, and `start()` backs off --
+   * that path was always right. A socket that is *accepted and then abandoned*
+   * fires neither `open` nor `error`, so `open()` settled neither way and the retry
+   * that exists for exactly this never ran. Found on a real machine, where an editor
+   * was forwarding the game's port into a container with nothing listening: it bound
+   * loopback, accepted, and had nowhere to hand the connection on to.
+   *
+   * See docs/internal/host-hang.md.
+   */
+  class Silent extends SocketService {
+    static serviceName = 'silent'
+
+    get url() {
+      return 'ws://127.0.0.1:1'
+    }
+
+    attempts = 0
+
+    // Accepts, then nothing. No open, no error, no close.
+    connect() {
+      this.attempts += 1
+
+      return { addEventListener() {}, close() {} }
+    }
+  }
+
+  const silent = (over = {}) => Object.assign(new Silent({ mutate: () => {} }), over)
+
+  it('gives up on the handshake rather than waiting for the length of the show', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const made = silent()
+      const started = made.start()
+
+      // Still trying, for as long as the budget says. Asserted on `problem` rather
+      // than on `status`, because nothing sets a status during a handshake -- it
+      // reads `idle` throughout, which is the same thing it read before `start` was
+      // ever called and would prove nothing.
+      await vi.advanceTimersByTimeAsync(9_000)
+      expect(made.problem).toBe(null)
+
+      // Just past the deadline, and not as far as the first backoff step at +500ms.
+      await vi.advanceTimersByTimeAsync(1_100)
+      await started
+
+      // `error`, which is what a refused connection has always reported -- the
+      // deadline puts this failure on the path that already worked rather than
+      // inventing one.
+      expect(made.status).toBe('error')
+      expect(made.problem).toMatch(/accepted a connection and then said nothing/)
+      expect(made.attempts).toBe(1)
+
+      // And it tries again, which is the whole point. 500ms is the first backoff
+      // step; before the fix there was no second attempt at all, ever.
+      await vi.advanceTimersByTimeAsync(600)
+
+      expect(made.attempts).toBe(2)
+
+      await made.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('says which address did it, because that is the part nobody can guess', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const made = silent()
+      const started = made.start()
+
+      await vi.advanceTimersByTimeAsync(10_500)
+      await started
+
+      expect(made.problem).toContain('ws://127.0.0.1:1')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not fire on a connection that came up', async () => {
+    // The obvious way to get this wrong: a deadline that is armed and never
+    // cancelled kills a perfectly healthy socket ten seconds in.
+    //
+    // Counted, not read off the status, because the status hides it. A deadline
+    // that misfires drops the connection and the retry reconnects a beat later --
+    // against a socket that works, that lands back on `connected` with `problem`
+    // cleared, so the end state is identical to never having misfired. What is not
+    // identical is that the show's feed went down and came back for no reason. The
+    // count is the only thing that says so.
+    vi.useFakeTimers()
+
+    const made = silent()
+
+    try {
+      made.connect = () => {
+        made.attempts += 1
+
+        return { addEventListener: (type, fn) => type === 'open' && fn(), close() {} }
+      }
+
+      await made.start()
+      expect(made.status).toBe('connected')
+
+      await vi.advanceTimersByTimeAsync(30_000)
+
+      expect(made.status).toBe('connected')
+      expect(made.attempts).toBe(1)
+    } finally {
+      await made.stop()
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not leave its deadline running on a service that was told to stop', async () => {
+    // Asserted on the pending timer rather than on what happens later, because
+    // nothing happens later: `dropped` already refuses to retry a stopped service,
+    // so a deadline left armed changes no status and triggers no reconnect. What it
+    // does do is hold the service, its socket and its config alive until it fires,
+    // in a worker that outlives every page. The count is the only observable.
+    vi.useFakeTimers()
+
+    try {
+      const made = silent()
+
+      made.start()
+      expect(vi.getTimerCount()).toBe(1)
+
+      await made.stop()
+      expect(vi.getTimerCount()).toBe(0)
+
+      await vi.advanceTimersByTimeAsync(30_000)
+
+      expect(made.status).toBe('idle')
+      expect(made.attempts).toBe(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

@@ -54,6 +54,29 @@ export class SocketService extends Service {
    *
    * @returns {number} Milliseconds.
    */
+  /**
+   * How long to give a connection to come up before deciding it will not, or 0 to
+   * wait forever.
+   *
+   * The gap this closes is narrow and was expensive. A refused connection fires
+   * `error`, rejects `open()`, and backs off correctly. A connection that is
+   * *accepted and then abandoned* fires neither `open` nor `error` -- so `open()`
+   * settled neither way, `start()` awaited it forever, and the retry that exists
+   * for exactly this never ran. The socket sat at `connecting` for the length of
+   * the show.
+   *
+   * Ten seconds because it is a handshake, not a download: the far end has
+   * accepted, and everything still to happen is one exchange on an open
+   * connection. Anything that has not managed that in ten seconds is not slow, and
+   * the cost of being wrong is small -- a retry, which is what would have happened
+   * anyway if the socket had had the manners to refuse.
+   *
+   * @returns {number} Milliseconds.
+   */
+  get connectBudgetMs() {
+    return 10_000
+  }
+
   get silenceBudgetMs() {
     return 0
   }
@@ -92,6 +115,9 @@ export class SocketService extends Service {
 
   #settle = null
 
+  /** The deadline for the connection coming up. */
+  #connecting = null
+
   open() {
     return new Promise((resolve, reject) => {
       this.#settle = { resolve, reject }
@@ -99,6 +125,14 @@ export class SocketService extends Service {
       const socket = this.connect(this.url)
 
       this.#socket = socket
+
+      // Armed here rather than before `connect`, so a `connect` that throws
+      // synchronously does not leave a timer behind with nothing to cancel it.
+      const budget = this.connectBudgetMs
+
+      if (budget) {
+        this.#connecting = setTimeout(() => this.fail(new Error(`${this.name} at ${this.url} accepted a connection and then said nothing.`)), budget)
+      }
 
       socket.addEventListener('open', () => {
         Promise.resolve(this.greet()).catch((error) => this.fail(error))
@@ -165,6 +199,7 @@ export class SocketService extends Service {
 
   /** Say the connection is usable. Resolves `open()`. */
   ready() {
+    this.#disarm()
     this.#settle?.resolve()
     this.#settle = null
     this.pet()
@@ -177,6 +212,8 @@ export class SocketService extends Service {
    * reason in front of an operator. Afterwards it is a drop, which backs off.
    */
   fail(error) {
+    this.#disarm()
+
     if (this.#settle) {
       this.#settle.reject(error)
       this.#settle = null
@@ -185,6 +222,12 @@ export class SocketService extends Service {
     }
 
     this.dropped(error)
+  }
+
+  /** Stand the connect deadline down. Idempotent, and called on every exit. */
+  #disarm() {
+    clearTimeout(this.#connecting)
+    this.#connecting = null
   }
 
   /** Restart the silence timer. */
@@ -264,6 +307,9 @@ export class SocketService extends Service {
 
   async close() {
     clearTimeout(this.#watchdog)
+    // A service stopped mid-handshake would otherwise be failed by its own deadline
+    // ten seconds after it was told to stand down.
+    this.#disarm()
 
     const socket = this.#socket
 

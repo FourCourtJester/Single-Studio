@@ -199,13 +199,51 @@ it rather than the slow one having quietly finished.
 
 Reverting the fix turns all four red.
 
-### Still open
+## The connect deadline, as applied
 
-Both of the follow-ons above are untouched:
+`SocketService` gained `connectBudgetMs`, ten seconds, beside the `silenceBudgetMs`
+it mirrors. The socket is given that long to come up; past it, `fail()` rejects
+`open()`, `Service.start()` catches, and the retry runs.
 
-- **No connect deadline in `SocketService`.** `open()` has no upper bound, so a
-  hanging plugin now sits at `connecting` forever rather than reaching `error`. The
-  studio is fine and the panel is honest, but the reconnect backoff still never runs.
+That is deliberately the path a *refused* connection already took. Refusal fires
+`error`, rejects `open()`, and backs off correctly -- that half was never broken. The
+deadline puts the abandoned-connection case onto the same path rather than inventing
+one, so the status is `error` and the backoff is the existing 500ms doubling to a 30s
+cap.
+
+Ten seconds because this is a handshake, not a download: the far end has already
+accepted, and what remains is one exchange on an open connection. Anything that has
+not managed it in ten seconds is not slow, and being wrong costs a retry -- which is
+what would have happened anyway had the socket had the manners to refuse.
+
+The deadline is stood down in `ready()`, in `fail()` and in `close()`. Missing any of
+those is the way to get this wrong.
+
+### What pins it
+
+Four tests in `packages/core/test/service.test.js`, against a socket that accepts and
+then fires nothing:
+
+- it gives up at the deadline, reports the failure, and **tries again** -- the retry
+  is the point, and before this there was no second attempt ever
+- the message names the address, which is the part nobody can guess
+- a healthy connection is not killed ten seconds in
+- a service told to stop does not leave its deadline running
+
+The last two are guards and were worthless as first written. Both asserted on
+`status`, and `status` hides both faults: a misfiring deadline drops the connection
+and the retry reconnects a beat later, landing back on `connected` with `problem`
+cleared, so the end state is identical to never having misfired; and a stopped
+service's deadline changes no status at all, because `dropped()` already refuses to
+retry one. They now count connection attempts and pending timers respectively, and
+each fails against the specific line it guards.
+
+## Still open
+
+- **Nothing sets a status while a handshake is in progress.** A connecting service
+  reads `idle` -- the same thing it read before `start()` was called. The panel
+  therefore cannot distinguish "not started" from "trying", which is a smaller
+  version of the diagnosis problem this whole report is about.
 - **The board cannot tell "still trying" from "never going to work."** Less urgent
-  now that a stuck plugin no longer takes the board with it -- the panel renders, so
-  there is something to read.
+  now that a stuck plugin no longer takes the board with it, and now that a stuck
+  socket reaches `error` within ten seconds rather than never.
