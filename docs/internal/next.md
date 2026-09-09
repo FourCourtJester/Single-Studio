@@ -15,6 +15,72 @@ Left here rather than in a chat, so it survives.
   v2.72 names are documented where CI cannot reach. Five-line change once they are
   to hand. See [rocket-league.md](rocket-league.md).
 
+## A plugin socket that hangs wedges the entire worker
+
+Found on a real machine, and high severity: one unreachable plugin makes a studio
+render nothing at all, with no error anywhere a person will look. `started` waits for
+every plugin's `start()`, every port message queues behind `started`, and
+`SocketService.open()` settles only on the socket's `open` or `error` -- so an address
+that *accepts and then does nothing* never settles, and the board never handles a
+single message.
+
+The existing mitigation makes plugin starts concurrent with each other, which
+survives one slow plugin among several and not one hanging plugin on its own.
+
+Written up in full, with the fix and the real-world repro (VS Code forwarding the
+game's port into a container where nothing was listening), in
+[host-hang.md](host-hang.md).
+
+## `Scene`'s `vars` earns its place, or says when it does not
+
+`vars` maps one custom property to one path and passes the value through verbatim.
+That is the whole surface, and it means the prop is all-or-nothing: the moment a
+scene needs *any* resolution logic, it drops out of `vars` entirely and does every
+property in `style` instead.
+
+The case that found this is the BSU Rocket League studio, which needs four:
+
+| Property           | Wants                                                   |
+| ------------------ | ------------------------------------------------------- |
+| `--home-primary`   | the roster sheet's brand colour, else the colour the team is playing in |
+| `--home-secondary` | that, darkened, for the far end of every gradient        |
+| `--away-primary`   | as above                                                 |
+| `--away-secondary` | as above                                                 |
+
+None of the four can be written as `vars`, so all four are in `style` and the studio
+re-implements the subscription `useVelcroVars` already does.
+
+Two different gaps are tangled up in that, and only one is worth closing.
+
+**Worth closing: a fallback chain.** `vars={{ '--home': ['home.color', 'rl.blue.color'] }}`
+— the first path holding something wins. This is the commonest shape in any studio
+driven by both a person and a feed: *operator override, else what the feed says.* It
+needs no new concept, because "empty means no value" is already the store's rule
+everywhere else. A studio that only needs this would keep using `vars`.
+
+**Not worth closing: a transform.** `{ from: 'home.color', via: shade }` would make
+the two derived properties declarative, and a function is legal here — `vars` is a
+page-side prop, not a payload crossing into the worker, so nothing has to survive
+structured clone. But it turns a declarative map into a small expression language,
+and `style` already does it in one line.
+
+The sharper observation is the one the docs should carry either way: **`vars` gives
+the component no way to see the resolved value.** A scene that needs a value for
+anything else — a derived property, a conditional class, a label — has to subscribe
+to it anyway, and once it is subscribing, `vars` is pure overhead. So a fallback
+chain would not on its own have saved the studio above: `--home-secondary` is
+`shade(brand || game)`, which needs the resolved chain in JavaScript regardless.
+
+So the change is two things, not one:
+
+1. Accept an array of paths, first non-empty wins.
+2. Say in [api.md](../api.md) that `vars` is the convenience form for properties
+   nothing else reads, and that `style` with `useVelcroValue` is the right shape —
+   not a failure to use `vars` — the moment a scene needs the value itself. Right
+   now the API reference reads as though `vars` is *the* way to drive a graphic from
+   operator input, and a studio author following it hits this and assumes they have
+   done something wrong.
+
 ## Publishing the plugin packages
 
 All four are `private: true`, so `@single-studio/plugin-rocket-league` is a 404 on
