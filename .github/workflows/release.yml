@@ -151,16 +151,57 @@ jobs:
             provenance="--provenance"
           fi
 
-          # One at a time, and deliberately not `npm publish --workspaces`: this is
-          # a pnpm workspace, npm cannot see it, and each package is an ordinary
-          # standalone publish from its own directory. `prepack` still runs, so
-          # core's dist is built here exactly as it is everywhere else.
+          # Provenance is refused, not ignored, when a package cannot say where it
+          # came from. npm compares `repository.url` against the repository that
+          # built the tarball and answers
+          #
+          #   422 ... "repository.url" is "", expected to match "https://github.com/..."
+          #
+          # That refusal comes from npm's servers, at publish time, one package at a
+          # time -- so `npm pack` cannot see it and neither can verify-template.mjs.
+          # 0.6.0 is what taught us: four plugins had no `repository` at all, and the
+          # release published two packages before finding out.
+          #
+          # Checked here, for all six at once, before anything is published. Inside
+          # the same `if` that decides provenance rather than as its own step, so the
+          # check cannot drift out of step with whether npm is going to apply it.
+          if [ -n "$provenance" ]; then
+            expected="https://github.com/$GITHUB_REPOSITORY"
+            for dir in $PACKAGES; do
+              url=$(node -p "require('./$dir/package.json').repository?.url ?? ''")
+              normalised=${url#git+}
+              normalised=${normalised%.git}
+              if [ "$normalised" != "$expected" ]; then
+                echo "::error::$dir has repository.url '$url'. npm will refuse provenance unless it names $expected."
+                exit 1
+              fi
+            done
+          fi
+
           if [ -n "$NPM_TOKEN" ]; then
             npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
             echo "::notice::Publishing with NPM_TOKEN rather than OIDC. Configure trusted publishing for anything new afterwards, then delete the secret."
           fi
 
+          # One at a time, and deliberately not `npm publish --workspaces`: this is
+          # a pnpm workspace, npm cannot see it, and each package is an ordinary
+          # standalone publish from its own directory. `prepack` still runs, so
+          # core's dist is built here exactly as it is everywhere else.
+          #
+          # A version already on the registry is skipped rather than attempted. npm
+          # versions are immutable, so "it is already there" and "we just put it
+          # there" are the same state, and a release that died partway through is
+          # then resumable instead of stranded -- which is the difference between
+          # fixing the cause and burning a version number.
           for dir in $PACKAGES; do
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "::notice::$name@$version is already on the registry; skipping."
+              continue
+            fi
+
             echo "::group::publishing $dir"
             (cd "$dir" && npm publish --access public $provenance)
             echo "::endgroup::"

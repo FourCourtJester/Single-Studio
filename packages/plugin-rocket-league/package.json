@@ -3,6 +3,13 @@
   "version": "0.6.0",
   "description": "Rocket League for Single Studio: score, clock, goals and the stat feed, over Psyonix's own Stats API.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
+    "directory": "packages/plugin-rocket-league"
+  },
+  "homepage": "https://github.com/FourCourtJester/Single-Studio#readme",
+  "bugs": "https://github.com/FourCourtJester/Single-Studio/issues",
   "type": "module",
   "keywords": [
     "single-studio",

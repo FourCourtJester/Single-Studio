@@ -3,6 +3,13 @@
   "version": "0.6.0",
   "description": "OBS for Single Studio: the live scene, stream and record state, straight into a studio over obs-websocket.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
+    "directory": "packages/plugin-obs"
+  },
+  "homepage": "https://github.com/FourCourtJester/Single-Studio#readme",
+  "bugs": "https://github.com/FourCourtJester/Single-Studio/issues",
   "type": "module",
   "keywords": [
     "single-studio",

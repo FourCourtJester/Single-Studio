@@ -3,6 +3,13 @@
   "version": "0.6.0",
   "description": "Google Sheets for Single Studio: a shared spreadsheet as a data source, with an API key and no backend.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
+    "directory": "packages/plugin-sheets"
+  },
+  "homepage": "https://github.com/FourCourtJester/Single-Studio#readme",
+  "bugs": "https://github.com/FourCourtJester/Single-Studio/issues",
   "type": "module",
   "keywords": [
     "single-studio",
