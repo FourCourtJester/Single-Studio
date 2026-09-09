@@ -15,9 +15,9 @@ Left here rather than in a chat, so it survives.
   v2.72 names are documented where CI cannot reach. Five-line change once they are
   to hand. See [rocket-league.md](rocket-league.md).
 
-## A plugin socket that hangs wedges the entire worker
+## A plugin socket that hangs wedges the entire worker — fixed
 
-Found on a real machine, and high severity: one unreachable plugin makes a studio
+Found on a real machine, and high severity: one unreachable plugin made a studio
 render nothing at all, with no error anywhere a person will look. `started` waits for
 every plugin's `start()`, every port message queues behind `started`, and
 `SocketService.open()` settles only on the socket's `open` or `error` -- so an address
@@ -27,8 +27,10 @@ single message.
 The existing mitigation makes plugin starts concurrent with each other, which
 survives one slow plugin among several and not one hanging plugin on its own.
 
-Written up in full, with the fix and the real-world repro (VS Code forwarding the
-game's port into a container where nothing was listening), in
+Fixed: the connection is no longer awaited at startup, only each plugin's stored
+config. Written up in full, with the repro (VS Code forwarding the game's port into a
+container where nothing was listening) and what is still open — no connect deadline
+in `SocketService`, and a board that cannot say "not ready" — in
 [host-hang.md](host-hang.md).
 
 ## `Scene`'s `vars` earns its place, or says when it does not

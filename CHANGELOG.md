@@ -5,6 +5,28 @@ Both packages share a version — `@single-studio/core` and
 
 ## Unreleased
 
+### Fixed
+
+- **One unreachable plugin no longer stops a studio rendering anything at all.** A
+  plugin's connection is no longer awaited at startup.
+
+  `started` waited for every plugin's `start()`, and every message from every page
+  queues behind `started`. `SocketService.open()` settles only on the socket's `open`
+  or `error`, so an address that accepts a connection and then does nothing settles
+  neither — and the board never handled a single message. Every source rendered
+  blank, Settings → Plugins sat on "Asking the worker…", and nothing anywhere said
+  why. Found on a real machine, where an editor was forwarding the game's port into a
+  container with nothing listening.
+
+  What `startPlugins()` awaits now is each plugin's stored config, which is what the
+  await was for. A configure still waits on the connection, so pressing Save still
+  reports a config the plugin refuses; that path runs after startup and holds up
+  nothing but its own reply. A plugin that never connects now shows as `connecting`
+  on the panel instead of taking the show with it.
+
+  Written up in `docs/internal/host-hang.md`, including what is still open — there is
+  no connect deadline, so `connecting` is where a hanging plugin stays.
+
 ### Changed
 
 - **Rocket League: `onBallHit` and `onBoostPickup` arrive as they happen.** They were

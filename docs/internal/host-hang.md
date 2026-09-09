@@ -1,7 +1,10 @@
 # A plugin socket that hangs wedges the entire worker
 
-**Severity: high.** One unreachable plugin makes a studio render nothing at all, with
-no error anywhere a person will look. Found against `@single-studio/core` 0.5.0 with
+**Severity: high. Fixed —** see [The fix, as applied](#the-fix-as-applied). Kept in
+full because the diagnosis is the valuable part and the shape recurs.
+
+One unreachable plugin made a studio render nothing at all, with no error anywhere a
+person will look. Found against `@single-studio/core` 0.5.0 with
 `plugin-rocket-league`, on a machine where the game's port accepted TCP but never
 completed the WebSocket handshake.
 
@@ -143,3 +146,66 @@ chance to run.
 nothing for a few seconds could say so, rather than showing the same "Asking the
 worker…" it shows in the first 50ms. The failure is indistinguishable from the normal
 case, which is most of why it is expensive to diagnose.
+
+## The fix, as applied
+
+`build()` takes `awaitStart`, false at startup and true on a configure:
+
+```js
+const connecting = Promise.resolve(runtime.start?.())
+
+if (awaitStart) {
+  await connecting
+
+  return runtime
+}
+
+// Detached, so a start that never settles cannot hold `started` open. Its failure
+// still has to land somewhere an operator can see, which is what this catch is for
+// -- the caller is no longer around to do it.
+connecting.catch((error) => {
+  troubles.set(definition.name, String(error?.message ?? error))
+  console.error(`[velcro] plugin "${definition.name}" threw while starting`, error)
+})
+
+return runtime
+```
+
+The split is the point. At startup nobody waits on any particular plugin and the
+studio has to come up. On a configure an operator has just pressed Save and is owed
+an answer about that one plugin -- and can be made to wait, because `configurePlugin`
+runs *after* `started` and holds up nothing but its own reply. That also keeps the
+"a config the plugin refuses says why, on the board" path working, which reads the
+rejection from `build()`'s return.
+
+`startPlugins()` still awaits, and what it awaits is now only each plugin's stored
+config -- the trip to IndexedDB the original comment was actually justifying.
+
+### What pins it
+
+Three tests in `packages/core/test/plugins.test.js`, against a plugin whose `start`
+returns `new Promise(() => {})`:
+
+- the worker still answers a page: ready, a subscription, and a mutation that lands
+- the rest of the studio still starts
+- `pluginManifest()` still answers, so the panel can render and the address can be
+  changed
+
+A fourth was already there and was asserting the bug. `does not make one slow plugin
+the reason the others are late` ended with `expect(everything).toBe(false)` -- that
+`started` had *not* resolved while a plugin hung. It now asserts the opposite, and
+checks the plugin is genuinely still pending so the studio really did come up around
+it rather than the slow one having quietly finished.
+
+Reverting the fix turns all four red.
+
+### Still open
+
+Both of the follow-ons above are untouched:
+
+- **No connect deadline in `SocketService`.** `open()` has no upper bound, so a
+  hanging plugin now sits at `connecting` forever rather than reaching `error`. The
+  studio is fine and the panel is honest, but the reconnect backoff still never runs.
+- **The board cannot tell "still trying" from "never going to work."** Less urgent
+  now that a stuck plugin no longer takes the board with it -- the panel renders, so
+  there is something to read.
