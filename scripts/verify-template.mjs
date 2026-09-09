@@ -65,6 +65,7 @@ const capture = (command, args, cwd) => execFileSync(command, args, { cwd, encod
 const stage = mkdtempSync(join(tmpdir(), 'single-studio-template-'))
 const tarballs = join(stage, 'tarballs')
 const project = join(stage, 'studio')
+const plugin = join(stage, 'plugin')
 
 try {
   console.log(`\n→ packing into ${tarballs}`)
@@ -331,7 +332,51 @@ try {
 
   console.log('  every graphic and control in the template still matches its component')
 
-  console.log('\ntemplate builds against the packed packages')
+  /**
+   * And the plugin template, which has the same exposure for a different reason.
+   *
+   * A studio built from the studio template is one person's show. A plugin built
+   * from the plugin template is published to npm and installed by strangers, so a
+   * template that does not resolve `@single-studio/core` is a defect handed to
+   * everybody who starts from it -- and, unlike the studio, it fails at *their*
+   * publish rather than at ours.
+   *
+   * Verified the same way and for the same reason: from the packed tarball, with
+   * npm, outside this workspace. It is deliberately not a workspace package. If it
+   * were, it would resolve core through a link, and the one question worth asking --
+   * does what we publish satisfy what the template asks for -- would never be asked.
+   *
+   * Installed and *tested* rather than built, because a plugin has no build. It
+   * ships its source, which is the reason the template needs no bundler at all.
+   */
+  console.log('\n→ the plugin template, against the same tarball')
+  cpSync(join(root, 'templates/plugin'), plugin, { recursive: true })
+
+  const carried = capture('git', ['ls-files', 'templates/plugin'], root).split('\n').filter(Boolean)
+  const stowaways = carried.filter((file) => !PAPERWORK.test(file.split('/').at(-1)) && !/\.(js|jsx|css|json|md|html|yml|yaml|gitignore)$/i.test(file))
+
+  if (stowaways.length)
+    throw new Error(`templates/plugin carries files that are not scaffolding:\n  ${stowaways.join('\n  ')}\nEvery plugin made from the template gets a copy.`)
+
+  const pluginManifest = JSON.parse(readFileSync(join(plugin, 'package.json'), 'utf8'))
+  const core = packed['@single-studio/core']
+
+  if (!pluginManifest.peerDependencies?.['@single-studio/core'])
+    throw new Error('templates/plugin must depend on @single-studio/core as a *peer*, or a studio can end up with two copies of the framework in one worker')
+
+  // Both, and for different reasons: the peer is what a studio resolves, the dev
+  // dependency is what the template's own tests run against.
+  pluginManifest.peerDependencies['@single-studio/core'] = `file:${core}`
+  pluginManifest.devDependencies['@single-studio/core'] = `file:${core}`
+
+  writeFileSync(join(plugin, 'package.json'), `${JSON.stringify(pluginManifest, null, 2)}\n`)
+
+  run('npm', ['install', '--no-audit', '--no-fund'], plugin)
+  run('npm', ['test'], plugin)
+
+  console.log('  the plugin template installs and its tests pass against the packed core')
+
+  console.log('\ntemplates build against the packed packages')
 } finally {
   if (keep) console.log(`\nleft behind at ${project}`)
   else rmSync(stage, { recursive: true, force: true })
