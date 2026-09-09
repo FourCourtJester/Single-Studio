@@ -1,8 +1,8 @@
 import { definePlugin, PluginHandler, PollingService } from '@single-studio/core/worker'
 
-import { explain, parse, urlFor } from './sheet'
+import { explain, parse, urlFor } from './sheet.js'
 
-export { explain, keyOf, parse, same, urlFor } from './sheet'
+export { explain, keyOf, parse, same, urlFor } from './sheet.js'
 
 /**
  * A shared spreadsheet as a data source.

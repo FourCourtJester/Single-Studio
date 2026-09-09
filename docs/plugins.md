@@ -13,33 +13,23 @@ with it.
 
 ## Adding one to your studio
 
-::: warning The first-party plugins are not on npm yet
-`@single-studio/plugin-rocket-league` and its siblings live in the framework
-repository but are not published, so `npm install` will not find them. Until they
-are, copy the plugin's `src` folder into your studio — it depends on nothing but
-`@single-studio/core`, which you already have.
+Install it, and register it in your worker entry:
 
 ```bash
-# from your studio, with the framework cloned alongside it
-cp -r ../Single-Studio/packages/plugin-rocket-league/src src/plugins/rocket-league
+npm i @single-studio/plugin-rocket-league
 ```
 
-Then import from `../plugins/rocket-league` instead of the package name — the worker
-lives in `src/studio/`, so the copy at `src/plugins/` is one level up. Everything
-else on this page is identical either way — the plugin depends on nothing the
-template does not already have, so there is no install step and nothing to
-configure.
+The four first-party plugins — `plugin-rocket-league`, `plugin-obs`,
+`plugin-twitch`, `plugin-sheets` — share a version with the framework, so the one
+that matches your `@single-studio/core` is the one to install.
 
-This was checked rather than assumed: a clean template on the published `0.5.0`
-packages, that `cp`, and the worker below build with no other change.
-:::
 
 A plugin is one import and one array entry, in your worker entry:
 
 ```js
 // src/studio/velcro.worker.js
 import { createVelcroHost } from '@single-studio/core/worker'
-import { rocketLeague, RocketLeagueHandler } from '../plugins/rocket-league'
+import { rocketLeague, RocketLeagueHandler } from '@single-studio/plugin-rocket-league'
 
 import { STUDIO_ID } from './config'
 import { mutations } from '../mutations'

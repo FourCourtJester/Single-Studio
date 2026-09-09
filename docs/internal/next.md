@@ -83,16 +83,22 @@ So the change is two things, not one:
    operator input, and a studio author following it hits this and assumes they have
    done something wrong.
 
-## Publishing the plugin packages
+## Publishing the plugin packages — done
 
-All four are `private: true`, so `@single-studio/plugin-rocket-league` is a 404 on
-npm and the only way into a studio is copying the folder — which
-[plugins.md](../plugins.md) documents, and which was verified against a clean
-template and the published tarballs.
+All four are publishable and go out with the framework, at the same version. They
+ship their source rather than a build, which is also what
+[templates/plugin](../../templates/plugin) does and the reason it needs no bundler.
 
-Blocked on the reviews and on each plugin having a template. Note that a first
-publish of a new name cannot use OIDC and needs the token path again; see
-[releasing.md](releasing.md).
+Two things were found making them so, both by `verify:template` and neither by
+anything else:
+
+- **Every relative import needed its `.js`.** Node resolves a published source file;
+  a bundler resolved every previous one. All four packed cleanly, installed cleanly,
+  and threw on first import.
+- **Core has to be a peer**, or npm may install a second copy and a studio ends up
+  with two document registries — the plugin connects, emits, and nothing arrives.
+
+The first publish of each name cannot use OIDC; see [releasing.md](releasing.md).
 
 ## Rocket League: `raw` on every payload
 

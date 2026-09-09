@@ -30,6 +30,24 @@ permissions:
   # and workflow that built it, so anybody can check the tarball came from here.
   id-token: write
 
+# Everything that goes to the registry, in dependency order: the plugins name core as
+# a peer, so a release where core is missing is a release where four packages cannot
+# be installed.
+#
+# They share one version deliberately. A plugin's peer range has to name a core that
+# exists, and four ranges maintained separately are four chances for one of them to
+# name a version that was never published -- which npm reports at somebody else's
+# install, not at ours. Lockstep costs a version bump on a plugin that did not change
+# and buys a range that is always right.
+env:
+  PACKAGES: >-
+    packages/core
+    packages/provider-supabase
+    packages/plugin-obs
+    packages/plugin-sheets
+    packages/plugin-twitch
+    packages/plugin-rocket-league
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -57,7 +75,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           tag="${GITHUB_REF_NAME#v}"
-          for dir in packages/core packages/provider-supabase; do
+          for dir in $PACKAGES; do
             version=$(node -p "require('./$dir/package.json').version")
             if [ "$tag" != "$version" ]; then
               echo "::error::$dir is $version but the tag says $tag"
@@ -115,7 +133,7 @@ jobs:
           # a pnpm workspace, npm cannot see it, and each package is an ordinary
           # standalone publish from its own directory. `prepack` still runs, so
           # core's dist is built here exactly as it is everywhere else.
-          for dir in packages/core packages/provider-supabase; do
+          for dir in $PACKAGES; do
             echo "::group::publishing $dir"
             (cd "$dir" && npm publish --access public $provenance)
             echo "::endgroup::"

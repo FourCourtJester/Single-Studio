@@ -1,8 +1,8 @@
 import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
-import { EVENTS, gameState, normalise, scoreOf } from './events'
+import { EVENTS, gameState, normalise, scoreOf } from './events.js'
 
-export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events'
+export { EVENTS, SIDES, gameState, normalise, scoreOf, sideOf } from './events.js'
 
 /**
  * Rocket League's own Stats API, over the WebSocket that v2.72 added.

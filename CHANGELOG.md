@@ -3,7 +3,7 @@
 Both packages share a version — `@single-studio/core` and
 `@single-studio/provider-supabase` are two halves of one release.
 
-## Unreleased
+## 0.6.0
 
 ### Added
 

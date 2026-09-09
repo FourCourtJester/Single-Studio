@@ -37,8 +37,24 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const keep = process.argv.includes('--keep')
 
-/** Published packages, in the order the template depends on them. */
+/** What the starter template depends on, in the order it depends on them. */
 const PACKAGES = ['packages/core', 'packages/provider-supabase']
+
+/**
+ * Everything that goes to the registry, including what the template does not use.
+ *
+ * A plugin ships its *source* rather than a build, which is what makes the plugin
+ * template need no bundler -- and which moves resolution from a bundler to Node.
+ * Node does not resolve an extensionless relative import, and every file in this
+ * repository was written with one, because until now every published file went
+ * through a bundler first.
+ *
+ * That is not a hypothetical either: at the moment the plugins were made
+ * publishable, all four packed cleanly, installed cleanly, and threw on first
+ * import. Nothing else in the repository looks at a package the way somebody
+ * installing it does.
+ */
+const PLUGINS = ['packages/plugin-obs', 'packages/plugin-sheets', 'packages/plugin-twitch', 'packages/plugin-rocket-league']
 
 /**
  * What a framework package is made of, and nothing else.
@@ -75,7 +91,7 @@ try {
 
   const packed = {}
 
-  for (const dir of PACKAGES) {
+  for (const dir of [...PACKAGES, ...PLUGINS]) {
     const manifest = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
 
     /**
@@ -160,10 +176,14 @@ try {
   // range that no published version satisfies is still caught by an actual install.
   const manifest = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8'))
 
-  for (const [name, tarball] of Object.entries(packed)) {
+  // `PACKAGES`, not everything packed: the plugins are published from here too and
+  // a studio is not expected to depend on any of them.
+  for (const dir of PACKAGES) {
+    const { name } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+
     if (!manifest.dependencies?.[name]) throw new Error(`templates/studio does not depend on ${name}`)
 
-    manifest.dependencies[name] = `file:${tarball}`
+    manifest.dependencies[name] = `file:${packed[name]}`
   }
 
   writeFileSync(join(project, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
@@ -349,6 +369,31 @@ try {
    * Installed and *tested* rather than built, because a plugin has no build. It
    * ships its source, which is the reason the template needs no bundler at all.
    */
+  /**
+   * Every published package, imported the way Node imports it.
+   *
+   * `npm pack` proves the tarball has the right files in it and says nothing about
+   * whether they load. Installing and importing is the whole question, and it is one
+   * line of test for a failure that is total: the package installs, the studio
+   * builds, and the first `import` throws.
+   */
+  console.log('\n→ importing every published package from a real install')
+
+  const importable = join(stage, 'importable')
+
+  mkdirSync(importable, { recursive: true })
+  writeFileSync(join(importable, 'package.json'), `${JSON.stringify({ name: 'importable', private: true, type: 'module' }, null, 2)}\n`)
+  run('npm', ['install', '--no-audit', '--no-fund', ...Object.values(packed)], importable)
+
+  for (const dir of PLUGINS) {
+    const { name } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+    const exports = capture('node', ['--input-type=module', '-e', `const m = await import('${name}'); process.stdout.write(String(Object.keys(m).length))`], importable)
+
+    if (Number(exports) < 1) throw new Error(`${name} installs but exports nothing`)
+
+    console.log(`  ${name} → ${exports} exports`)
+  }
+
   console.log('\n→ the plugin template, against the same tarball')
   cpSync(join(root, 'templates/plugin'), plugin, { recursive: true })
 

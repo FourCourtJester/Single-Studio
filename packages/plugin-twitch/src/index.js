@@ -1,10 +1,10 @@
 import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
-import { EVENTS, normalise } from './events'
-import { Protocol } from './protocol'
+import { EVENTS, normalise } from './events.js'
+import { Protocol } from './protocol.js'
 
-export { EVENTS, normalise, scopesFor } from './events'
-export { Protocol } from './protocol'
+export { EVENTS, normalise, scopesFor } from './events.js'
+export { Protocol } from './protocol.js'
 
 const EVENTSUB = 'wss://eventsub.wss.twitch.tv/ws'
 const HELIX = 'https://api.twitch.tv/helix/eventsub/subscriptions'

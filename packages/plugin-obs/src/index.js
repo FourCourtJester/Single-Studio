@@ -1,10 +1,10 @@
 import { definePlugin, PluginHandler, SocketService } from '@single-studio/core/worker'
 
-import { categoriesFor, EVENTS, normalise } from './events'
-import { authenticate, classify, identify, maskOf, request } from './protocol'
+import { categoriesFor, EVENTS, normalise } from './events.js'
+import { authenticate, classify, identify, maskOf, request } from './protocol.js'
 
-export { CATEGORY, OP, authenticate, classify, maskOf } from './protocol'
-export { EVENTS, categoriesFor, normalise } from './events'
+export { CATEGORY, OP, authenticate, classify, maskOf } from './protocol.js'
+export { EVENTS, categoriesFor, normalise } from './events.js'
 
 /**
  * OBS, over obs-websocket, in the SharedWorker.
