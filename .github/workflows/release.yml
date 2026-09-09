@@ -51,19 +51,38 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # A bound, because the slowest thing in here is `npm install` against a
+    # registry and nothing about it is bounded on its own. The default is six
+    # hours: long enough that a stuck release looks like a slow one for most of a
+    # working day. Ten minutes is roughly six times the longest this has taken.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@v5
 
-      # Deliberately no `registry-url`. It exists to write an .npmrc containing
-      # `${NODE_AUTH_TOKEN}`, and with no token to expand that placeholder to, the
-      # line is at best noise and at worst something pnpm trips over. OIDC needs
-      # none of it, and the default registry is the one being published to.
+      # `registry-url` only when there is a token to put in the .npmrc it writes.
+      #
+      # It exists to write `${NODE_AUTH_TOKEN}` into an .npmrc, and with no token to
+      # expand that placeholder to, the line is at best noise and at worst something
+      # pnpm trips over. OIDC needs none of it. So it is conditional rather than
+      # removed, and NPM_TOKEN is the switch.
+      #
+      # The switch exists because trusted publishing cannot bootstrap a name. npm
+      # attaches a trusted publisher to a package that already *exists*, so the very
+      # first publish of any new name has to be authenticated some other way -- and
+      # with no fallback here, a release that introduces a package publishes every
+      # package before it and then dies on the new one, leaving half a release on the
+      # registry that cannot be retried because those versions now exist.
+      #
+      # So: add NPM_TOKEN for the release that introduces a name, configure trusted
+      # publishing for it afterwards, and delete the secret. Every release without
+      # the secret behaves exactly as before.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
+          registry-url: ${{ secrets.NPM_TOKEN && 'https://registry.npmjs.org' || '' }}
 
       - run: pnpm install --frozen-lockfile
 
@@ -116,6 +135,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           PRIVATE: ${{ github.event.repository.private }}
+          # Empty when the secret is absent, which is the ordinary state. npm falls
+          # back to OIDC, which is where every package ends up once it exists.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm install -g npm@latest
           npm --version
@@ -133,6 +155,10 @@ jobs:
           # a pnpm workspace, npm cannot see it, and each package is an ordinary
           # standalone publish from its own directory. `prepack` still runs, so
           # core's dist is built here exactly as it is everywhere else.
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "::notice::Publishing with NPM_TOKEN rather than OIDC. Configure trusted publishing for anything new afterwards, then delete the secret."
+          fi
+
           for dir in $PACKAGES; do
             echo "::group::publishing $dir"
             (cd "$dir" && npm publish --access public $provenance)
@@ -159,6 +185,8 @@ jobs:
     needs: publish
     if: startsWith(github.ref, 'refs/tags/') || inputs.check_template_key
     runs-on: ubuntu-latest
+    # Clones and pushes only; it has taken about ten seconds every time.
+    timeout-minutes: 5
     # A matrix rather than a second job, because everything below is the same
     # reasoning and the failures are the same failures. Two copies would be two
     # places for the deploy-key trap and the workflow-scope trap to be relearned.

@@ -138,9 +138,29 @@ before a trusted publisher can be attached to it — so `plugin-obs`, `plugin-sh
 `plugin-twitch` and `plugin-rocket-league` each need one publish on the token path
 before the workflow can take them over.
 
-That is the same step core and the provider went through, described below. Do all
-four in one sitting, then configure trusted publishing for each on npm, then let the
-next release go out on OIDC as usual.
+**Do it as one tagged release, with a temporary token.** The workflow reads
+`NPM_TOKEN` when the secret exists and falls back to OIDC when it does not, so a
+release that introduces a name needs the secret and every release after it does not.
+
+1. Create a **granular access token** — read and write, scoped to the
+   `@single-studio` organisation, **Bypass 2FA on**. That box is the one people miss,
+   and missing it fails late: the publish authenticates, uploads, prints the whole
+   manifest, then stops on `EOTP` asking for a code a runner cannot give.
+2. Add it as the `NPM_TOKEN` repository secret.
+3. Tag. All six publish on the token; the run says so in a notice.
+4. Configure trusted publishing for the four new packages on npm.
+5. **Delete `NPM_TOKEN`.** The next release is tokenless again.
+
+### Why not publish the four by hand first
+
+Because the versions would then exist, and the tagged release would die trying to
+publish them again — and by then it would already have published `core`. Either
+order has the same shape of failure: the publish loop runs under `bash -e`, so the
+first refusal stops it with everything before it already on the registry, and those
+versions cannot be republished. Getting out of that means bumping to `0.6.1` for no
+reason anybody will remember.
+
+One tag with a token avoids all of it.
 
 Check what is about to go out first — `npm pack` in each, and look inside. npm
 refuses to unpublish after 72 hours.
