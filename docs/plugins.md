@@ -172,7 +172,7 @@ machine running the game, your handler runs on that machine, and the command goe
 back down the same connection:
 
 ```js
-class MyShow extends ObsHandler {
+class MyShow extends OBSHandler {
   onMatchEnded() {
     this.command('scene', { name: 'Podium' })
   }

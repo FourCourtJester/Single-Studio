@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { sheets, SheetsHandler } from '../src/index'
+import { sheets, GoogleSheetsHandler } from '../src/index'
 
 const ok = (values) => ({ ok: true, status: 200, json: async () => ({ values }) })
 const refused = (status, message) => ({ ok: false, status, json: async () => ({ error: { message } }) })
 
-const build = (Handler = SheetsHandler, over = {}, owner = () => true) =>
+const build = (Handler = GoogleSheetsHandler, over = {}, owner = () => true) =>
   sheets(Handler).create({
     mutate: vi.fn(),
     owner,
@@ -18,7 +18,7 @@ const watching = () => {
   const rows = vi.fn()
   const problems = vi.fn()
 
-  class MyShow extends SheetsHandler {
+  class MyShow extends GoogleSheetsHandler {
     onRows(...args) {
       rows(...args)
     }
@@ -106,7 +106,7 @@ describe('polling', () => {
     // and get the key rate limited mid-show.
     vi.stubGlobal('fetch', vi.fn(async () => ok([['A'], ['1']])))
 
-    const plugin = build(SheetsHandler, { every: 1 })
+    const plugin = build(GoogleSheetsHandler, { every: 1 })
 
     await plugin.open()
     await vi.advanceTimersByTimeAsync(4_000)
@@ -124,7 +124,7 @@ describe('ownership', () => {
     // writers racing on the same paths, for one sheet's worth of information.
     vi.stubGlobal('fetch', vi.fn(async () => ok([['A'], ['1']])))
 
-    const plugin = build(SheetsHandler, {}, () => false)
+    const plugin = build(GoogleSheetsHandler, {}, () => false)
 
     await plugin.open()
     await vi.advanceTimersByTimeAsync(60_000)
@@ -216,5 +216,41 @@ describe('a read that stalls', () => {
     expect(seen.aborted).toBe(false)
 
     await plugin.stop()
+  })
+})
+
+describe('the sheet the studio ships', () => {
+  it('comes from the factory, not from the operator', async () => {
+    const fetched = vi.fn(async () => ok([['team'], ['Boise State']]))
+
+    vi.stubGlobal('fetch', fetched)
+
+    // What an operator could once have typed, and what the studio actually ships.
+    const plugin = sheets(GoogleSheetsHandler, { id: 'the-studio-sheet', range: 'Teams!A:D' }).create({
+      mutate: vi.fn(),
+      owner: () => true,
+      studio: 's',
+      config: { id: 'whatever-was-stored', range: 'Z:Z', key: 'k', every: 30 },
+    })
+
+    await plugin.start()
+
+    const asked = String(fetched.mock.calls[0][0])
+
+    expect(asked).toContain('the-studio-sheet')
+    expect(asked).toContain(encodeURIComponent('Teams!A:D'))
+    expect(asked).not.toContain('whatever-was-stored')
+
+    await plugin.stop()
+  })
+
+  it('leaves the key and the interval to the operator', async () => {
+    const definition = sheets(GoogleSheetsHandler, { id: 'x', range: 'y' })
+    const keys = definition.config.map((field) => field.key)
+
+    // The two the studio decides are not on the panel; a range that does not match
+    // the graphics reading it is a silent fault, not a preference.
+    expect(keys).toEqual(['key', 'every'])
+    expect(definition.config.find((field) => field.key === 'every').default).toBe(10)
   })
 })

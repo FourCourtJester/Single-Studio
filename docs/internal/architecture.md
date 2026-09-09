@@ -433,7 +433,7 @@ arrives at the machine with the game on it, the handler runs on that machine, an
 the reply goes back down the socket it arrived on:
 
 ```js
-class MyShow extends ObsHandler {
+class MyShow extends OBSHandler {
   onMatchEnded() {
     this.command('scene', { name: 'Podium' })
   }
