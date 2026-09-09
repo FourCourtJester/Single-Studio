@@ -3,12 +3,25 @@
   "version": "0.1.0",
   "description": "What this reads, in one line. Shown on the operator's board and on npm.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR-NAME/YOUR-REPO.git"
+  },
   "type": "module",
-  "keywords": ["single-studio", "single-studio-plugin", "obs", "broadcast"],
+  "keywords": [
+    "single-studio",
+    "single-studio-plugin",
+    "obs",
+    "broadcast"
+  ],
   "exports": {
     ".": "./src/index.js"
   },
-  "files": ["src", "README.md", "LICENSE"],
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

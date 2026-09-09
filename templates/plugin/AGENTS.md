@@ -85,7 +85,7 @@ is worse than nothing.
 This ships **source**, not a build — a studio's bundler compiles it, so there is no
 build step, no `dist`, and no bundler config to keep working.
 
-Two things that will bite:
+Three things that will bite:
 
 - **`@single-studio/core` must stay a `peerDependency`.** If it is a normal
   dependency, npm is free to install a second copy — and two copies of the framework
@@ -94,6 +94,12 @@ Two things that will bite:
 - **Relative imports need their `.js`.** Your source is resolved by Node, not by a
   bundler, so `from './events'` throws on install where `from './events.js'` works.
   The example files are correct; copy their style.
+- **`repository` must name your repository if you publish with `--provenance`.**
+  npm compares it against the repository that built the tarball and refuses the
+  publish outright — `422 ... "repository.url" is "", expected to match ...` — rather
+  than quietly publishing unsigned. `package.json` here says `YOUR-NAME/YOUR-REPO`;
+  change it. Nothing local catches this: `npm pack` builds the tarball happily and
+  the refusal only comes back from npm's servers.
 
 Before publishing: `npm test`, then `npm pack` and look inside the tarball. npm
 refuses to unpublish after 72 hours.
