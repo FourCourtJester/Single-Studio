@@ -137,18 +137,29 @@ function Help({ blocks, plugin }) {
 /**
  * One plugin: what it is, whether it is talking, and what it can be asked.
  *
- * Folded away by default, because a studio with six plugins is a scroll and the
- * thing an operator does most often with this panel is read it, not edit it. What
- * stays out is what answers "is everything up": the light, the name, the status
- * word, and the reason when there is one. Opening a row is for changing something.
+ * Folded away *if it is connected*, because a studio with six plugins is a scroll
+ * and the thing an operator does most often with this panel is read it, not edit
+ * it. What stays out is what answers "is everything up": the light, the name, the
+ * status word, and the reason when there is one.
  *
- * The reason deliberately does *not* fold. A plugin that cannot reach its game is
- * the one row somebody needs to read, and hiding the sentence behind a click would
- * put the panel back to saying "Not connecting" with no more to offer -- which is
- * the state this whole panel exists to get away from.
+ * Anything not connected opens itself. That is the row somebody came here for --
+ * the settings that need changing are the ones behind a plugin that is not talking
+ * -- and it means the common case of opening this panel *because* something is
+ * wrong needs no clicks at all. A panel where everything is fine is a short list;
+ * a panel where one thing is broken opens on the broken one.
+ *
+ * Decided once, when the panel mounts, which is when the dialog opens: the whole
+ * panel is unmounted while the modal is closed. Deliberately not tracked
+ * afterwards, or a row would slam shut under an operator the moment their fix
+ * connected -- while they were still reading it.
+ *
+ * The reason deliberately does not fold either. A plugin that cannot reach its game
+ * is the one row somebody needs to read, and hiding the sentence behind a click
+ * would put the panel back to saying "Not connecting" with no more to offer --
+ * which is the state this whole panel exists to get away from.
  */
 function Entry({ plugin, onSave }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(() => (plugin.status ?? 'idle') !== 'connected')
   const [draft, setDraft] = useState(plugin.values ?? {})
   const [saving, setSaving] = useState(false)
   const [problem, setProblem] = useState(null)

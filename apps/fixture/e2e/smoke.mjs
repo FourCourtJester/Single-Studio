@@ -1615,7 +1615,27 @@ const row = control.locator('.ss-plugin[data-plugin="feed"]')
  */
 check(
   await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body')),
-  'a plugin row starts folded away, so a panel of them is a list rather than a scroll',
+  'a connected plugin starts folded away, so a panel of them is a list rather than a scroll',
+)
+
+/*
+ * And one that is not connected opens itself.
+ *
+ * The fixture registers Rocket League as well, pointed at a game that is not
+ * running here -- which is the case this rule is for. A panel opened *because*
+ * something is wrong should not then ask which row to look in: the settings worth
+ * changing are the ones behind the plugin that is not talking.
+ *
+ * Not driven by a contrived plugin, because the honest version was already in the
+ * fixture: a real socket plugin with nothing at the other end.
+ */
+check(
+  await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="rocket-league"]')?.dataset.status !== 'connected'),
+  'the second plugin is not connected, there being no game here',
+)
+check(
+  await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="rocket-league"] .ss-plugin-body'))),
+  'and so it opens itself, rather than hiding the settings somebody came here to change',
 )
 check(
   (await row.locator('.ss-plugin-toggle').textContent()).includes('Demo feed'),
