@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { SocketService } from '@single-studio/core/worker'
+
 import { twitch, TwitchHandler } from '../src/index'
 
 // A WebSocket that does nothing until a test tells it to, so the handover and the
@@ -212,5 +214,19 @@ describe('the watchdog', () => {
     vi.advanceTimersByTime(10_000)
 
     expect(dropped).not.toHaveBeenCalled()
+  })
+})
+
+describe('how long the handshake is given', () => {
+  it('allows longer than a bare socket, because ready() is seven round trips away', () => {
+    // `readyOnOpen` is false here: between the socket opening and this plugin being
+    // usable are a welcome frame and one HTTP call per event type, in a row. The
+    // core default is sized for a handshake, and this is not one. Getting it wrong
+    // would not be a slow connection -- it would be a retry loop failing at the same
+    // point every time.
+    const plugin = build(TwitchHandler)
+
+    expect(plugin.readyOnOpen).toBe(false)
+    expect(plugin.connectBudgetMs).toBeGreaterThan(new SocketService({ mutate: () => {} }).connectBudgetMs)
   })
 })

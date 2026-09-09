@@ -219,6 +219,16 @@ what would have happened anyway had the socket had the manners to refuse.
 The deadline is stood down in `ready()`, in `fail()` and in `close()`. Missing any of
 those is the way to get this wrong.
 
+**It measures as far as `ready()`, not as far as the socket opening.** That is the
+right end for the failure this exists for -- a connection accepted and then abandoned
+never fires `open` either -- but it means any protocol handshake a service does
+before declaring itself ready is inside the budget too. `plugin-twitch` therefore
+overrides it to thirty seconds: `readyOnOpen` is false there, and between the socket
+and `ready()` sit a welcome frame and one HTTP round trip per event type, seven by
+default, in a row. Ten seconds is comfortable for a handshake and is not obviously
+comfortable for that, and being wrong would not have looked like a slow connection --
+it would have been a retry loop failing at the same point every time.
+
 ### What pins it
 
 Four tests in `packages/core/test/service.test.js`, against a socket that accepts and
