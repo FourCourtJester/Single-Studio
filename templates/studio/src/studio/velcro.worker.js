@@ -3,7 +3,7 @@ import { connectSupabase } from '@single-studio/provider-supabase'
 
 import { STUDIO_ID } from './config'
 import { mutations } from '../mutations'
-import { usePlugins } from '../mutations/plugins'
+import { register } from '../mutations/plugins'
 
 // The worker that owns this studio's state, shared by every tab. No React in here.
 
@@ -39,7 +39,7 @@ createVelcroHost({
   onReady({ mutate, owns, plugins }) {
     // So anything can ask a plugin for something -- see ../mutations/plugins.js.
     // Harmless with no plugins registered, and the only wiring the bridge needs.
-    usePlugins(plugins)
+    register(plugins)
 
     if (!import.meta.env.VITE_FEED_URL) return
 

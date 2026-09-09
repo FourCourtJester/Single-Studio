@@ -47,9 +47,14 @@ const running = new Map()
  * and plugins together, so a mutation written at module scope has no plugin to close
  * over. `onReady` is handed the live map and is the first moment one exists.
  *
+ * Deliberately not called `usePlugins`. That name belongs to a real React hook in
+ * the framework -- the one the plugin panel reads -- and this is worker code that is
+ * not a hook at all, so the two would be one name for two unrelated things and the
+ * lint rule for hooks refuses it outright.
+ *
  * @param {Map<string, object>} plugins
  */
-export const usePlugins = (plugins) => {
+export const register = (plugins) => {
   running.clear()
 
   for (const [name, plugin] of plugins ?? []) running.set(name, plugin)

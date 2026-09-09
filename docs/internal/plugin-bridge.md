@@ -39,7 +39,7 @@ So a bridge is a file of mutations:
 // src/mutations/plugins.js -- generic, one per studio
 const running = new Map()
 
-export const usePlugins = (plugins) => {
+export const register = (plugins) => {
   running.clear()
   for (const [name, plugin] of plugins ?? []) running.set(name, plugin)
 }
@@ -62,7 +62,7 @@ export const obs = {
 ```js
 // src/studio/velcro.worker.js -- the only wiring
 onReady({ plugins }) {
-  usePlugins(plugins)
+  register(plugins)
 }
 ```
 
