@@ -134,8 +134,21 @@ function Help({ blocks, plugin }) {
   )
 }
 
-/** One plugin: what it is, whether it is talking, and what it can be asked. */
+/**
+ * One plugin: what it is, whether it is talking, and what it can be asked.
+ *
+ * Folded away by default, because a studio with six plugins is a scroll and the
+ * thing an operator does most often with this panel is read it, not edit it. What
+ * stays out is what answers "is everything up": the light, the name, the status
+ * word, and the reason when there is one. Opening a row is for changing something.
+ *
+ * The reason deliberately does *not* fold. A plugin that cannot reach its game is
+ * the one row somebody needs to read, and hiding the sentence behind a click would
+ * put the panel back to saying "Not connecting" with no more to offer -- which is
+ * the state this whole panel exists to get away from.
+ */
 function Entry({ plugin, onSave }) {
+  const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(plugin.values ?? {})
   const [saving, setSaving] = useState(false)
   const [problem, setProblem] = useState(null)
@@ -158,14 +171,38 @@ function Entry({ plugin, onSave }) {
   }
 
   return (
-    <section className={cx('ss-plugin flex flex-col gap-1 border-t border-slate-800 py-3 first:border-t-0')} data-plugin={plugin.name} data-status={status}>
-      <header className="flex items-center gap-2">
-        <span className={cx('h-2 w-2 shrink-0 rounded-full', TONE[status] ?? TONE.idle)} aria-hidden="true" />
-        <h3 className="grow text-sm font-medium text-slate-100">{plugin.label ?? plugin.name}</h3>
-        <span className="text-xs text-slate-500">{SAYS[status] ?? status}</span>
-      </header>
+    <section
+      className={cx('ss-plugin flex flex-col gap-1 border-t border-slate-800 py-3 first:border-t-0')}
+      data-plugin={plugin.name}
+      data-status={status}
+      data-open={open ? '' : undefined}
+    >
+      <h3>
+        <button
+          type="button"
+          onClick={() =>
+            setOpen((was) => {
+              // Folding away drops the save's own message, so the plugin's standing
+              // reason -- the same sentence, suppressed while the local one showed --
+              // takes back over. Without this, collapsing a row that had just refused
+              // a config hides both and the row goes quiet about a real problem.
+              if (was) setProblem(null)
 
-      {plugin.summary ? <p className="ss-plugin-summary -mt-0.5 text-xs text-slate-500">{plugin.summary}</p> : null}
+              return !was
+            })
+          }
+          aria-expanded={open}
+          aria-controls={`ss-plugin-body-${plugin.name}`}
+          className="ss-plugin-toggle flex w-full items-center gap-2 text-left"
+        >
+          <span className={cx('h-2 w-2 shrink-0 rounded-full', TONE[status] ?? TONE.idle)} aria-hidden="true" />
+          <span className="grow text-sm font-medium text-slate-100">{plugin.label ?? plugin.name}</span>
+          <span className="text-xs text-slate-500">{SAYS[status] ?? status}</span>
+          <span aria-hidden="true" className={cx('shrink-0 text-[10px] text-slate-600 transition-transform', open && 'rotate-90')}>
+            &#9654;
+          </span>
+        </button>
+      </h3>
 
       {/*
         Why, not just that. A red light saying "Not connecting" sends an operator
@@ -184,38 +221,44 @@ function Entry({ plugin, onSave }) {
         </p>
       ) : null}
 
-      <Help blocks={plugin.help} plugin={plugin.name} />
+      {open ? (
+        <div id={`ss-plugin-body-${plugin.name}`} className="ss-plugin-body flex flex-col gap-1">
+          {plugin.summary ? <p className="ss-plugin-summary -mt-0.5 text-xs text-slate-500">{plugin.summary}</p> : null}
 
-      {plugin.config?.length ? (
-        <>
-          <div className="flex flex-col">
-            {plugin.config.map((field) => (
-              <Field key={field.key} field={field} value={draft[field.key]} onChange={(next) => setDraft((was) => ({ ...was, [field.key]: next }))} />
-            ))}
-          </div>
+          <Help blocks={plugin.help} plugin={plugin.name} />
 
-          <div className="mt-1 flex items-center gap-3">
-            <button
-              type="button"
-              disabled={!dirty || saving}
-              onClick={save}
-              className={cx(
-                'ss-plugin-save rounded-md px-3 py-1.5 text-xs transition-colors',
-                dirty && !saving ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-600',
-              )}
-            >
-              {saving ? 'Reconnecting…' : 'Save and reconnect'}
-            </button>
-            {problem ? (
-              <p role="alert" className="ss-plugin-problem text-xs text-rose-400">
-                {problem}
-              </p>
-            ) : null}
-          </div>
-        </>
-      ) : (
-        <p className="text-xs text-slate-500">Nothing to configure.</p>
-      )}
+          {plugin.config?.length ? (
+            <>
+              <div className="flex flex-col">
+                {plugin.config.map((field) => (
+                  <Field key={field.key} field={field} value={draft[field.key]} onChange={(next) => setDraft((was) => ({ ...was, [field.key]: next }))} />
+                ))}
+              </div>
+
+              <div className="mt-1 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={!dirty || saving}
+                  onClick={save}
+                  className={cx(
+                    'ss-plugin-save rounded-md px-3 py-1.5 text-xs transition-colors',
+                    dirty && !saving ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'cursor-default border border-slate-800 text-slate-600',
+                  )}
+                >
+                  {saving ? 'Reconnecting…' : 'Save and reconnect'}
+                </button>
+                {problem ? (
+                  <p role="alert" className="ss-plugin-problem text-xs text-rose-400">
+                    {problem}
+                  </p>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-slate-500">Nothing to configure.</p>
+          )}
+        </div>
+      ) : null}
     </section>
   )
 }

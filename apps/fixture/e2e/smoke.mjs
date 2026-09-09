@@ -1605,6 +1605,30 @@ check(await becomes(control, () => document.querySelector('.ss-plugin[data-plugi
 // the demo feed's and Rocket League's. Which is the point of the scoping rather than
 // an annoyance: a panel with one plugin in it never proved anything about a panel.
 const row = control.locator('.ss-plugin[data-plugin="feed"]')
+
+/*
+ * Folded away until asked for.
+ *
+ * A studio with six plugins is a scroll, and reading this panel -- is everything
+ * up? -- is what an operator does with it far more often than editing it. So the
+ * light, the name and the status word stay out, and the rest is behind the row.
+ */
+check(
+  await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body')),
+  'a plugin row starts folded away, so a panel of them is a list rather than a scroll',
+)
+check(
+  (await row.locator('.ss-plugin-toggle').textContent()).includes('Demo feed'),
+  'and still says which plugin it is while folded',
+)
+check(
+  (await row.locator('.ss-plugin-toggle').textContent()).includes('Connected'),
+  'and whether it is talking, which is the question being asked most of the time',
+)
+
+await row.locator('.ss-plugin-toggle').click()
+check(await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body'))), 'opening the row brings out what it can be asked')
+
 const pluginSave = row.locator('.ss-plugin-save')
 
 const label = control.locator('#ss-plugin-field-label')
@@ -1660,6 +1684,24 @@ check(
 // the plugin's standing reason as well as the save's -- and the same sentence in
 // two places reads as two problems.
 check((await row.locator('.ss-plugin-reason').count()) === 0, 'and says it once, not twice')
+
+/*
+ * And folding the row away does not take the reason with it.
+ *
+ * The save's own message lives beside the button, which is right while the button
+ * is on screen and useless once it is not. Collapsing hands back to the plugin's
+ * standing reason -- the same sentence, suppressed until now. Without that the row
+ * would fold up quiet about a plugin that is refusing to run, which is the state
+ * this panel exists to get away from.
+ */
+await row.locator('.ss-plugin-toggle').click()
+check(
+  await becomes(control, () => /more than zero/i.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-reason')?.textContent ?? '')),
+  'a folded row still says why it is not running',
+)
+check(await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body')), 'with everything else out of the way')
+
+await row.locator('.ss-plugin-toggle').click()
 
 // Put it back, so the rest of the run is not driven by a stopped plugin.
 await rate.fill('120')
