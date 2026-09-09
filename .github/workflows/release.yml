@@ -61,28 +61,17 @@ jobs:
 
       - uses: pnpm/action-setup@v5
 
-      # `registry-url` only when there is a token to put in the .npmrc it writes.
+      # Deliberately no `registry-url`. It exists to write an .npmrc containing
+      # `${NODE_AUTH_TOKEN}`, and it writes it for the whole job -- so every step
+      # before the publish reads a config line it cannot expand and warns about it,
+      # in the one run where somebody is watching the log for token trouble.
       #
-      # It exists to write `${NODE_AUTH_TOKEN}` into an .npmrc, and with no token to
-      # expand that placeholder to, the line is at best noise and at worst something
-      # pnpm trips over. OIDC needs none of it. So it is conditional rather than
-      # removed, and NPM_TOKEN is the switch.
-      #
-      # The switch exists because trusted publishing cannot bootstrap a name. npm
-      # attaches a trusted publisher to a package that already *exists*, so the very
-      # first publish of any new name has to be authenticated some other way -- and
-      # with no fallback here, a release that introduces a package publishes every
-      # package before it and then dies on the new one, leaving half a release on the
-      # registry that cannot be retried because those versions now exist.
-      #
-      # So: add NPM_TOKEN for the release that introduces a name, configure trusted
-      # publishing for it afterwards, and delete the secret. Every release without
-      # the secret behaves exactly as before.
+      # When a token is needed it is written in the publish step instead, where it is
+      # used. See there for why it is ever needed at all.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
-          registry-url: ${{ secrets.NPM_TOKEN && 'https://registry.npmjs.org' || '' }}
 
       - run: pnpm install --frozen-lockfile
 
@@ -135,9 +124,20 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           PRIVATE: ${{ github.event.repository.private }}
-          # Empty when the secret is absent, which is the ordinary state. npm falls
-          # back to OIDC, which is where every package ends up once it exists.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Empty when the secret is absent, which is the ordinary state. npm then
+          # falls back to OIDC, which is where every package ends up once it exists.
+          #
+          # It exists because trusted publishing cannot bootstrap a name: npm attaches
+          # a trusted publisher to a package that already *exists*, so the very first
+          # publish of any new name has to be authenticated some other way. With no
+          # fallback, a release that introduces a package publishes every package
+          # before it and then dies on the new one -- and the loop below runs under
+          # `bash -e`, so that leaves half a release on the registry at versions that
+          # cannot be published again.
+          #
+          # So: add NPM_TOKEN for the release that introduces a name, configure
+          # trusted publishing for it afterwards, delete the secret.
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm install -g npm@latest
           npm --version
@@ -155,7 +155,8 @@ jobs:
           # a pnpm workspace, npm cannot see it, and each package is an ordinary
           # standalone publish from its own directory. `prepack` still runs, so
           # core's dist is built here exactly as it is everywhere else.
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
+          if [ -n "$NPM_TOKEN" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
             echo "::notice::Publishing with NPM_TOKEN rather than OIDC. Configure trusted publishing for anything new afterwards, then delete the secret."
           fi
 
