@@ -137,6 +137,25 @@ The one event that *is* held back is `onState`, the whole-match tick, which the 
 sends up to 120 times a second whether anybody is looking or not. That one is passed
 on ten times a second and is not adjustable — see the plugin's own panel.
 
+### Publishing it
+
+A plugin ships its **source**. A studio's bundler compiles it, so there is no build
+step, no `dist`, and no bundler config to keep working — which is most of why the
+plugin template is a fraction of the size of the studio one.
+
+Two things that will bite, both of which the template already gets right:
+
+- **`@single-studio/core` must be a `peerDependency`.** As a normal dependency, npm
+  is free to install a second copy, and two copies of the framework in one worker
+  means two document registries: the plugin connects, emits, and nothing reaches the
+  show. It fails silently.
+- **Relative imports need their `.js`.** Node resolves your source, not a bundler, so
+  `from './events'` throws on install where `from './events.js'` works.
+
+The npm name is yours — `single-studio-plugin-<thing>`, or your own scope. The `name`
+inside `definePlugin` is a different thing: it is what a studio addresses the plugin
+by, and the key its settings are stored under. Keep that one short and unscoped.
+
 ## What your handler is given
 
 |                              |                                                                                                                                |
@@ -226,6 +245,16 @@ export const mutations = {
 mutation runs inside a transaction — see [Your own data](/data#rules).
 
 ## Writing your own
+
+**Start from the template.** `Single-Studio-Plugin-Template` on GitHub — press **Use
+this template** — is a working plugin with tests, ready to publish. It ships both
+shapes described below in one file, with a comment saying to pick one and delete the
+other, so neither is the one you have to invent from this page.
+
+It also ships an `AGENTS.md` covering the parts that are easy to get wrong: what
+belongs on an operator's panel versus what your plugin decides, why the framework has
+to stay a `peerDependency`, and why a relative import needs its `.js` when the package
+ships source rather than a build.
 
 Two base classes, depending on whether the thing tells you or has to be asked.
 
