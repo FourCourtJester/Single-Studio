@@ -10,8 +10,9 @@ Delete this file once 0.6.0 is out.
 |                                 |                                                                       |
 | ------------------------------- | --------------------------------------------------------------------- |
 | `main`                          | carries 0.6.0 across all six packages, and both templates             |
-| `claude/repo-overview-bcfbgu`   | ahead of `main`: the token path below. **Merge before tagging.**      |
-| Release run #18                 | green on all three jobs, against `main`                               |
+| The token path                  | merged in #13; `main` carries it                                      |
+| Release run #18                 | green on all three jobs, on the commit before #13                     |
+| `verify`                        | green on #13's head, which is the content `main` now carries          |
 | `TEMPLATE_DEPLOY_KEY`           | proven: pushed a scratch tag to the studio mirror and deleted it      |
 | `PLUGIN_TEMPLATE_DEPLOY_KEY`    | proven the same way                                                   |
 | `Single-Studio-Plugin-Template` | exists, and is **empty** — see below                                  |
@@ -23,18 +24,7 @@ Both mirrors populate when the tag goes out.
 
 ## Do this
 
-### 1. Merge the branch
-
-`claude/repo-overview-bcfbgu` is what teaches the workflow to use a token at all.
-Without it the release runs the tokenless path, publishes `core` and
-`provider-supabase` on OIDC, and stops dead on `plugin-obs` — which is the exact
-half-release the token is there to prevent, so the order matters more than it looks.
-
-It touches `.github/workflows/release.yml` and two files under `docs/internal/` —
-nothing in `packages/` or `templates/`, so run #18's green still stands for
-everything that actually gets published.
-
-### 2. A token, because trusted publishing cannot bootstrap a name
+### 1. A token, because trusted publishing cannot bootstrap a name
 
 npm attaches a trusted publisher to a package that already **exists**. `plugin-obs`,
 `plugin-sheets`, `plugin-twitch` and `plugin-rocket-league` have never existed, so
@@ -57,7 +47,7 @@ changed on an existing token — make a new one.
 Add it to `Single-Studio` → Settings → Secrets and variables → **Actions** →
 `NPM_TOKEN`.
 
-### 3. Tag
+### 2. Tag
 
 ```bash
 git checkout main && git pull
@@ -74,7 +64,7 @@ What the run then does:
 2. publishes all six with the token — a notice in the log says it used one
 3. syncs both template mirrors, commits, and tags them `v0.6.0`
 
-### 4. Afterwards, in this order
+### 3. Afterwards, in this order
 
 1. **Configure trusted publishing** on npm for the four new packages. Settings →
    the package → Publishing access → GitHub Actions, repository
@@ -86,7 +76,7 @@ What the run then does:
 Do them in that order. Deleting the token before the trusted publishers exist leaves
 the next release with no way to authenticate at all.
 
-### 5. Then the studio
+### 4. Then the studio
 
 Point the one existing studio at `@single-studio/core@^0.6.0` and the plugins it
 uses, and read the 0.6.0 changelog before you do — it is mostly behavioural, and
@@ -104,8 +94,8 @@ three entries change something a studio can see:
 everything before it already on the registry. Those versions cannot be republished.
 Getting out of that means bumping to `0.6.1`, not retrying.
 
-The two ways to arrive there are tagging before the branch is merged, and a missing
-or mis-scoped `NPM_TOKEN`. Which is why those are steps 1 and 2.
+The way to arrive there is a missing or mis-scoped `NPM_TOKEN`, which is why that is
+step 1.
 
 ## Still true, and not blocking
 
