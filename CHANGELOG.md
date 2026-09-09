@@ -27,6 +27,16 @@ Both packages share a version — `@single-studio/core` and
   Written up in `docs/internal/host-hang.md`, including what is still open — there is
   no connect deadline, so `connecting` is where a hanging plugin stays.
 
+- **The template compiles its CSS for the browsers it promises.** `vite.config.js`
+  now sets `cssTarget`, and `CSS_TARGET` is exported from the core beside
+  `MINIMUM_VERSIONS` so the two cannot drift.
+
+  `build.target` is a JavaScript target and `cssTarget` falls back to it, so the CSS
+  pipeline was told nothing and lowered nothing. Anything Tailwind processed was fine
+  either way; a stylesheet imported straight from a component shipped exactly as
+  written, so a studio using CSS nesting shipped rules that do nothing on any browser
+  older than Chrome 112 — invisible on anything new enough to develop on.
+
 - **A poll that stalls now gives up after ten seconds.** `PollingService` has a
   `readBudgetMs`, and hands `read(signal)` an `AbortSignal` so a subclass can stop
   the request rather than merely stop waiting on it. `fetch` has no timeout of its
@@ -42,6 +52,25 @@ Both packages share a version — `@single-studio/core` and
   settled neither way and the retry that exists for exactly this never ran. The
   deadline puts that case on the same path as a refusal: `error`, then the existing
   backoff.
+
+### Fixed
+
+- **`fit` now works without the author arranging anything.** It measured its own
+  parent, and `Variable` renders it inside its own span — a box sized by its own
+  text, so the question was "does this fit inside itself", the answer was always yes,
+  and `fit` did nothing at all. Silently. Every use of it in the first real studio was
+  inert, and so was the fixture's own scoreboard: 379px of name in a 192px box, font
+  untouched.
+
+  `Fit` now finds the box by measuring rather than by guessing at `display` — shrink
+  the text right down, note every ancestor's width, restore, note them again; the
+  first ancestor whose width did not move is the one that is limiting the text.
+  Floats, flex items, `inline-block` and tables are all content-sized in some
+  configurations and not others, so a rule made of display values would be wrong for
+  the next layout somebody writes.
+
+  Nothing to change in a studio. `Timer`, `Clock` and a hand-written `<Fit>` are
+  fixed by the same change.
 
 ### Changed
 

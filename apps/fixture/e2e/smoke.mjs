@@ -208,6 +208,56 @@ await control.locator('.ss-swap').click()
 await control.waitForTimeout(600)
 check(JSON.stringify(await sides()) === JSON.stringify(sidesBefore), 'and swapping again puts every value back where it started')
 
+// -- Fitting a long name -----------------------------------------------------
+/*
+ * The scoreboard's name sits in a `w-56` box, centred, as an unstretched flex item
+ * -- which is to say a box sized by its own text. `Fit` measured that box and asked
+ * whether the text fitted inside itself, the answer was always yes, and `fit` did
+ * nothing whatsoever. Silently: no warning, no partial effect, and invisible until
+ * somebody enters a long name on air. Every use of it in the first real show was
+ * inert, and so was this one, in our own fixture, the whole time.
+ *
+ * Measured rather than eyeballed, because "it looks smaller" is exactly the
+ * impression the broken version also gives when the name happens to be short.
+ */
+const fitted = () =>
+  source.evaluate(() => {
+    const fit = document.querySelector('.home-name .ss-fit')
+    const box = document.querySelector('.home-name')?.parentElement
+
+    if (!fit || !box) return null
+
+    const style = getComputedStyle(box)
+    const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+
+    return { width: Math.round(fit.scrollWidth), room: Math.round(room), size: parseFloat(getComputedStyle(fit).fontSize) }
+  })
+
+await homeName.fill('Kim')
+await save()
+await source.waitForFunction(() => /Kim/.test(document.querySelector('.home-name')?.textContent ?? ''))
+await source.waitForTimeout(300)
+
+const short = await fitted()
+
+check(short.width <= short.room, `a name that already fits is left alone (${short.width}px in ${short.room}px at ${short.size}px)`)
+
+await homeName.fill('Vandersteen-Rodriguez')
+await save()
+await source.waitForFunction(() => /Vandersteen/.test(document.querySelector('.home-name')?.textContent ?? ''))
+await source.waitForTimeout(400)
+
+const long = await fitted()
+
+console.log(`  fit: ${short.size}px for "Kim", ${long.size}px for "Vandersteen-Rodriguez"`)
+check(long.width <= long.room + 1, `a long name is brought inside its box (${long.width}px in ${long.room}px)`)
+check(long.size < short.size, `by shrinking it, rather than by overflowing quietly (${long.size}px against ${short.size}px)`)
+
+// Put it back, so the section below still watches the value it was written for.
+await homeName.fill('Broncos')
+await save()
+await source.waitForFunction(() => /Broncos/.test(document.querySelector('.home-name')?.textContent ?? ''))
+
 // -- Transition ordering -----------------------------------------------------
 // The regression that matters: content must swap at the *bottom* of the cycle. If
 // it swaps on the way out, the new value shows inside the old value's outgoing
