@@ -404,13 +404,30 @@ describe('where the room comes from', () => {
 
   const roomHandedTo = (build) => build.mock.calls.at(-1)[0].room
 
+  // `settle` is a flat 20ms, which is a guess rather than a guarantee. Deriving a
+  // room is crypto, the test below has three hosts doing it at once, and CI runs
+  // this under contention -- so 20ms holds on a quiet machine and does not hold on a
+  // loaded runner. It failed there, not here.
+  //
+  // So wait for the call we are about to read, rather than for a duration that
+  // usually covers it.
+  const handedARoom = async (...builds) => {
+    for (let waited = 0; waited < 2000; waited += 5) {
+      if (builds.every((build) => build.mock.calls.length)) return
+
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
+
+    throw new Error('a host never called connect')
+  }
+
   it('is the key, not the show, when there is a key', async () => {
     const build = vi.fn(() => ({ destroy() {} }))
     const name = `derived-${Math.random()}`
     const made = host({ name, sync: { connect: build, url: 'https://x.supabase.co', secret: newSecret() } })
 
     await made.started
-    await settle()
+    await handedARoom(build)
 
     expect(roomHandedTo(build)).toMatch(/^[A-Za-z0-9_-]{12}$/)
     expect(roomHandedTo(build)).not.toBe(name)
@@ -431,7 +448,7 @@ describe('where the room comes from', () => {
     const other = host({ name: `three-${Math.random()}`, sync: { connect: third, url: 'https://x.supabase.co', secret: newSecret() } })
 
     await Promise.all([one.started, two.started, other.started])
-    await settle()
+    await handedARoom(first, second, third)
 
     expect(roomHandedTo(first)).toBe(roomHandedTo(second))
     expect(roomHandedTo(third)).not.toBe(roomHandedTo(first))
@@ -444,7 +461,7 @@ describe('where the room comes from', () => {
     const made = host({ name: `rotating-${Math.random()}`, sync: { connect: build, url: 'https://x.supabase.co', secret: newSecret() } })
 
     await made.started
-    await settle()
+    await handedARoom(build)
 
     const before = roomHandedTo(build)
 
@@ -461,7 +478,7 @@ describe('where the room comes from', () => {
     const made = host({ name: `built-${Math.random()}`, sync: { connect: build, url: 'https://x.supabase.co', room: 'friday', secret: newSecret() } })
 
     await made.started
-    await settle()
+    await handedARoom(build)
 
     expect(roomHandedTo(build)).not.toBe('friday')
     expect(roomHandedTo(build)).toMatch(/^[A-Za-z0-9_-]{12}$/)
