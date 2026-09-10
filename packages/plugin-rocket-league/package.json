@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@single-studio/core": "workspace:*",
-    "vitest": "^3.2.6",
+    "vitest": "^5.0.0",
     "ws": "^8.21.3"
   }
 }

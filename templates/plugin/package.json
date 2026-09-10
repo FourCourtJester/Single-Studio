@@ -32,6 +32,6 @@
   },
   "devDependencies": {
     "@single-studio/core": "^0.6.0",
-    "vitest": "^3.2.6"
+    "vitest": "^5.0.0"
   }
 }
