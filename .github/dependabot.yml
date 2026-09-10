@@ -1,0 +1,86 @@
+# Scheduled version updates.
+#
+# Security *alerts* are a separate mechanism and are already on: they arrive when an
+# advisory lands, whatever is written here. This file is only about the other kind of
+# update -- the routine drift that nobody is paged for and everybody puts off, which
+# is how a six-month gap becomes a frightening one.
+#
+# Monthly and grouped on purpose. Weekly and ungrouped is how a repository ends up
+# with eleven open Dependabot PRs nobody reads, which is worse than no Dependabot at
+# all: the alerts that matter arrive in the same inbox as the ones that do not.
+version: 2
+
+updates:
+  # The workspace. One entry covers packages/* and apps/* -- pnpm keeps a single
+  # lockfile at the root, so that is where every workspace dependency is resolved.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      # Everything that only builds and tests this repository: React, vite, vitest,
+      # eslint, TypeScript. None of it reaches a studio -- it is not in any published
+      # package's `dependencies` -- so it moves as one PR that the browser suite
+      # either passes or does not.
+      #
+      # Majors are deliberately left out of the group. A major devDependency is a
+      # day's work with its own reasoning (vitest 5, React 19), and burying one in a
+      # batch of patches is how it ships unread.
+      toolchain:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+    # Runtime dependencies are deliberately *not* grouped, so each arrives as its own
+    # PR with its own changelog to read. There are only five across all six published
+    # packages, and every one of them is imposed on everybody who installs us:
+    #
+    #   core                yjs, y-indexeddb
+    #   provider-supabase   @supabase/supabase-js, lib0, y-protocols
+    #
+    # `yjs` is the one to slow down for. It is the CRDT -- the persistence format in
+    # IndexedDB and the wire format between machines -- so a major there is a data
+    # migration for every studio with an existing show, not a dependency bump.
+
+  # The starter templates. Outside the pnpm workspace and carrying no lockfile, so
+  # the root entry above cannot see them, and a template left to drift is how a new
+  # studio starts a release behind on its first `pnpm install`.
+  #
+  # `pnpm verify:template` builds both against packed tarballs on every PR, so these
+  # arrive with real coverage rather than on trust.
+  - package-ecosystem: npm
+    directory: /templates/studio
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    ignore:
+      # The framework's own pins. Those are release-managed -- see docs/internal/
+      # releasing.md -- and a bot bumping them races the release that sets them.
+      - dependency-name: '@single-studio/*'
+
+  - package-ecosystem: npm
+    directory: /templates/plugin
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: '@single-studio/*'
+
+  # Actions. These move rarely, so one grouped PR a month is mostly a no-op and
+  # occasionally the thing that says a runner deprecation is coming.
+  #
+  # Read the note in ci.yml before merging one. Every action here is pinned to the
+  # *lowest* major that runs on the current runner Node, not the newest published --
+  # the goal is staying off a retired runtime, not chasing releases. A Dependabot PR
+  # proposing the newest is a suggestion, not an instruction.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns:
+          - '*'
