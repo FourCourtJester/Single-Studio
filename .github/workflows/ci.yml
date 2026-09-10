@@ -9,7 +9,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # No version here on purpose: the action reads "packageManager" from
       # package.json, so CI and the devcontainer cannot drift apart.
@@ -28,9 +28,9 @@ jobs:
       # pnpm/action-setup were all already on node24 at v5, and the newer majors it
       # proposed bought nothing. The one that mattered was in pages.yml and looked
       # like the least urgent of the four -- see the note there.
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm

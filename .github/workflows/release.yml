@@ -57,9 +57,9 @@ jobs:
     # working day. Ten minutes is roughly six times the longest this has taken.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
 
       # Deliberately no `registry-url`. It exists to write an .npmrc containing
       # `${NODE_AUTH_TOKEN}`, and it writes it for the whole job -- so every step
@@ -68,7 +68,7 @@ jobs:
       #
       # When a token is needed it is written in the publish step instead, where it is
       # used. See there for why it is ever needed at all.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -282,7 +282,7 @@ jobs:
             repository: FourCourtJester/Single-Studio-Demo
             secret: DEMO_DEPLOY_KEY
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # A deploy key rather than a token, for three reasons that all matter here.
       #
@@ -308,7 +308,7 @@ jobs:
           fi
 
       - name: Check out the template repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ matrix.repository }}
           ssh-key: ${{ secrets[matrix.secret] }}
