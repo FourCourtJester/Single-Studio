@@ -405,22 +405,28 @@ matters:
 
 ### Setting up DEMO_DEPLOY_KEY
 
-The same shape as the two template keys, and for the same reason -- the demo carries
-`.github/workflows/pages.yml`, and GitHub refuses a workflow-file push from an OAuth
-or App credential without the `workflow` scope. SSH is not subject to that rule.
+Exactly the procedure in [The credential: a deploy key, not a
+token](#the-credential-a-deploy-key-not-a-token) above -- a third time, not a
+different method. Do not reuse either template's keypair: a deploy key is scoped to
+one repository by design, and that is the property worth keeping.
 
-```bash
-ssh-keygen -t ed25519 -C "single-studio-demo sync" -f demo-key -N ""
-```
+The three things that change:
 
-Public half: `Single-Studio-Demo` → Settings → Deploy keys → Add, **with "Allow write
-access" ticked**. A key added without that box clones perfectly and refuses to push,
-which is invisible until a release fails.
+|                     |                                      |
+| ------------------- | ------------------------------------ |
+| Comment             | `single-studio demo sync`            |
+| Mirror repository   | `FourCourtJester/Single-Studio-Demo` |
+| Secret in this repo | `DEMO_DEPLOY_KEY`                    |
 
-Private half: this repository → Settings → Secrets → Actions → `DEMO_DEPLOY_KEY`.
+Everything else is the same, including the two parts people get wrong: generate it
+somewhere that is **not a git repository**, and tick **Allow write access** when you
+add the public half. A deploy key added without that box clones perfectly and refuses
+to push, so the mistake is invisible until a release is half done.
 
-Then delete both local halves. Running the release workflow by hand publishes nothing
-and checks every deploy key can actually write, so it is a free rehearsal.
+Then rehearse it. Running the release workflow by hand publishes nothing -- every
+publishing step is gated on the ref being a tag -- and the mirror job pushes a scratch
+tag and deletes it, which is a real write against the real remote. That is the only
+thing that actually answers whether the key works.
 
 ## Versioning
 
