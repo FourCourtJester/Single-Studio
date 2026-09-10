@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { defineConfig } from 'vitepress'
 
 // The documentation site, built from the same markdown the repository already has.
@@ -13,6 +15,13 @@ import { defineConfig } from 'vitepress'
 // First published in 2026. The range runs to whenever the site was last built, so a
 // year rolling over is a rebuild rather than an edit -- and it stays a single year
 // until there is actually a second one to show.
+// Read rather than written down. This was hardcoded and said v0.3.6 for four
+// releases -- on the navbar, which is the first thing a visitor reads, on a site
+// whose whole premise is that nothing is written twice. A version in two places is
+// a version that will disagree with itself, and the copy people see is the one
+// nobody edits.
+const version = JSON.parse(readFileSync(new URL('../../packages/core/package.json', import.meta.url), 'utf8')).version
+
 const FIRST_PUBLISHED = 2026
 const thisYear = new Date().getFullYear()
 const years = thisYear > FIRST_PUBLISHED ? `${FIRST_PUBLISHED}-${thisYear}` : `${FIRST_PUBLISHED}`
@@ -40,7 +49,7 @@ export default defineConfig({
       { text: 'Collaborating', link: '/collaborating' },
       { text: 'Demo', link: 'https://fourcourtjester.github.io/Single-Studio-Demo/#/' },
       {
-        text: 'v0.3.6',
+        text: `v${version}`,
         items: [
           { text: 'Changelog', link: 'https://github.com/FourCourtJester/Single-Studio/blob/main/CHANGELOG.md' },
           { text: 'npm', link: 'https://www.npmjs.com/package/@single-studio/core' },

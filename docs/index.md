@@ -29,6 +29,8 @@ features:
     details: A countdown stores the instant it ends, not the seconds left, so every machine derives the same number. Nobody ticks, and nobody drifts.
   - title: Collaboration when you want it
     details: Off until somebody pastes a link. Then a producer drives the scores from their own laptop, over a service you own, end-to-end encrypted with a key the service never sees.
+  - title: Live data, still no backend
+    details: OBS scene state, Rocket League scores, Twitch events and Google Sheets arrive as plugins running inside the studio's worker. Each is configured per machine, because the port a game listens on belongs to the computer rather than to the show.
 ---
 
 ## A studio in two files
@@ -84,4 +86,5 @@ Your studio is your own repository from the first commit. Single Studio is a
 dependency in it, upgraded with a version bump.
 
 [Getting started →](/getting-started) · [Components →](/api) ·
-[Your own data →](/data)
+[Your own data →](/data) · [Plugins →](/plugins) ·
+[Working with other people →](/collaborating)
