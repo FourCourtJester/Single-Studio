@@ -1696,6 +1696,32 @@ check(
   'and whether it is talking, which is the question being asked most of the time',
 )
 
+/*
+ * The light, and where it sits.
+ *
+ * It used to sit at the head of the row with a ▶ closing it off, and the triangle
+ * read as a play button -- on a plugin that was not running, as an offer to start
+ * it. So the triangle is gone and the light took its place at the end. Asserted
+ * here because the light is now the only thing in a folded row that is a colour
+ * rather than a word, and because a swap like this is exactly the kind that gets
+ * quietly reverted by the next person tidying the header.
+ */
+const headerTail = await row.locator('.ss-plugin-toggle').evaluate((el) => ({
+  last: el.lastElementChild?.className ?? '',
+  glyphs: el.textContent,
+}))
+
+check(headerTail.last.includes('ss-plugin-light'), 'the light closes the row, where the triangle used to')
+check(!/[▶►]/.test(headerTail.glyphs), 'and nothing in the row looks like a play button any more')
+check(
+  await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-light')?.classList.contains('bg-emerald-500')),
+  'and it is green for the plugin that is talking',
+)
+check(
+  await becomes(control, () => !document.querySelector('.ss-plugin[data-plugin="rocket-league"] .ss-plugin-light')?.classList.contains('bg-emerald-500')),
+  'and is not for the one that is not',
+)
+
 await row.locator('.ss-plugin-toggle').click()
 check(await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body'))), 'opening the row brings out what it can be asked')
 
