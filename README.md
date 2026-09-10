@@ -84,12 +84,17 @@ pasting one link into an OBS dock.
 
 ## The pieces
 
-|                                                                                                      |                                                                                          |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **[Template](https://github.com/FourCourtJester/Single-Studio-Template)**                            | Start here. A studio, wired up, ready to edit                                            |
-| **[Demo](https://github.com/FourCourtJester/Single-Studio-Demo)**                                    | A full show to look at — [live](https://fourcourtjester.github.io/Single-Studio-Demo/#/) |
-| [`@single-studio/core`](https://www.npmjs.com/package/@single-studio/core)                           | The framework                                                                            |
-| [`@single-studio/provider-supabase`](https://www.npmjs.com/package/@single-studio/provider-supabase) | Multi-operator collaboration, over a project you own                                     |
+|                                                                                                            |                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **[Template](https://github.com/FourCourtJester/Single-Studio-Template)**                                  | Start here. A studio, wired up, ready to edit                                            |
+| **[Demo](https://github.com/FourCourtJester/Single-Studio-Demo)**                                          | A full show to look at — [live](https://fourcourtjester.github.io/Single-Studio-Demo/#/) |
+| [`@single-studio/core`](https://www.npmjs.com/package/@single-studio/core)                                 | The framework                                                                            |
+| [`@single-studio/provider-supabase`](https://www.npmjs.com/package/@single-studio/provider-supabase)       | Multi-operator collaboration, over a project you own                                     |
+| [`@single-studio/plugin-obs`](https://www.npmjs.com/package/@single-studio/plugin-obs)                     | The live scene, stream and record state, over obs-websocket                              |
+| [`@single-studio/plugin-rocket-league`](https://www.npmjs.com/package/@single-studio/plugin-rocket-league) | Score, clock, goals and the stat feed, over Psyonix's own API                            |
+| [`@single-studio/plugin-twitch`](https://www.npmjs.com/package/@single-studio/plugin-twitch)               | Chat, follows, subs, gifts, cheers and raids — no backend                                |
+| [`@single-studio/plugin-sheets`](https://www.npmjs.com/package/@single-studio/plugin-sheets)               | A shared spreadsheet as a data source, on an API key                                     |
+| **[Plugin template](https://github.com/FourCourtJester/Single-Studio-Plugin-Template)**                    | Build your own — public domain, take it and go                                           |
 
 ## Documentation
 
@@ -98,11 +103,14 @@ pasting one link into an OBS dock.
 - [Getting started](docs/getting-started.md) — an empty folder to a studio in OBS
 - [Component reference](docs/api.md) — every component, its props, and what reads it on air
 - [Your own data](docs/data.md) — your own state changes, and pulling data in from a feed
+- [Plugins](docs/plugins.md) — the four first-party ones, and writing your own
 - [Working with other people](docs/collaborating.md) — for whoever runs the show on the night
 
 ## Requirements
 
-React 18+ and a Chromium-based browser at 114 or newer — which is what OBS embeds.
+React 18 or 19, and a Chromium-based browser at 114 or newer — which is what OBS
+embeds. Tested against React 19; the `>=18` peer range is deliberate, so a studio
+already on 18 does not have to move to take a framework update.
 
 ## Licence
 

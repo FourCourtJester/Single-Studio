@@ -2,7 +2,7 @@
   "name": "single-studio-plugin-example",
   "version": "0.1.0",
   "description": "What this reads, in one line. Shown on the operator's board and on npm.",
-  "license": "MIT",
+  "license": "Unlicense",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/YOUR-NAME/YOUR-REPO.git"

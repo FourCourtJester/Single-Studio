@@ -3,6 +3,10 @@
   "version": "0.6.1",
   "description": "Google Sheets for Single Studio: a shared spreadsheet as a data source, with an API key and no backend.",
   "license": "MIT",
+  "author": {
+    "name": "Shaun \"FourCourtJester\" Delaney",
+    "url": "https://github.com/FourCourtJester"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
@@ -34,5 +38,8 @@
   "devDependencies": {
     "@single-studio/core": "workspace:*",
     "vitest": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
