@@ -104,6 +104,11 @@ Three things that will bite:
 Before publishing: `npm test`, then `npm pack` and look inside the tarball. npm
 refuses to unpublish after 72 hours.
 
+If you publish from CI with a trusted publisher, note that new ones are **stage-only**
+by default: they permit `npm stage publish`, which uploads to a staging area you then
+approve by hand, and not `npm publish`. Opt into `npm publish` if your workflow
+expects to publish outright, or your release will authenticate and then refuse.
+
 ## Naming
 
 The npm package name is yours — `single-studio-plugin-<thing>`, or your own scope.
