@@ -105,6 +105,35 @@ export function Slideshow({ group, name, every = 8, order = 'sequence', limit, p
   useEffect(() => {
     if (count < 2 || dwell <= 0) return undefined
 
+    const due = slideTick({ now: Date.now() + offset, every: dwell })
+
+    /*
+     * A corrected clock moves the picture that is on, not only the next one.
+     *
+     * `useClockOffset` is nought until the worker reports a sync status, so a
+     * source that mounts mid-show derives its first tick from this machine's own
+     * clock and renders whatever that says. The offset lands a moment later, and
+     * re-arming the next boundary is not enough on its own: it leaves the wrong
+     * picture up until that boundary arrives, which is a whole dwell. At the
+     * `every={9}` a standby screen actually uses, that is nine seconds of the
+     * wrong slide, on air, on precisely the browser source somebody has just
+     * opened -- the case this component derives from the clock in order to get
+     * right.
+     *
+     * It heals itself at the next change, which is why it hides: the source is
+     * correct forever after, and nobody watching it later sees anything wrong.
+     * Two outputs opened at different moments disagreed on 4 samples in 12.
+     *
+     * Adopting it here re-enters the effect on the new `tick`, which then arms the
+     * boundary below. `slideTick` only moves forward, so this settles rather than
+     * chases.
+     */
+    if (due !== tick) {
+      setTick(due)
+
+      return undefined
+    }
+
     // Scheduled to the boundary rather than as an interval, and re-scheduled off
     // the clock every time: a tab that was throttled in the background, or a
     // machine whose offset has just been corrected, lands on the right picture at

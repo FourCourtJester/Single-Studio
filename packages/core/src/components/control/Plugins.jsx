@@ -206,12 +206,20 @@ function Entry({ plugin, onSave }) {
           aria-controls={`ss-plugin-body-${plugin.name}`}
           className="ss-plugin-toggle flex w-full items-center gap-2 text-left"
         >
-          <span className={cx('h-2 w-2 shrink-0 rounded-full', TONE[status] ?? TONE.idle)} aria-hidden="true" />
           <span className="grow text-sm font-medium text-slate-100">{plugin.label ?? plugin.name}</span>
           <span className="text-xs text-slate-500">{SAYS[status] ?? status}</span>
-          <span aria-hidden="true" className={cx('shrink-0 text-[10px] text-slate-600 transition-transform', open && 'rotate-90')}>
-            &#9654;
-          </span>
+          {/*
+            The light ends the row, where a disclosure triangle used to. The triangle
+            was a play button as far as anyone reading it was concerned -- a ▶
+            beside a plugin that is not running invites a click meaning "start it",
+            which is not what it did. Nothing here starts a plugin; the worker does
+            that. So the glyph is gone and the light has its place.
+
+            Losing it costs the row its open/closed glyph. The fields appearing is
+            the cue now, `aria-expanded` still says it for a screen reader, and
+            `data-open` still says it for CSS.
+          */}
+          <span className={cx('ss-plugin-light h-2 w-2 shrink-0 rounded-full', TONE[status] ?? TONE.idle)} aria-hidden="true" />
         </button>
       </h3>
 
