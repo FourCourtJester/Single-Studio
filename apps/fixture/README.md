@@ -8,10 +8,12 @@ out whether the package boundary actually holds.
 pnpm fixture         # builds core, then serves this
 ```
 
-**This is not the demo.** The demo people look at lives at
-[Single-Studio-Demo](https://github.com/FourCourtJester/Single-Studio-Demo) and is
-maintained there. The two started identical and are expected to drift: that one is a
-showcase, this one is a test rig, and neither has to answer to the other.
+**This is not the demo.** The demo people look at is authored in
+[`demo/`](../../demo) and mirrored to
+[Single-Studio-Demo](https://github.com/FourCourtJester/Single-Studio-Demo) on
+release. The two are expected to differ: that one is a showcase and gets built and
+typechecked on every pull request, this one is a test rig and carries deliberately
+broken graphics the suites assert on.
 
 What it is for:
 

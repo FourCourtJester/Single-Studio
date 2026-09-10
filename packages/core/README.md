@@ -10,8 +10,8 @@ browser dock.
 No server, no backend, nothing to deploy but static files — and the graphics keep
 working when the network does not.
 
-**[See a studio running →](https://fourcourtjester.github.io/Single-Studio-Demo/#/)**
-· [source](https://github.com/FourCourtJester/Single-Studio-Demo)
+**[Documentation →](https://fourcourtjester.github.io/Single-Studio/)**
+· [source](https://github.com/FourCourtJester/Single-Studio)
 
 ## Start here
 

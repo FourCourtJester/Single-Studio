@@ -1,8 +1,9 @@
 # Publish the documentation site to GitHub Pages.
 #
-# The landing page and the docs, not a studio. A studio to look at lives at
-# Single-Studio-Demo and is maintained there; apps/fixture is the test rig and has no
-# business being published as if it were a showcase.
+# The landing page and the docs, not a studio. A studio to look at is authored in
+# demo/ and deployed from its own mirror -- Pages serves one site per repository and
+# this is that site; apps/fixture is the test rig and has no business being published
+# as if it were a showcase.
 #
 # Built from docs/ with VitePress, which renders the same markdown the repository
 # already has -- so nothing is written twice, and api.md in particular is regenerated
