@@ -3,6 +3,10 @@
   "version": "0.6.1",
   "description": "Rocket League for Single Studio: score, clock, goals and the stat feed, over Psyonix's own Stats API.",
   "license": "MIT",
+  "author": {
+    "name": "Shaun \"FourCourtJester\" Delaney",
+    "url": "https://github.com/FourCourtJester"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
@@ -36,5 +40,8 @@
     "@single-studio/core": "workspace:*",
     "vitest": "^5.0.0",
     "ws": "^8.21.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

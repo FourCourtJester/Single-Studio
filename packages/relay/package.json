@@ -4,6 +4,10 @@
   "private": true,
   "description": "Collaboration relay for Single Studio: one room per show, holding the document and rebroadcasting updates.",
   "license": "MIT",
+  "author": {
+    "name": "Shaun \"FourCourtJester\" Delaney",
+    "url": "https://github.com/FourCourtJester"
+  },
   "type": "module",
   "exports": {
     ".": "./src/room.js",

@@ -60,4 +60,12 @@ The short version:
 
 ## Licence
 
-MIT.
+**The plugin you build from this is yours.** `LICENSE` ships with the copyright line
+blank — fill in your own name and year, or replace the whole file with whatever
+licence you want. Nothing here asks you to carry somebody else's.
+
+The template itself came from [Single Studio](https://github.com/FourCourtJester/Single-Studio),
+by Shaun "FourCourtJester" Delaney, which is MIT. You are free to use it, change it,
+publish what you make from it and charge for it, with no attribution required and
+nothing owed. What you write on top of it is your work and your responsibility,
+and the original author has no claim on it and no part in it.

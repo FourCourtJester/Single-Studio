@@ -104,6 +104,12 @@ Three things that will bite:
 Before publishing: `npm test`, then `npm pack` and look inside the tarball. npm
 refuses to unpublish after 72 hours.
 
+Fill in `LICENSE` while you are there. It ships with the copyright line blank --
+`Copyright (c) <year> <your name>` -- because the plugin is yours and inheriting
+somebody else's name is not a default anybody wants. Put yours in, or replace the
+file with whatever licence you prefer. A tarball that goes out still saying
+`<your name>` is the kind of thing you notice from a stranger's bug report.
+
 If you publish from CI with a trusted publisher, note that new ones are **stage-only**
 by default: they permit `npm stage publish`, which uploads to a staging area you then
 approve by hand, and not `npm publish`. Opt into `npm publish` if your workflow

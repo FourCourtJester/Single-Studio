@@ -3,6 +3,10 @@
   "version": "0.6.1",
   "description": "Collaboration for Single Studio over Supabase Realtime: bring your own key, no backend to deploy.",
   "license": "MIT",
+  "author": {
+    "name": "Shaun \"FourCourtJester\" Delaney",
+    "url": "https://github.com/FourCourtJester"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FourCourtJester/Single-Studio.git",

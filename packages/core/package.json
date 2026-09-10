@@ -3,6 +3,10 @@
   "version": "0.6.1",
   "description": "Local-first broadcast graphics framework for OBS: replicated state, source graphics, and control surfaces.",
   "license": "MIT",
+  "author": {
+    "name": "Shaun \"FourCourtJester\" Delaney",
+    "url": "https://github.com/FourCourtJester"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
