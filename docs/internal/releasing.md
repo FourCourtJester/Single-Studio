@@ -100,14 +100,20 @@ whatever browser you already have.
 
 ## Every release after that
 
-Bump both packages to the same version, commit, tag, push:
+Bump every published package to the same version — all six, not just the ones you
+changed — then commit, tag, push:
 
 ```bash
 git tag v0.2.0 && git push --tags
 ```
 
-`.github/workflows/release.yml` lints, tests, builds, checks the tag against both
-manifests, rehearses the publish against the starter template, and publishes.
+`.github/workflows/release.yml` lints, tests, builds, checks the tag against every
+manifest in `PACKAGES`, rehearses the publish against the starter template, and
+publishes.
+
+A package you did not touch still has to move. The tag check compares the tag to all
+six and fails on the first mismatch, so bumping only what changed does not produce a
+narrower release — it produces no release at all.
 
 Running that workflow **by hand publishes nothing** — every publishing step is gated
 on the ref being a tag — so a manual run is a free rehearsal of a version you cannot
@@ -374,7 +380,11 @@ template a version behind.
 
 ## Versioning
 
-Both packages move together and share a version. They are two halves of one release
-— the provider imports nothing from core, but a studio installs both and a mismatch
-is a debugging session nobody signed up for. Independent versioning buys flexibility
-nobody has asked for and costs a compatibility matrix.
+All six published packages move together and share a version. A studio installs
+several of them and a mismatch is a debugging session nobody signed up for.
+Independent versioning buys flexibility nobody has asked for and costs a
+compatibility matrix.
+
+The plugins peer on `@single-studio/core` at `^0.6.0` rather than an exact version,
+so a patch release does not need those ranges touched — `^0.6.0` already admits
+`0.6.1`. Only the `version` fields move.
