@@ -2,11 +2,11 @@
 
 Six packages go to npm, in `PACKAGES` in `.github/workflows/release.yml`:
 
-| | |
-| --- | --- |
-| `@single-studio/core` | the framework |
-| `@single-studio/provider-supabase` | one of the two ways a show collaborates |
-| `@single-studio/plugin-obs`, `-sheets`, `-twitch`, `-rocket-league` | the first-party plugins |
+|                                                                     |                                         |
+| ------------------------------------------------------------------- | --------------------------------------- |
+| `@single-studio/core`                                               | the framework                           |
+| `@single-studio/provider-supabase`                                  | one of the two ways a show collaborates |
+| `@single-studio/plugin-obs`, `-sheets`, `-twitch`, `-rocket-league` | the first-party plugins                 |
 
 `@single-studio/relay` is `private: true` and stays out of it — it is a thing you
 deploy, not a thing you install.
@@ -271,10 +271,10 @@ cannot drift out of step with whether npm is going to apply it.
 pushed by the `template` job in `release.yml`, as a matrix, once the packages are
 actually on npm:
 
-| Source | Mirror | Secret |
-| --- | --- | --- |
-| `templates/studio` | [Single-Studio-Template](https://github.com/FourCourtJester/Single-Studio-Template) | `TEMPLATE_DEPLOY_KEY` |
-| `templates/plugin` | Single-Studio-Plugin-Template | `PLUGIN_TEMPLATE_DEPLOY_KEY` |
+| Source             | Mirror                                                                              | Secret                       |
+| ------------------ | ----------------------------------------------------------------------------------- | ---------------------------- |
+| `templates/studio` | [Single-Studio-Template](https://github.com/FourCourtJester/Single-Studio-Template) | `TEMPLATE_DEPLOY_KEY`        |
+| `templates/plugin` | Single-Studio-Plugin-Template                                                       | `PLUGIN_TEMPLATE_DEPLOY_KEY` |
 
 It works this way because neither template is independent of the framework the way
 the demo is. Their source calls the components and base classes by name, so an API
@@ -377,6 +377,67 @@ Without the secret the job stops before touching anything and says so. That fail
 mode is deliberate: the packages are already published by then, so the honest outcome
 is a red release with a clear reason rather than a silent skip that leaves the
 template a version behind.
+
+## The demo, and why it goes stale on its own
+
+`Single-Studio-Demo` is a separate repository, linked from the README, from the
+documentation site's hero button and navbar, and -- the one that matters -- from
+`packages/core/README.md`, which is the npm page for the framework. It is the first
+thing a stranger clicks.
+
+It is also the only public artefact nothing in this repository can reach. The
+templates are mirrors, pushed on release by the `template` job; the demo is a real
+studio with its own history, so it drifts the way any downstream project drifts, and
+nothing here fails when it does. As of 0.6.1 it was pinned to `^0.2.0` and had one
+commit, from August.
+
+Two things keep it honest, and neither lives here:
+
+**1. Its build has to run on pull requests.** The demo's `pages.yml` triggers on
+push to `main` only, so a dependency PR against it has no check at all -- there is
+nothing to tell you the bump broke the build. Add `pull_request` to that trigger, or
+the second half is worse than useless:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+```
+
+**2. Dependabot has to watch it.** A `.github/dependabot.yml` in the demo repository,
+which will raise `@single-studio/*` past a caret boundary that would otherwise pin it
+forever:
+
+```yaml
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      framework:
+        patterns:
+          - '@single-studio/*'
+```
+
+Grouped, because the framework packages share a version and arriving separately would
+mean merging a demo that briefly mixes two.
+
+### Why a caret is the trap rather than the fix
+
+`^0.6.0` admits `0.6.1` and does **not** admit `0.7.0` -- below 1.0.0 the caret pins
+the minor. So every range in a template or the demo stops tracking the framework at
+the next minor, silently, while continuing to install and build perfectly. The
+symptom arrives months later as a bug report against an API that changed two
+releases ago.
+
+`scripts/verify-template.mjs` now fails a pull request when either template pins a
+range the framework has outgrown, which is the same guard applied to the part of the
+problem this repository owns. The demo is outside it, which is why the two files
+above exist.
 
 ## Versioning
 

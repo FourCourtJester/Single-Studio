@@ -34,6 +34,64 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+/**
+ * Does `range` admit `version`?
+ *
+ * Understands only the caret ranges the templates actually use, and throws on
+ * anything else rather than guessing. A range check that quietly returns true for a
+ * form it does not recognise is worse than no check at all.
+ */
+const admits = (range, version) => {
+  const caret = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(range)
+
+  if (!caret) throw new Error(`cannot reason about the range ${JSON.stringify(range)}. Teach verify-template about it before a template depends on it.`)
+
+  const target = /^(\d+)\.(\d+)\.(\d+)/.exec(version)
+
+  if (!target) throw new Error(`cannot read the version ${JSON.stringify(version)}`)
+
+  const [, wantMajor, wantMinor, wantPatch] = caret.map(Number)
+  const [, major, minor, patch] = target.map(Number)
+
+  // Caret pins the leftmost non-zero, and below 1.0.0 that is the *minor*. This is
+  // the whole trap: ^0.6.0 admits 0.6.1 and does not admit 0.7.0.
+  if (major !== wantMajor) return false
+  if (wantMajor === 0 && minor !== wantMinor) return false
+  if (minor < wantMinor) return false
+
+  return minor > wantMinor || patch >= wantPatch
+}
+
+/**
+ * A template that pins a range the framework has outgrown.
+ *
+ * Nothing else can see this. The install below rewrites every `@single-studio/*`
+ * range to `file:` and installs the packed tarballs, so the template builds against
+ * the new code whatever its manifest claims -- the rehearsal proves the code works
+ * and says nothing about the number somebody will actually resolve.
+ *
+ * What a stranger gets is the number. `^0.6.0` in a template published alongside
+ * 0.7.0 installs 0.6.x, silently, for everybody who presses "Use this template",
+ * and the first symptom is a bug report against an API that changed two releases
+ * ago. The demo repository has exactly this, pinned to ^0.2.0 since August.
+ */
+const mustAdmit = (label, ranges, versions) => {
+  for (const [name, range] of Object.entries(ranges)) {
+    if (!name.startsWith('@single-studio/')) continue
+
+    const version = versions[name]
+
+    if (!version) continue
+
+    if (!admits(range, version))
+      throw new Error(
+        `${label} pins ${name} at ${range}, which does not admit ${version}.\n` +
+          `Anyone starting from this template would install an older ${name} than the one being released. ` +
+          `Bump the range in the template's package.json.`,
+      )
+  }
+}
+
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const keep = process.argv.includes('--keep')
 
@@ -205,13 +263,21 @@ try {
 
   // `PACKAGES`, not everything packed: the plugins are published from here too and
   // a studio is not expected to depend on any of them.
+  const shipping = {}
+
   for (const dir of PACKAGES) {
-    const { name } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+    const { name, version } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
 
     if (!manifest.dependencies?.[name]) throw new Error(`templates/studio does not depend on ${name}`)
 
-    manifest.dependencies[name] = `file:${packed[name]}`
+    shipping[name] = version
   }
+
+  // Before the rewrite, while the declared ranges are still the ones a stranger
+  // would resolve. After it they all say `file:` and the question cannot be asked.
+  mustAdmit('templates/studio', manifest.dependencies, shipping)
+
+  for (const name of Object.keys(shipping)) manifest.dependencies[name] = `file:${packed[name]}`
 
   writeFileSync(join(project, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 
@@ -414,7 +480,11 @@ try {
 
   for (const dir of PLUGINS) {
     const { name } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
-    const exports = capture('node', ['--input-type=module', '-e', `const m = await import('${name}'); process.stdout.write(String(Object.keys(m).length))`], importable)
+    const exports = capture(
+      'node',
+      ['--input-type=module', '-e', `const m = await import('${name}'); process.stdout.write(String(Object.keys(m).length))`],
+      importable,
+    )
 
     if (Number(exports) < 1) throw new Error(`${name} installs but exports nothing`)
 
@@ -435,6 +505,10 @@ try {
 
   if (!pluginManifest.peerDependencies?.['@single-studio/core'])
     throw new Error('templates/plugin must depend on @single-studio/core as a *peer*, or a studio can end up with two copies of the framework in one worker')
+
+  mustAdmit('templates/plugin', pluginManifest.peerDependencies, {
+    '@single-studio/core': JSON.parse(readFileSync(join(root, 'packages/core/package.json'), 'utf8')).version,
+  })
 
   // Both, and for different reasons: the peer is what a studio resolves, the dev
   // dependency is what the template's own tests run against.
