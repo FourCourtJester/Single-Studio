@@ -104,11 +104,16 @@ Three things that will bite:
 Before publishing: `npm test`, then `npm pack` and look inside the tarball. npm
 refuses to unpublish after 72 hours.
 
-Fill in `LICENSE` while you are there. It ships with the copyright line blank --
-`Copyright (c) <year> <your name>` -- because the plugin is yours and inheriting
-somebody else's name is not a default anybody wants. Put yours in, or replace the
-file with whatever licence you prefer. A tarball that goes out still saying
-`<your name>` is the kind of thing you notice from a stranger's bug report.
+Decide the licence while you are there. The template ships the Unlicense, which is
+what makes the starter code free for you to take -- nobody's copyright follows it
+into your repository. But once the code is yours, that file is dedicating *your*
+plugin to the public domain, and publishing is not the moment to discover you did
+that by default. Replace `LICENSE` with whatever you want -- MIT is the usual answer
+-- and set `license` in `package.json` to match.
+
+Watch the spelling if you go proprietary: npm's `UNLICENSED` means "you may not use
+this" and SPDX's `Unlicense` means "this belongs to everybody". One letter, opposite
+meanings.
 
 If you publish from CI with a trusted publisher, note that new ones are **stage-only**
 by default: they permit `npm stage publish`, which uploads to a staging area you then

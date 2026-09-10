@@ -60,12 +60,19 @@ The short version:
 
 ## Licence
 
-**The plugin you build from this is yours.** `LICENSE` ships with the copyright line
-blank — fill in your own name and year, or replace the whole file with whatever
-licence you want. Nothing here asks you to carry somebody else's.
+**This template is public domain — the [Unlicense](LICENSE).** Take it, change it,
+publish what you make, charge for it. No permission needed, no attribution required,
+nothing owed, and no copyright of anyone else's ends up in your repository.
 
-The template itself came from [Single Studio](https://github.com/FourCourtJester/Single-Studio),
-by Shaun "FourCourtJester" Delaney, which is MIT. You are free to use it, change it,
-publish what you make from it and charge for it, with no attribution required and
-nothing owed. What you write on top of it is your work and your responsibility,
-and the original author has no claim on it and no part in it.
+It was written for [Single Studio](https://github.com/FourCourtJester/Single-Studio)
+by Shaun "FourCourtJester" Delaney, which is the courtesy version of that sentence
+rather than a condition of it.
+
+**Then pick your own licence.** Once the starter code is your plugin, `LICENSE` is
+dedicating *your* work to the public domain, which is a real choice but should be a
+deliberate one. Replace the file with whatever you want — MIT is the usual answer —
+and set `license` in `package.json` to match it.
+
+The framework itself is a different question: `@single-studio/core` is MIT and stays
+that way, with its own licence inside `node_modules`. Nothing here changes that, and
+depending on it asks nothing of you.

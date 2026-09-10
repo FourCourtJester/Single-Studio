@@ -75,16 +75,16 @@ deploying are all documented once, on the site:
 
 ## Licence
 
-**Your show is yours.** This template carries no `LICENSE` on purpose — a studio is a
-private application, not something you publish, so there is nothing here to license
-and no copyright of anyone else's to inherit. Add one if you ever open-source your
-show; until then the absence is the correct state.
+**This template is public domain — the [Unlicense](LICENSE).** Use it, change it, run
+a commercial broadcast off it. No permission needed, no attribution required, nothing
+owed, and no copyright of anyone else's ends up in your show.
 
-The template came from [Single Studio](https://github.com/FourCourtJester/Single-Studio),
-by Shaun "FourCourtJester" Delaney, which is MIT. Use it, change it, run it
-commercially — no attribution required and nothing owed. What you build on it is
-your work and your responsibility, and the original author has no claim on it and no
-part in it.
+It was written for [Single Studio](https://github.com/FourCourtJester/Single-Studio)
+by Shaun "FourCourtJester" Delaney, which is a courtesy note rather than a condition.
 
-The framework packages you install from npm stay MIT and keep their own licences
-inside `node_modules`, which is the normal arrangement and needs nothing from you.
+Once this is your studio rather than the starter, `LICENSE` is describing your work.
+A show is a private application, so most people simply delete it; replace it instead
+if you ever open-source yours.
+
+The framework packages you install from npm are MIT and keep their own licences
+inside `node_modules`. That is the normal arrangement and needs nothing from you.
