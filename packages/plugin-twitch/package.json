@@ -1,6 +1,6 @@
 {
   "name": "@single-studio/plugin-twitch",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Twitch EventSub for Single Studio: chat, follows, subs, gifts, cheers and raids, straight into a studio with no backend.",
   "license": "MIT",
   "repository": {

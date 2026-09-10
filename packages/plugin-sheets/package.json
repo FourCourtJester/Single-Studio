@@ -1,6 +1,6 @@
 {
   "name": "@single-studio/plugin-sheets",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Google Sheets for Single Studio: a shared spreadsheet as a data source, with an API key and no backend.",
   "license": "MIT",
   "repository": {

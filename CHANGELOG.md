@@ -1,7 +1,34 @@
 # Changelog
 
-Both packages share a version — `@single-studio/core` and
-`@single-studio/provider-supabase` are two halves of one release.
+Every published package shares a version — `@single-studio/core`,
+`@single-studio/provider-supabase` and the four plugins go out as one release. The
+tag is checked against all six manifests, so they cannot drift apart.
+
+## 0.6.1
+
+### Fixed
+
+- **A source opened mid-show no longer plays the wrong slide until the next
+  change.** `Slideshow` now moves the picture when the clock is corrected, rather
+  than only at the next boundary.
+
+  `useClockOffset` reads nought until the worker reports sync status, so a slideshow
+  mounting in that gap derived its first tick from the uncorrected local clock. The
+  scheduling effect re-ran when the real offset arrived — it lists `offset` as a
+  dependency — but all it did was re-arm the *next* boundary. Nothing revised the
+  picture already on screen.
+
+  So a browser source opened or refreshed mid-show displayed the wrong picture for
+  the remainder of the dwell, then silently corrected itself and behaved forever
+  after. At the `every={9}` a standby screen typically uses, that is up to nine
+  seconds of the wrong slide, on air — the exact thing deriving the picture from the
+  clock exists to prevent.
+
+  It hid through a whole release because it heals itself: you have to compare two
+  outputs opened moments apart, during that first dwell, to ever see it. Found when
+  React 19 began committing that first render before sync status landed, which took
+  it from never failing the browser suite to failing it six runs in thirteen. The
+  bug was there on React 18 too.
 
 ## 0.6.0
 
