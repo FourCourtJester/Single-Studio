@@ -131,12 +131,14 @@ regardless of what `files` says — so it would keep building for years after `d
 fell out of the published tarball, and the first person to find out would be the
 first person to start a project.
 
-## The four plugin names have never been published
+## Introducing a package name that has never been published
 
 The first publish of a name cannot use OIDC — npm requires a package to _exist_
-before a trusted publisher can be attached to it — so `plugin-obs`, `plugin-sheets`,
-`plugin-twitch` and `plugin-rocket-league` each need one publish on the token path
-before the workflow can take them over.
+before a trusted publisher can be attached to it — so a release that introduces a
+name needs one publish on the token path before the workflow can take it over.
+
+This is what 0.6.0 went through for the four plugins. Do it again the same way for
+the next new name.
 
 **Do it as one tagged release, with a temporary token.** The workflow reads
 `NPM_TOKEN` when the secret exists and falls back to OIDC when it does not, so a
@@ -147,20 +149,20 @@ release that introduces a name needs the secret and every release after it does 
    and missing it fails late: the publish authenticates, uploads, prints the whole
    manifest, then stops on `EOTP` asking for a code a runner cannot give.
 2. Add it as the `NPM_TOKEN` repository secret.
-3. Tag. All six publish on the token; the run says so in a notice.
-4. Configure trusted publishing for the four new packages on npm.
+3. Tag. Everything publishes on the token; the run says so in a notice.
+4. Configure trusted publishing for each new package on npm — **and opt it into
+   `npm publish`**, which is not the default. See below.
 5. **Delete `NPM_TOKEN`.** The next release is tokenless again.
 
-### Why not publish the four by hand first
+### Why not publish the new names by hand first
 
 Because the versions would then exist, and the tagged release would die trying to
-publish them again — and by then it would already have published `core`. Either
-order has the same shape of failure: the publish loop runs under `bash -e`, so the
-first refusal stops it with everything before it already on the registry, and those
-versions cannot be republished. Getting out of that means bumping to `0.6.1` for no
-reason anybody will remember.
+publish them again — and by then it would already have published `core`.
 
-One tag with a token avoids all of it.
+That used to strand the release. It no longer does: the publish loop skips a version
+already on the registry, so a run that died partway through is resumable and a
+by-hand publish is merely wasted effort rather than a burnt version number. One tag
+with a token is still the shortest path.
 
 Check what is about to go out first — `npm pack` in each, and look inside. npm
 refuses to unpublish after 72 hours.
@@ -179,8 +181,32 @@ naming this repository and `release.yml`. A package without one fails the publis
 authentication, and the fix is that settings page rather than anything in the
 workflow.
 
-Once both are configured, the token is dead weight: delete the `NPM_TOKEN` secret
-and revoke the token on npm. `release.yml` already carries no reference to either.
+Once every package is configured, the token is dead weight: delete the `NPM_TOKEN`
+secret and revoke the token on npm.
+
+### A new trusted publisher is stage-only until you say otherwise
+
+This is the one that will catch the next new package, because it is a default that
+changed under us and it fails only once the token is gone.
+
+A trusted publisher grants two permissions separately: `npm publish`, which publishes,
+and `npm stage publish`, which uploads to a staging area that a maintainer then has to
+approve with 2FA before anything is public. **Configurations created from 3 September
+2026 default to stage-only.** `npm publish` is an opt-in extra.
+
+So a package configured on the defaults will publish fine while `NPM_TOKEN` exists and
+refuse the moment the workflow falls back to OIDC — because the loop runs
+`npm publish`, which that publisher does not permit. Half the release goes out and the
+rest stops, which is the shape of failure this whole file exists to avoid.
+
+Either opt every package into `npm publish`, or move the loop to `npm stage publish`
+and approve each release by hand. What is not survivable is a mix: check all of them
+say the same thing.
+
+Staged publishing is worth considering on its own merits, though — nothing is public
+until it is approved, so a release that dies partway through strands nothing and burns
+no version numbers. It would need the loop changed, and the already-published check
+below rethought, since `npm view` does not see a staged version.
 
 **Order matters here and is easy to get backwards.** Configure the publishers, then
 merge the tokenless workflow, then tag. Deleting the secret while the workflow still
@@ -212,10 +238,26 @@ So `release.yml` asks for provenance only when the repository is public, and war
 in the run when it cannot. Nothing has to be remembered: the day this repository
 goes public, releases start being signed on their own.
 
-Worth knowing while it stays private: the published packages are public and their
-`repository` field points at a URL that nobody outside the repo can open. That is
-not broken, but it is a dead link on two public npm pages, and anybody evaluating
-the package cannot read the source before installing it.
+### Provenance also requires every package to say where it came from
+
+npm compares each package's `repository.url` against the repository that built the
+tarball, and refuses the publish when they disagree:
+
+```
+422 Unprocessable Entity - PUT .../@single-studio%2fplugin-obs
+Error verifying sigstore provenance bundle: package.json:
+"repository.url" is "", expected to match "https://github.com/FourCourtJester/Single-Studio"
+```
+
+Nothing local sees this coming. `npm pack` builds the tarball happily, because the
+comparison happens on npm's servers, at publish time, one package at a time. 0.6.0
+found out the hard way: four plugins had no `repository` field at all, and the run
+published `core` and `provider-supabase` before stopping on the third.
+
+It is now checked twice — `verify-template.mjs` compares all six on every pull
+request, and `release.yml` compares them again before the publish loop, inside the
+same condition that decides whether provenance is requested at all, so the check
+cannot drift out of step with whether npm is going to apply it.
 
 ## Both template repositories are synced by the release
 

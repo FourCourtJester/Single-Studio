@@ -57,6 +57,24 @@ const PACKAGES = ['packages/core', 'packages/provider-supabase']
 const PLUGINS = ['packages/plugin-obs', 'packages/plugin-sheets', 'packages/plugin-twitch', 'packages/plugin-rocket-league']
 
 /**
+ * Where npm expects these to say they came from.
+ *
+ * Publishing with `--provenance` makes npm compare each `repository.url` against the
+ * repository that built the tarball, and refuse the publish outright when they
+ * disagree -- `422 ... "repository.url" is "", expected to match ...`.
+ *
+ * That comparison happens on npm's servers, so `npm pack` is perfectly happy and the
+ * first thing that knows is the registry, one package at a time, after everything
+ * ahead of it has already published. 0.6.0 is what taught us: four plugins had no
+ * `repository` at all, and the release stopped halfway with two versions live that
+ * could not be published again.
+ *
+ * The release checks this too, but this runs on every pull request, which is where
+ * it is cheap to be wrong.
+ */
+const ORIGIN = 'https://github.com/FourCourtJester/Single-Studio'
+
+/**
  * What a framework package is made of, and nothing else.
  *
  * Deliberately an allowlist of *code*. A denylist of image extensions would have to
@@ -93,6 +111,15 @@ try {
 
   for (const dir of [...PACKAGES, ...PLUGINS]) {
     const manifest = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+
+    const origin = (manifest.repository?.url ?? '').replace(/^git\+/, '').replace(/\.git$/, '')
+
+    if (origin !== ORIGIN) {
+      throw new Error(
+        `${dir} says repository.url is ${JSON.stringify(manifest.repository?.url ?? null)}. ` +
+          `npm refuses provenance unless it names ${ORIGIN}, so this would fail at publish, not here.`,
+      )
+    }
 
     /**
      * `npm pack`, because `npm publish` is what actually ships these.
