@@ -526,7 +526,7 @@ try {
   /**
    * The demo, against the same tarballs.
    *
-   * It is a mirror like the templates, published to Single-Studio-Demo on release,
+   * It is a mirror like the templates, published to SS-Demo on release,
    * and it is the artefact a stranger is most likely to click -- it is linked from
    * the npm page for core. It stood on its own until 0.6.1 and drifted four releases
    * behind while nothing failed.

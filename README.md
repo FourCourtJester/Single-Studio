@@ -10,7 +10,7 @@ browser dock.
 No server. No backend. Nothing to deploy but static files — and the graphics keep
 working when the network doesn't.
 
-**[See a studio running →](https://fourcourtjester.github.io/Single-Studio-Demo/#/)**
+**[See a studio running →](https://fourcourtjester.github.io/SS-Demo/#/)**
 &nbsp;·&nbsp; **[Documentation →](https://fourcourtjester.github.io/Single-Studio/)**
 
 ## Start
@@ -84,17 +84,17 @@ pasting one link into an OBS dock.
 
 ## The pieces
 
-|                                                                                                            |                                                                                             |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **[Template](https://github.com/FourCourtJester/Single-Studio-Template)**                                  | Start here. A studio, wired up, ready to edit                                               |
-| **[Demo](demo)**                                                                                           | Four graphics and a board — [live](https://fourcourtjester.github.io/Single-Studio-Demo/#/) |
-| [`@single-studio/core`](https://www.npmjs.com/package/@single-studio/core)                                 | The framework                                                                               |
-| [`@single-studio/provider-supabase`](https://www.npmjs.com/package/@single-studio/provider-supabase)       | Multi-operator collaboration, over a project you own                                        |
-| [`@single-studio/plugin-obs`](https://www.npmjs.com/package/@single-studio/plugin-obs)                     | The live scene, stream and record state, over obs-websocket                                 |
-| [`@single-studio/plugin-rocket-league`](https://www.npmjs.com/package/@single-studio/plugin-rocket-league) | Score, clock, goals and the stat feed, over Psyonix's own API                               |
-| [`@single-studio/plugin-twitch`](https://www.npmjs.com/package/@single-studio/plugin-twitch)               | Chat, follows, subs, gifts, cheers and raids — no backend                                   |
-| [`@single-studio/plugin-sheets`](https://www.npmjs.com/package/@single-studio/plugin-sheets)               | A shared spreadsheet as a data source, on an API key                                        |
-| **[Plugin template](https://github.com/FourCourtJester/Single-Studio-Plugin-Template)**                    | Build your own — public domain, take it and go                                              |
+|                                                                                                            |                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **[Template](https://github.com/FourCourtJester/Single-Studio-Template)**                                  | Start here. A studio, wired up, ready to edit                                    |
+| **[Demo](demo)**                                                                                           | Four graphics and a board — [live](https://fourcourtjester.github.io/SS-Demo/#/) |
+| [`@single-studio/core`](https://www.npmjs.com/package/@single-studio/core)                                 | The framework                                                                    |
+| [`@single-studio/provider-supabase`](https://www.npmjs.com/package/@single-studio/provider-supabase)       | Multi-operator collaboration, over a project you own                             |
+| [`@single-studio/plugin-obs`](https://www.npmjs.com/package/@single-studio/plugin-obs)                     | The live scene, stream and record state, over obs-websocket                      |
+| [`@single-studio/plugin-rocket-league`](https://www.npmjs.com/package/@single-studio/plugin-rocket-league) | Score, clock, goals and the stat feed, over Psyonix's own API                    |
+| [`@single-studio/plugin-twitch`](https://www.npmjs.com/package/@single-studio/plugin-twitch)               | Chat, follows, subs, gifts, cheers and raids — no backend                        |
+| [`@single-studio/plugin-sheets`](https://www.npmjs.com/package/@single-studio/plugin-sheets)               | A shared spreadsheet as a data source, on an API key                             |
+| **[Plugin template](https://github.com/FourCourtJester/Single-Studio-Plugin-Template)**                    | Build your own — public domain, take it and go                                   |
 
 ## Documentation
 

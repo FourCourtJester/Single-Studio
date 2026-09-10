@@ -380,7 +380,20 @@ template a version behind.
 
 ## The demo is a mirror, like the templates
 
-`demo/` in this repository is the source of truth. `Single-Studio-Demo` is a mirror,
+**`SS-` is for studios, and only for studios.** `SS-Demo` is a show -- graphics, a
+board, something you can watch -- and so is anybody's own studio. The two template
+repositories keep their full names on purpose: `Single-Studio-Template` and
+`Single-Studio-Plugin-Template` say what they are at a glance, which is the whole job
+of a name somebody meets by pressing "Use this template". Renaming them to `SS-` for
+consistency would trade the only thing their names are for.
+
+This repository keeps its name too. It is the framework rather than a studio, the npm
+scope is `@single-studio/*` and cannot be renamed to match, and every published
+package declares `repository.url` pointing here -- npm refuses provenance unless that
+names the building repository, so a rename would hard-stop the next release until all
+six manifests and `ORIGIN` in `scripts/verify-template.mjs` followed it.
+
+`demo/` in this repository is the source of truth. `SS-Demo` is a mirror,
 replaced on every release by the third entry in the `template` job's matrix, using
 `DEMO_DEPLOY_KEY`. It is a separate repository only because GitHub Pages serves one
 site per repository and this one's slot is the documentation.
@@ -412,11 +425,11 @@ one repository by design, and that is the property worth keeping.
 
 The three things that change:
 
-|                     |                                      |
-| ------------------- | ------------------------------------ |
-| Comment             | `single-studio demo sync`            |
-| Mirror repository   | `FourCourtJester/Single-Studio-Demo` |
-| Secret in this repo | `DEMO_DEPLOY_KEY`                    |
+|                     |                           |
+| ------------------- | ------------------------- |
+| Comment             | `single-studio demo sync` |
+| Mirror repository   | `FourCourtJester/SS-Demo` |
+| Secret in this repo | `DEMO_DEPLOY_KEY`         |
 
 Everything else is the same, including the two parts people get wrong: generate it
 somewhere that is **not a git repository**, and tick **Allow write access** when you

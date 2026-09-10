@@ -10,7 +10,7 @@ pnpm fixture         # builds core, then serves this
 
 **This is not the demo.** The demo people look at is authored in
 [`demo/`](../../demo) and mirrored to
-[Single-Studio-Demo](https://github.com/FourCourtJester/Single-Studio-Demo) on
+[SS-Demo](https://github.com/FourCourtJester/SS-Demo) on
 release. The two are expected to differ: that one is a showcase and gets built and
 typechecked on every pull request, this one is a test rig and carries deliberately
 broken graphics the suites assert on.
