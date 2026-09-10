@@ -4,6 +4,42 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.6.2
+
+No change to any published package's code. This release exists so the version can
+carry the paperwork, and so the mirrors get replaced -- the starter templates and the
+demonstration studio are synced from this repository on release and on no other
+occasion.
+
+### Changed
+
+- **Every package says who wrote it.** `author` was missing from all seven manifests
+  and is now set on each.
+
+- **The four plugins declare `publishConfig`.** They published only because the
+  release workflow passes `--access public` on the command line; a scoped package
+  defaults to restricted, so publishing one by hand failed with a permissions error
+  that reads like a credentials problem and is not. `core` and `provider-supabase`
+  already carried it.
+
+- **`@single-studio/relay` carries the licence it declares.** It said MIT with no
+  `LICENSE` beside it. Not published, so nothing was broken, but a declaration should
+  be true wherever it is made.
+
+### For anybody building from the templates
+
+Neither the starter template nor the plugin template needs anything from you, but two
+things changed in them and both travel with this release.
+
+- **Both templates are public domain now** — the Unlicense rather than a copyright
+  line naming the framework's author. What you build from a starter is your work, no
+  attribution is required, and nothing of anybody else's follows it into your
+  repository. Pick your own licence once the starter is your own code.
+
+- **The templates and the demo build on Vite 8.** The framework itself still builds
+  on Vite 6; they are independent applications and each is built and typechecked
+  against the packed tarballs on every pull request.
+
 ## 0.6.1
 
 ### Fixed
@@ -15,7 +51,7 @@ tag is checked against all six manifests, so they cannot drift apart.
   `useClockOffset` reads nought until the worker reports sync status, so a slideshow
   mounting in that gap derived its first tick from the uncorrected local clock. The
   scheduling effect re-ran when the real offset arrived — it lists `offset` as a
-  dependency — but all it did was re-arm the *next* boundary. Nothing revised the
+  dependency — but all it did was re-arm the _next_ boundary. Nothing revised the
   picture already on screen.
 
   So a browser source opened or refreshed mid-show displayed the wrong picture for
@@ -35,7 +71,7 @@ tag is checked against all six manifests, so they cannot drift apart.
 ### Added
 
 - **A plugin can ask a different plugin to do something.** `ctx.ask(plugin, command,
-  data)` from a mutation, `this.ask(…)` from a handler, plus `this.look(…)` when you
+data)` from a mutation, `this.ask(…)` from a handler, plus `this.look(…)` when you
   need the answer and `running(plugin)` to check first.
 
   `command()` only ever reached a handler's own plugin, and a mutation declared at
@@ -122,7 +158,7 @@ tag is checked against all six manifests, so they cannot drift apart.
   array; the `at` field is gone, since a handler receiving an event as it happens can
   date it more accurately than the plugin can.
 
-  The batching was reasoning about what a *show* does with these events, which is not
+  The batching was reasoning about what a _show_ does with these events, which is not
   the plugin's to decide. A studio animating on a boost pickup cannot have it land a
   tenth of a second after the pickup; a studio that only counts them can collect them
   itself and pay the volume by choosing to. Holding them back served the second case,

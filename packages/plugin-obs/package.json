@@ -1,6 +1,6 @@
 {
   "name": "@single-studio/plugin-obs",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "OBS for Single Studio: the live scene, stream and record state, straight into a studio over obs-websocket.",
   "license": "MIT",
   "author": {
