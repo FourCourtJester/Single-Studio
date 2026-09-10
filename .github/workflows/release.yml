@@ -279,7 +279,7 @@ jobs:
           # built on every pull request against these packages.
           - name: demo
             source: demo
-            repository: FourCourtJester/Single-Studio-Demo
+            repository: FourCourtJester/SS-Demo
             secret: DEMO_DEPLOY_KEY
     steps:
       - uses: actions/checkout@v5

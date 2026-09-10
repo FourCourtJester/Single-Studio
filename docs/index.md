@@ -11,7 +11,7 @@ hero:
       link: /getting-started
     - theme: alt
       text: See it running
-      link: https://fourcourtjester.github.io/Single-Studio-Demo/#/
+      link: https://fourcourtjester.github.io/SS-Demo/#/
     - theme: alt
       text: Use the template
       link: https://github.com/FourCourtJester/Single-Studio-Template

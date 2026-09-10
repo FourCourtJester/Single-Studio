@@ -1,9 +1,9 @@
 # Single Studio — Demo
 
-The show you can click. **[Open it →](https://fourcourtjester.github.io/Single-Studio-Demo/#/)**
+The show you can click. **[Open it →](https://fourcourtjester.github.io/SS-Demo/#/)**
 
 This directory is the source of truth. The repository at
-[Single-Studio-Demo](https://github.com/FourCourtJester/Single-Studio-Demo) is a
+[SS-Demo](https://github.com/FourCourtJester/SS-Demo) is a
 mirror, replaced on every release by the `template` job in `.github/workflows/release.yml`,
 the same way both starter templates are.
 

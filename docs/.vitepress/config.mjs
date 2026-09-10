@@ -47,7 +47,7 @@ export default defineConfig({
       { text: 'Your own data', link: '/data' },
       { text: 'Plugins', link: '/plugins' },
       { text: 'Collaborating', link: '/collaborating' },
-      { text: 'Demo', link: 'https://fourcourtjester.github.io/Single-Studio-Demo/#/' },
+      { text: 'Demo', link: 'https://fourcourtjester.github.io/SS-Demo/#/' },
       {
         text: `v${version}`,
         items: [
