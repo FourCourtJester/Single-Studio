@@ -158,6 +158,7 @@ const stage = mkdtempSync(join(tmpdir(), 'single-studio-template-'))
 const tarballs = join(stage, 'tarballs')
 const project = join(stage, 'studio')
 const plugin = join(stage, 'plugin')
+const demo = join(stage, 'demo')
 
 try {
   console.log(`\n→ packing into ${tarballs}`)
@@ -522,7 +523,94 @@ try {
 
   console.log('  the plugin template installs and its tests pass against the packed core')
 
-  console.log('\ntemplates build against the packed packages')
+  /**
+   * The demo, against the same tarballs.
+   *
+   * It is a mirror like the templates, published to Single-Studio-Demo on release,
+   * and it is the artefact a stranger is most likely to click -- it is linked from
+   * the npm page for core. It stood on its own until 0.6.1 and drifted four releases
+   * behind while nothing failed.
+   *
+   * Built here so that stops being possible: a renamed component breaks this at the
+   * moment of the rename, in the pull request that made it, rather than months later
+   * in somebody else's browser.
+   */
+  console.log('\n→ the demo, against the same tarballs')
+  cpSync(join(root, 'demo'), demo, { recursive: true })
+
+  const demoManifest = JSON.parse(readFileSync(join(demo, 'package.json'), 'utf8'))
+  const demoShipping = {}
+
+  for (const dir of PACKAGES) {
+    const { name, version } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+
+    if (!demoManifest.dependencies?.[name]) throw new Error(`demo does not depend on ${name}`)
+
+    demoShipping[name] = version
+  }
+
+  mustAdmit('demo', demoManifest.dependencies, demoShipping)
+
+  for (const name of Object.keys(demoShipping)) demoManifest.dependencies[name] = `file:${packed[name]}`
+
+  writeFileSync(join(demo, 'package.json'), `${JSON.stringify(demoManifest, null, 2)}\n`)
+
+  run('npm', ['install', '--no-audit', '--no-fund'], demo)
+  run('npm', ['run', 'build'], demo)
+
+  if (!existsSync(join(demo, 'dist/index.html'))) throw new Error('the demo built without producing dist/index.html')
+
+  // Same reasoning as the template: a glob that matches nothing is an empty object,
+  // not an error, and the failure is a deployed demo with no graphics in it.
+  const demoGraphics = readdirSync(join(root, 'demo/src/sources')).filter((file) => file.endsWith('.jsx'))
+  const demoChunks = readdirSync(join(demo, 'dist/assets'))
+
+  for (const graphic of demoGraphics) {
+    const stem = graphic.replace('.jsx', '')
+
+    if (!demoChunks.some((chunk) => chunk.startsWith(`${stem}-`)))
+      throw new Error(`the demo's ${graphic} produced no chunk of its own, so the source glob did not reach it.`)
+  }
+
+  /**
+   * And typechecked, which is the half that actually catches a rename.
+   *
+   * A build does not. Rollup leaves an import of a name a module no longer exports
+   * as `undefined` rather than failing, so a demo importing a deleted component
+   * builds perfectly and throws `Element type is invalid` the first time somebody
+   * opens the graphic -- which, for this artefact, is a stranger arriving from npm.
+   * Measured, not assumed: an import of a name that does not exist passed the build
+   * step above and was caught only here.
+   */
+  writeFileSync(
+    join(demo, 'tsconfig.demo.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          allowJs: true,
+          checkJs: true,
+          noEmit: true,
+          jsx: 'react-jsx',
+          module: 'esnext',
+          moduleResolution: 'bundler',
+          target: 'es2022',
+          lib: ['es2022', 'dom', 'dom.iterable'],
+          strict: false,
+          skipLibCheck: true,
+          types: ['vite/client'],
+        },
+        include: ['src/**/*.js', 'src/**/*.jsx'],
+      },
+      null,
+      2,
+    )}\n`,
+  )
+
+  run('node', [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(demo, 'tsconfig.demo.json')], demo)
+
+  console.log(`  the demo builds, code-splits all ${demoGraphics.length} graphics, and still matches every component it uses`)
+
+  console.log('\ntemplates and the demo build against the packed packages')
 } finally {
   if (keep) console.log(`\nleft behind at ${project}`)
   else rmSync(stage, { recursive: true, force: true })

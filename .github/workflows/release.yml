@@ -248,6 +248,17 @@ jobs:
             source: templates/plugin
             repository: FourCourtJester/Single-Studio-Plugin-Template
             secret: PLUGIN_TEMPLATE_DEPLOY_KEY
+          # The demo is not a template, but it is the same problem: a public
+          # repository built from a directory here, carrying its own
+          # .github/workflows/pages.yml, which only an SSH deploy key may push.
+          #
+          # It used to stand on its own and drifted to four releases behind while
+          # being linked from the npm page for core. Authored here, mirrored there,
+          # built on every pull request against these packages.
+          - name: demo
+            source: demo
+            repository: FourCourtJester/Single-Studio-Demo
+            secret: DEMO_DEPLOY_KEY
     steps:
       - uses: actions/checkout@v5
 

@@ -265,7 +265,7 @@ request, and `release.yml` compares them again before the publish loop, inside t
 same condition that decides whether provenance is requested at all, so the check
 cannot drift out of step with whether npm is going to apply it.
 
-## Both template repositories are synced by the release
+## The template repositories and the demo are synced by the release
 
 `templates/studio` and `templates/plugin` here are authoritative. Both mirrors are
 pushed by the `template` job in `release.yml`, as a matrix, once the packages are
@@ -378,66 +378,49 @@ mode is deliberate: the packages are already published by then, so the honest ou
 is a red release with a clear reason rather than a silent skip that leaves the
 template a version behind.
 
-## The demo, and why it goes stale on its own
+## The demo is a mirror, like the templates
 
-`Single-Studio-Demo` is a separate repository, linked from the README, from the
-documentation site's hero button and navbar, and -- the one that matters -- from
-`packages/core/README.md`, which is the npm page for the framework. It is the first
-thing a stranger clicks.
+`demo/` in this repository is the source of truth. `Single-Studio-Demo` is a mirror,
+replaced on every release by the third entry in the `template` job's matrix, using
+`DEMO_DEPLOY_KEY`. It is a separate repository only because GitHub Pages serves one
+site per repository and this one's slot is the documentation.
 
-It is also the only public artefact nothing in this repository can reach. The
-templates are mirrors, pushed on release by the `template` job; the demo is a real
-studio with its own history, so it drifts the way any downstream project drifts, and
-nothing here fails when it does. As of 0.6.1 it was pinned to `^0.2.0` and had one
-commit, from August.
+It did stand on its own, and that is exactly why it is here now. It sat at one
+commit, pinned to `@single-studio/core@^0.2.0`, through four releases -- while being
+linked from the README, from the documentation hero and navbar, and from
+`packages/core/README.md`, which is the npm page for the framework. Nothing failed,
+because nothing was watching.
 
-Two things keep it honest, and neither lives here:
+`pnpm verify:template` now builds it on every pull request against the packed
+tarballs, and typechecks it. Both halves are needed and the second is the one that
+matters:
 
-**1. Its build has to run on pull requests.** The demo's `pages.yml` triggers on
-push to `main` only, so a dependency PR against it has no check at all -- there is
-nothing to tell you the bump broke the build. Add `pull_request` to that trigger, or
-the second half is worse than useless:
+- The **build** catches a package that cannot resolve.
+- The **typecheck** catches a component that no longer exists. A build does not:
+  Rollup leaves an import of a name a module no longer exports as `undefined` rather
+  than failing, so a demo importing a deleted component builds perfectly and throws
+  `Element type is invalid` the first time somebody opens the graphic. This was
+  measured rather than assumed -- an import of a name that does not exist passed the
+  build and was caught only by `tsc`.
 
-```yaml
-on:
-  push:
-    branches: [main]
-  pull_request:
+### Setting up DEMO_DEPLOY_KEY
+
+The same shape as the two template keys, and for the same reason -- the demo carries
+`.github/workflows/pages.yml`, and GitHub refuses a workflow-file push from an OAuth
+or App credential without the `workflow` scope. SSH is not subject to that rule.
+
+```bash
+ssh-keygen -t ed25519 -C "single-studio-demo sync" -f demo-key -N ""
 ```
 
-**2. Dependabot has to watch it.** A `.github/dependabot.yml` in the demo repository,
-which will raise `@single-studio/*` past a caret boundary that would otherwise pin it
-forever:
+Public half: `Single-Studio-Demo` → Settings → Deploy keys → Add, **with "Allow write
+access" ticked**. A key added without that box clones perfectly and refuses to push,
+which is invisible until a release fails.
 
-```yaml
-version: 2
+Private half: this repository → Settings → Secrets → Actions → `DEMO_DEPLOY_KEY`.
 
-updates:
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: monthly
-    groups:
-      framework:
-        patterns:
-          - '@single-studio/*'
-```
-
-Grouped, because the framework packages share a version and arriving separately would
-mean merging a demo that briefly mixes two.
-
-### Why a caret is the trap rather than the fix
-
-`^0.6.0` admits `0.6.1` and does **not** admit `0.7.0` -- below 1.0.0 the caret pins
-the minor. So every range in a template or the demo stops tracking the framework at
-the next minor, silently, while continuing to install and build perfectly. The
-symptom arrives months later as a bug report against an API that changed two
-releases ago.
-
-`scripts/verify-template.mjs` now fails a pull request when either template pins a
-range the framework has outgrown, which is the same guard applied to the part of the
-problem this repository owns. The demo is outside it, which is why the two files
-above exist.
+Then delete both local halves. Running the release workflow by hand publishes nothing
+and checks every deploy key can actually write, so it is a free rehearsal.
 
 ## Versioning
 
