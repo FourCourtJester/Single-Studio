@@ -207,6 +207,28 @@ jobs:
             echo "::endgroup::"
           done
 
+      # A job called "publish" reporting success while publishing nothing is a trap,
+      # and it caught somebody: a manual run went green, the summary said the publish
+      # job succeeded, and every step that publishes had been skipped. The gating is
+      # right -- a rehearsal must not ship -- but silence is a poor way to say so.
+      #
+      # Say it out loud instead, including the part that is easiest to miss: the
+      # mirror keys are only exercised when the box is ticked, so an untick means the
+      # thing most people run this to rehearse did not happen.
+      - name: Say what a manual run did not do
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        env:
+          CHECKED: ${{ inputs.check_template_key }}
+          REF: ${{ github.ref_name }}
+        run: |
+          echo "::notice::Rehearsal only -- nothing was published. Every publishing step is gated on the ref being a tag, and this ran on '$REF'."
+
+          if [ "$CHECKED" = "true" ]; then
+            echo "::notice::The mirror deploy keys were checked; see the template job."
+          else
+            echo "::warning::The mirror deploy keys were NOT checked, and the mirror job was skipped. Re-run with 'Also check the template deploy key can write' ticked to prove they work before a release depends on them."
+          fi
+
   # Push each template to its own repository, so what people click "Use this
   # template" on is what CI just verified.
   #

@@ -60,7 +60,16 @@ jobs:
       # `base: '/Single-Studio/'` in the VitePress config is what makes this work at
       # a project-site subpath. If this ever moves to a custom domain, that is the
       # one line to change.
-      - uses: actions/upload-pages-artifact@v3
+      # v3 rather than v5 was the lowest major on a supported runtime until it was
+      # not. It is a *composite* action, so it has no Node runtime of its own and the
+      # usual check says nothing: v3 delegates to actions/upload-artifact@v4, which
+      # runs on node20, and node20 leaves the runners on 16 September 2026. v5
+      # delegates to upload-artifact@v7, which is node24.
+      #
+      # Still the lowest major that satisfies the rule, not the newest for its own
+      # sake -- v4 delegates to upload-artifact@v4.6.2 and is on node20 as well, so it
+      # would have been a bump to nowhere.
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/.vitepress/dist
 
