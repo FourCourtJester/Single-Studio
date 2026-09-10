@@ -55,6 +55,15 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    groups:
+      # vite and its React plugin are one decision, not two. @vitejs/plugin-react@6
+      # peers vite ^8, so the plugin arriving on its own is a broken peer and vite
+      # arriving on its own is half a move -- which is exactly what happened: #23 and
+      # #24 were the same change, split, and merging either alone was wrong.
+      vite:
+        patterns:
+          - 'vite'
+          - '@vitejs/*'
     ignore:
       # The framework's own pins. Those are release-managed -- see docs/internal/
       # releasing.md -- and a bot bumping them races the release that sets them.
@@ -65,6 +74,27 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: '@single-studio/*'
+
+  # The demo, for the same reason as the templates: outside the workspace, no
+  # lockfile, invisible to the root entry. Its @single-studio pins are release-
+  # managed and verify-template fails a pull request that lets them fall behind,
+  # so a bot bumping them would only race that.
+  - package-ecosystem: npm
+    directory: /demo
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      # vite and its React plugin are one decision, not two. @vitejs/plugin-react@6
+      # peers vite ^8, so the plugin arriving on its own is a broken peer and vite
+      # arriving on its own is half a move -- which is exactly what happened: #23 and
+      # #24 were the same change, split, and merging either alone was wrong.
+      vite:
+        patterns:
+          - 'vite'
+          - '@vitejs/*'
     ignore:
       - dependency-name: '@single-studio/*'
 

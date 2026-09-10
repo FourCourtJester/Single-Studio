@@ -2,11 +2,11 @@
 
 Six packages go to npm, in `PACKAGES` in `.github/workflows/release.yml`:
 
-| | |
-| --- | --- |
-| `@single-studio/core` | the framework |
-| `@single-studio/provider-supabase` | one of the two ways a show collaborates |
-| `@single-studio/plugin-obs`, `-sheets`, `-twitch`, `-rocket-league` | the first-party plugins |
+|                                                                     |                                         |
+| ------------------------------------------------------------------- | --------------------------------------- |
+| `@single-studio/core`                                               | the framework                           |
+| `@single-studio/provider-supabase`                                  | one of the two ways a show collaborates |
+| `@single-studio/plugin-obs`, `-sheets`, `-twitch`, `-rocket-league` | the first-party plugins                 |
 
 `@single-studio/relay` is `private: true` and stays out of it — it is a thing you
 deploy, not a thing you install.
@@ -265,16 +265,16 @@ request, and `release.yml` compares them again before the publish loop, inside t
 same condition that decides whether provenance is requested at all, so the check
 cannot drift out of step with whether npm is going to apply it.
 
-## Both template repositories are synced by the release
+## The template repositories and the demo are synced by the release
 
 `templates/studio` and `templates/plugin` here are authoritative. Both mirrors are
 pushed by the `template` job in `release.yml`, as a matrix, once the packages are
 actually on npm:
 
-| Source | Mirror | Secret |
-| --- | --- | --- |
-| `templates/studio` | [Single-Studio-Template](https://github.com/FourCourtJester/Single-Studio-Template) | `TEMPLATE_DEPLOY_KEY` |
-| `templates/plugin` | Single-Studio-Plugin-Template | `PLUGIN_TEMPLATE_DEPLOY_KEY` |
+| Source             | Mirror                                                                              | Secret                       |
+| ------------------ | ----------------------------------------------------------------------------------- | ---------------------------- |
+| `templates/studio` | [Single-Studio-Template](https://github.com/FourCourtJester/Single-Studio-Template) | `TEMPLATE_DEPLOY_KEY`        |
+| `templates/plugin` | Single-Studio-Plugin-Template                                                       | `PLUGIN_TEMPLATE_DEPLOY_KEY` |
 
 It works this way because neither template is independent of the framework the way
 the demo is. Their source calls the components and base classes by name, so an API
@@ -377,6 +377,56 @@ Without the secret the job stops before touching anything and says so. That fail
 mode is deliberate: the packages are already published by then, so the honest outcome
 is a red release with a clear reason rather than a silent skip that leaves the
 template a version behind.
+
+## The demo is a mirror, like the templates
+
+`demo/` in this repository is the source of truth. `Single-Studio-Demo` is a mirror,
+replaced on every release by the third entry in the `template` job's matrix, using
+`DEMO_DEPLOY_KEY`. It is a separate repository only because GitHub Pages serves one
+site per repository and this one's slot is the documentation.
+
+It did stand on its own, and that is exactly why it is here now. It sat at one
+commit, pinned to `@single-studio/core@^0.2.0`, through four releases -- while being
+linked from the README, from the documentation hero and navbar, and from
+`packages/core/README.md`, which is the npm page for the framework. Nothing failed,
+because nothing was watching.
+
+`pnpm verify:template` now builds it on every pull request against the packed
+tarballs, and typechecks it. Both halves are needed and the second is the one that
+matters:
+
+- The **build** catches a package that cannot resolve.
+- The **typecheck** catches a component that no longer exists. A build does not:
+  Rollup leaves an import of a name a module no longer exports as `undefined` rather
+  than failing, so a demo importing a deleted component builds perfectly and throws
+  `Element type is invalid` the first time somebody opens the graphic. This was
+  measured rather than assumed -- an import of a name that does not exist passed the
+  build and was caught only by `tsc`.
+
+### Setting up DEMO_DEPLOY_KEY
+
+Exactly the procedure in [The credential: a deploy key, not a
+token](#the-credential-a-deploy-key-not-a-token) above -- a third time, not a
+different method. Do not reuse either template's keypair: a deploy key is scoped to
+one repository by design, and that is the property worth keeping.
+
+The three things that change:
+
+|                     |                                      |
+| ------------------- | ------------------------------------ |
+| Comment             | `single-studio demo sync`            |
+| Mirror repository   | `FourCourtJester/Single-Studio-Demo` |
+| Secret in this repo | `DEMO_DEPLOY_KEY`                    |
+
+Everything else is the same, including the two parts people get wrong: generate it
+somewhere that is **not a git repository**, and tick **Allow write access** when you
+add the public half. A deploy key added without that box clones perfectly and refuses
+to push, so the mistake is invisible until a release is half done.
+
+Then rehearse it. Running the release workflow by hand publishes nothing -- every
+publishing step is gated on the ref being a tag -- and the mirror job pushes a scratch
+tag and deletes it, which is a real write against the real remote. That is the only
+thing that actually answers whether the key works.
 
 ## Versioning
 
