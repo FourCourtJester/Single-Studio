@@ -318,6 +318,67 @@
     cursor: text;
   }
 
+  /*
+   * The board's own tools are revealed, not resident.
+   *
+   * Save, discard and the settings cog sit in the header of a dock that is often a
+   * narrow column beside a preview, and an operator's eye is on the preview. At rest
+   * they are worth no width at all: the title takes the room instead and gets to say
+   * the whole studio name before it ellipses.
+   *
+   * Four things bring them back, and each is something that already exists in the
+   * markup rather than state invented for this:
+   *
+   *   :hover              a pointer over the bar
+   *   :focus-within       a keyboard reaching them -- without this the cog, and so
+   *                       Plugins, Hotkeys and Browser sources, is unreachable
+   *                       without a mouse
+   *   [data-pending]      SaveButton already marks itself when edits are staged, so
+   *                       unsaved work pins the pair open and cannot be hidden by
+   *                       moving the mouse away
+   *   [aria-expanded]     the cog already marks itself when its panel is open, so
+   *                       the button cannot vanish from under a menu somebody is
+   *                       reading
+   *
+   * Scoped to the bar rather than written into Menu or SaveButton, because both are
+   * exported and a studio may put either in a panel of its own -- where a control
+   * that hides itself until hovered would be a bug rather than a feature.
+   *
+   * The connection light is deliberately not in this list. It is the one thing here
+   * that has to find you, and it already shows only when a provider is configured,
+   * so a studio with no room to join carries no light and this bar is just a title.
+   */
+  .ss-control-bar :is(.ss-menu-open, .ss-save) {
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      max-width 160ms ease,
+      opacity 160ms ease;
+  }
+
+  .ss-control-bar:hover :is(.ss-menu-open, .ss-save),
+  .ss-control-bar:focus-within :is(.ss-menu-open, .ss-save),
+  .ss-control-bar:has([data-pending='true']) :is(.ss-menu-open, .ss-save),
+  .ss-control-bar:has([aria-expanded='true']) :is(.ss-menu-open, .ss-save) {
+    max-width: 12rem;
+    overflow: visible;
+    opacity: 1;
+  }
+
+  /*
+   * A tablet has no pointer to rest anywhere, so hiding behind hover there hides for
+   * good. Touch gets them permanently, which costs a dock nobody is running on a
+   * tablet nothing.
+   */
+  @media (hover: none) {
+    .ss-control-bar :is(.ss-menu-open, .ss-save) {
+      max-width: 12rem;
+      overflow: visible;
+      opacity: 1;
+    }
+  }
+
   /* Graphics are authored against a fixed canvas; OBS scales the result. */
   .ss-canvas {
     width: 1920px;
