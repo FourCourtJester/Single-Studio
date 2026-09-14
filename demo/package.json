@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@single-studio/core": "^0.6.1",
-    "@single-studio/provider-supabase": "^0.6.1",
+    "@single-studio/core": "^0.7.0",
+    "@single-studio/provider-supabase": "^0.7.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.3",

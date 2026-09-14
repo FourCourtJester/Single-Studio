@@ -4,6 +4,44 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.7.0
+
+### Added
+
+- **An operator can point the Google Sheets plugin at a different sheet.** The
+  board's plugin panel gains a Spreadsheet field. Paste the sheet's address from a
+  browser or just its id; leave it blank and the studio's own sheet is used.
+
+  Asked for by a broadcaster running two setups off duplicates of one layout, who
+  needed each pointed at its own copy. The id and the range used to be one decision
+  and they are not: the range is the _shape_ of a sheet -- your graphics have code
+  expecting those columns in that order -- while the id is _which copy of that
+  shape_, and the graphics cannot tell the difference. So the id is now the
+  operator's and **the range is still yours**, passed to the factory and unreachable
+  from the panel. A range that does not match the graphics reading it is not a
+  different view of the same data; it is the wrong column, confidently, with no error
+  anywhere.
+
+  Blank means "the studio's" rather than "empty", so a studio that ships a different
+  sheet in a later release still reaches every operator who never overrode it.
+
+### Changed
+
+- **The operator's board hides its own tools until they are wanted.** Save, discard
+  and the settings cog have no width at rest; the studio name takes the room instead.
+  They come back on hover, on keyboard focus, whenever an edit is waiting to be saved,
+  and whenever the settings menu is open -- so unsaved work cannot be hidden by moving
+  the mouse away. Touch devices keep them permanently, having no pointer to rest
+  anywhere.
+
+  The connection light is deliberately not part of this. It is the one thing in that
+  header that has to find you rather than be gone looking for.
+
+- **The board's header no longer wraps to a second row.** A long studio name used to
+  push the tools onto a line of their own; the name now truncates instead, which is
+  what it was always styled to do. At a narrow dock width the header is 85px tall no
+  longer -- it is 57px, at every width.
+
 ## 0.6.2
 
 No change to any published package's code. This release exists so the version can
