@@ -84,6 +84,20 @@ await control.waitForTimeout(1000)
 
 const homeName = control.locator('.ss-field:has-text("Home") input').first()
 const saveButton = control.locator('.ss-save button').last()
+
+/**
+ * Open the board's settings menu.
+ *
+ * The cog is revealed rather than resident -- it has no width until the bar is
+ * hovered, focused into, or something is waiting to be saved -- so a bare click on
+ * it times out on a zero-width element. Hovering first is what an operator does and
+ * what the test has to do; this exists so that fact is stated once rather than
+ * five times.
+ */
+const openMenu = async () => {
+  await control.locator('.ss-control-bar').hover()
+  await control.locator('.ss-menu-open').click()
+}
 /**
  * Ctrl+S on the control page.
  *
@@ -131,6 +145,70 @@ await control.locator('button[aria-label="Increase Home score"]').click()
 await control.locator('button[aria-label="Increase Home score"]').click()
 check(await becomes(control, () => document.querySelector('.ss-stepper input')?.value === '2'), 'two increments read as 2 on the control surface')
 check(await becomes(source, sceneHas, '2'), 'button presses reach the graphic with no save')
+
+// -- The board's tools are revealed, not resident -----------------------------
+/*
+ * Save, discard and the cog have no width until something asks for them. The dock
+ * is often a narrow column beside a preview and that width belongs to the show.
+ *
+ * Four triggers, and the two that are not hover are the ones worth guarding: an
+ * unsaved edit has to pin them open with the pointer nowhere near, or an operator
+ * who types and looks away loses the button that would commit it -- and a keyboard
+ * has to reach them at all, or the cog, and with it Plugins and Browser sources,
+ * is mouse-only.
+ */
+const toolShown = (selector) =>
+  control.evaluate((sel) => {
+    const el = document.querySelector(sel)
+
+    return Boolean(el) && Number(getComputedStyle(el).opacity) > 0.5 && el.getBoundingClientRect().width > 1
+  }, selector)
+
+// Somewhere the bar is not. hover() on another element is not enough on its own:
+// the pointer has to actually leave.
+const pointerAway = async () => {
+  await control.mouse.move(4, 640)
+  await control.waitForTimeout(320)
+}
+
+await pointerAway()
+check(!(await toolShown('.ss-menu-open')), 'at rest the cog takes no room')
+check(!(await toolShown('.ss-save')), 'and neither does the save')
+
+await control.locator('.ss-control-bar').hover()
+await control.waitForTimeout(320)
+check(await toolShown('.ss-menu-open'), 'hovering the bar brings the cog back')
+check(await toolShown('.ss-save'), 'and the save with it')
+
+await pointerAway()
+check(!(await toolShown('.ss-menu-open')), 'and they go again when the pointer leaves')
+
+// The one that matters on the night.
+await homeName.fill('Pinned')
+await pointerAway()
+check(await toolShown('.ss-save'), 'an unsaved edit keeps the save on screen with the pointer elsewhere')
+check(await toolShown('.ss-menu-open'), 'and the cog alongside it, so the pair does not split')
+
+await save()
+await pointerAway()
+check(!(await toolShown('.ss-save')), 'saving lets them go again')
+
+// Reachable without a mouse at all.
+await control.locator('.ss-menu-open').focus()
+await control.waitForTimeout(320)
+check(await toolShown('.ss-menu-open'), 'a keyboard can reach the cog, which is the only route to Plugins')
+await control.evaluate(() => document.activeElement?.blur())
+await pointerAway()
+
+// The title keeps the room the tools are not using, and still ellipses.
+check(
+  await control.evaluate(() => {
+    const h1 = document.querySelector('.ss-control-bar h1')
+
+    return getComputedStyle(h1).textOverflow === 'ellipsis' && getComputedStyle(h1).whiteSpace === 'nowrap'
+  }),
+  'the studio name still truncates rather than wrapping the bar to a second row',
+)
 
 // -- A textarea has to take a line break -------------------------------------
 // The draft handler commits on Enter, which is right for a one-line field and made
@@ -1350,7 +1428,7 @@ check(wiped.opacity === '1', 'a wipe stays fully opaque throughout')
 // Behind the header menu now, with the room and the image store. Wiring OBS is a
 // once-ever job, and a panel for it was spending every show after that taking up
 // the space under the controls an operator actually uses.
-await control.locator('.ss-menu-open').click()
+await openMenu()
 await control.locator('.ss-menu-sources').click()
 await control.waitForSelector('.ss-sources-dialog a[href*="/source/"]')
 
@@ -1447,7 +1525,7 @@ check(
 // of its own, so a bare `.ss-asset-tile` count is the pickers plus the dialog and
 // answers a question nobody asked.
 const openLibrary = async () => {
-  await control.locator('.ss-menu-open').click()
+  await openMenu()
   await control.locator('.ss-menu-images').click()
   await control.waitForSelector('.ss-asset-dialog[open] .ss-asset-library')
   // The tiles come out of IndexedDB a beat after the dialog does, so a count taken
@@ -1503,7 +1581,7 @@ await closeLibrary()
 
 const scoreNow = () => control.locator('.ss-stepper input[aria-label="Home score"]').inputValue()
 
-await control.locator('.ss-menu-open').click()
+await openMenu()
 await control.locator('.ss-menu-reset').click()
 await control.waitForSelector('.ss-reset-dialog[open]')
 
@@ -1557,7 +1635,7 @@ await closeLibrary()
 // The save key is the operator's, not the framework's. What matters here is that a
 // rebind actually moves it: the new chord saves, and the old one stops.
 await control.bringToFront()
-await control.locator('.ss-menu-open').click()
+await openMenu()
 await control.locator('.ss-menu-hotkeys').click()
 check(await becomes(control, () => Boolean(document.querySelector('.ss-hotkeys-dialog[open]'))), 'the menu opens the shortcut settings')
 
@@ -1611,14 +1689,16 @@ check(
 // not, so a reload is the case where a board could plausibly come back on the
 // defaults and nobody would notice until a show.
 await control.reload()
-await control.waitForSelector('.ss-save')
+// `attached`, not visible: the bar's tools have no width until something asks for
+// them, and what is being read here is an attribute rather than anything on screen.
+await control.waitForSelector('.ss-save', { state: 'attached' })
 check(
   await becomes(control, () => document.querySelector('.ss-save button[aria-keyshortcuts]')?.getAttribute('aria-keyshortcuts') === 'F8'),
   'the rebound key is still bound after a reload',
 )
 
 // Put it back, so everything below still saves the way it expects to.
-await control.locator('.ss-menu-open').click()
+await openMenu()
 await control.locator('.ss-menu-hotkeys').click()
 await control.locator('.ss-hotkey-reset').click()
 check(
@@ -1634,7 +1714,7 @@ await becomes(control, () => !document.querySelector('.ss-hotkeys-dialog[open]')
 // fixture's plugin talks to nothing on purpose -- what is under test is the wiring,
 // not any particular game.
 await control.bringToFront()
-await control.locator('.ss-menu-open').click()
+await openMenu()
 await control.locator('.ss-menu-plugins').click()
 check(await becomes(control, () => Boolean(document.querySelector('.ss-plugins-dialog[open]'))), 'the menu opens the plugin settings')
 
@@ -1687,10 +1767,7 @@ check(
   await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="rocket-league"] .ss-plugin-body'))),
   'and so it opens itself, rather than hiding the settings somebody came here to change',
 )
-check(
-  (await row.locator('.ss-plugin-toggle').textContent()).includes('Demo feed'),
-  'and still says which plugin it is while folded',
-)
+check((await row.locator('.ss-plugin-toggle').textContent()).includes('Demo feed'), 'and still says which plugin it is while folded')
 check(
   (await row.locator('.ss-plugin-toggle').textContent()).includes('Connected'),
   'and whether it is talking, which is the question being asked most of the time',
@@ -1723,7 +1800,10 @@ check(
 )
 
 await row.locator('.ss-plugin-toggle').click()
-check(await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body'))), 'opening the row brings out what it can be asked')
+check(
+  await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-body'))),
+  'opening the row brings out what it can be asked',
+)
 
 const pluginSave = row.locator('.ss-plugin-save')
 

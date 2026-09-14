@@ -1,6 +1,6 @@
 import { definePlugin, PluginHandler, PollingService } from '@single-studio/core/worker'
 
-import { explain, parse, urlFor } from './sheet.js'
+import { explain, idFrom, parse, urlFor } from './sheet.js'
 
 export { explain, keyOf, parse, same, urlFor } from './sheet.js'
 
@@ -82,16 +82,22 @@ export class GoogleSheetsHandler extends PluginHandler {
 /**
  * @param {typeof GoogleSheetsHandler} [Handler]
  * @param {{ id?: string, range?: string, header?: boolean }} [sheet]
- *   Which spreadsheet, and which cells. **Given by the studio, not by the operator.**
+ *   The sheet this studio was written against: which spreadsheet, and which cells.
  *
- *   A range is not a preference. The studio reading it has code that expects columns
- *   in an order, and a range that does not match is not a different view of the same
- *   data -- it is a graphic quietly showing the wrong column, which is the worst way
- *   for this to fail. The same goes for the id: a studio ships knowing the shape of
- *   the sheet it was written against.
+ *   **The range is the studio's and cannot be overridden.** It is not a preference.
+ *   The graphics reading it have code that expects columns in an order, and a range
+ *   that does not match is not a different view of the same data -- it is a graphic
+ *   quietly showing the wrong column, which is the worst way for this to fail.
  *
- *   So the operator is asked for the one thing that is genuinely theirs and cannot
- *   be shipped -- an API key, which is a credential.
+ *   **The id is a default the operator may replace**, which is a different question
+ *   from the range and was once wrongly treated as the same one. The range is the
+ *   *shape* of a sheet; the id is *which copy of that shape*. A team running two
+ *   setups off duplicates of one layout needs to point each at its own, and the
+ *   graphics cannot tell the difference -- that is what makes it safe where a range
+ *   is not.
+ *
+ *   Leave the field on the panel blank and the studio's id is used, so a studio that
+ *   ships a new sheet in a later release reaches everybody who never overrode it.
  */
 export const sheets = (Handler = GoogleSheetsHandler, sheet = {}) =>
   definePlugin({
@@ -110,7 +116,7 @@ export const sheets = (Handler = GoogleSheetsHandler, sheet = {}) =>
       },
       {
         type: 'note',
-        text: 'Which sheet this reads, and which cells, come from the studio rather than from here. They have to match the graphics that read them, so they are not something to change during a show.',
+        text: 'Which cells this reads comes from the studio and cannot be changed here — the graphics expect those columns in that order. Which sheet it reads can: leave Spreadsheet blank for the one the studio ships, or paste another that uses the same layout.',
       },
       { type: 'link', href: 'https://console.cloud.google.com/apis/credentials', label: 'Google Cloud credentials' },
       {
@@ -121,6 +127,17 @@ export const sheets = (Handler = GoogleSheetsHandler, sheet = {}) =>
     ],
     config: [
       {
+        key: 'id',
+        label: 'Spreadsheet',
+        type: 'text',
+        // The studio's own id, greyed out rather than filled in. Filling it in would
+        // store it, and a stored copy is a copy that stops following the studio --
+        // a later release pointing at a new sheet would reach nobody who had ever
+        // opened this panel.
+        placeholder: sheet.id ?? 'The one this studio ships with',
+        help: 'Paste the sheet’s address from your browser, or just its id. Leave it blank to use the sheet this studio ships with.',
+      },
+      {
         key: 'key',
         label: 'API key',
         type: 'secret',
@@ -129,9 +146,15 @@ export const sheets = (Handler = GoogleSheetsHandler, sheet = {}) =>
       { key: 'every', label: 'Read every (seconds)', type: 'number', default: 10, help: 'Five is the floor. Google allows sixty reads a minute.' },
     ],
     create: (context) => {
-      // The studio's sheet wins over anything stored, because there is nowhere to
-      // store it from -- these are not fields on the panel.
-      const plugin = new GoogleSheets({ ...context, config: { ...context.config, ...sheet } })
+      // The shape is the studio's and the copy is the operator's. `...sheet` puts the
+      // studio's range and header beyond reach of the panel; the line after it hands
+      // the id back, because that one *is* on the panel now.
+      //
+      // Blank falls through to the studio's rather than being stored as empty, so an
+      // operator who opens the panel to change the read interval does not silently
+      // pin the sheet to whatever it was that day.
+      const chosen = idFrom(context.config?.id) || sheet.id || ''
+      const plugin = new GoogleSheets({ ...context, config: { ...context.config, ...sheet, id: chosen } })
 
       new Handler({ ...context, plugin }).attach(plugin.events)
 

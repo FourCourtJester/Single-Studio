@@ -92,6 +92,30 @@ export const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
  * @param {string} options.range A1 notation, e.g. `Standings!A1:D20`.
  * @param {string} options.key
  */
+/**
+ * The spreadsheet id, from whatever somebody pasted.
+ *
+ * Nobody copies the id. They copy the address bar, because that is where the sheet
+ * is -- and a bare id is a 44-character string in the middle of it that has to be
+ * found and trimmed by hand. Pasting the whole URL is the ordinary thing to do, so
+ * it is the thing that has to work; the alternative is a 404 on a show and an
+ * operator with no reason to suspect the field they filled in correctly.
+ *
+ * Anything that is not a Sheets URL is handed back trimmed and used as-is, so a bare
+ * id still works and a typo still reaches Google to be refused with a real message
+ * rather than being second-guessed here.
+ */
+export function idFrom(value) {
+  const text = String(value ?? '').trim()
+
+  if (!text) return ''
+
+  // /spreadsheets/d/<id>/edit#gid=0, and every other tail Google hangs off it.
+  const inUrl = /\/spreadsheets\/d\/([A-Za-z0-9_-]+)/.exec(text)
+
+  return inUrl ? inUrl[1] : text
+}
+
 export function urlFor({ id, range, key }) {
   if (!id) throw new Error('A spreadsheet id is needed.')
   if (!key) throw new Error('A Google API key is needed.')

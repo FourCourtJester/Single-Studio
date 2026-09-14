@@ -45,7 +45,15 @@ describe('the first read', () => {
   it('delivers the rows', async () => {
     const { MyShow, rows } = watching()
 
-    vi.stubGlobal('fetch', vi.fn(async () => ok([['Team', 'Points'], ['Broncos', '12']])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        ok([
+          ['Team', 'Points'],
+          ['Broncos', '12'],
+        ]),
+      ),
+    )
 
     await build(MyShow).open()
 
@@ -53,13 +61,19 @@ describe('the first read', () => {
   })
 
   it('fails loudly, so a wrong id is not a timer nobody is watching', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => refused(404, 'Requested entity was not found.')))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => refused(404, 'Requested entity was not found.')),
+    )
 
     await expect(build().open()).rejects.toThrow(/spreadsheet with that id/)
   })
 
   it('explains a private sheet as the sharing setting it is', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => refused(403, 'The caller does not have permission')))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => refused(403, 'The caller does not have permission')),
+    )
 
     await expect(build().open()).rejects.toThrow(/anyone with the link/)
   })
@@ -70,9 +84,15 @@ describe('polling', () => {
     // The whole reason this is cheap. Every read that finds no edit costs one
     // request and nothing else -- no mutation, no replication, no re-render.
     const { MyShow, rows } = watching()
-    const values = [['Team', 'Points'], ['Broncos', '12']]
+    const values = [
+      ['Team', 'Points'],
+      ['Broncos', '12'],
+    ]
 
-    vi.stubGlobal('fetch', vi.fn(async () => ok(values)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ok(values)),
+    )
 
     const plugin = build(MyShow)
 
@@ -90,7 +110,15 @@ describe('polling', () => {
     const { MyShow, rows } = watching()
     let points = '12'
 
-    vi.stubGlobal('fetch', vi.fn(async () => ok([['Team', 'Points'], ['Broncos', points]])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        ok([
+          ['Team', 'Points'],
+          ['Broncos', points],
+        ]),
+      ),
+    )
 
     await build(MyShow).open()
 
@@ -104,7 +132,10 @@ describe('polling', () => {
   it('will not poll faster than the floor, whatever is typed', async () => {
     // Google allows sixty reads a minute. A typo of 1 would spend that in a minute
     // and get the key rate limited mid-show.
-    vi.stubGlobal('fetch', vi.fn(async () => ok([['A'], ['1']])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ok([['A'], ['1']])),
+    )
 
     const plugin = build(GoogleSheetsHandler, { every: 1 })
 
@@ -122,7 +153,10 @@ describe('ownership', () => {
   it('does not poll on a machine that does not own ingress', async () => {
     // Five operators each polling the same sheet is five times the quota and five
     // writers racing on the same paths, for one sheet's worth of information.
-    vi.stubGlobal('fetch', vi.fn(async () => ok([['A'], ['1']])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ok([['A'], ['1']])),
+    )
 
     const plugin = build(GoogleSheetsHandler, {}, () => false)
 
@@ -220,37 +254,107 @@ describe('a read that stalls', () => {
 })
 
 describe('the sheet the studio ships', () => {
-  it('comes from the factory, not from the operator', async () => {
+  it("keeps the range out of the operator's hands", async () => {
     const fetched = vi.fn(async () => ok([['team'], ['Boise State']]))
 
     vi.stubGlobal('fetch', fetched)
 
-    // What an operator could once have typed, and what the studio actually ships.
+    // A stored range is ignored however it got there. The graphics reading these
+    // columns expect them in this order, so a different range is a graphic showing
+    // the wrong column rather than a different view of the same data.
     const plugin = sheets(GoogleSheetsHandler, { id: 'the-studio-sheet', range: 'Teams!A:D' }).create({
       mutate: vi.fn(),
       owner: () => true,
       studio: 's',
-      config: { id: 'whatever-was-stored', range: 'Z:Z', key: 'k', every: 30 },
+      config: { range: 'Z:Z', key: 'k', every: 30 },
     })
 
     await plugin.start()
 
     const asked = String(fetched.mock.calls[0][0])
 
-    expect(asked).toContain('the-studio-sheet')
     expect(asked).toContain(encodeURIComponent('Teams!A:D'))
-    expect(asked).not.toContain('whatever-was-stored')
+    expect(asked).not.toContain('Z%3AZ')
 
     await plugin.stop()
   })
 
-  it('leaves the key and the interval to the operator', async () => {
+  it('is the one used when the operator has not named another', async () => {
+    const fetched = vi.fn(async () => ok([['team'], ['Boise State']]))
+
+    vi.stubGlobal('fetch', fetched)
+
+    // Blank, not absent: an operator who opened the panel to change the interval and
+    // left this alone must not pin the sheet to whatever it was that day.
+    const plugin = sheets(GoogleSheetsHandler, { id: 'the-studio-sheet', range: 'A:Z' }).create({
+      mutate: vi.fn(),
+      owner: () => true,
+      studio: 's',
+      config: { id: '', key: 'k', every: 30 },
+    })
+
+    await plugin.start()
+
+    expect(String(fetched.mock.calls[0][0])).toContain('the-studio-sheet')
+
+    await plugin.stop()
+  })
+
+  it('gives way to the one the operator named', async () => {
+    const fetched = vi.fn(async () => ok([['team'], ['Boise State']]))
+
+    vi.stubGlobal('fetch', fetched)
+
+    // The case this exists for: one layout, duplicated per setup, each pointed at
+    // its own copy from the machine running it.
+    const plugin = sheets(GoogleSheetsHandler, { id: 'the-studio-sheet', range: 'A:Z' }).create({
+      mutate: vi.fn(),
+      owner: () => true,
+      studio: 's',
+      config: { id: 'the-second-rink', key: 'k', every: 30 },
+    })
+
+    await plugin.start()
+
+    const asked = String(fetched.mock.calls[0][0])
+
+    expect(asked).toContain('the-second-rink')
+    expect(asked).not.toContain('the-studio-sheet')
+
+    await plugin.stop()
+  })
+
+  it('takes the address bar, because that is what people paste', async () => {
+    const fetched = vi.fn(async () => ok([['team'], ['Boise State']]))
+
+    vi.stubGlobal('fetch', fetched)
+
+    const plugin = sheets(GoogleSheetsHandler, { id: 'the-studio-sheet', range: 'A:Z' }).create({
+      mutate: vi.fn(),
+      owner: () => true,
+      studio: 's',
+      config: { id: 'https://docs.google.com/spreadsheets/d/1PastedFromTheBar/edit#gid=0', key: 'k', every: 30 },
+    })
+
+    await plugin.start()
+
+    expect(String(fetched.mock.calls[0][0])).toContain('1PastedFromTheBar')
+
+    await plugin.stop()
+  })
+
+  it('asks the operator for the sheet, the key and the interval -- and not the range', async () => {
     const definition = sheets(GoogleSheetsHandler, { id: 'x', range: 'y' })
     const keys = definition.config.map((field) => field.key)
 
-    // The two the studio decides are not on the panel; a range that does not match
-    // the graphics reading it is a silent fault, not a preference.
-    expect(keys).toEqual(['key', 'every'])
+    expect(keys).toEqual(['id', 'key', 'every'])
     expect(definition.config.find((field) => field.key === 'every').default).toBe(10)
+
+    // No default on the sheet field. A default would be stored the moment anything
+    // on the panel is saved, and a stored id is one that stops following the studio.
+    const id = definition.config.find((field) => field.key === 'id')
+
+    expect(id.default).toBeUndefined()
+    expect(id.placeholder).toBe('x')
   })
 })

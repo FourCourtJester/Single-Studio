@@ -36,9 +36,17 @@ export function ControlPage() {
 
   return (
     <div className="ss-control min-h-screen bg-slate-950 text-slate-100">
-      <header className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-800 bg-slate-950/90 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
+      {/*
+        One row, never two. `flex-wrap` was here and it wraps *before* it truncates:
+        a long studio name in a narrow dock took the full width, pushed the tools onto
+        a second line, and the bar grew a row. That was tolerable while the tools were
+        always visible; once they collapse it leaves an empty second row taking height
+        for nothing. Without wrapping the h1 shrinks instead -- which is what `min-w-0
+        truncate` is for -- so the name ellipses and the bar stays one row at any width.
+      */}
+      <header className="ss-control-bar sticky top-0 z-10 flex items-center gap-x-3 border-b border-slate-800 bg-slate-950/90 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
         <h1 className="min-w-0 truncate text-sm font-semibold uppercase tracking-widest text-slate-300">{studio.name}</h1>
-        <Menu className="ml-auto" />
+        <Menu className="ml-auto shrink-0" />
         <SaveButton />
       </header>
       <main className="flex flex-col gap-3 p-3 sm:gap-4 sm:p-4">
