@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { explain, keyOf, parse, same, urlFor } from '../src/sheet'
+import { explain, idFrom, keyOf, parse, same, urlFor } from '../src/sheet'
 
 describe('column names', () => {
   it('become keys somebody would type', () => {
@@ -128,6 +128,31 @@ describe('deciding whether to say anything', () => {
         }),
       ),
     ).toBe(false)
+  })
+})
+
+describe('finding the id in what somebody pasted', () => {
+  it('takes it out of the address bar, which is where the sheet actually is', () => {
+    expect(idFrom('https://docs.google.com/spreadsheets/d/1AbC_de-FGH/edit#gid=0')).toBe('1AbC_de-FGH')
+    expect(idFrom('https://docs.google.com/spreadsheets/d/1AbC_de-FGH/edit?usp=sharing')).toBe('1AbC_de-FGH')
+    expect(idFrom('https://docs.google.com/spreadsheets/d/1AbC_de-FGH')).toBe('1AbC_de-FGH')
+  })
+
+  it('leaves a bare id alone, trimmed', () => {
+    expect(idFrom('  1AbC_de-FGH  ')).toBe('1AbC_de-FGH')
+  })
+
+  it('is empty for nothing, so a blank field falls through to the studio rather than blanking it', () => {
+    expect(idFrom('')).toBe('')
+    expect(idFrom('   ')).toBe('')
+    expect(idFrom(undefined)).toBe('')
+    expect(idFrom(null)).toBe('')
+  })
+
+  it('hands back anything it does not recognise rather than guessing', () => {
+    // A typo has to reach Google, which refuses it with a message an operator can
+    // act on. Second-guessing it here turns a clear 404 into a mystery.
+    expect(idFrom('not a url and not an id')).toBe('not a url and not an id')
   })
 })
 

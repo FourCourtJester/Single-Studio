@@ -11,7 +11,7 @@ npm i @single-studio/plugin-sheets
 ```js
 import { sheets, GoogleSheetsHandler } from '@single-studio/plugin-sheets'
 
-// Which sheet, and which cells, are the *studio's* — see below.
+// The range is yours. The id is a default the operator may replace — see below.
 const SHEET = { id: '1AbC…', range: 'Standings!A1:D20' }
 
 class MyShow extends GoogleSheetsHandler {
@@ -28,14 +28,23 @@ your graphics as `teamName`.
 
 ## What the operator sets, and what you set
 
-The operator's board asks for **an API key** and **how often to read**. That is
-deliberately all of it.
+The operator's board asks for **which sheet**, **an API key** and **how often to
+read**.
 
-The **spreadsheet id and range are yours**, passed to the factory. A range is not a
-preference: your graphics have code expecting columns in an order, and a range that
-does not match does not show a different view of the same data — it shows the wrong
-column, confidently, with no error anywhere. Both are also already decided by the time
-anyone opens the panel, so offering them is offering a choice that has been made.
+The **range is yours** and cannot be overridden. A range is not a preference: your
+graphics have code expecting columns in an order, and a range that does not match does
+not show a different view of the same data — it shows the wrong column, confidently,
+with no error anywhere.
+
+The **id is a default the operator may replace**. That is a different question from
+the range, and it took a broadcaster asking to see why: the range is the _shape_ of a
+sheet, the id is _which copy of that shape_. A team running two setups off duplicates
+of one layout needs each pointed at its own, and the graphics cannot tell the
+difference — which is exactly what makes it safe where a range is not.
+
+Leaving the field blank uses the id you shipped, so changing it in a later release
+reaches everyone who never overrode it. An operator may paste the sheet's whole
+address rather than its id; that works, because it is what people actually copy.
 
 ## The key
 
