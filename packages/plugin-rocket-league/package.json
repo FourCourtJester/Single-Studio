@@ -1,6 +1,6 @@
 {
   "name": "@single-studio/plugin-rocket-league",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Rocket League for Single Studio: score, clock, goals and the stat feed, over Psyonix's own Stats API.",
   "license": "MIT",
   "author": {
@@ -34,7 +34,7 @@
     "replay": "node dev/replay.mjs"
   },
   "peerDependencies": {
-    "@single-studio/core": "^0.6.0"
+    "@single-studio/core": "^0.7.0"
   },
   "devDependencies": {
     "@single-studio/core": "workspace:*",
