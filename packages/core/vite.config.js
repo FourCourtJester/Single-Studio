@@ -44,5 +44,22 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.js'],
+    /**
+     * One library rejection, and only that one.
+     *
+     * y-indexeddb chains a `.then` onto its own open without a catch, so a database
+     * that refuses to open leaves an unhandled rejection nobody outside the library
+     * can reach. The host settles regardless -- test/persistence.test.js is the
+     * proof -- and in a browser this is a line of console noise. Vitest counts it as
+     * a failed run, so the tests that simulate a refused open need it named here.
+     * Matched on the simulated message *and* on lib0's open in the stack, so a
+     * rejection from anywhere else still fails the run.
+     */
+    onUnhandledError(error) {
+      const simulated = /Internal error opening backing store/.test(error?.message ?? '')
+      const fromOpen = /lib0[\\/].*indexeddb\.js/.test(error?.stack ?? '')
+
+      if (simulated && fromOpen) return false
+    },
   },
 })

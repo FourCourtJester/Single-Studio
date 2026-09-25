@@ -110,7 +110,7 @@ survives. **It cannot be a function**, which is why the operations below take
 | `ctx.now()`                          | The time **in the room**, not on this machine.                |
 | `ctx.<operation>(payload)`           | Any built-in below — `ctx.set(…)`, `ctx.append(…)`.           |
 | `ctx.run(name, payload)`             | Any mutation by name, your own included.                      |
-| `ctx.doc` `ctx.state` `ctx.clientId` | The Yjs document underneath, if you need it.                  |
+| `ctx.doc` `ctx.state` `ctx.clientId` | The document as this mutation sees it, if you need it.        |
 
 A mutation of your own is usually two or three built-ins under one name, so they
 are on the context rather than behind an import:
@@ -688,6 +688,18 @@ tries again, and the show never held a nameless player.
 **One button, one mutation.** If a click handler calls `mutate` twice, those are
 two changes on air and the graphics will show the gap. Make it one mutation that
 does both things.
+
+**A mutation that throws changes nothing.** It writes into a draft, and only one
+that returns has its draft written to the document. So a goal mutation with a typo
+after the score line does not put half a goal on air: the score, the replay flag
+and everything else it touched stay as they were, on every machine. The board that
+pressed the button shows which mutation failed and why, and says nothing changed.
+The one thing a draft cannot hold back is `ctx.ask()` — that frame is already on
+its socket.
+
+It is also why a mutation cannot `await`. By the time the wait is over the draft
+has been written or thrown away, so a write after it would go nowhere; it throws
+instead, rather than being lost without a word.
 
 ## Sets and maps
 
