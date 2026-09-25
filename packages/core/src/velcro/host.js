@@ -637,8 +637,19 @@ export function createVelcroHost(config = {}) {
       // frame, or a skewed operator's five-minute break is five minutes on their
       // screen and something else on air. Identical to `Date.now` when nobody is
       // the clock reference, which is the single-machine default.
+      //
+      // A mutation that throws is answered, down the port that sent it. It used to
+      // throw into the promise chain behind `started`, which in a SharedWorker is a
+      // console nobody opens: the operator pressed a button, nothing happened, and
+      // nothing said why. It changed nothing -- see "Staging" in mutations.js -- so
+      // the board can say exactly that.
       case 'mutate':
-        apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now, services)
+        try {
+          apply(doc, registry, message.name, message.payload, message.origin ?? 'local', sync.now, services)
+        } catch (error) {
+          console.error(`[velcro] "${message.name}" failed and changed nothing`, error)
+          port.postMessage({ type: 'mutate:error', name: message.name, message: String(error?.message ?? error) })
+        }
         break
 
       case 'peek':

@@ -1886,6 +1886,49 @@ await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="fee
 await control.keyboard.press('Escape')
 await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))
 
+// -- A button that fails ----------------------------------------------------
+// A studio mutation that throws after writing. None of it may reach air -- a
+// mutation happens completely or not at all -- and the board has to say which
+// button failed, because otherwise it is a button that silently stopped working.
+// Changes nothing by design, but kept late all the same.
+{
+  const scoreboard = await context.newPage()
+
+  await scoreboard.goto(`${BASE}/#/source/scoreboard`)
+  await scoreboard.waitForSelector('.home-name')
+  await scoreboard.waitForTimeout(600)
+
+  const nameBefore = (await scoreboard.locator('.home-name').innerText()).trim()
+  const fumble = control.locator('.fixture-fumble')
+  const notice = control.locator('.ss-mutation-trouble')
+
+  check((await notice.count()) === 0, 'no failure notice before anything has failed')
+
+  await fumble.click()
+
+  check(await becomes(control, () => Boolean(document.querySelector('.ss-mutation-trouble'))), 'a mutation that throws puts a notice on the board')
+  check((await notice.getAttribute('role')) === 'alert', 'as an alert, so a screen reader hears it too')
+  check((await control.locator('.ss-mutation-name').innerText()) === 'demo:fumble', 'naming the mutation that failed')
+  check(/fumbles on purpose/.test(await control.locator('.ss-mutation-reason').innerText()), 'with the reason it gave')
+
+  await scoreboard.waitForTimeout(800)
+
+  const nameAfter = (await scoreboard.locator('.home-name').innerText()).trim()
+
+  check(nameAfter === nameBefore && !/FUMBLED/.test(nameAfter), `and none of what it wrote reached air (home name still "${nameAfter}")`)
+
+  await fumble.click()
+
+  check(await becomes(control, () => /2 times/.test(document.querySelector('.ss-mutation-count')?.textContent ?? '')), 'a repeat is counted rather than stacked')
+  check((await notice.count()) === 1, 'still one notice')
+
+  await control.locator('.ss-mutation-dismiss').click()
+
+  check(await becomes(control, () => !document.querySelector('.ss-mutation-trouble')), 'dismissing it puts it away')
+
+  await scoreboard.close()
+}
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
