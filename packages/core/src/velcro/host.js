@@ -499,16 +499,55 @@ export function createVelcroHost(config = {}) {
 
   // -- lifecycle ----------------------------------------------------------
 
-  const started = Promise.resolve()
-    .then(() => {
-      if (!persist) return null
+  /**
+   * Start saving the document, and settle either way.
+   *
+   * y-indexeddb's `whenSynced` only ever resolves. A database that will not open --
+   * Chrome's "Internal error opening backing store" on a damaged profile, or storage
+   * blocked by policy -- rejects the open underneath it and leaves `whenSynced`
+   * pending forever. Everything waits on `started`, so that was a studio rendering
+   * nothing on any source with no error anywhere, and the in-memory fallback below
+   * could never run. Raced against the open itself so a refusal is an answer.
+   *
+   * `_db` is the library's open promise. Underscored, so pinned by a test: if an
+   * upgrade renames it, the race quietly falls back to the old hang, and that test is
+   * what says so.
+   */
+  function openPersistence() {
+    const opening = new IndexeddbPersistence(name, doc)
 
-      persistence = new IndexeddbPersistence(name, doc)
-      return persistence.whenSynced
-    })
-    .then(() => {
+    persistence = opening
+
+    return Promise.race([opening.whenSynced, opening._db.then(() => new Promise(() => {}))])
+  }
+
+  /** Stop trying to save, after an open that failed. Unhooks it from the document. */
+  function abandonPersistence() {
+    const failed = persistence
+
+    persistence = null
+    failed?.destroy().catch(() => {})
+  }
+
+  const started = Promise.resolve()
+    .then(() => (persist ? openPersistence() : null))
+    .then(
+      () => false,
+      (err) => {
+        // Persistence failing must not take the show down: an in-memory doc still
+        // drives graphics correctly, it just will not survive a reload. Nor must it
+        // take the plugins and the room with it -- those used to be skipped here,
+        // and joining the room is the one thing that can hand an in-memory show its
+        // state back.
+        console.error('[velcro] persistence unavailable, continuing in memory', err)
+        abandonPersistence()
+
+        return true
+      },
+    )
+    .then(async (degraded) => {
       ready = true
-      status.postMessage({ type: READY, name })
+      status.postMessage(degraded ? { type: READY, name, degraded } : { type: READY, name })
 
       // Only after persistence has replayed. A provider that starts syncing first
       // either pushes a half-empty document at the room or has the replay land on
@@ -521,14 +560,21 @@ export function createVelcroHost(config = {}) {
       //
       // Awaited, because reading each one's stored config is a trip to IndexedDB.
       // Without this `onReady` runs against a plugin map that is still filling.
-      return startPlugins().then(() => onReady?.({ doc, registry, mutate, owns, sync, plugins }))
-    })
-    .catch((err) => {
-      // Persistence failing must not take the show down: an in-memory doc still
-      // drives graphics correctly, it just will not survive a reload.
-      console.error('[velcro] persistence unavailable, continuing in memory', err)
-      ready = true
-      status.postMessage({ type: READY, name, degraded: true })
+      try {
+        await startPlugins()
+      } catch (error) {
+        console.error('[velcro] plugins could not be started', error)
+      }
+
+      // Caught on its own. This is the studio's code, and one `.catch` over the
+      // whole chain used to report its mistake as "persistence unavailable" and
+      // announce a second, degraded `ready` -- sending whoever read the console
+      // after the wrong thing.
+      try {
+        await onReady?.({ doc, registry, mutate, owns, sync, plugins })
+      } catch (error) {
+        console.error('[velcro] the studio’s onReady threw', error)
+      }
     })
 
   /**
@@ -628,6 +674,14 @@ export function createVelcroHost(config = {}) {
        * against an open connection blocks rather than failing -- so a page trying
        * to do this itself would appear to do nothing and then do it at some
        * unrelated later moment.
+       *
+       * Then saving starts again, into a fresh store. `clearData` unhooks the
+       * persistence from the document for good, and this worker does not go away
+       * with the page: in OBS the browser sources hold it open through the reload.
+       * Without the reopen, everything done after a reset lived in memory only and
+       * was gone at the next restart -- measured: a value set after a wipe read back
+       * `undefined` from the database. The delete is queued ahead of the open by
+       * IndexedDB itself, so the new store cannot open onto the old one.
        */
       case 'wipe':
         sync
@@ -636,6 +690,14 @@ export function createVelcroHost(config = {}) {
             apply(doc, registry, 'clear', {}, 'local', sync.now, services)
 
             return persistence?.clearData()
+          })
+          .then(() => {
+            if (!persistence) return null
+
+            return openPersistence().catch((error) => {
+              console.error('[velcro] could not start saving again after a wipe', error)
+              abandonPersistence()
+            })
           })
           .catch((error) => {
             // Reported rather than thrown: the page still has storage to clear and a
