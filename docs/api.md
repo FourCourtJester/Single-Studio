@@ -712,6 +712,11 @@ One value on air, as text. This is the component most graphics are mostly made o
 <Variable name="lowerthird.headline" fallback="" />
 ```
 
+```jsx
+// Count from the old total to the new one rather than swapping it
+<Variable name="donations.total" fallback="0" transition="number ease-out" />
+```
+
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
 | `as` | `string` |  | The element to render. Defaults to `"span"`, so a value can sit inside a sentence. |
@@ -719,7 +724,7 @@ One value on air, as text. This is the component most graphics are mostly made o
 | `fallback` | `string` |  | Shown when the value is empty. Defaults to `""`. |
 | `fit` | `boolean \| number` |  | Shrink the text to fit its box. A number caps how far. |
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
-| `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. See [the transitions guide](getting-started.md#transitions). |
+| `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. `"number"` counts from the old value to the new one instead. See [the transitions guide](getting-started.md#transitions). |
 
 <a id="source-image"></a>
 

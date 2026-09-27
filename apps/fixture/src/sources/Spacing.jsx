@@ -3,7 +3,7 @@
 // children mounted and hides them, rather than removing them and collapsing.
 //
 // Also carries the same value twice, cut and faded, to check the variant reaches
-// computed style.
+// computed style, and a number that counts.
 import { Scene, Toggle, Variable } from '@single-studio/core/source'
 
 export default function Probe() {
@@ -26,6 +26,10 @@ export default function Probe() {
       <p className="probe-sentence">
         Playing <Variable name="probe.text" fallback="A" className="probe-inline" /> tonight
       </p>
+
+      {/* The home score again, counting rather than swapping. Driven from the board's
+          score field, because a count needs a big jump and a stepper takes one typed. */}
+      <Variable name="home.score" fallback="0" transition="number" className="probe-count" />
     </Scene>
   )
 }

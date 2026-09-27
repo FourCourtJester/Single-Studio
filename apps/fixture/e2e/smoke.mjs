@@ -1929,6 +1929,89 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await scoreboard.close()
 }
 
+// -- Counting to a new number -------------------------------------------------
+// `transition="number"` on the probe page's copy of the home score. Every frame is
+// recorded from inside the page, from before the first paint, so a count that
+// should not have happened cannot hide between two samples.
+{
+  const score = control.locator('.ss-stepper input[aria-label="Home score"]')
+  const setScore = async (value) => {
+    await score.fill(String(value))
+    await score.press('Enter')
+  }
+
+  await setScore(1000)
+  await becomes(control, () => document.querySelector('.ss-stepper input[aria-label="Home score"]')?.value === '1000')
+
+  const counter = await context.newPage()
+
+  await counter.addInitScript(() => {
+    window.__frames = []
+
+    const record = () => {
+      const text = document.querySelector('.probe-count')?.textContent
+
+      if (text) window.__frames.push(text)
+      requestAnimationFrame(record)
+    }
+
+    requestAnimationFrame(record)
+  })
+  await counter.goto(`${BASE}/#/source/spacing`)
+  await counter.waitForSelector('.probe-count .ss-count')
+  await counter.waitForTimeout(800)
+
+  const frames = () => counter.evaluate(() => window.__frames.map(Number))
+  const restart = () => counter.evaluate(() => (window.__frames = []))
+
+  const arrival = await frames()
+
+  check(arrival.length > 0 && arrival.every((value) => value === 1000), `a counting number does not count on arrival (saw ${[...new Set(arrival)].join(', ')})`)
+
+  const width = await counter.locator('.probe-count').evaluate((el) => getComputedStyle(el).fontVariantNumeric)
+
+  check(width === 'tabular-nums', 'and its figures are tabular, so it does not shimmer sideways')
+
+  await restart()
+  await setScore(1500)
+  await counter.waitForTimeout(1800)
+
+  const up = await frames()
+  const between = new Set(up.filter((value) => value > 1000 && value < 1500))
+
+  check(between.size >= 5, `a change counts through the numbers between (${between.size} in between)`)
+  check(
+    up.every((value, i) => i === 0 || value >= up[i - 1]),
+    'in order, never backwards',
+  )
+  check(up.at(-1) === 1500 && Math.max(...up) === 1500, `and lands exactly on the new value (ended on ${up.at(-1)})`)
+
+  // Mid-count, a new target. The count has to turn around where it is, not jump
+  // back to where it started or to where it was heading.
+  await restart()
+  await setScore(2000)
+  await counter.waitForTimeout(300)
+  await setScore(1200)
+  await counter.waitForTimeout(1800)
+
+  const turn = await frames()
+  const peak = Math.max(...turn)
+  const after = turn.slice(turn.indexOf(peak))
+
+  check(peak > 1500 && peak < 2000, `a change mid-count turns around where it is (turned at ${peak})`)
+  check(
+    after.every((value, i) => i === 0 || value <= after[i - 1]),
+    'and heads straight for the new value from there',
+  )
+  // Downhill all the way is not enough on its own: a count that restarted from 1500
+  // is downhill too, it just gets there by a jump. The first frame after turning
+  // has to be nearer where it turned than where the last count began.
+  check(after[1] > (peak + 1500) / 2, `without jumping to get there (${peak} then ${after[1]})`)
+  check(turn.at(-1) === 1200, `ending on it (${turn.at(-1)})`)
+
+  await counter.close()
+}
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
