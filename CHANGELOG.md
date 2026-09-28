@@ -4,6 +4,54 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.8.0
+
+A minor rather than a patch, because two things a studio could have relied on have
+changed; they are the first two under **Changed**. Neither is used anywhere in this
+repository, the templates or the demo, but a studio of your own may differ, so look
+before moving a pin from `^0.7.0`.
+
+### Changed
+
+- **A mutation that awaits and then writes now throws.** It never worked properly:
+  the write landed outside the mutation's transaction. Now it says so instead of
+  being lost. Do the waiting in a plugin handler or `onReady` and pass the result
+  in — see "Nothing but the store" in [data.md](docs/data.md).
+- **`ctx.doc` is the mutation's view of the document, not the Y.Doc itself.** It
+  answers `getMap` for the document's three maps and knows the client id. A studio
+  calling other Yjs APIs on it will break.
+- **A mutation happens completely or not at all.** One that throws partway used to
+  put everything it had written so far on air, on every machine in the room, because
+  Yjs has no rollback. Mutations now write into a draft that is committed only if they
+  return. The built-ins, the counter code and studio code using `ctx.state` run
+  against it unchanged. `ctx.ask()` is the exception: a plugin command is already on
+  its socket.
+
+### Added
+
+- **Counting numbers: `transition="number"`.** A `Variable` counts from the old value
+  to the new one instead of swapping — a donation total, a points table. Nothing
+  counts when a source loads, a change mid-count carries on from the number on
+  screen, and the count keeps the value's own format, so `$1,000 raised` counts
+  through `$1,237 raised`. Easings apply; `--ss-count-duration` sets the length
+  (default 1.2s). See Transitions → Counting in the getting-started guide.
+- **The board says when a button did nothing.** A mutation that fails puts a notice
+  on the board that pressed it, naming the mutation and its reason and confirming
+  nothing changed. Only that board is told. `useMutationFailure()` and
+  `MutationTrouble` are exported for boards built without `ControlPage`.
+
+### Fixed
+
+- **"Reset this machine" no longer stops the show being saved.** In OBS the browser
+  sources keep the worker running through the reset, and the old store was never
+  replaced, so everything done afterwards was gone at the next restart.
+- **A studio whose storage will not open now comes up.** A damaged browser profile,
+  or storage blocked by policy, used to leave every source blank with no error. The
+  show now runs from memory, says so, and still starts its plugins and joins its
+  room, which is what can hand it its state back.
+- **A studio's own `onReady` throwing is reported as the studio's error**, not as
+  storage failing.
+
 ## 0.7.0
 
 ### Added
