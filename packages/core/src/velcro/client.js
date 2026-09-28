@@ -172,6 +172,24 @@ export class VelcroClient {
     return this.#watch('presence', listener)
   }
 
+  #failures = new Set()
+
+  /**
+   * Hear about a mutation from this page that failed, and so changed nothing.
+   *
+   * Only this page's own: the host answers down the port that asked, because the
+   * board whose button it was is the one that owes somebody an explanation. Five
+   * boards in a room each shouting about one operator's typo would be noise.
+   *
+   * @param {(failure: { name: string, message: string }) => void} listener
+   * @returns {() => void} stop listening
+   */
+  onMutationError(listener) {
+    this.#failures.add(listener)
+
+    return () => this.#failures.delete(listener)
+  }
+
   /** Tell the room about this machine. Merged, so callers can set one field. */
   present(state) {
     this.ready().then(() => this.#port.postMessage({ type: 'presence', state }))
@@ -226,6 +244,17 @@ export class VelcroClient {
 
     if (data?.type === 'presence') {
       this.#announce('presence', data.peers ?? [], data.seq)
+      return
+    }
+
+    if (data?.type === 'mutate:error') {
+      const failure = { name: data.name, message: data.message }
+
+      // With nobody listening -- a graphic, or a board built without the notice --
+      // the page's own console is still nearer than the worker's.
+      if (!this.#failures.size) console.error(`[velcro] "${failure.name}" failed and changed nothing: ${failure.message}`)
+
+      for (const listener of this.#failures) listener(failure)
       return
     }
 

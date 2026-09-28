@@ -625,6 +625,7 @@ or inspect any of them.
 | `flip`        | Rotates in about its top edge                              |
 | `wipe`        | Reveals left to right, clipped rather than faded           |
 | `bounce`      | Drops in and settles twice; dips and lifts out (keyframes) |
+| `number`      | Counts from the old number to the new one. `Variable` only |
 
 | Modifier      | What it does                                      |
 | ------------- | ------------------------------------------------- |
@@ -717,6 +718,33 @@ there. That split is why `stinger ease-back` works without you writing an easing
 Pick per element rather than per scene. In the demo's scoreboard a name flips over,
 a score slides up and overshoots, and the badge plainly fades — because a logo
 swapping with a flourish reads as a mistake.
+
+### Counting
+
+`number` is for totals that change by a lot at once — money raised, points, a viewer
+count. Instead of swapping, the value counts to the new one:
+
+```jsx
+<Variable name="donations.total" fallback="0" transition="number" />
+<Variable name="raised" transition="number ease-back" style={{ '--ss-count-duration': '2s' }} />
+```
+
+- **Only changes count.** The first value after a source loads is shown as it is,
+  so a scene switch or a reload does not count up from zero on air.
+- **It counts in the value's own shape.** `$1,000 raised` counts to `$1,500 raised`
+  through `$1,237 raised`: the same words either side, the same decimals, commas if
+  the value has them. A change that alters the words (`1st` to `2nd`), or a value
+  that is not a number, is shown straight away instead.
+- **A change mid-count carries on from what is on screen**, rather than jumping back.
+- **Easings apply.** The default slows as it lands; `ease-back` overshoots and settles
+  back onto the number; `ease-linear` counts evenly.
+- **It replaces the motion variants.** There is no swap for a slide or a flip to
+  animate, so `number slide-up` counts and ignores the slide.
+- `--ss-count-duration` sets how long a count takes (default `1.2s`). The figures are
+  tabular, so the number does not shimmer sideways as its digits change.
+
+A step of one looks like any other change — a score going from 3 to 4 has nothing
+in between to show.
 
 ## Sizing for the dock
 

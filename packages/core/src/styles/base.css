@@ -264,6 +264,30 @@
   }
 
   /*
+   * A number that counts to its new value rather than swapping.
+   *
+   * The counting is done in script -- a stylesheet cannot write text -- but the
+   * timing and the curve still live here, read back off the element exactly as the
+   * other variants' are. Longer than a swap, because a count the eye cannot follow
+   * is a flicker. Ease-out by default so it slows as it lands; any easing class
+   * below overrides it, and `ss-ease-back` overshoots and settles.
+   *
+   * Tabular figures, or the number shimmers sideways as it counts: in most faces a
+   * 1 is narrower than a 0, so every frame is a different width.
+   */
+  .ss-number {
+    --ss-count-duration: 1.2s;
+    --ss-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Only there to be read for the two properties above. See Variable. */
+  .ss-count {
+    display: contents;
+  }
+
+  /*
    * Easings, as classes, because a curve is the difference between a graphic that
    * looks mechanical and one that looks produced -- and it is the cheapest change
    * in this file. ss-ease-back overshoots and settles, which is what reads as

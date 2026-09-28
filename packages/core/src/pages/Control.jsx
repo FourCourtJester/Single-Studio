@@ -5,6 +5,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { useStudio } from '../studio/context'
 import { SaveButton } from '../components/control/SaveButton'
 import { Menu } from '../components/control/Menu'
+import { MutationTrouble } from '../components/control/MutationTrouble'
 
 /**
  * The operator's board. Designed to run as an OBS custom browser dock, which is
@@ -50,6 +51,11 @@ export function ControlPage() {
         <SaveButton />
       </header>
       <main className="flex flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+        {/*
+          Above the studio's own panels and outside their boundary: the panel whose
+          button failed may be the one that has crashed, and this has to survive it.
+        */}
+        <MutationTrouble />
         {/*
           The board is not on air, so a crash here is shown rather than swallowed.
           An operator looking at a panel that silently stopped existing cannot tell

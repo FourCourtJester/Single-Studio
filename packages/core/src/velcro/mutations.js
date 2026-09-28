@@ -13,8 +13,8 @@ import { isNullable, isUnder, normalize, SEPARATOR, toEntries, toPaths } from '.
 // extensibility story: a studio is not special, it is just more mutations.
 //
 // Signature: (ctx, payload) => void
-//   ctx.doc          the Y.Doc
-//   ctx.state        flat Y.Map of plain values
+//   ctx.doc          the document as this mutation sees it -- see "Staging" below
+//   ctx.state        flat map of plain values, staged the same way
 //   ctx.clientId     this host's Yjs clientID -- the counter's writer identity
 //   ctx.read(path)      current value at a path
 //   ctx.write(pairs)    apply [path, value] pairs, pruning empty values
@@ -22,6 +22,144 @@ import { isNullable, isUnder, normalize, SEPARATOR, toEntries, toPaths } from '.
 //   ctx.collect(prefix) every member of a collection, keyed by member
 //   ctx.list(prefix)    the same, as a sorted array
 //   ctx.now()           what time it is *in the room* -- see below
+//
+// Staging
+//
+// A mutation either happens completely or not at all. Yjs has no rollback: a
+// transaction that throws halfway still closes, and closing is what sends its
+// changes to every page and every peer. So a studio mutation that wrote the score
+// and then threw before writing the period used to put half a goal on air, in
+// every room it was part of, and the error went to a worker console nobody reads.
+// Undoing it afterwards would not have helped -- the half-state has already left
+// by then, and an undo is a second update chasing the first.
+//
+// So a mutation writes into a draft instead. The draft poses as the document's
+// three maps -- reads fall through to the real ones, writes stay in the draft --
+// which is why the built-ins, the counter code and `Doc.*` run against it
+// unchanged. Only a mutation that returns gets its draft replayed into the
+// document, in one transaction. One that throws leaves the document exactly as it
+// found it.
+//
+// Counters survive this without an operation log. A delta key belongs to one
+// client and only that client ever writes it, so the draft's final value for it
+// *is* the sum of its adds; the other clients' keys are never touched, and
+// concurrent increments still merge.
+//
+// What the draft cannot hold back is a plugin command sent with `ctx.ask`: that
+// is a frame already on a socket. A mutation that asks and then throws has still
+// asked.
+
+/** A deleted key, in a draft. Not `undefined`, because a map can hold no value and still hold the key. */
+const GONE = Symbol('gone')
+
+/**
+ * One Y.Map, as a draft: reads see the draft's writes over the map's contents,
+ * and nothing reaches the map until `commit`.
+ *
+ * Shaped like the parts of Y.Map anything here uses, so code written against the
+ * real one -- including a studio's, reaching for `ctx.state` -- keeps working.
+ */
+function draftOf(map, isOpen) {
+  const pending = new Map()
+
+  const has = (key) => (pending.has(key) ? pending.get(key) !== GONE : map.has(key))
+
+  const get = (key) => {
+    if (!pending.has(key)) return map.get(key)
+
+    const value = pending.get(key)
+
+    return value === GONE ? undefined : value
+  }
+
+  const keys = () => {
+    const out = new Set()
+
+    for (const key of map.keys()) if (!pending.has(key)) out.add(key)
+    for (const [key, value] of pending) if (value !== GONE) out.add(key)
+
+    return out
+  }
+
+  /**
+   * A write after the mutation returned is one that would be silently dropped --
+   * the draft has already been replayed or thrown away. That only happens to a
+   * mutation that awaits something, and a mutation must not: it runs as one step.
+   * Said loudly, because dropping it quietly is a score that never changes.
+   */
+  const writable = (key) => {
+    if (!isOpen()) throw new Error(`A mutation wrote "${key}" after it had returned. Mutations run in one step and cannot await; do the waiting in a plugin handler and mutate with the answer.`)
+  }
+
+  return {
+    has,
+    get,
+    set(key, value) {
+      writable(key)
+      pending.set(key, value)
+
+      return value
+    },
+    delete(key) {
+      writable(key)
+      pending.set(key, GONE)
+    },
+    keys: () => keys().values(),
+    values: () => [...keys()].map(get).values(),
+    entries: () => [...keys()].map((key) => [key, get(key)]).values(),
+    forEach(callback) {
+      for (const key of keys()) callback(get(key), key, this)
+    },
+    get size() {
+      return keys().size
+    },
+    [Symbol.iterator]() {
+      return this.entries()
+    },
+    /** Replay into the real map. Called inside the one transaction. */
+    commit() {
+      for (const [key, value] of pending) {
+        if (value !== GONE) map.set(key, value)
+        else if (map.has(key)) map.delete(key)
+      }
+    },
+  }
+}
+
+/**
+ * The whole document, as a draft. `view` stands in for the Y.Doc anywhere a
+ * mutation might be handed one: it answers `getMap` for the three maps the
+ * document is made of, and knows the real document's client id.
+ */
+function draftDoc(doc) {
+  let open = true
+  const isOpen = () => open
+
+  const maps = {
+    [Doc.STATE]: draftOf(Doc.stateOf(doc), isOpen),
+    [Doc.BASES]: draftOf(Doc.basesOf(doc), isOpen),
+    [Doc.DELTAS]: draftOf(Doc.deltasOf(doc), isOpen),
+  }
+
+  const view = {
+    clientID: doc.clientID,
+    getMap(name) {
+      if (!Object.hasOwn(maps, name)) throw new Error(`A mutation asked for a map called "${name}"; the document holds only ${Object.keys(maps).join(', ')}.`)
+
+      return maps[name]
+    },
+  }
+
+  return {
+    view,
+    close() {
+      open = false
+    },
+    commit() {
+      for (const map of Object.values(maps)) map.commit()
+    },
+  }
+}
 
 /** Write a plain value, deleting the key when the value means "nothing". */
 function writeOne(ctx, path, value) {
@@ -517,19 +655,28 @@ export function createContext(doc, now = Date.now, registry = mutations, service
 }
 
 /**
- * Apply a named mutation inside a single Yjs transaction, so observers see one
- * atomic change and a multi-path write never publishes a half-state.
+ * Apply a named mutation completely or not at all.
+ *
+ * It runs against a draft, and only a mutation that returns has its draft written
+ * to the document -- in one transaction, so observers see one change and a
+ * multi-path write never publishes a half-state. One that throws writes nothing,
+ * and the error goes back to whoever asked. See "Staging" above.
  */
 export function apply(doc, registry, name, payload, origin = 'local', now = Date.now, services = {}) {
   const mutation = registry[name]
 
   if (!mutation) throw new Error(`Unknown Velcro mutation: ${name}`)
 
+  const draft = draftDoc(doc)
   let result
 
-  doc.transact(() => {
-    result = mutation(createContext(doc, now, registry, services), payload)
-  }, origin)
+  try {
+    result = mutation(createContext(draft.view, now, registry, services), payload)
+  } finally {
+    draft.close()
+  }
+
+  doc.transact(() => draft.commit(), origin)
 
   return result
 }

@@ -32,4 +32,17 @@ export const mutations = {
       ['variables.period', order.at(Math.min(at + 1, order.length - 1)) ?? order.at(0)],
     ])
   },
+
+  /**
+   * Fails on purpose, after writing. What the e2e suite presses to prove a
+   * mutation that throws puts none of itself on air, and that the board says so.
+   * The name is written first so that, if staging ever broke, the scoreboard would
+   * show it.
+   */
+  'demo:fumble'(ctx) {
+    ctx.write([['variables.home.name', 'FUMBLED']])
+    ctx.add('variables.home.score', 100)
+
+    throw new Error('the fixture fumbles on purpose')
+  },
 }

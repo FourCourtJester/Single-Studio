@@ -66,6 +66,13 @@ export default function Control() {
         >
           Next game (studio mutation)
         </button>
+        <button
+          type="button"
+          onClick={() => mutate('demo:fumble')}
+          className="fixture-fumble rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500"
+        >
+          Fumble (fails on purpose)
+        </button>
         <Break />
         <ImageSelect name="map" label="Map" options={MAPS} />
         <Break />
