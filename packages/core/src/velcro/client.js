@@ -349,6 +349,17 @@ export class VelcroClient {
     return this.#request('plugins:configure', { plugin, values })
   }
 
+  /**
+   * Press one of a plugin's buttons.
+   *
+   * @param {string} plugin
+   * @param {string} action
+   * @returns {Promise<{ ok: boolean, reason?: string }>}
+   */
+  actPlugin(plugin, action) {
+    return this.#request('plugins:act', { plugin, action })
+  }
+
   /** Whole-document read, for debugging and the dev harness. */
   snapshot() {
     return this.#request('snapshot')

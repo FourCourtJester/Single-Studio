@@ -32,6 +32,8 @@ import { Emitter } from '../toolkits/emitter'
  * @property {(plugin: string, command: string, data?: object) => boolean} [ask] Ask another plugin to do something.
  * @property {(plugin: string, request: string, data?: object) => Promise<unknown>} [look] Ask another plugin, and wait.
  * @property {(plugin: string) => boolean} [running] Whether another plugin is running here.
+ * @property {(patch: Record<string, unknown>, options?: { restart?: boolean }) => Promise<unknown>} [save]
+ *   Store values into this plugin's own config. See "A plugin keeping its own settings" below.
  */
 
 /**
@@ -42,6 +44,29 @@ import { Emitter } from '../toolkits/emitter'
  * @property {() => Promise<void> | void} [stop]
  * @property {() => Promise<void> | void} [recheck] Re-answer "do I own this?" -- called on every sync status change.
  * @property {string} [status]
+ * @property {string | null} [problem] Why it is not connected, in a sentence.
+ * @property {PluginNotice | null} [notice] Something the operator needs to read or do right now.
+ * @property {string[]} [offers] Which declared actions to show at the moment. All of them when absent.
+ * @property {(action: string) => Promise<unknown> | unknown} [act] Run one of the declared actions.
+ */
+
+/**
+ * A line on the plugin's panel that the plugin keeps up to date.
+ *
+ * The difference from `problem` is who has to move. A problem is the plugin failing
+ * and explaining why; a notice is the plugin waiting on the operator, or telling them
+ * something they should know that is not a fault -- "enter this code at
+ * twitch.tv/activate", "signed in as somebody". Read afresh while the panel is open,
+ * so it can change under them.
+ *
+ * Data, not markup, for the reason help blocks are: it crosses `postMessage` from a
+ * dependency, and the board renders it as elements.
+ *
+ * @typedef {object} PluginNotice
+ * @property {string} text The sentence.
+ * @property {string} [code] Something to type somewhere else. Shown large, and selectable.
+ * @property {string} [href] Where to go. Rendered as a link.
+ * @property {string} [label] The link's text. Falls back to the href.
  */
 
 const TAG = Symbol.for('single-studio.plugin')
@@ -194,6 +219,20 @@ const HELP_BLOCKS = new Set(['text', 'steps', 'code', 'link', 'note'])
  */
 
 /**
+ * A button on the plugin's panel.
+ *
+ * For what a form cannot say: signing in, signing out, anything that is a thing to
+ * do rather than a value to set. Declared here so the board knows its label without
+ * asking the plugin, and run by the plugin's own `act` so the board knows nothing
+ * about what it does. The runtime's `offers` decides which are shown at any moment
+ * -- "Sign in" and "Sign out" are never both right.
+ *
+ * @typedef {object} PluginAction
+ * @property {string} key What `act` is called with.
+ * @property {string} label What the button says.
+ */
+
+/**
  * @typedef {object} PluginField
  * @property {string} key
  * @property {string} label What the operator reads.
@@ -220,6 +259,14 @@ const HELP_BLOCKS = new Set(['text', 'steps', 'code', 'link', 'note'])
  * export and are cleared by "reset this machine". They are **not** replicated: a
  * port is a fact about one computer.
  *
+ * **A plugin keeping its own settings.** Some values are not the operator's to type:
+ * a token a sign-in handed back, or the new one a refresh replaced it with. The
+ * context's `save(patch)` merges those into the same stored config and, by default,
+ * restarts the plugin on the result -- the path a Save from the panel takes, so a
+ * plugin that just signed in comes back connected. `{ restart: false }` only stores,
+ * for a value the running plugin already has in hand. Stored where the operator's
+ * values are, so it is per machine, never replicated, and cleared by a reset.
+ *
  * @param {object} definition
  * `help` is what an operator reads when they open the plugin and do not know what
  * any of the fields mean. A plugin author knows that "Tools -> WebSocket Server
@@ -233,9 +280,10 @@ const HELP_BLOCKS = new Set(['text', 'steps', 'code', 'link', 'note'])
  * @param {string} [definition.summary] One line, under the name, always visible.
  * @param {HelpBlock[]} [definition.help] Setup instructions, shown on request.
  * @param {PluginField[]} [definition.config] Fields the operator can set.
+ * @param {PluginAction[]} [definition.actions] Buttons on the panel, run by the runtime's `act`.
  * @param {(context: PluginContext) => PluginRuntime} definition.create
  */
-export function definePlugin({ name, label, summary, help = [], config = [], create }) {
+export function definePlugin({ name, label, summary, help = [], config = [], actions = [], create }) {
   if (!name || typeof name !== 'string') throw new TypeError('definePlugin needs a `name`')
   if (typeof create !== 'function') throw new TypeError(`plugin "${name}" needs a \`create\` function`)
   if (!Array.isArray(config)) throw new TypeError(`plugin "${name}": \`config\` must be an array of fields`)
@@ -255,7 +303,12 @@ export function definePlugin({ name, label, summary, help = [], config = [], cre
     }
   }
 
-  return { [TAG]: true, name, label: label ?? name, summary: summary ?? '', help, config, create }
+  if (!Array.isArray(actions)) throw new TypeError(`plugin "${name}": \`actions\` must be an array`)
+  for (const action of actions) {
+    if (!action?.key || !action?.label) throw new TypeError(`plugin "${name}": every action needs a \`key\` and a \`label\``)
+  }
+
+  return { [TAG]: true, name, label: label ?? name, summary: summary ?? '', help, config, actions, create }
 }
 
 /**

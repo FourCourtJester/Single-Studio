@@ -17,11 +17,54 @@ class Feed extends PluginBase {
 
   #tick = 0
 
-  constructor({ config, owner }) {
+  constructor({ config, owner, save }) {
     super('feed')
 
     this.config = config
     this.owner = owner
+    this.save = save
+  }
+
+  #paused = false
+
+  /**
+   * The buttons, for the panel's own tests: pause and resume, never both.
+   *
+   * A real plugin's actions are signing in and out; this one's are chosen so the
+   * suite can press one, see the other replace it, and see the notice change.
+   */
+  get offers() {
+    return this.#paused ? ['resume'] : ['pause']
+  }
+
+  /**
+   * The count, on the panel. It moves twice a second at the default rate, which is
+   * what lets the suite prove an open panel keeps reading rather than showing what
+   * was true when it opened.
+   */
+  get notice() {
+    return this.#paused ? { text: `Paused from the panel at ${this.#tick} ticks.` } : { text: `${this.#tick} ticks so far.` }
+  }
+
+  act(key) {
+    if (key === 'pause') {
+      this.#paused = true
+      clearInterval(this.#timer)
+      this.#timer = null
+
+      // Stored, not needed: it changes this plugin's saved values while the panel
+      // is open, which is what a sign-in finishing does. The suite types into a
+      // field first and checks the typing survives the values changing under it.
+      return this.save?.({ pausedAt: this.#tick }, { restart: false })
+    }
+
+    if (key === 'resume') {
+      this.#paused = false
+
+      return this.recheck()
+    }
+
+    throw new Error(`The demo feed has no action "${key}"`)
   }
 
   start() {
@@ -43,7 +86,7 @@ class Feed extends PluginBase {
       return
     }
 
-    if (this.#timer) return
+    if (this.#timer || this.#paused) return
 
     this.status = 'connected'
     this.#timer = setInterval(
@@ -78,6 +121,10 @@ export const feed = (Handler = FeedHandler) =>
       { type: 'text', text: 'This one talks to nothing. It exists so the wiring can be tested without a game running.' },
       { type: 'steps', items: ['Change the name or the rate', 'Press Save and reconnect', 'Watch the count on the Match graphic follow'] },
       { type: 'note', text: 'A rate of zero is refused, because an interval that never fires looks identical to a plugin that is running fine.' },
+    ],
+    actions: [
+      { key: 'pause', label: 'Pause' },
+      { key: 'resume', label: 'Resume' },
     ],
     config: [
       { key: 'label', label: 'What to call it', default: 'Feed', help: 'Written to the scene beside the count.' },

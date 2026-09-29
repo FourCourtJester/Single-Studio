@@ -2012,6 +2012,65 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await counter.close()
 }
 
+// -- Buttons on a plugin's panel ---------------------------------------------
+// A plugin can declare actions and keep a notice current -- what Sign in with Twitch
+// is built on. The fixture's feed offers Pause or Resume and reports its tick count,
+// so this presses one, watches it be replaced by the other, and watches the notice
+// move while nobody touches anything. Leaves the feed running, as it found it.
+{
+  await openMenu()
+  await control.locator('.ss-menu-plugins').click()
+  await becomes(control, () => Boolean(document.querySelector('.ss-plugins-dialog[open] .ss-plugin[data-plugin="feed"]')))
+
+  const feedRow = control.locator('.ss-plugin[data-plugin="feed"]')
+  const noticeText = () => feedRow.locator('.ss-plugin-notice-text').innerText()
+
+  check(await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')), 'a plugin’s notice is on its row, even folded')
+
+  const before = await noticeText()
+
+  await control.waitForTimeout(2200)
+
+  const after = await noticeText()
+
+  check(before !== after, `and an open panel keeps reading it, rather than showing what was true when it opened ("${before}" then "${after}")`)
+
+  await feedRow.locator('.ss-plugin-toggle').click()
+
+  check((await feedRow.locator('.ss-plugin-action').count()) === 1, 'only the buttons the plugin offers right now are shown')
+  check((await feedRow.locator('.ss-plugin-action').innerText()) === 'Pause', 'which here is Pause, not Resume')
+
+  // The refresh must not undo an operator's typing. It used to copy the stored
+  // values into the form whenever they arrived, which with a read every second
+  // would wipe a half-typed field once a second.
+  const label = feedRow.locator('input[type="text"]').first()
+  const typed = 'Half typed'
+
+  await label.fill(typed)
+  await control.waitForTimeout(2200)
+  check((await label.inputValue()) === typed, 'a field being typed in survives the panel re-reading the plugin')
+
+  await feedRow.locator('.ss-plugin-action[data-action="pause"]').click()
+
+  check(
+    await becomes(control, () => document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-action')?.dataset.action === 'resume'),
+    'pressing Pause replaces it with Resume',
+  )
+  check(/Paused from the panel/.test(await noticeText()), 'and the notice says what happened')
+
+  // Pausing saved a value into the plugin's own settings, so the stored values the
+  // panel reads have changed while the label field still holds half a word. A
+  // sign-in finishing while somebody types a channel name is the same moment.
+  await control.waitForTimeout(1500)
+  check((await label.inputValue()) === typed, 'and the half-typed field survives the plugin saving its own settings underneath it')
+
+  await feedRow.locator('.ss-plugin-action[data-action="resume"]').click()
+  check(await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')), 'and Resume puts it back')
+
+  await control.keyboard.press('Escape')
+  await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))
+}
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is

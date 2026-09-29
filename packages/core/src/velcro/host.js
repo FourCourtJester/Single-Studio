@@ -339,7 +339,7 @@ export function createVelcroHost(config = {}) {
    */
   async function build(definition, { awaitStart = false } = {}) {
     const config = await configFor(definition)
-    const runtime = definition.create({ ...pluginContext, config })
+    const runtime = definition.create({ ...pluginContext, config, save: (patch, options) => savePlugin(definition.name, patch, options) })
 
     plugins.set(definition.name, runtime)
     troubles.delete(definition.name)
@@ -444,10 +444,94 @@ export function createVelcroHost(config = {}) {
         status: plugins.get(pluginName)?.status ?? 'idle',
         // The sentence under the status light. Null on a plugin that is fine.
         problem: plugins.get(pluginName)?.problem ?? troubles.get(pluginName) ?? null,
+        // What the plugin is waiting on the operator for, or wants them to know.
+        notice: noticeOf(plugins.get(pluginName)),
+        // The buttons that make sense right now. A plugin that says nothing about it
+        // offers all of them; one that never started offers none, because there is
+        // nothing to run them.
+        actions: actionsOf(definition, plugins.get(pluginName)),
       })
     }
 
     return list
+  }
+
+  /**
+   * A notice, reduced to the fields the board renders.
+   *
+   * Picked rather than passed through: it crosses `postMessage`, and anything else a
+   * plugin hung on the object -- a function, a socket -- would fail the clone and
+   * take the whole manifest with it.
+   */
+  function noticeOf(runtime) {
+    const notice = runtime?.notice
+
+    if (!notice?.text) return null
+
+    const text = (value) => (value === undefined || value === null ? undefined : String(value))
+
+    return { text: String(notice.text), code: text(notice.code), href: text(notice.href), label: text(notice.label) }
+  }
+
+  function actionsOf(definition, runtime) {
+    if (!runtime || typeof runtime.act !== 'function') return []
+
+    const offered = Array.isArray(runtime.offers) ? new Set(runtime.offers) : null
+
+    return (definition.actions ?? []).filter((action) => !offered || offered.has(action.key)).map(({ key, label }) => ({ key, label }))
+  }
+
+  /**
+   * Run one of a plugin's declared actions, for the button that says so.
+   *
+   * Refused unless the action is declared *and* currently offered: the board only
+   * draws offered ones, but a message is a message, and a stale panel pressing "Sign
+   * in" on a plugin that has since signed in should be told no rather than start a
+   * second sign-in behind the first.
+   *
+   * Answered as soon as the plugin's `act` settles. For something that takes the
+   * operator minutes -- typing a code on another device -- the plugin should settle
+   * once it has started, and report the rest through its notice, which the panel is
+   * reading while it is open.
+   */
+  async function actPlugin(pluginName, key) {
+    const definition = definitions.get(pluginName)
+    const runtime = plugins.get(pluginName)
+
+    if (!definition) return { ok: false, reason: `no plugin called "${pluginName}"` }
+    if (!actionsOf(definition, runtime).some((action) => action.key === key)) return { ok: false, reason: `"${key}" is not something ${definition.label} can do right now` }
+
+    try {
+      await runtime.act(key)
+
+      return { ok: true }
+    } catch (error) {
+      console.error(`[velcro] plugin "${pluginName}" failed at "${key}"`, error)
+
+      return { ok: false, reason: String(error?.message ?? error) }
+    }
+  }
+
+  /**
+   * A plugin storing values into its own config. See "A plugin keeping its own
+   * settings" in services/plugin.js.
+   *
+   * Merged over what is stored, so a plugin saving a token does not wipe the port
+   * the operator typed. Restarting goes through `configurePlugin`, the Save button's
+   * own path, rather than a second way of rebuilding a plugin.
+   */
+  async function savePlugin(pluginName, patch, { restart = true } = {}) {
+    const definition = definitions.get(pluginName)
+
+    if (!definition) return { ok: false, reason: `no plugin called "${pluginName}"` }
+
+    const merged = { ...(await configFor(definition)), ...patch }
+
+    if (restart) return configurePlugin(pluginName, merged)
+
+    await settings.set(settingKey(pluginName), merged)
+
+    return { ok: true }
   }
 
   /**
@@ -668,6 +752,10 @@ export function createVelcroHost(config = {}) {
         configurePlugin(message.plugin, message.values).then((value) => port.postMessage({ type: 'plugins:configure:result', id: message.id, value }))
         break
 
+      case 'plugins:act':
+        actPlugin(message.plugin, message.action).then((value) => port.postMessage({ type: 'plugins:act:result', id: message.id, value }))
+        break
+
       /**
        * Empty this machine: leave the room, clear the document, delete the store.
        *
@@ -786,5 +874,5 @@ export function createVelcroHost(config = {}) {
     self.onconnect = (event) => connect(event.ports[0])
   }
 
-  return { doc, registry, mutate, owns, connect, started, subscriptions, sync, plugins, pluginManifest, configurePlugin }
+  return { doc, registry, mutate, owns, connect, started, subscriptions, sync, plugins, pluginManifest, configurePlugin, actPlugin }
 }

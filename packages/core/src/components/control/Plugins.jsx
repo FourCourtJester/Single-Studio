@@ -105,6 +105,32 @@ function Block({ block }) {
   return <p className="ss-help-text text-xs text-slate-400">{block.text}</p>
 }
 
+/**
+ * Something a plugin needs the operator to read or do, kept current while the
+ * panel is open.
+ *
+ * A code is set large and selectable because it is going to be read off this
+ * screen and typed on a phone, possibly across a room.
+ */
+function Notice({ notice }) {
+  return (
+    <div role="status" className="ss-plugin-notice flex flex-col gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/5 px-3 py-2">
+      <p className="ss-plugin-notice-text text-xs text-sky-100">{notice.text}</p>
+      {notice.code ? <p className="ss-plugin-code select-all font-mono text-2xl font-semibold tracking-[0.2em] text-white">{notice.code}</p> : null}
+      {notice.href ? (
+        <a
+          href={notice.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ss-plugin-notice-link self-start text-xs text-sky-400 underline decoration-sky-400/40 underline-offset-2 hover:decoration-sky-400"
+        >
+          {notice.label || notice.href}
+        </a>
+      ) : null}
+    </div>
+  )
+}
+
 /** Setup instructions, written by whoever knows, shown where the question is asked. */
 function Help({ blocks, plugin }) {
   const [open, setOpen] = useState(false)
@@ -158,15 +184,33 @@ function Help({ blocks, plugin }) {
  * would put the panel back to saying "Not connecting" with no more to offer --
  * which is the state this whole panel exists to get away from.
  */
-function Entry({ plugin, onSave }) {
+function Entry({ plugin, onSave, onAct }) {
   const [open, setOpen] = useState(() => (plugin.status ?? 'idle') !== 'connected')
   const [draft, setDraft] = useState(plugin.values ?? {})
   const [saving, setSaving] = useState(false)
+  const [acting, setActing] = useState(null)
   const [problem, setProblem] = useState(null)
+  // The fields the operator has typed in since the last save.
+  const touched = useRef(new Set())
 
-  // The manifest is re-read after every save, so the row has to follow it rather
-  // than keep editing a copy from before the restart.
-  useEffect(() => setDraft(plugin.values ?? {}), [plugin.values])
+  // The manifest is re-read every second while the panel is open, and after every
+  // save, so the row has to follow it -- a plugin that just signed in has new
+  // values. But only for fields nobody is typing in: following blindly replaced an
+  // operator's half-typed port with the stored one, once a second. Keyed on the
+  // content rather than the object, because every read is a new object.
+  const stored = JSON.stringify(plugin.values ?? {})
+
+  useEffect(() => {
+    const values = JSON.parse(stored)
+
+    setDraft((was) => {
+      const next = { ...values }
+
+      for (const key of touched.current) next[key] = was[key]
+
+      return next
+    })
+  }, [stored])
 
   const dirty = Object.keys(draft).some((key) => draft[key] !== plugin.values?.[key])
   const status = plugin.status ?? 'idle'
@@ -179,6 +223,17 @@ function Entry({ plugin, onSave }) {
 
     setSaving(false)
     if (!result?.ok) setProblem(result?.reason ?? 'It would not restart with those settings.')
+    else touched.current.clear()
+  }
+
+  const act = async (key) => {
+    setActing(key)
+    setProblem(null)
+
+    const result = await onAct(plugin.name, key)
+
+    setActing(null)
+    if (!result?.ok) setProblem(result?.reason ?? 'That did not work.')
   }
 
   return (
@@ -240,17 +295,49 @@ function Entry({ plugin, onSave }) {
         </p>
       ) : null}
 
+      {/*
+        What the plugin is waiting on the operator for. Outside the fold for the
+        same reason the reason is: a code to type on another device is the one thing
+        on this row that matters, and it changes while they are away typing it.
+      */}
+      {plugin.notice ? <Notice notice={plugin.notice} /> : null}
+
       {open ? (
         <div id={`ss-plugin-body-${plugin.name}`} className="ss-plugin-body flex flex-col gap-1">
           {plugin.summary ? <p className="ss-plugin-summary -mt-0.5 text-xs text-slate-500">{plugin.summary}</p> : null}
 
           <Help blocks={plugin.help} plugin={plugin.name} />
 
+          {plugin.actions?.length ? (
+            <div className="ss-plugin-actions flex flex-wrap items-center gap-2 py-1.5">
+              {plugin.actions.map((action) => (
+                <button
+                  key={action.key}
+                  type="button"
+                  data-action={action.key}
+                  disabled={Boolean(acting)}
+                  onClick={() => act(action.key)}
+                  className="ss-plugin-action rounded-md border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs text-slate-100 transition-colors hover:border-slate-400 disabled:opacity-50"
+                >
+                  {acting === action.key ? 'Working…' : action.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {plugin.config?.length ? (
             <>
               <div className="flex flex-col">
                 {plugin.config.map((field) => (
-                  <Field key={field.key} field={field} value={draft[field.key]} onChange={(next) => setDraft((was) => ({ ...was, [field.key]: next }))} />
+                  <Field
+                    key={field.key}
+                    field={field}
+                    value={draft[field.key]}
+                    onChange={(next) => {
+                      touched.current.add(field.key)
+                      setDraft((was) => ({ ...was, [field.key]: next }))
+                    }}
+                  />
                 ))}
               </div>
 
@@ -273,6 +360,12 @@ function Entry({ plugin, onSave }) {
                 ) : null}
               </div>
             </>
+          ) : plugin.actions?.length ? (
+            problem ? (
+              <p role="alert" className="ss-plugin-problem text-xs text-rose-400">
+                {problem}
+              </p>
+            ) : null
           ) : (
             <p className="text-xs text-slate-500">Nothing to configure.</p>
           )}
@@ -295,7 +388,7 @@ function Entry({ plugin, onSave }) {
  * "change the port without reconnecting".
  */
 export function Plugins({ className, ...rest }) {
-  const { plugins, loading, configure } = usePlugins()
+  const { plugins, loading, configure, act } = usePlugins()
 
   return (
     <div className={cx('ss-plugins flex flex-col', className)} {...rest}>
@@ -304,7 +397,7 @@ export function Plugins({ className, ...rest }) {
       ) : plugins.length ? (
         <>
           {plugins.map((plugin) => (
-            <Entry key={plugin.name} plugin={plugin} onSave={configure} />
+            <Entry key={plugin.name} plugin={plugin} onSave={configure} onAct={act} />
           ))}
           {/*
             Ruled off. It is a note about the whole panel sitting under the last
