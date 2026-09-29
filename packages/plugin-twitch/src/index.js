@@ -196,7 +196,7 @@ class Twitch extends SocketService {
     const { refresh, expiresAt } = this.config
 
     if (!refresh) return
-    if (!force && (!expiresAt || expiresAt - Date.now() > EARLY)) return
+    if (!force && (!expiresAt || Number(expiresAt) - Date.now() > EARLY)) return
 
     try {
       const tokens = await refreshTokens({ clientId: this.clientId, refresh })

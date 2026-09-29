@@ -2067,6 +2067,17 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await feedRow.locator('.ss-plugin-action[data-action="resume"]').click()
   check(await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')), 'and Resume puts it back')
 
+  // The real thing, signed out: it says what is missing and offers the one button
+  // that fixes it. Not pressed -- that reaches Twitch, which is the manual check.
+  check(
+    await becomes(control, () => /Not signed in to Twitch/.test(document.querySelector('.ss-plugin[data-plugin="twitch"] .ss-plugin-reason')?.textContent ?? '')),
+    'Twitch, signed out, says that is what is wrong',
+  )
+  check(
+    await becomes(control, () => [...document.querySelectorAll('.ss-plugin[data-plugin="twitch"] .ss-plugin-action')].map((button) => button.dataset.action).join() === 'signIn'),
+    'and offers Sign in with Twitch, and nothing else',
+  )
+
   await control.keyboard.press('Escape')
   await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))
 }

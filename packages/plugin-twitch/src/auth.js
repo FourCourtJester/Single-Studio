@@ -61,7 +61,9 @@ export async function requestCode({ clientId, scopes, fetch = globalThis.fetch, 
  * "slower", which the caller turns into waiting. Anything else -- denied, expired,
  * a code Twitch no longer recognises -- ends the sign-in, with Twitch's reason.
  *
- * @returns {Promise<{ pending: true } | { slowDown: true } | { token: string, refresh: string, expiresAt: number }>}
+ * @returns {Promise<{ pending?: boolean, slowDown?: boolean, token?: string, refresh?: string, expiresAt?: number }>}
+ *   `pending` or `slowDown`, or the three token fields. One shape rather than a union,
+ *   so a caller can test for each without narrowing first.
  */
 export async function pollToken({ clientId, scopes, deviceCode, fetch = globalThis.fetch, now = Date.now() }) {
   const response = await fetch(`${ID}/token`, form({ client_id: clientId, scopes: scopes.join(' '), device_code: deviceCode, grant_type: GRANT }))
@@ -91,6 +93,7 @@ export async function refreshTokens({ clientId, refresh, fetch = globalThis.fetc
 
   if (response.ok && body.access_token) return tokensOf(body, now)
 
+  /** @type {Error & { signedOut?: boolean }} */
   const problem = new Error(`Twitch has signed this machine out (${reasonOf(body, response.status)}). Sign in again.`)
 
   problem.signedOut = response.status === 400 || response.status === 401

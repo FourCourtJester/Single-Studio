@@ -5,6 +5,7 @@ import { WebsocketProvider } from 'y-websocket'
 import { STUDIO_ID } from './config'
 import { mutations } from './mutations'
 import { rocketLeague, RocketLeagueHandler } from '@single-studio/plugin-rocket-league'
+import { twitch, TwitchHandler } from '@single-studio/plugin-twitch'
 
 import { feed, FeedHandler } from './plugins/feed'
 
@@ -128,10 +129,54 @@ class Rocket extends RocketLeagueHandler {
   }
 }
 
+/**
+ * Twitch on this studio's lower third: whoever last chatted, followed or raided.
+ *
+ * The lower third is the graphic that was already here, so nothing new is needed to
+ * see it working. Open #/source/lower-third, sign in from Settings -> Plugins, and
+ * type in the channel's chat.
+ *
+ * The Client ID is a real one, registered as a Public client for testing this
+ * fixture. It is not a secret -- a studio ships its Client ID in the build, which is
+ * the whole design -- and VITE_TWITCH_CLIENT_ID replaces it for anybody who wants
+ * their own app's name on Twitch's approval screen.
+ *
+ * VITE_TWITCH_MOCK=1 points it at the Twitch CLI's mock server instead, with no
+ * sign-in:
+ *
+ *   pnpm --filter @single-studio/plugin-twitch mock
+ *   VITE_TWITCH_MOCK=1 pnpm fixture:dev
+ */
+class Chat extends TwitchHandler {
+  #show(title, subtitle) {
+    this.mutate('set', { 'variables.lowerthird.title': title, 'variables.lowerthird.subtitle': subtitle, 'toggles.lowerthird': true })
+  }
+
+  onChat({ from, text }) {
+    this.#show(from?.name ?? 'Someone', text)
+  }
+
+  onFollow({ from }) {
+    this.#show(from?.name ?? 'Someone', 'just followed')
+  }
+
+  onSubscribe({ from, tier }) {
+    this.#show(from?.name ?? 'Someone', `subscribed at tier ${tier}`)
+  }
+
+  onRaid({ from, viewers }) {
+    this.#show(from?.name ?? 'A channel', `is raiding with ${viewers}`)
+  }
+}
+
+const twitchOptions = import.meta.env.VITE_TWITCH_MOCK
+  ? { mock: true }
+  : { clientId: import.meta.env.VITE_TWITCH_CLIENT_ID ?? 'k2o5ty3iracsimmlqstdhxfnlbwiiu' }
+
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
-  plugins: [feed(Ticker), rocketLeague(Rocket)],
+  plugins: [feed(Ticker), rocketLeague(Rocket), twitch(Chat, twitchOptions)],
   sync: {
     url: preset,
     room: import.meta.env.VITE_RELAY_ROOM ?? STUDIO_ID,

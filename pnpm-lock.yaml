@@ -47,6 +47,9 @@ importers:
       '@single-studio/plugin-rocket-league':
         specifier: workspace:*
         version: link:../../packages/plugin-rocket-league
+      '@single-studio/plugin-twitch':
+        specifier: workspace:*
+        version: link:../../packages/plugin-twitch
       '@single-studio/provider-supabase':
         specifier: workspace:*
         version: link:../../packages/provider-supabase
