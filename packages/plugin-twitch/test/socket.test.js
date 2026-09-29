@@ -27,7 +27,13 @@ class EventSubSocket extends FakeSocket {
 
 const { sockets, Socket, reset } = fakeSockets(EventSubSocket)
 
-const config = { clientId: 'cid', broadcasterId: '123', userId: '123', token: 'tok', events: 'channel.chat.message' }
+const config = { clientId: 'cid', userId: '123', login: 'me', token: 'tok', events: 'channel.chat.message' }
+
+/**
+ * Let `open` reach the socket. It refreshes the token and finds the channel before
+ * it dials, so the socket is a few microtasks away rather than there at once.
+ */
+const dialled = () => vi.advanceTimersByTimeAsync(0)
 
 /** Build the plugin the way the host would, with a handler attached. */
 const build = (Handler, over = {}) => {
@@ -57,7 +63,6 @@ describe('connecting', () => {
     // Said at the point of the mistake rather than as a socket error later.
     await expect(build(TwitchHandler, { token: '' }).open()).rejects.toThrow(/signed in/i)
     await expect(build(TwitchHandler, { clientId: '' }).open()).rejects.toThrow(/Client ID/i)
-    await expect(build(TwitchHandler, { broadcasterId: '' }).open()).rejects.toThrow(/broadcaster/i)
   })
 
   it('creates subscriptions only after the welcome, using the session it names', async () => {
@@ -65,6 +70,8 @@ describe('connecting', () => {
     // exist until Twitch says so.
     const plugin = build(TwitchHandler)
     const opening = plugin.open()
+
+    await dialled()
 
     expect(fetch).not.toHaveBeenCalled()
 
@@ -88,6 +95,8 @@ describe('connecting', () => {
     const plugin = build(TwitchHandler, { events: 'channel.chat.message,channel.cheer' })
     const opening = plugin.open()
 
+    await dialled()
+
     sockets[0].welcome()
 
     await expect(opening).resolves.toBeUndefined()
@@ -101,6 +110,8 @@ describe('connecting', () => {
 
     const plugin = build(TwitchHandler)
     const opening = plugin.open()
+
+    await dialled()
 
     sockets[0].welcome()
 
@@ -120,6 +131,8 @@ describe('delivering', () => {
 
     const plugin = build(MyShow)
     const opening = plugin.open()
+
+    await dialled()
 
     sockets[0].welcome()
     await opening
@@ -143,6 +156,8 @@ describe('the reconnect handover', () => {
     const plugin = build(TwitchHandler)
     const opening = plugin.open()
 
+    await dialled()
+
     sockets[0].welcome('sess-1')
     await opening
 
@@ -160,6 +175,8 @@ describe('the reconnect handover', () => {
   it('does not re-create subscriptions, because Twitch carries them over', async () => {
     const plugin = build(TwitchHandler)
     const opening = plugin.open()
+
+    await dialled()
 
     sockets[0].welcome('sess-1')
     await opening
@@ -179,6 +196,8 @@ describe('the watchdog', () => {
     const plugin = build(TwitchHandler)
     const opening = plugin.open()
 
+    await dialled()
+
     sockets[0].welcome('sess-1', 10)
     await opening
 
@@ -194,6 +213,8 @@ describe('the watchdog', () => {
   it('is reset by any message, not only by a keepalive', async () => {
     const plugin = build(TwitchHandler)
     const opening = plugin.open()
+
+    await dialled()
 
     sockets[0].welcome('sess-1', 10)
     await opening

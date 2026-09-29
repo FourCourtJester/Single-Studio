@@ -30,7 +30,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "mock": "node dev/mock.mjs"
   },
   "peerDependencies": {
     "@single-studio/core": "^0.8.0"

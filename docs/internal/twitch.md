@@ -37,14 +37,15 @@ Two properties of DCF refresh tokens to build around:
 
 ## What is built
 
-`packages/plugin-twitch`, private and unpublished until it has run against real
-Twitch.
+`packages/plugin-twitch`, published with the framework. It went out before
+it had run against real Twitch; the section below says what has been checked since.
 
 | Module        | Does                                                                                                  | Tested               |
 | ------------- | ----------------------------------------------------------------------------------------------------- | -------------------- |
 | `protocol.js` | The message state machine: welcome, keepalive, notification, reconnect, revocation, replay protection | 12 tests             |
 | `events.js`   | Twitch's payloads to shapes a studio would have written                                               | 18 tests             |
-| `index.js`    | The socket, the subscriptions, the watchdog                                                           | 9 tests, fake socket |
+| `index.js`    | The socket, the subscriptions, the watchdog, sign-in, refresh, the channel lookup                     | 10 + 21 tests, fake socket and fake Twitch |
+| `auth.js`     | Device Code Flow: code, poll, refresh, who-is, revoke                                                 | 14 tests, fake `fetch` |
 
 None of it needs credentials to test, which is the point of the split.
 
@@ -67,32 +68,41 @@ real one to everything downstream, and it is on air before anybody can stop it.
 **Partial subscription failure is not total failure.** A studio missing `bits:read`
 still gets chat. Only every subscription failing is an error.
 
-## Unverified, and worth checking first
+## Checked against real Twitch
 
-1. **CORS on `api.twitch.tv/helix` from a browser origin.** This is the one that
-   decides whether "no backend" holds. If the subscription POST is blocked, that
-   single call needs a proxy and nothing else about the plugin changes. Quickest
-   check: a `fetch` from the console of any page, with a real Client ID and token.
-2. **Device Code Flow end to end**, including whether the token endpoint at
-   `id.twitch.tv` is reachable from a browser.
-3. The exact condition fields per subscription type. `channel.chat.message` wants
-   `broadcaster_user_id` _and_ `user_id`; `channel.follow` wants
-   `moderator_user_id` and version `2`; `channel.raid` uses
-   `to_broadcaster_user_id` instead of `broadcaster_user_id`. Written from the
-   community libraries, not from Twitch's own reference.
+From a browser page on the published docs site, with a real Public-client Client ID
+(Sep 2026): `id.twitch.tv/oauth2/device`, `id.twitch.tv/oauth2/token` and
+`api.twitch.tv/helix/users` -- the last with `Authorization` and `Client-Id`
+headers, so a preflighted request -- all answered a cross-origin call. **So this
+needs no backend.** The Device Code Flow worked end to end from that page.
 
-## Not built
+## Still unverified
 
-**Signing in.** The plugin currently takes a pasted access token, which works and is
-poor: tokens expire, and pasting one is not something to ask of an operator mid-show.
+1. **The subscription POST itself**, and the exact condition fields per type.
+   `channel.chat.message` wants `broadcaster_user_id` _and_ `user_id`;
+   `channel.follow` wants `moderator_user_id` and version `2`; `channel.raid` uses
+   `to_broadcaster_user_id`. Written from the community libraries. The first sign-in
+   from a real studio answers this: chat arriving is the proof.
+2. **Twitch's error wording** during the device flow (`authorization_pending`,
+   `slow_down`). Matched loosely, on either `message` or `error`, for that reason.
+3. **The Twitch CLI's mock server** that `dev/mock.mjs` drives: its port, its path,
+   and whether a trigger reaches a client before that client subscribes. See
+   `dev/README.md`.
 
-Device Code Flow needs the board to show a code and a "waiting…" state while the
-worker polls — which the config schema cannot express, because it is deliberately
-JSON with no actions in it. That is the first real case for adding an **action** to
-the schema: the plugin declares that it supports signing in, core draws the button
-and renders whatever short-lived notice the plugin reports. Still data, still
-crossing `postMessage` intact.
+## Signing in -- built
 
-Worth doing deliberately rather than drifting into, and worth doing _after_ the CORS
-question is answered — if a proxy turns out to be needed, the auth story changes
-with it.
+**Sign in with Twitch** on the plugin panel runs the Device Code Flow: a code on the
+panel, typed at twitch.tv/activate on any device, and the panel following along
+while the operator does it. This needed three things from core, all general rather
+than Twitch-shaped: **actions** (buttons a plugin declares, and `offers` to say which
+make sense now), a **notice** the panel re-reads every second while open, and
+`context.save`, so a plugin can store a token it was handed. See plugins.md.
+
+- **The Client ID is the author's**, passed to `twitch(Handler, { clientId })`.
+  Operators never see the developer console. Without one, the panel asks for it.
+- **Nobody types a user id.** It comes from `oauth2/validate`. A moderator types a
+  channel *name*, looked up through Helix.
+- **Refresh** happens before a connect when the token has under five minutes left,
+  and once more if every subscription comes back 401. The new pair is stored before
+  anything else can fail, because the refresh token is single use. A refused refresh
+  signs the machine out rather than retrying.
