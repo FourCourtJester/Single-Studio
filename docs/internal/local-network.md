@@ -35,9 +35,9 @@ the site for "local network" in Chrome's site settings did not help.
   says the browser is blocking it. `prompt` gets an **Allow** button that makes the
   plain request above; `denied` gets directions to site settings, since the browser
   will not ask twice.
-- A socket to a local address retries at most every five seconds rather than
-  thirty. Measured before: 29 seconds from the stats port coming back to
-  "Connected".
+- Every plugin now retries at most every ten seconds rather than thirty, with up
+  to a quarter taken off at random. Measured before: 29 seconds from a stats port
+  coming back to "Connected".
 
 ## Not verified
 
