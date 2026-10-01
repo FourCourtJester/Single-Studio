@@ -159,3 +159,53 @@ server, no new connection, and it crosses the LAN because Companion is the one
 talking to OBS. Unverified twice over: that Companion exposes it, and that it
 survives the round trip. `plugin-obs` does not handle `CustomEvent` today. Only
 option that is both free and LAN-capable, so it is the first thing to test.
+
+## Future plugins: Dota 2, CS2, Warcraft III
+
+Asked for as a list to come back to. Nothing here is built, and nothing here was checked
+against the games: this container cannot reach them or Valve's pages. What follows is
+what is known well enough to plan around, and the one question that decides the shape
+of each.
+
+**The thing that makes these different from Rocket League.** Rocket League runs a
+WebSocket _server_ and the plugin dials it, which a browser can do. Valve's Game State
+Integration is the other way round: the game is the _client_, and it POSTs JSON to a URL
+you give it. A studio cannot receive that. See "No browser can be an HTTP listener"
+above; this is that wall, arriving from a game rather than from Companion.
+
+| Game             | How it talks                                                                                              | What the plugin needs                         |
+| ---------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Dota 2**       | Valve GSI: HTTP POST of JSON to a URI named in a `gamestate_integration_*.cfg` in the game's `cfg` folder | a local receiver, plus a plugin that dials it |
+| **CS2**          | The same GSI, carried over from CS:GO; the cfg lives under `game/csgo/cfg`                                | the same receiver as Dota 2                   |
+| **Warcraft III** | Unknown. There is no Valve-style GSI. Needs research before anything else                                 | unknown                                       |
+
+**One receiver for both Valve games.** GSI is one protocol with a different payload per
+game, so a small local process that accepts the POST and serves it back out on
+`ws://localhost:PORT` covers Dota 2 and CS2 alike. Each game is then an ordinary plugin
+the shape of `plugin-rocket-league`: dial localhost, shape the payload, emit events.
+Localhost is the case that already works from a Pages-hosted studio. Two candidates for
+the receiver:
+
+- **Route 2 above**: an HTTP ingest route on `packages/relay`, run locally. It already
+  exists as a package, and it keeps "one thing to run" rather than two.
+- **A dedicated `gsi-bridge`**: a few dozen lines of Node, published beside the plugins.
+  Simpler to explain, but it is one more thing an operator installs.
+
+Either way the operator's setup is two steps: drop a `.cfg` into the game's folder, and
+run the receiver. Worth getting that down to one: the board could show the `.cfg` text
+ready to copy, with the port already filled in.
+
+**Worth knowing before designing the events:**
+
+- **Spectating is the useful mode.** A player's own client reports that player. An
+  observer or GOTV/SourceTV client reports both teams, which is what a broadcast wants.
+  Design around the observer payload.
+- **The cfg carries an `auth` token**, and the game sends it with every POST. The
+  receiver should check it, because anything on the machine can POST to localhost.
+- **GSI sends deltas as well as state** (`previously` and `added` blocks next to the
+  full state). Emit from the full state and treat the deltas as hints, the way
+  `scoreOf` reads the score from the tick instead of counting goals.
+- **Warcraft III:** start by finding what the community already uses for Reforged
+  observer overlays. Candidates to look at are a local API in the Reforged client,
+  memory readers, and replay parsing. Replay parsing only helps after a game, not
+  during one.

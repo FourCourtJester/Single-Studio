@@ -5,6 +5,7 @@ import { WebsocketProvider } from 'y-websocket'
 import { STUDIO_ID } from './config'
 import { mutations } from './mutations'
 import { rocketLeague, RocketLeagueHandler } from '@single-studio/plugin-rocket-league'
+import { twitch, TwitchHandler } from '@single-studio/plugin-twitch'
 
 import { feed, FeedHandler } from './plugins/feed'
 
@@ -128,10 +129,56 @@ class Rocket extends RocketLeagueHandler {
   }
 }
 
+/**
+ * Twitch on its own graphic, #/source/twitch-chat: the last five chat messages,
+ * and whoever last followed, subscribed or raided above them. Sign in from Settings
+ * -> Plugins and type in the channel's chat.
+ *
+ * Not the lower third, which this did at first. That is the operator's graphic, and
+ * a chat message replacing a name the board just put on air is the plugin taking
+ * over the show.
+ *
+ * The Client ID is a real one, registered as a Public client for testing this
+ * fixture. It is not a secret -- a studio ships its Client ID in the build, which is
+ * the whole design -- and VITE_TWITCH_CLIENT_ID replaces it for anybody who wants
+ * their own app's name on Twitch's approval screen.
+ *
+ * VITE_TWITCH_MOCK=1 points it at the Twitch CLI's mock server instead, with no
+ * sign-in:
+ *
+ *   pnpm --filter @single-studio/plugin-twitch mock
+ *   VITE_TWITCH_MOCK=1 pnpm fixture
+ */
+class Chat extends TwitchHandler {
+  #alert(text) {
+    this.mutate('set', { 'variables.twitch.alert': text })
+  }
+
+  onChat({ from, text }) {
+    this.mutate('twitch:chat', { name: from?.name ?? 'Someone', text })
+  }
+
+  onFollow({ from }) {
+    this.#alert(`${from?.name ?? 'Someone'} just followed`)
+  }
+
+  onSubscribe({ from, tier }) {
+    this.#alert(`${from?.name ?? 'Someone'} subscribed at tier ${tier}`)
+  }
+
+  onRaid({ from, viewers }) {
+    this.#alert(`${from?.name ?? 'A channel'} is raiding with ${viewers}`)
+  }
+}
+
+const twitchOptions = import.meta.env.VITE_TWITCH_MOCK
+  ? { mock: true }
+  : { clientId: import.meta.env.VITE_TWITCH_CLIENT_ID ?? 'k2o5ty3iracsimmlqstdhxfnlbwiiu' }
+
 createVelcroHost({
   name: STUDIO_ID,
   mutations,
-  plugins: [feed(Ticker), rocketLeague(Rocket)],
+  plugins: [feed(Ticker), rocketLeague(Rocket), twitch(Chat, twitchOptions)],
   sync: {
     url: preset,
     room: import.meta.env.VITE_RELAY_ROOM ?? STUDIO_ID,

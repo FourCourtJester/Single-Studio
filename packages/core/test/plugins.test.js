@@ -410,6 +410,8 @@ describe('the manifest a board reads', () => {
         status: 'connected',
         // Null rather than absent, so a board can render the field unconditionally.
         problem: null,
+        notice: null,
+        actions: [],
       },
     ])
   })
@@ -842,5 +844,166 @@ describe('one plugin asking another', () => {
     expect(bare.ask('obs', 'scene', {})).toBe(false)
     expect(bare.running('obs')).toBe(false)
     expect(bare.look('obs', 'x', {})).toBeUndefined()
+  })
+})
+
+describe('buttons on the panel, and what a plugin tells the operator', () => {
+  /** A plugin with a sign-in and a sign-out, of which only one is ever offered. */
+  const account = (hooks = {}) =>
+    definePlugin({
+      name: 'account',
+      label: 'Account',
+      actions: [
+        { key: 'signIn', label: 'Sign in' },
+        { key: 'signOut', label: 'Sign out' },
+      ],
+      config: [{ key: 'token', type: 'secret' }, { key: 'port', type: 'number', default: 1 }],
+      create: (context) => {
+        const runtime = new PluginBase('account')
+
+        runtime.config = context.config
+        runtime.offers = context.config.token ? ['signOut'] : ['signIn']
+        runtime.acted = []
+        runtime.act = async (key) => {
+          runtime.acted.push(key)
+          await hooks.act?.(key, runtime, context)
+        }
+        hooks.created?.(runtime, context)
+
+        return runtime
+      },
+    })
+
+  const host = (plugin, name = `act-${Math.random()}`) => createVelcroHost({ name, persist: false, plugins: [plugin] })
+
+  it('refuses an action with no key or no label, at the point of the mistake', () => {
+    expect(() => definePlugin({ name: 'a', actions: [{ label: 'Go' }], create: () => {} })).toThrow(/needs a `key` and a `label`/)
+    expect(() => definePlugin({ name: 'a', actions: [{ key: 'go' }], create: () => {} })).toThrow(/needs a `key` and a `label`/)
+    expect(() => definePlugin({ name: 'a', actions: 'go', create: () => {} })).toThrow(/must be an array/)
+  })
+
+  it('shows only the buttons the plugin offers right now', async () => {
+    const studio = host(account())
+
+    await studio.started
+
+    const [entry] = await studio.pluginManifest()
+
+    expect(entry.actions).toEqual([{ key: 'signIn', label: 'Sign in' }])
+  })
+
+  it('shows no buttons for a plugin that never started, because there is nothing to run them', async () => {
+    const studio = host(
+      definePlugin({
+        name: 'broken',
+        actions: [{ key: 'signIn', label: 'Sign in' }],
+        create: () => {
+          throw new Error('no')
+        },
+      }),
+    )
+
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await studio.started
+
+    expect((await studio.pluginManifest())[0].actions).toEqual([])
+  })
+
+  it('runs the one pressed', async () => {
+    let runtime
+    const studio = host(account({ created: (made) => (runtime = made) }))
+
+    await studio.started
+
+    expect(await studio.actPlugin('account', 'signIn')).toEqual({ ok: true })
+    expect(runtime.acted).toEqual(['signIn'])
+  })
+
+  it('refuses one that is declared but not offered, so a stale panel cannot start a second sign-in', async () => {
+    let runtime
+    const studio = host(account({ created: (made) => (runtime = made) }))
+
+    await studio.started
+
+    const answer = await studio.actPlugin('account', 'signOut')
+
+    expect(answer.ok).toBe(false)
+    expect(answer.reason).toMatch(/not something Account can do right now/)
+    expect(runtime.acted).toEqual([])
+  })
+
+  it('says why an action failed, in the plugin’s words', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const studio = host(
+      account({
+        act: () => {
+          throw new Error('Twitch said no')
+        },
+      }),
+    )
+
+    await studio.started
+
+    expect(await studio.actPlugin('account', 'signIn')).toEqual({ ok: false, reason: 'Twitch said no' })
+  })
+
+  it('carries the notice, reduced to what the board can render', async () => {
+    const studio = host(
+      account({
+        created: (runtime) => {
+          // A function on the notice would fail the structured clone and lose the
+          // whole manifest, not just this line.
+          runtime.notice = { text: 'Enter this code', code: 'WDJB-MJHT', href: 'https://twitch.tv/activate', poll: () => {} }
+        },
+      }),
+    )
+
+    await studio.started
+
+    const [entry] = await studio.pluginManifest()
+
+    expect(entry.notice).toEqual({ text: 'Enter this code', code: 'WDJB-MJHT', href: 'https://twitch.tv/activate', label: undefined })
+    expect(() => structuredClone(entry)).not.toThrow()
+  })
+
+  it('lets a plugin save into its own config, keeping what the operator set, and comes back on it', async () => {
+    const name = `save-${Math.random()}`
+    const built = []
+    const studio = host(
+      account({
+        created: (runtime, context) => built.push(context.config),
+        act: (key, runtime, context) => context.save({ token: 'fresh' }),
+      }),
+      name,
+    )
+
+    await studio.started
+    await studio.configurePlugin('account', { port: 7 })
+    await studio.actPlugin('account', 'signIn')
+
+    // Restarted on the merged values: the token arrived and the port stayed.
+    expect(built.at(-1)).toEqual({ token: 'fresh', port: 7 })
+    expect(await new SettingsStore(name).get('plugin:account')).toEqual({ token: 'fresh', port: 7 })
+    // And the restarted plugin offers what now makes sense.
+    expect((await studio.pluginManifest())[0].actions).toEqual([{ key: 'signOut', label: 'Sign out' }])
+  })
+
+  it('can store without restarting, for a value the running plugin already has', async () => {
+    const name = `store-${Math.random()}`
+    const built = []
+    const studio = host(
+      account({
+        created: (runtime, context) => built.push(context.config),
+        act: (key, runtime, context) => context.save({ token: 'refreshed' }, { restart: false }),
+      }),
+      name,
+    )
+
+    await studio.started
+    await studio.actPlugin('account', 'signIn')
+
+    expect(built).toHaveLength(1)
+    expect(await new SettingsStore(name).get('plugin:account')).toEqual({ token: 'refreshed', port: 1 })
   })
 })

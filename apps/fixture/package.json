@@ -18,7 +18,8 @@
     "react-router-dom": "^7.18.3",
     "y-websocket": "^3.1.0",
     "yjs": "^13.6.32",
-    "@single-studio/plugin-rocket-league": "workspace:*"
+    "@single-studio/plugin-rocket-league": "workspace:*",
+    "@single-studio/plugin-twitch": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",

@@ -61,10 +61,16 @@ function boxFor(element) {
 
   element.style.fontSize = was
 
+  // A width of 0 at both sizes is not a box that held still, it is no box at all:
+  // an inline element's clientWidth is 0 by definition. Variable's own span is
+  // inline wherever its parent is a plain block, so without this the search stopped
+  // there, read 0px of room, and halved a 30px name nine times to 0.0586px. A flex
+  // parent blockifies the span, which is why the scoreboard never showed it.
+  //
   // The last resort is the outermost one looked at rather than nothing: a chain
   // that is shrink-to-fit the whole way up is a layout with no limit in it, and the
   // outermost is the closest thing to an answer.
-  return ancestors.find((_node, at) => narrow[at] === natural[at]) ?? ancestors.at(-1)
+  return ancestors.find((_node, at) => natural[at] > 0 && narrow[at] === natural[at]) ?? ancestors.at(-1)
 }
 
 export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...rest }) {
@@ -90,7 +96,10 @@ export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...
     const ceiling = max ?? parseFloat(window.getComputedStyle(parent).fontSize)
     const available = () => box.clientWidth - parseFloat(boxStyle.paddingLeft) - parseFloat(boxStyle.paddingRight)
 
-    if (element.scrollWidth <= available()) return
+    // No room at all means no layout yet -- an ancestor not displayed, a box not
+    // sized -- not a box the text has to vanish into. Leave it at its natural size;
+    // the observers measure again once there is something to measure against.
+    if (available() <= 0 || element.scrollWidth <= available()) return
 
     let low = 0
     let high = ceiling

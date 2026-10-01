@@ -70,7 +70,7 @@ export class Protocol {
   /**
    * Decide what a raw message means.
    *
-   * @param {unknown} raw Already JSON.parse'd.
+   * @param {any} raw Already JSON.parse'd, from a socket -- so nothing about its shape is known yet.
    * @returns {Action}
    */
   handle(raw) {

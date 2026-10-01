@@ -331,3 +331,53 @@ worst a plugin can do is write dull text.
 
 Write the help. The person setting up the board at five to seven is not the person
 who knows where the port comes from.
+
+### Buttons, and a line that keeps itself current
+
+Some things are not a value to type: signing in, signing out. Declare them as
+**actions**, and they become buttons on your plugin's panel. Your runtime decides which
+ones make sense right now, runs them, and says what is happening through a **notice**:
+
+```js
+actions: [
+  { key: 'signIn', label: 'Sign in' },
+  { key: 'signOut', label: 'Sign out' },
+],
+```
+
+```js
+class MyService extends SocketService {
+  get offers() {
+    return this.config.token ? ['signOut'] : ['signIn'] // never both
+  }
+
+  get notice() {
+    return this.waiting ? { text: 'Enter this code on your phone.', code: 'WDJB-MJHT', href: 'https://example.com/activate' } : null
+  }
+
+  async act(key) {
+    // Return once it has started. Anything that takes the operator a minute
+    // belongs in the notice, which the panel re-reads every second while it is open.
+  }
+}
+```
+
+- `offers` is a list of action keys. Leave it out and every action is always shown.
+  A button that is declared but not offered is refused if anything presses it anyway.
+- `notice` is `{ text, code?, href?, label? }`. `code` is set large and selectable,
+  for reading off one screen and typing on another. It shows even when the row is
+  folded.
+- An action that throws shows its message beside the button.
+
+**A plugin can keep its own settings.** A token a sign-in handed back is not the
+operator's to type, so the context carries `save`:
+
+```js
+create: (context) => new MyService(context) // context.save(patch, { restart })
+```
+
+`save(patch)` merges into the plugin's stored config and restarts the plugin on the
+result, which is the same path the panel's Save button takes. `save(patch, { restart: false })`
+only stores it, for a value the running plugin already has in hand, like a refreshed
+token. It is stored where the operator's values are: per machine, never replicated,
+and cleared by "Reset this machine".

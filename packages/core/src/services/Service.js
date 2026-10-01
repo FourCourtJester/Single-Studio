@@ -36,6 +36,11 @@ export class Service {
 
   #stopped = false
 
+  /** The attempt in progress, and the means of calling it off. */
+  #starting = null
+
+  #abort = null
+
   /**
    * @param {object} options
    * @param {(name: string, payload: unknown) => void} options.mutate dispatch into Velcro
@@ -94,8 +99,18 @@ export class Service {
     return this
   }
 
-  /** Subclasses implement this. Resolve on connect, reject to trigger backoff. */
-  async open() {
+  /**
+   * Subclasses implement this. Resolve on connect, reject to trigger backoff.
+   *
+   * An `open()` that waits for anything before it connects -- a token, a lookup --
+   * should check `signal.aborted` once it has, and connect only if not. Stopping
+   * mid-way aborts it, and a connection made after that belongs to a service that
+   * was told to stand down. Whatever it does make is closed when it resolves, but
+   * one that never made it is better than one closed a second later.
+   *
+   * @param {AbortSignal} [_signal]
+   */
+  async open(_signal) {
     throw new Error('Service.open() must be implemented')
   }
 
@@ -110,12 +125,43 @@ export class Service {
 
     this.#stopped = false
 
+    // Already coming up: wait for that rather than opening a second connection.
+    // `status` only moves once `open()` settles, so a service still connecting reads
+    // as idle, and `recheck` -- wired to every sync status change -- starts idle
+    // services. Twitch spends seconds connecting, each page opened at startup was a
+    // recheck, and each one left another socket subscribed: every chat message
+    // arrived three times.
+    if (this.#starting) return this.#starting
+
+    const abort = new AbortController()
+
+    this.#abort = abort
+    this.#starting = this.#connect(abort.signal).finally(() => {
+      if (this.#abort === abort) this.#starting = null
+    })
+
+    return this.#starting
+  }
+
+  async #connect(signal) {
     try {
-      await this.open()
+      await this.open(signal)
+
+      if (signal.aborted) {
+        // Stopped while connecting. `stop()` closed what was open at the time, which
+        // was nothing yet; this is what arrived since. Left alone, a poll keeps its
+        // timer and a socket keeps delivering, for a service nobody will close.
+        if (this.#stopped) await this.close()
+
+        return this
+      }
+
       this.#attempt = 0
       this.status = 'connected'
       this.problem = null
     } catch (err) {
+      if (signal.aborted) return this
+
       this.status = 'error'
       this.#retry(err)
     }
@@ -125,6 +171,9 @@ export class Service {
 
   async stop() {
     this.#stopped = true
+    this.#abort?.abort()
+    this.#abort = null
+    this.#starting = null
     clearTimeout(this.#timer)
     this.status = 'idle'
     this.problem = null

@@ -24,6 +24,7 @@ export const studio = defineStudio({
     standings: () => import('./sources/Standings'),
     sponsor: () => import('./sources/Sponsor'),
     ticker: () => import('./sources/Ticker'),
+    'twitch-chat': () => import('./sources/TwitchChat'),
     'lower-thirds/guest': () => import('./sources/Guest'),
     // Throws on render, on purpose. The end-to-end suite uses it to prove a crashed
     // graphic paints nothing on air and shows itself under `?debug`.

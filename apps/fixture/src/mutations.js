@@ -45,4 +45,22 @@ export const mutations = {
 
     throw new Error('the fixture fumbles on purpose')
   },
+
+  /**
+   * One chat message onto the Twitch box, everything else down a line. A mutation
+   * rather than five writes from the plugin because the shift has to read what is
+   * there, and a read and its writes in one transaction cannot interleave with the
+   * next message arriving.
+   */
+  'twitch:chat'(ctx, { name, text }) {
+    const writes = []
+
+    for (let line = 4; line > 0; line -= 1) {
+      writes.push([`variables.twitch.chat.${line}.name`, ctx.read(`variables.twitch.chat.${line - 1}.name`)])
+      writes.push([`variables.twitch.chat.${line}.text`, ctx.read(`variables.twitch.chat.${line - 1}.text`)])
+    }
+
+    writes.push(['variables.twitch.chat.0.name', name], ['variables.twitch.chat.0.text', text])
+    ctx.write(writes)
+  },
 }
