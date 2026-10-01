@@ -375,6 +375,37 @@ await save()
 await control.locator('button:has-text("Show lower third")').click()
 check(await becomes(lower, sceneHas, 'jane doe'), 'toggle reveals the lower third with its text')
 
+// The lower third's name is a `fit` inside a plain block, so the Variable's own span
+// is inline there -- and an inline element's width is 0. Fit took that span for its
+// box and shrank a 30px name to 0.0586px. The scoreboard never showed it because its
+// names sit in a flex row, which makes the span a block.
+const lowerName = () =>
+  lower.evaluate(() => {
+    const fit = document.querySelector('.ss-scene .ss-fit')
+    const box = fit?.closest('.text-3xl')
+
+    return fit && box ? { size: parseFloat(getComputedStyle(fit).fontSize), width: fit.scrollWidth, room: box.clientWidth } : null
+  })
+
+await lower.waitForTimeout(800)
+const plainName = await lowerName()
+check(plainName?.size === 30, `a fitted name in a plain block keeps its size when it fits (${plainName?.size}px)`)
+
+await control.locator('.ss-field:has-text("Title") input').first().fill('Bartholomew Vandersteen-Rodriguez the Third of Many Names')
+await save()
+await becomes(lower, () => parseFloat(getComputedStyle(document.querySelector('.ss-scene .ss-fit')).fontSize) < 30)
+await lower.waitForTimeout(800)
+const longName = await lowerName()
+console.log(`  lower third fit: ${JSON.stringify(longName)}`)
+check(
+  longName && longName.width <= longName.room && longName.size > 12,
+  `and a long one shrinks to its box rather than to nothing (${longName?.width}px in ${longName?.room}px at ${longName?.size}px)`,
+)
+
+await control.locator('.ss-field:has-text("Title") input').first().fill('Jane Doe')
+await save()
+await becomes(lower, sceneHas, 'jane doe')
+
 // Leaderboard: a paste drives the standings graphic, which reads the whole board
 // from one subscription.
 const standings = await context.newPage()
@@ -1919,7 +1950,10 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 
   await fumble.click()
 
-  check(await becomes(control, () => /2 times/.test(document.querySelector('.ss-mutation-count')?.textContent ?? '')), 'a repeat is counted rather than stacked')
+  check(
+    await becomes(control, () => /2 times/.test(document.querySelector('.ss-mutation-count')?.textContent ?? '')),
+    'a repeat is counted rather than stacked',
+  )
   check((await notice.count()) === 1, 'still one notice')
 
   await control.locator('.ss-mutation-dismiss').click()
@@ -2025,7 +2059,10 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   const feedRow = control.locator('.ss-plugin[data-plugin="feed"]')
   const noticeText = () => feedRow.locator('.ss-plugin-notice-text').innerText()
 
-  check(await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')), 'a plugin’s notice is on its row, even folded')
+  check(
+    await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')),
+    'a plugin’s notice is on its row, even folded',
+  )
 
   const before = await noticeText()
 
@@ -2065,16 +2102,24 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   check((await label.inputValue()) === typed, 'and the half-typed field survives the plugin saving its own settings underneath it')
 
   await feedRow.locator('.ss-plugin-action[data-action="resume"]').click()
-  check(await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')), 'and Resume puts it back')
+  check(
+    await becomes(control, () => /ticks so far/.test(document.querySelector('.ss-plugin[data-plugin="feed"] .ss-plugin-notice')?.textContent ?? '')),
+    'and Resume puts it back',
+  )
 
   // The real thing, signed out: it says what is missing and offers the one button
   // that fixes it. Not pressed -- that reaches Twitch, which is the manual check.
   check(
-    await becomes(control, () => /Not signed in to Twitch/.test(document.querySelector('.ss-plugin[data-plugin="twitch"] .ss-plugin-reason')?.textContent ?? '')),
+    await becomes(control, () =>
+      /Not signed in to Twitch/.test(document.querySelector('.ss-plugin[data-plugin="twitch"] .ss-plugin-reason')?.textContent ?? ''),
+    ),
     'Twitch, signed out, says that is what is wrong',
   )
   check(
-    await becomes(control, () => [...document.querySelectorAll('.ss-plugin[data-plugin="twitch"] .ss-plugin-action')].map((button) => button.dataset.action).join() === 'signIn'),
+    await becomes(
+      control,
+      () => [...document.querySelectorAll('.ss-plugin[data-plugin="twitch"] .ss-plugin-action')].map((button) => button.dataset.action).join() === 'signIn',
+    ),
     'and offers Sign in with Twitch, and nothing else',
   )
 
