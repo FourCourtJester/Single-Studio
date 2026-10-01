@@ -44,7 +44,7 @@ it had run against real Twitch; the section below says what has been checked sin
 | ------------- | ----------------------------------------------------------------------------------------------------- | -------------------- |
 | `protocol.js` | The message state machine: welcome, keepalive, notification, reconnect, revocation, replay protection | 12 tests             |
 | `events.js`   | Twitch's payloads to shapes a studio would have written                                               | 18 tests             |
-| `index.js`    | The socket, the subscriptions, the watchdog, sign-in, refresh, the channel lookup                     | 10 + 21 tests, fake socket and fake Twitch |
+| `index.js`    | The socket, the subscriptions, the watchdog, sign-in, refresh, the channel lookup                     | 10 + 29 tests, fake socket and fake Twitch |
 | `auth.js`     | Device Code Flow: code, poll, refresh, who-is, revoke                                                 | 14 tests, fake `fetch` |
 
 None of it needs credentials to test, which is the point of the split.
@@ -76,16 +76,27 @@ From a browser page on the published docs site, with a real Public-client Client
 headers, so a preflighted request -- all answered a cross-origin call. **So this
 needs no backend.** The Device Code Flow worked end to end from that page.
 
+Then from the fixture (Oct 2026): signing in from the plugin panel, and a chat
+message typed in the channel arriving on `#/source/twitch-chat`. So the subscription
+POST for `channel.chat.message`, its condition fields and the delivery all work
+against real Twitch. That run is also what found two bugs no fake had: a fitted name
+at 0.0586px (`Fit` taking an inline span for its box), and every message arriving
+three times (a plugin started again by each recheck while it was still connecting).
+
 ## Still unverified
 
-1. **The subscription POST itself**, and the exact condition fields per type.
-   `channel.chat.message` wants `broadcaster_user_id` _and_ `user_id`;
-   `channel.follow` wants `moderator_user_id` and version `2`; `channel.raid` uses
-   `to_broadcaster_user_id`. Written from the community libraries. The first sign-in
-   from a real studio answers this: chat arriving is the proof.
-2. **Twitch's error wording** during the device flow (`authorization_pending`,
+1. **The condition fields for everything but chat.** `channel.follow` wants
+   `moderator_user_id` and version `2`; `channel.raid` uses `to_broadcaster_user_id`;
+   the sub, gift and cheer types take `broadcaster_user_id` alone. Written from the
+   community libraries; chat, which shares the POST and the delivery, is confirmed.
+   A refused one is now named on the panel, so the first follow or raid that fails to
+   arrive will say so rather than look like a quiet night.
+2. **What a moderator gets on somebody else's channel.** The panel's help says chat,
+   follows and raids, and that subs, gifts and cheers need the channel's own sign-in.
+   That is from Twitch's documentation, not from a run.
+3. **Twitch's error wording** during the device flow (`authorization_pending`,
    `slow_down`). Matched loosely, on either `message` or `error`, for that reason.
-3. **The Twitch CLI's mock server** that `dev/mock.mjs` drives: its port, its path,
+4. **The Twitch CLI's mock server** that `dev/mock.mjs` drives: its port, its path,
    and whether a trigger reaches a client before that client subscribes. See
    `dev/README.md`.
 

@@ -27,7 +27,7 @@ class EventSubSocket extends FakeSocket {
 
 const { sockets, Socket, reset } = fakeSockets(EventSubSocket)
 
-const config = { clientId: 'cid', userId: '123', login: 'me', token: 'tok', events: 'channel.chat.message' }
+const config = { clientId: 'cid', userId: '123', login: 'me', token: 'tok' }
 
 /**
  * Let `open` reach the socket. It refreshes the token and finds the channel before
@@ -36,8 +36,8 @@ const config = { clientId: 'cid', userId: '123', login: 'me', token: 'tok', even
 const dialled = () => vi.advanceTimersByTimeAsync(0)
 
 /** Build the plugin the way the host would, with a handler attached. */
-const build = (Handler, over = {}) => {
-  const definition = twitch(Handler)
+const build = (Handler, over = {}, events = ['chat']) => {
+  const definition = twitch(Handler, { events })
 
   return definition.create({ mutate: vi.fn(), owner: () => true, studio: 's', config: { ...config, ...over } })
 }
@@ -92,7 +92,7 @@ describe('connecting', () => {
       vi.fn(async (_url, request) => ({ ok: JSON.parse(request.body).type === 'channel.chat.message', status: 403 })),
     )
 
-    const plugin = build(TwitchHandler, { events: 'channel.chat.message,channel.cheer' })
+    const plugin = build(TwitchHandler, {}, ['chat', 'cheer'])
     const opening = plugin.open()
 
     await dialled()

@@ -24,6 +24,34 @@ const EARLY = 5 * 60 * 1000
 /** What signing out, or being signed out, clears. */
 const SIGNED_OUT = { token: '', refresh: '', expiresAt: 0, userId: '', login: '' }
 
+/** What the panel calls each event when it has to say one is missing. */
+const WORDS = {
+  'channel.chat.message': 'chat',
+  'channel.follow': 'follows',
+  'channel.subscribe': 'subs',
+  'channel.subscription.message': 'resubs',
+  'channel.subscription.gift': 'gifts',
+  'channel.cheer': 'cheers',
+  'channel.raid': 'raids',
+}
+
+/** "a", "a and b", "a, b and c". */
+const list = (words) => (words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`)
+
+/**
+ * The wire types for what an author listed, by the name their handler uses
+ * (`'chat'`, `'cheer'`) or by Twitch's (`'channel.cheer'`). Nothing listed is all.
+ *
+ * @param {string[]} [events]
+ */
+const typesFor = (events) => {
+  if (!events?.length) return Object.keys(EVENTS)
+
+  const byName = Object.fromEntries(Object.entries(EVENTS).map(([type, known]) => [known.emit, type]))
+
+  return [...new Set(events.map((event) => byName[event] ?? event))]
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
@@ -65,6 +93,9 @@ class Twitch extends SocketService {
   /** The channel's numeric id, resolved at connect time from what the operator typed. */
   #broadcaster = ''
 
+  /** The events Twitch would not send on this connection, by wire name. */
+  #refused = []
+
   constructor(context, options = {}) {
     super(context)
 
@@ -94,7 +125,18 @@ class Twitch extends SocketService {
     if (this.#waiting) return this.#waiting
     if (this.#said) return this.#said
     if (this.#mock) return { text: 'Mock mode: talking to the Twitch CLI on this machine, not to Twitch.' }
-    if (this.config.token && this.config.login) return { text: `Signed in as ${this.config.login}.` }
+    if (this.config.token && this.config.login) {
+      const missing = this.#refused.map((type) => WORDS[type] ?? type)
+
+      if (!missing.length) return { text: `Signed in as ${this.config.login}.` }
+
+      // Said, because the plugin carries on without them and a graphic that never
+      // shows a sub looks exactly like a quiet night. On somebody else's channel it is
+      // usually not a fault: Twitch only gives those to the channel's own sign-in.
+      const why = String(this.config.channel ?? '').trim() ? ' On somebody else’s channel, only its owner’s sign-in gets those.' : ''
+
+      return { text: `Signed in as ${this.config.login}. Twitch will not send ${list(missing)} to this sign-in.${why}` }
+    }
 
     return null
   }
@@ -291,14 +333,17 @@ class Twitch extends SocketService {
     return this.#protocol.silenceBudgetMs
   }
 
-  /** The events this studio asked for, or all of them. */
+  /**
+   * Every event, unless the studio's author narrowed it.
+   *
+   * The author's choice rather than the operator's. It decides which permissions
+   * Twitch asks for at sign-in, which is the author's to weigh -- a chat-only studio
+   * should not ask a streamer to approve subscription access -- and a free-text box
+   * on the panel was a way for anybody at the board to switch events off by typo.
+   * What this sign-in cannot have is found out by asking, and the panel says.
+   */
   get types() {
-    const asked = String(this.config.events ?? '')
-      .split(',')
-      .map((type) => type.trim())
-      .filter(Boolean)
-
-    return asked.length ? asked : Object.keys(EVENTS)
+    return typesFor(this.#options.events)
   }
 
   /** @param {AbortSignal} [signal] */
@@ -429,6 +474,8 @@ class Twitch extends SocketService {
 
     const said = failures.map((failure) => `${failure.type} (${failure.status})`).join(', ')
 
+    this.#refused = failures.length < this.types.length ? failures.map((failure) => failure.type) : []
+
     // Some working is better than none: a studio missing `bits:read` should still
     // get chat rather than a dead plugin.
     if (failures.length === this.types.length) throw new Error(`Twitch refused every subscription: ${said}`)
@@ -483,6 +530,10 @@ export class TwitchHandler extends PluginHandler {
  *   secret, so it belongs in the build: register one app, as a *Public* client, and
  *   every operator of the studio signs in through it without ever seeing Twitch's
  *   developer console. Leave it out and the panel asks each operator for one.
+ * @property {string[]} [events] Only these events, by handler name (`'chat'`,
+ *   `'follow'`, `'subscribe'`, `'resub'`, `'gift'`, `'cheer'`, `'raid'`) or by
+ *   Twitch's type. All of them if left out. Twitch asks for the permissions these
+ *   need at sign-in, so a chat-only studio asks only to read chat.
  * @property {boolean} [mock] Talk to the Twitch CLI's mock server on this machine
  *   instead of Twitch. No sign-in. See dev/README.md in this package.
  * @property {string} [eventsub] Override the EventSub WebSocket address.
@@ -510,11 +561,11 @@ export const twitch = (Handler = TwitchHandler, options = {}) =>
       },
       {
         type: 'text',
-        text: 'Running a board for somebody else’s channel as their moderator? Sign in as yourself and type their channel name under Channel.',
+        text: `Once you are signed in, this studio gets ${list(typesFor(options.events).map((type) => WORDS[type] ?? type))}. If Twitch will not send some of them to your sign-in, this panel says which.`,
       },
       {
         type: 'text',
-        text: 'Leave Events blank for all of them, or list the ones you want. Twitch only asks for the permissions those events need.',
+        text: 'Running a board for somebody else’s channel as their moderator? Sign in as yourself and type their channel name under Channel. You get chat, follows and raids; subs, gifts and cheers only go to the channel’s own sign-in.',
       },
     ],
     actions: [
@@ -540,7 +591,6 @@ export const twitch = (Handler = TwitchHandler, options = {}) =>
         placeholder: 'The one you signed in as',
         help: 'Blank for your own. A moderator types the channel’s name.',
       },
-      { key: 'events', label: 'Events', help: 'Comma separated. Blank for all of them.' },
     ],
     create: (context) => {
       const plugin = new Twitch(context, options)

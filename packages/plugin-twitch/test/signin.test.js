@@ -41,12 +41,12 @@ const calls = (fragment) => twitchApi.mock.calls.filter(([url]) => String(url).i
 /** Build the plugin the way the host would, with a `save` that records what it was given. */
 const build = (config = {}, options = { clientId: 'cid' }) => {
   const save = vi.fn(async () => ({ ok: true }))
-  const plugin = twitch(TwitchHandler, options).create({
+  const plugin = twitch(TwitchHandler, { events: ['chat'], ...options }).create({
     mutate: vi.fn(),
     owner: () => true,
     studio: 's',
     save,
-    config: { events: 'channel.chat.message', ...config },
+    config,
   })
 
   return { plugin, save }
@@ -101,7 +101,7 @@ describe('signing in', () => {
   })
 
   it('asks for exactly the permissions its events need', async () => {
-    const { plugin } = build({ events: 'channel.chat.message,channel.cheer' })
+    const { plugin } = build({}, { clientId: 'cid', events: ['chat', 'cheer'] })
 
     await plugin.act('signIn')
 
@@ -245,6 +245,49 @@ describe('signed in', () => {
   })
 })
 
+// The plugin carries on with whatever Twitch will send, which is right -- chat is
+// worth having without cheers -- and used to be silent about the rest, in a console
+// inside a SharedWorker. A graphic that never shows a sub looks exactly like a
+// quiet night, so the panel says.
+describe('events Twitch will not send to this sign-in', () => {
+  const refusing = (...refused) => {
+    answers.subscribe = (body) => reply(refused.includes(body.type) ? 403 : 202)
+  }
+
+  const connected = async (config, events) => {
+    const { plugin } = build({ ...signedIn, ...config }, { clientId: 'cid', events })
+    const opening = plugin.open()
+
+    await vi.advanceTimersByTimeAsync(0)
+    sockets[0].welcome()
+    await opening
+
+    return plugin
+  }
+
+  it('are named on the panel, in the words the help uses', async () => {
+    refusing('channel.subscribe', 'channel.cheer')
+
+    const plugin = await connected({}, ['chat', 'subscribe', 'cheer'])
+
+    expect(plugin.notice.text).toBe('Signed in as me. Twitch will not send subs and cheers to this sign-in.')
+  })
+
+  it('say why when the channel is somebody else’s, because then it is not a fault', async () => {
+    refusing('channel.subscribe')
+
+    const plugin = await connected({ channel: 'Them' }, ['chat', 'subscribe'])
+
+    expect(plugin.notice.text).toMatch(/will not send subs to this sign-in\. On somebody else’s channel, only its owner’s sign-in gets those\./)
+  })
+
+  it('leave the line alone when everything came through', async () => {
+    const plugin = await connected({}, ['chat', 'cheer'])
+
+    expect(plugin.notice.text).toBe('Signed in as me.')
+  })
+})
+
 // Connecting is two round trips to Twitch before the socket is even dialled, then a
 // welcome and a subscription per event: seconds, during which the plugin is neither
 // up nor down. The worker rechecks every plugin on each sync status change, and at
@@ -358,11 +401,35 @@ describe('the studio author’s options', () => {
   it('takes the Client ID from the build, and asks nobody for it', () => {
     const definition = twitch(TwitchHandler, { clientId: 'cid' })
 
-    expect(definition.config.map((field) => field.key)).toEqual(['channel', 'events'])
+    expect(definition.config.map((field) => field.key)).toEqual(['channel'])
   })
 
   it('asks the operator only when the build did not bring one', () => {
-    expect(twitch(TwitchHandler).config.map((field) => field.key)).toEqual(['clientId', 'channel', 'events'])
+    expect(twitch(TwitchHandler).config.map((field) => field.key)).toEqual(['clientId', 'channel'])
+  })
+
+  it('narrows the events by the names its handler uses, or by Twitch’s', async () => {
+    // The author's call rather than a box on the panel: it decides what Twitch asks
+    // a streamer to approve, and a typo at the board used to switch events off.
+    const { plugin } = build(signedIn, { clientId: 'cid', events: ['chat', 'channel.raid'] })
+    const opening = plugin.open()
+
+    await vi.advanceTimersByTimeAsync(0)
+    sockets[0].welcome()
+    await opening
+
+    expect(calls('/eventsub/subscriptions').map(([, init]) => JSON.parse(init.body).type)).toEqual(['channel.chat.message', 'channel.raid'])
+  })
+
+  it('takes every event when the author names none', async () => {
+    const { plugin } = build(signedIn, { clientId: 'cid', events: undefined })
+    const opening = plugin.open()
+
+    await vi.advanceTimersByTimeAsync(0)
+    sockets[0].welcome()
+    await opening
+
+    expect(calls('/eventsub/subscriptions')).toHaveLength(7)
   })
 
   it('in mock mode, talks to the Twitch CLI on this machine with no sign-in at all', async () => {

@@ -11,7 +11,9 @@ const fields = (init) => Object.fromEntries(new URLSearchParams(init.body))
 
 describe('asking for a code', () => {
   it('names the app and every permission the chosen events need', async () => {
-    const fetch = vi.fn(async () => reply(200, { device_code: 'dev', user_code: 'WDJB-MJHT', verification_uri: 'https://www.twitch.tv/activate', interval: 5, expires_in: 1800 }))
+    const fetch = vi.fn(async () =>
+      reply(200, { device_code: 'dev', user_code: 'WDJB-MJHT', verification_uri: 'https://www.twitch.tv/activate', interval: 5, expires_in: 1800 }),
+    )
 
     const code = await requestCode({ clientId: 'cid', scopes: ['user:read:chat', 'bits:read'], fetch, now: 1_000 })
 
@@ -28,7 +30,8 @@ describe('asking for a code', () => {
 })
 
 describe('waiting for the operator to approve it', () => {
-  const ask = (status, body) => pollToken({ clientId: 'cid', scopes: ['user:read:chat'], deviceCode: 'dev', fetch: vi.fn(async () => reply(status, body)), now: 0 })
+  const ask = (status, body) =>
+    pollToken({ clientId: 'cid', scopes: ['user:read:chat'], deviceCode: 'dev', fetch: vi.fn(async () => reply(status, body)), now: 0 })
 
   it('hears "not yet" as waiting, not as failing', async () => {
     expect(await ask(400, { status: 400, message: 'authorization_pending' })).toEqual({ pending: true })
@@ -51,7 +54,12 @@ describe('waiting for the operator to approve it', () => {
 
     await pollToken({ clientId: 'cid', scopes: ['a', 'b'], deviceCode: 'dev', fetch })
 
-    expect(fields(fetch.mock.calls[0][1])).toEqual({ client_id: 'cid', scopes: 'a b', device_code: 'dev', grant_type: 'urn:ietf:params:oauth:grant-type:device_code' })
+    expect(fields(fetch.mock.calls[0][1])).toEqual({
+      client_id: 'cid',
+      scopes: 'a b',
+      device_code: 'dev',
+      grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+    })
   })
 })
 

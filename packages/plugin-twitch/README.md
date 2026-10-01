@@ -55,9 +55,22 @@ types that channel's name under **Channel**.
 `onChat`, `onFollow`, `onSubscribe`, `onResub`, `onGift`, `onCheer`, `onRaid`, and
 `onRevoked` for a subscription Twitch withdrew.
 
-`Events` on the panel is a comma-separated list, blank for all of them. Twitch is only
-asked for the permissions the chosen events need, so a studio that shows chat need not
-ask for subscription access.
+Every one of them, unless you narrow it. Narrowing is yours, as the author, rather
+than the operator's, because it decides what Twitch asks a streamer to approve at
+sign-in:
+
+```js
+twitch(MyShow, { clientId: 'your-client-id', events: ['chat', 'raid'] })
+```
+
+Names are the handler's (`chat`, `follow`, `subscribe`, `resub`, `gift`, `cheer`,
+`raid`) or Twitch's (`channel.raid`). A chat-only studio then asks only to read
+chat.
+
+Some events depend on who signed in. A moderator watching somebody else's channel
+gets chat, follows and raids; subs, gifts and cheers only go to the channel's own
+sign-in. The plugin carries on with whatever Twitch will send and names the rest on
+the panel, since a graphic that never shows a sub otherwise looks like a quiet night.
 
 ## Trying it without Twitch
 
