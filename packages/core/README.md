@@ -1,5 +1,3 @@
-<p align="center"><img src="https://raw.githubusercontent.com/FourCourtJester/Single-Studio/main/docs/public/logo.webp" alt="" width="160"></p>
-
 # @single-studio/core
 
 [![npm](https://img.shields.io/npm/v/@single-studio/core.svg)](https://www.npmjs.com/package/@single-studio/core)

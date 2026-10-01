@@ -38,18 +38,9 @@ export default defineConfig({
   // repository and stay off the site, which is the same split docs/internal/ makes.
   srcExclude: ['internal/**', 'api-review.md'],
 
-  // head links are not given `base`, unlike the theme's logo and the hero image, so the
-  // subpath is written out here. The PNG is for browsers that will not take an SVG icon.
-  head: [
-    ['meta', { name: 'theme-color', content: '#0ea5e9' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/Single-Studio/favicon.svg' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/Single-Studio/favicon-32.png' }],
-    ['link', { rel: 'apple-touch-icon', href: '/Single-Studio/apple-touch-icon.png' }],
-  ],
+  head: [['meta', { name: 'theme-color', content: '#0ea5e9' }]],
 
   themeConfig: {
-    logo: '/favicon.svg',
-
     nav: [
       { text: 'Getting started', link: '/getting-started' },
       { text: 'Components', link: '/api' },
