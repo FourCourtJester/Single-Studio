@@ -1798,6 +1798,13 @@ check(
   await becomes(control, () => Boolean(document.querySelector('.ss-plugin[data-plugin="rocket-league"] .ss-plugin-body'))),
   'and so it opens itself, rather than hiding the settings somebody came here to change',
 )
+
+// This page is on localhost, and so is the game, so the browser has nothing to
+// gate -- and the panel must not blame it. The public-site case is near the end.
+check(
+  !(await control.locator('.ss-plugin[data-plugin="rocket-league"] .ss-local-access').count()),
+  'a studio served from this computer is not told the browser is blocking it',
+)
 check((await row.locator('.ss-plugin-toggle').textContent()).includes('Demo feed'), 'and still says which plugin it is while folded')
 check(
   (await row.locator('.ss-plugin-toggle').textContent()).includes('Connected'),
@@ -2172,6 +2179,84 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   check(!(await lower.locator('.ss-scene').innerText()).includes('viewer'), 'and the lower third is left to the operator')
 
   await chat.close()
+}
+
+// -- A studio on a public site, reaching this computer ------------------------
+// Chrome (142+) blocks that until the user allows it, and a plugin cannot be the one
+// to ask: its socket is a WebSocket, which never prompts, in a worker, which cannot.
+// The board can -- a plain request from the page brings the prompt up -- so the
+// panel explains and offers Allow. Both halves were checked in Chrome 154.
+//
+// The Chromium here (141) knows the permission but does not enforce it, so this
+// stands in for one that does: the fixture is served under a name that is not
+// local, and the permission's answer is the test's. What is under test is the
+// panel deciding from that answer, and the request it makes.
+{
+  const PUBLIC = BASE.replace(/localhost|127\.0\.0\.1/, 'studio.test')
+  const elsewhere = await chromium.launch({
+    executablePath,
+    args: ['--host-resolver-rules=MAP studio.test 127.0.0.1', `--unsafely-treat-insecure-origin-as-secure=${PUBLIC}`],
+  })
+  const board = await (await elsewhere.newContext()).newPage()
+
+  await board.addInitScript(() => {
+    let state = 'prompt'
+    const heard = new Set()
+    const status = {
+      get state() {
+        return state
+      },
+      addEventListener: (_type, listener) => heard.add(listener),
+      removeEventListener: (_type, listener) => heard.delete(listener),
+    }
+    const query = navigator.permissions.query.bind(navigator.permissions)
+
+    navigator.permissions.query = async (descriptor) => (descriptor.name === 'loopback-network' ? status : query(descriptor))
+
+    const fetch = window.fetch.bind(window)
+
+    window.__prompted = []
+    window.fetch = (url, init) => {
+      if (!String(url).startsWith('http://localhost:49124')) return fetch(url, init)
+
+      // The user accepting the prompt.
+      window.__prompted.push({ url: String(url), mode: init?.mode })
+      state = 'granted'
+      for (const listener of heard) listener()
+
+      return Promise.reject(new TypeError('Failed to fetch'))
+    }
+  })
+
+  await board.goto(`${PUBLIC}/#/`)
+  await board.waitForSelector('text=Clocks')
+  await board.locator('.ss-control-bar').hover()
+  await board.locator('.ss-menu-open').click()
+  await board.locator('.ss-menu-plugins').click()
+
+  const blocked = (plugin) => `.ss-plugin[data-plugin="${plugin}"] .ss-local-access`
+
+  check(
+    await becomes(board, (selector) => /programs on this computer/.test(document.querySelector(selector)?.textContent ?? ''), blocked('rocket-league')),
+    'a studio on a public site is told the browser is blocking the game on this computer',
+  )
+  check(!(await board.locator(blocked('twitch')).count()), 'and not about a plugin that talks to the internet')
+
+  await board.locator(`${blocked('rocket-league')} .ss-local-access-allow`).click()
+
+  const prompted = await board.evaluate(() => window.__prompted)
+
+  console.log(`  local access: ${JSON.stringify(prompted)}`)
+  check(
+    prompted.length === 1 && prompted[0].url === 'http://localhost:49124' && prompted[0].mode === 'no-cors',
+    'Allow makes the one plain request that brings up the prompt, at the game’s own port',
+  )
+  check(
+    await becomes(board, (selector) => !document.querySelector(selector), blocked('rocket-league')),
+    'and once it is granted, the panel stops blaming the browser',
+  )
+
+  await elsewhere.close()
 }
 
 // -- Capability guard --------------------------------------------------------

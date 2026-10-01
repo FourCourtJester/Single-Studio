@@ -16,6 +16,7 @@ carry status markers rather than instructions.
 | [sheets.md](sheets.md)               | A shared spreadsheet as a data source: an API key, polling, and the quota floor                               |
 | [obs.md](obs.md)                     | obs-websocket v5: the handshake, the auth hash, and the subscription bitmask                                  |
 | [twitch.md](twitch.md)               | EventSub, the auth constraint that shapes it, and what is still unverified                                    |
+| [local-network.md](local-network.md) | Chrome blocking a public studio from reaching this computer, and the board's Allow button                     |
 | [releasing.md](releasing.md)         | Publishing both packages to npm — trusted publishing, tags, and the rehearsal                                 |
 
 **If you are building a studio, none of this is for you.** Start at

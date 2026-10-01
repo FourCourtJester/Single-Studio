@@ -412,8 +412,44 @@ describe('the manifest a board reads', () => {
         problem: null,
         notice: null,
         actions: [],
+        address: null,
       },
     ])
+  })
+
+  it('carries where a plugin connects, so the board can tell when the browser is what stops it', async () => {
+    // Only the board can ask whether the studio's site may reach this computer, and
+    // only the board can bring up the prompt. It needs the address to do either.
+    const at = (name, url) =>
+      definePlugin({
+        name,
+        create: () => {
+          const runtime = new PluginBase(name)
+
+          Object.defineProperty(runtime, 'url', { get: url })
+
+          return runtime
+        },
+      })
+    const studio = createVelcroHost({
+      name: `address-${Math.random()}`,
+      mutations: {},
+      plugins: [
+        at('game', () => 'ws://localhost:49124'),
+        // A plugin whose address depends on settings it has not got yet. Its row still
+        // has to render, so a throw is no address rather than no manifest.
+        at('unset', () => {
+          throw new Error('no port yet')
+        }),
+      ],
+    })
+
+    await studio.started
+
+    const manifest = await studio.pluginManifest()
+
+    expect(manifest.find((plugin) => plugin.name === 'game').address).toBe('ws://localhost:49124')
+    expect(manifest.find((plugin) => plugin.name === 'unset').address).toBeNull()
   })
 
   it('carries why a plugin is not connected, not only that it is not', async () => {

@@ -60,6 +60,28 @@ chosen by whoever runs the game, in a file on their own PC. Open **Settings →
 Plugins** on the board to set it. Values are stored per studio on that machine, so
 they travel with an export and are not replicated to anybody else.
 
+### A studio on the web, a program on this computer
+
+Chrome (from 142) stops a page on a public site — a studio on GitHub Pages — from
+reaching this computer or the network it is on until the user allows it. That covers
+OBS on `localhost:4455`, a game's stats port, and anything else local a plugin talks
+to. It does not cover Twitch or Sheets, which are on the internet, or a studio
+served from this computer, such as `npm run dev`.
+
+A plugin cannot ask for that permission itself: its socket is a WebSocket, which
+never shows the prompt, and it runs in a worker, which cannot. So the board does it.
+When a plugin on this computer is not connecting and the browser says the studio has
+not been allowed, its row on **Settings → Plugins** says so and offers **Allow**.
+Pressing it brings up the browser's prompt; accept it, and the plugin connects. Once
+per computer.
+
+If it was refused before, the browser will not ask again, and the row says to allow
+the site in its settings instead — the icon left of the address bar. Chrome has
+renamed the setting more than once; in Chrome 154 it is **App devices** for this
+computer and **Local network** for others. Machines managed centrally can be allowed
+by policy instead: `LocalNetworkAccessAllowedForUrls`, and from Chrome 146
+`LoopbackNetworkAllowedForUrls`.
+
 ## Handling events
 
 A plugin ships a handler class with one method per event, all of them doing nothing.

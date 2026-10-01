@@ -450,10 +450,23 @@ export function createVelcroHost(config = {}) {
         // offers all of them; one that never started offers none, because there is
         // nothing to run them.
         actions: actionsOf(definition, plugins.get(pluginName)),
+        // Where it connects, for the board to tell whether the browser is what is
+        // stopping it. Only the board can: it can ask about the permission and show
+        // the prompt, and a worker can do neither.
+        address: addressOf(plugins.get(pluginName)),
       })
     }
 
     return list
+  }
+
+  /** A plugin's address, if it has one and can say it without throwing. */
+  function addressOf(runtime) {
+    try {
+      return typeof runtime?.url === 'string' ? runtime.url : null
+    } catch {
+      return null
+    }
   }
 
   /**
@@ -499,7 +512,8 @@ export function createVelcroHost(config = {}) {
     const runtime = plugins.get(pluginName)
 
     if (!definition) return { ok: false, reason: `no plugin called "${pluginName}"` }
-    if (!actionsOf(definition, runtime).some((action) => action.key === key)) return { ok: false, reason: `"${key}" is not something ${definition.label} can do right now` }
+    if (!actionsOf(definition, runtime).some((action) => action.key === key))
+      return { ok: false, reason: `"${key}" is not something ${definition.label} can do right now` }
 
     try {
       await runtime.act(key)

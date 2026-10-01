@@ -1,5 +1,9 @@
 import { Emitter } from '../toolkits/emitter'
+import { addressSpace } from '../toolkits/network'
 import { Service } from './Service'
+
+/** The longest wait between attempts at a program on this computer or its network. */
+const LOCAL_RETRY_CAP = 5_000
 
 // Everything a plugin that talks over a WebSocket does before it does anything
 // interesting.
@@ -75,6 +79,30 @@ export class SocketService extends Service {
    */
   get connectBudgetMs() {
     return 10_000
+  }
+
+  /**
+   * Five seconds for an address on this computer or its network, rather than the
+   * thirty an internet API gets.
+   *
+   * A local program -- OBS, a game, a GameState receiver -- is down because somebody
+   * closed it, and comes back when they open it again. Waiting thirty seconds after
+   * that to notice is the board saying "Reconnecting" over a game that is plainly
+   * running: measured, 29 seconds from the stats port coming back to "Connected".
+   * Asking a closed port on this machine every five seconds costs nothing.
+   */
+  get retryCapMs() {
+    let url
+
+    try {
+      url = this.url
+    } catch {
+      return super.retryCapMs
+    }
+
+    const space = typeof url === 'string' ? addressSpace(url) : null
+
+    return space === 'loopback' || space === 'local' ? LOCAL_RETRY_CAP : super.retryCapMs
   }
 
   get silenceBudgetMs() {

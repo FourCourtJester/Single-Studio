@@ -180,6 +180,15 @@ export class Service {
     await this.close()
   }
 
+  /**
+   * The longest it waits between attempts. Thirty seconds suits an API across the
+   * internet, where hammering a struggling service makes it worse; see SocketService
+   * for why a program on this computer gets less.
+   */
+  get retryCapMs() {
+    return BACKOFF.max
+  }
+
   /** Subclasses call this when a connection drops on its own. */
   dropped(err) {
     if (this.#stopped) return
@@ -194,7 +203,7 @@ export class Service {
     // reading the board during the backoff can see why.
     this.problem = err?.message ?? (err ? String(err) : null)
 
-    const delay = Math.min(BACKOFF.initial * BACKOFF.factor ** this.#attempt, BACKOFF.max)
+    const delay = Math.min(BACKOFF.initial * BACKOFF.factor ** this.#attempt, this.retryCapMs)
 
     this.#attempt += 1
     console.warn(`[${this.name}] retrying in ${delay}ms`, err?.message ?? err)

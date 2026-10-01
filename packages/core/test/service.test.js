@@ -253,6 +253,65 @@ describe('a service that does not', () => {
   })
 })
 
+describe('how long it waits between attempts', () => {
+  /** A socket service at `url` whose every attempt fails at once. */
+  class Refused extends SocketService {
+    static serviceName = 'refused'
+
+    constructor(url) {
+      super({ mutate: () => {} })
+      this.at = url
+    }
+
+    get url() {
+      return this.at
+    }
+
+    connect() {
+      throw new Error('nobody home')
+    }
+  }
+
+  /** The waits it chose across ten failures in a row. */
+  const waits = async (url) => {
+    vi.useFakeTimers()
+
+    const chosen = []
+    const real = globalThis.setTimeout
+
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn, ms, ...rest) => {
+      if (ms >= 500) chosen.push(ms)
+
+      return real(fn, ms, ...rest)
+    })
+
+    const made = new Refused(url)
+
+    await made.start()
+    for (let i = 0; i < 10; i += 1) await vi.advanceTimersByTimeAsync(30_000)
+    await made.stop()
+
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+
+    return chosen
+  }
+
+  it('asks a program on this computer again within five seconds, however long it has been down', async () => {
+    // A game or OBS is down because somebody closed it. Thirty seconds after they
+    // reopen it, the board was still saying Reconnecting: measured at 29.
+    const chosen = await waits('ws://localhost:49124')
+
+    expect(Math.max(...chosen)).toBe(5_000)
+  })
+
+  it('still backs off to thirty seconds from something across the internet', async () => {
+    const chosen = await waits('wss://eventsub.wss.twitch.tv/ws')
+
+    expect(Math.max(...chosen)).toBe(30_000)
+  })
+})
+
 describe('a connection that is accepted and then abandoned', () => {
   /**
    * The one shape the retry never saw.
