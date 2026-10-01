@@ -112,7 +112,8 @@ describe('signing in', () => {
     const { plugin, save } = build()
     let asked = 0
 
-    answers.token = () => (++asked < 3 ? reply(400, { message: 'authorization_pending' }) : reply(200, { access_token: 'new', refresh_token: 'r', expires_in: 14_000 }))
+    answers.token = () =>
+      ++asked < 3 ? reply(400, { message: 'authorization_pending' }) : reply(200, { access_token: 'new', refresh_token: 'r', expires_in: 14_000 })
 
     await plugin.act('signIn')
     await vi.advanceTimersByTimeAsync(4_999)
@@ -244,11 +245,65 @@ describe('signed in', () => {
   })
 })
 
+// Connecting is two round trips to Twitch before the socket is even dialled, then a
+// welcome and a subscription per event: seconds, during which the plugin is neither
+// up nor down. The worker rechecks every plugin on each sync status change, and at
+// startup every page opened is one. Each used to start it again, and each left a
+// socket subscribed -- one chat message, three times on screen.
+describe('while it is still connecting', () => {
+  /** Hold the channel lookup until the test lets it answer. */
+  const holdLookup = () => {
+    const held = Promise.withResolvers()
+
+    answers.users = () => held.promise.then(() => reply(200, { data: [{ id: '999', login: 'them' }] }))
+
+    return held
+  }
+
+  it('connects once however many times it is rechecked', async () => {
+    const held = holdLookup()
+    const { plugin } = build({ ...signedIn, channel: 'Them' })
+    const starting = [plugin.start(), plugin.recheck(), plugin.recheck()]
+
+    held.resolve()
+    await vi.advanceTimersByTimeAsync(0)
+
+    // Counted before the welcome: with three sockets, only the last start would
+    // ever hear back, and the test would hang instead of saying how many.
+    expect(sockets).toHaveLength(1)
+
+    sockets[0].welcome()
+    await Promise.all(starting)
+
+    expect(calls('/eventsub/subscriptions')).toHaveLength(1)
+  })
+
+  it('does not dial at all once it has been stopped', async () => {
+    // A restart -- Save on the panel, or signing in -- stops this plugin and builds
+    // a new one. Stopped mid-lookup, the old one used to carry on and dial anyway.
+    const held = holdLookup()
+    const { plugin } = build({ ...signedIn, channel: 'Them' })
+    const starting = plugin.start()
+
+    await vi.advanceTimersByTimeAsync(0)
+    await plugin.stop()
+    held.resolve()
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(sockets).toHaveLength(0)
+
+    await starting
+
+    expect(plugin.status).toBe('idle')
+  })
+})
+
 describe('staying signed in', () => {
   it('refreshes a token about to run out before connecting, and keeps the new one without a restart', async () => {
     const { plugin, save } = build({ ...signedIn, expiresAt: Date.now() + 60_000 })
 
-    answers.token = (form) => (form.grant_type === 'refresh_token' ? reply(200, { access_token: 'fresh', refresh_token: 'ref2', expires_in: 14_000 }) : reply(400))
+    answers.token = (form) =>
+      form.grant_type === 'refresh_token' ? reply(200, { access_token: 'fresh', refresh_token: 'ref2', expires_in: 14_000 }) : reply(400)
 
     const opening = plugin.open()
 

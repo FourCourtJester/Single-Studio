@@ -33,6 +33,30 @@ class Fake extends Service {
 
 const service = (options = {}) => new Fake({ mutate: () => {}, ...options })
 
+/** A connection that takes as long as the test says, and can be counted while open. */
+class Slow extends Fake {
+  live = 0
+
+  #arrived = Promise.withResolvers()
+
+  arrive() {
+    this.#arrived.resolve()
+  }
+
+  async open() {
+    this.opened += 1
+    await this.#arrived.promise
+    this.live += 1
+  }
+
+  async close() {
+    this.closed += 1
+    this.live = Math.max(0, this.live - 1)
+  }
+}
+
+const slow = () => new Slow({ mutate: () => {} })
+
 describe('a service that owns its ingress', () => {
   it('opens a connection', async () => {
     const made = service()
@@ -146,6 +170,40 @@ describe('a service that does not', () => {
 
     expect(made.opened).toBe(1)
     expect(made.closed).toBe(0)
+  })
+
+  // The test above waits for the connection before rechecking. The window that
+  // matters is the one before: `status` only moves once `open()` settles, so a
+  // service still connecting reads as `idle`, and `recheck` starts idle services.
+  // Twitch spends seconds there -- a welcome, then a subscription per event -- and
+  // every page opened at startup moved the sync status. Each recheck started it
+  // again, the earlier sockets were orphaned still subscribed, and every chat
+  // message arrived three times.
+  it('does not open a second connection on a recheck while the first is still coming up', async () => {
+    const made = slow()
+    const starting = made.start()
+    const again = [made.recheck(), made.recheck()]
+
+    made.arrive()
+    await Promise.all([starting, ...again])
+
+    expect(made.opened).toBe(1)
+    expect(made.status).toBe('connected')
+  })
+
+  it('does not come up after it was stopped mid-connection', async () => {
+    // Stopping closes what is open, and mid-connection nothing is open yet. When
+    // the connection then arrives it belongs to a service that was told to stand
+    // down, and nothing would ever close it.
+    const made = slow()
+    const starting = made.start()
+
+    await made.stop()
+    made.arrive()
+    await starting
+
+    expect(made.status).toBe('idle')
+    expect(made.live).toBe(0)
   })
 
   it('does not come back up on a retry it no longer owns', async () => {

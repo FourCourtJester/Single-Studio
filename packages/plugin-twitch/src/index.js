@@ -301,7 +301,8 @@ class Twitch extends SocketService {
     return asked.length ? asked : Object.keys(EVENTS)
   }
 
-  async open() {
+  /** @param {AbortSignal} [signal] */
+  async open(signal) {
     if (!this.#mock) {
       if (!this.clientId) throw new Error('This studio has no Twitch Client ID. Its author sets one when adding the plugin.')
       if (!this.config.token) throw new Error('Not signed in to Twitch yet. Press Sign in with Twitch.')
@@ -310,6 +311,10 @@ class Twitch extends SocketService {
     }
 
     this.#broadcaster = await this.#channel()
+
+    // Two round trips to Twitch above, and a restart or a stand-down can land during
+    // either. A socket dialled after that would subscribe for a plugin nobody holds.
+    if (signal?.aborted) return undefined
 
     return super.open()
   }
@@ -522,7 +527,13 @@ export const twitch = (Handler = TwitchHandler, options = {}) =>
       // visit Twitch's developer console; the author does it once for everybody.
       ...(options.clientId || options.mock
         ? []
-        : [{ key: 'clientId', label: 'Client ID', help: 'This studio does not come with one. From an app registered as a Public client at dev.twitch.tv/console/apps.' }]),
+        : [
+            {
+              key: 'clientId',
+              label: 'Client ID',
+              help: 'This studio does not come with one. From an app registered as a Public client at dev.twitch.tv/console/apps.',
+            },
+          ]),
       {
         key: 'channel',
         label: 'Channel',
