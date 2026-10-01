@@ -130,11 +130,13 @@ class Rocket extends RocketLeagueHandler {
 }
 
 /**
- * Twitch on this studio's lower third: whoever last chatted, followed or raided.
+ * Twitch on its own graphic, #/source/twitch-chat: the last five chat messages,
+ * and whoever last followed, subscribed or raided above them. Sign in from Settings
+ * -> Plugins and type in the channel's chat.
  *
- * The lower third is the graphic that was already here, so nothing new is needed to
- * see it working. Open #/source/lower-third, sign in from Settings -> Plugins, and
- * type in the channel's chat.
+ * Not the lower third, which this did at first. That is the operator's graphic, and
+ * a chat message replacing a name the board just put on air is the plugin taking
+ * over the show.
  *
  * The Client ID is a real one, registered as a Public client for testing this
  * fixture. It is not a secret -- a studio ships its Client ID in the build, which is
@@ -145,27 +147,27 @@ class Rocket extends RocketLeagueHandler {
  * sign-in:
  *
  *   pnpm --filter @single-studio/plugin-twitch mock
- *   VITE_TWITCH_MOCK=1 pnpm fixture:dev
+ *   VITE_TWITCH_MOCK=1 pnpm fixture
  */
 class Chat extends TwitchHandler {
-  #show(title, subtitle) {
-    this.mutate('set', { 'variables.lowerthird.title': title, 'variables.lowerthird.subtitle': subtitle, 'toggles.lowerthird': true })
+  #alert(text) {
+    this.mutate('set', { 'variables.twitch.alert': text })
   }
 
   onChat({ from, text }) {
-    this.#show(from?.name ?? 'Someone', text)
+    this.mutate('twitch:chat', { name: from?.name ?? 'Someone', text })
   }
 
   onFollow({ from }) {
-    this.#show(from?.name ?? 'Someone', 'just followed')
+    this.#alert(`${from?.name ?? 'Someone'} just followed`)
   }
 
   onSubscribe({ from, tier }) {
-    this.#show(from?.name ?? 'Someone', `subscribed at tier ${tier}`)
+    this.#alert(`${from?.name ?? 'Someone'} subscribed at tier ${tier}`)
   }
 
   onRaid({ from, viewers }) {
-    this.#show(from?.name ?? 'A channel', `is raiding with ${viewers}`)
+    this.#alert(`${from?.name ?? 'A channel'} is raiding with ${viewers}`)
   }
 }
 

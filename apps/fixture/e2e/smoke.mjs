@@ -2127,6 +2127,53 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]'))
 }
 
+// -- Twitch chat -------------------------------------------------------------
+// Chat has its own graphic rather than the lower third, and each message moves the
+// rest down a line. Twitch itself is the manual check, so this sends what the
+// plugin's handler sends -- the same mutation, into the same worker -- by opening a
+// port of its own with the arguments the page used.
+{
+  const chat = await context.newPage()
+
+  await chat.addInitScript(() => {
+    const Real = window.SharedWorker
+
+    window.SharedWorker = class extends Real {
+      constructor(url, options) {
+        super(url, options)
+        window.__velcroWorker = { url: String(url), options }
+      }
+    }
+  })
+  await chat.goto(`${BASE}/#/source/twitch-chat`)
+  await chat.waitForSelector('.twitch-chat')
+
+  const lines = () => chat.evaluate(() => [...document.querySelectorAll('.twitch-line')].map((line) => line.textContent.trim()))
+
+  await chat.evaluate(() => {
+    const { url, options } = window.__velcroWorker
+    const worker = new SharedWorker(url, options)
+
+    worker.port.start()
+    for (let i = 1; i <= 7; i += 1) worker.port.postMessage({ type: 'mutate', name: 'twitch:chat', payload: { name: `viewer${i}`, text: `message ${i}` } })
+  })
+
+  check(
+    await becomes(chat, () => /viewer7/.test(document.querySelector('.twitch-line[data-line="0"]')?.textContent ?? '')),
+    'a chat message lands on the bottom line of the Twitch box',
+  )
+
+  const shown = await lines()
+  console.log(`  twitch chat: ${JSON.stringify(shown)}`)
+  check(
+    shown.join('|') === 'viewer3 message 3|viewer4 message 4|viewer5 message 5|viewer6 message 6|viewer7 message 7',
+    'and the five before it move up, oldest dropped off the top',
+  )
+  check(!(await lower.locator('.ss-scene').innerText()).includes('viewer'), 'and the lower third is left to the operator')
+
+  await chat.close()
+}
+
 // -- Capability guard --------------------------------------------------------
 // Simulate a browser whose SharedWorker predates the options object -- it coerces
 // { type: 'module' } to a name and loads the script as a classic worker, which is
