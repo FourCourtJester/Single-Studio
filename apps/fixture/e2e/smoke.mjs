@@ -2192,10 +2192,16 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 // local, and the permission's answer is the test's. What is under test is the
 // panel deciding from that answer, and the request it makes.
 {
-  const PUBLIC = BASE.replace(/localhost|127\.0\.0\.1/, 'studio.test')
+  const served = new URL(BASE)
+  const PUBLIC = BASE.replace(served.hostname, 'studio.test')
+  // Mapped to whatever name the suite already reaches the server by, never to an
+  // address. On GitHub's runner the preview listens on ::1, so 'studio.test' mapped
+  // to 127.0.0.1 was refused there while every other page in the run loaded; here,
+  // with no IPv6 at all, it worked. Resolving the same name the same way cannot
+  // disagree with the rest of the suite.
   const elsewhere = await chromium.launch({
     executablePath,
-    args: ['--host-resolver-rules=MAP studio.test 127.0.0.1', `--unsafely-treat-insecure-origin-as-secure=${PUBLIC}`],
+    args: [`--host-resolver-rules=MAP studio.test ${served.hostname}`, `--unsafely-treat-insecure-origin-as-secure=${PUBLIC}`],
   })
   const board = await (await elsewhere.newContext()).newPage()
 
