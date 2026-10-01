@@ -5,6 +5,9 @@ hero:
   name: Single Studio
   text: Broadcast graphics for OBS
   tagline: Scoreboards, lower thirds and clocks as React components — driven from an operator's board inside OBS. No server, no backend, and the graphics keep working when the network does not.
+  image:
+    src: /logo.webp
+    alt: Single Studio
   actions:
     - theme: brand
       text: Get started
