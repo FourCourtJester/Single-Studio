@@ -25,7 +25,21 @@
 //
 // Two lines, explicit, and no election. The host machine is known in advance.
 
-const BACKOFF = { initial: 500, max: 30_000, factor: 2 }
+/**
+ * Half a second, doubling, never more than ten.
+ *
+ * Ten rather than the thirty this used to be. Most of what a studio connects to is
+ * a program on the same computer -- OBS, a game, a GameState receiver -- which is
+ * down because somebody closed it and back when they reopen it, and at thirty the
+ * board said "Reconnecting" over a running game for 29 seconds (measured). Ten
+ * seconds is also gentle enough on anything across the internet.
+ *
+ * `jitter` takes up to a quarter off every wait, so the cap is a ceiling, never
+ * exceeded. Without it every machine that lost the same service at the same moment
+ * -- a Twitch outage, a router restart -- would come back on the same beat and keep
+ * arriving together.
+ */
+const BACKOFF = { initial: 500, max: 10_000, factor: 2, jitter: 0.25 }
 
 export class Service {
   static serviceName = 'service'
@@ -194,7 +208,8 @@ export class Service {
     // reading the board during the backoff can see why.
     this.problem = err?.message ?? (err ? String(err) : null)
 
-    const delay = Math.min(BACKOFF.initial * BACKOFF.factor ** this.#attempt, BACKOFF.max)
+    const ceiling = Math.min(BACKOFF.initial * BACKOFF.factor ** this.#attempt, BACKOFF.max)
+    const delay = Math.round(ceiling * (1 - BACKOFF.jitter * Math.random()))
 
     this.#attempt += 1
     console.warn(`[${this.name}] retrying in ${delay}ms`, err?.message ?? err)

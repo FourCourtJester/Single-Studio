@@ -31,4 +31,9 @@ export default defineConfig({
    * receiving side is wrong.
    */
   resolve: { dedupe: ['yjs'] },
+
+  // The end-to-end suite serves this build under a name that is not local, to see
+  // the board the way a studio on GitHub Pages does when it reaches this computer.
+  // Vite refuses hosts it was not told about.
+  preview: { allowedHosts: ['studio.test'] },
 })

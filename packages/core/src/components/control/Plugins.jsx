@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { usePlugins } from '../../hooks/usePlugins'
 import { cx } from '../../toolkits/cx'
+import { gatedBetween, localPermission, promptable } from '../../toolkits/network'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
 
@@ -131,6 +132,87 @@ function Notice({ notice }) {
   )
 }
 
+/**
+ * Whether the browser will let this studio reach `kind` of address, kept current.
+ *
+ * `null` means the browser does not gate it, or nothing here is gated -- nothing to
+ * say. Watched rather than read once: the answer changes the moment somebody
+ * accepts the prompt, or allows the site by hand in another tab.
+ *
+ * @param {'loopback' | 'local' | null} kind
+ */
+function useLocalAccess(kind) {
+  const [state, setState] = useState(null)
+  const [asked, setAsked] = useState(0)
+
+  useEffect(() => {
+    if (!kind) {
+      setState(null)
+
+      return undefined
+    }
+
+    let live = true
+    let status = null
+    const follow = () => live && setState(status?.state ?? null)
+
+    localPermission(kind).then((found) => {
+      status = found
+      follow()
+      status?.addEventListener?.('change', follow)
+    })
+
+    return () => {
+      live = false
+      status?.removeEventListener?.('change', follow)
+    }
+  }, [kind, asked])
+
+  return { state, recheck: () => setAsked((count) => count + 1) }
+}
+
+/**
+ * Why a plugin on this computer cannot connect, when the reason is the browser.
+ *
+ * The reason under the light says "Could not reach rocket-league at
+ * ws://localhost:49124", which sends an operator to the game -- and the game is
+ * running. Chrome is refusing the connection without saying so: a WebSocket never
+ * shows the prompt, and the plugin's socket is in a worker, which cannot ask. A
+ * plain request from this page does bring the prompt up, so that is what Allow
+ * makes; the permission belongs to the studio's site, and the worker's socket gets
+ * through from then on. Both halves checked in Chrome 154.
+ *
+ * Worded without Chrome's label for the setting, which has changed twice in a year;
+ * the label is offered once, as where to look today.
+ */
+function LocalAccess({ kind, state, asking, onAllow }) {
+  const where = kind === 'loopback' ? 'programs on this computer' : 'devices on your network'
+
+  return (
+    <div role="status" className="ss-local-access flex flex-col gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2" data-state={state}>
+      <p className="text-xs text-amber-100">This browser is blocking the studio from reaching {where}, so this plugin cannot connect however it is set up.</p>
+      {state === 'denied' ? (
+        <p className="text-xs text-amber-200/80">
+          It was refused before, so the browser will not ask again. Allow this site in its settings (the icon left of the address bar; Chrome 154 calls it “App
+          devices”), then reload.
+        </p>
+      ) : (
+        <>
+          <p className="text-xs text-amber-200/80">Press Allow and accept the browser’s prompt. Once per computer.</p>
+          <button
+            type="button"
+            disabled={asking}
+            onClick={onAllow}
+            className="ss-local-access-allow self-start rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-50 transition-colors hover:border-amber-400 disabled:opacity-50"
+          >
+            {asking ? 'Waiting for the browser…' : 'Allow'}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** Setup instructions, written by whoever knows, shown where the question is asked. */
 function Help({ blocks, plugin }) {
   const [open, setOpen] = useState(false)
@@ -214,6 +296,33 @@ function Entry({ plugin, onSave, onAct }) {
 
   const dirty = Object.keys(draft).some((key) => draft[key] !== plugin.values?.[key])
   const status = plugin.status ?? 'idle'
+
+  // Only a step inwards from where this page is served is gated: a studio on GitHub
+  // Pages reaching localhost, not the dev server reaching it.
+  const gated = plugin.address ? gatedBetween(window.location.href, plugin.address) : null
+  const access = useLocalAccess(status === 'connected' ? null : gated)
+  const [asking, setAsking] = useState(false)
+  const blocked = access.state === 'prompt' || access.state === 'denied'
+
+  const allow = async () => {
+    setAsking(true)
+
+    try {
+      // Answered or not, this is only here for the prompt. A port speaking WebSocket
+      // rejects a plain request, after the permission has been settled.
+      await fetch(promptable(plugin.address), { mode: 'no-cors', cache: 'no-store' })
+    } catch {
+      // Expected either way.
+    }
+
+    const now = await localPermission(gated)
+
+    setAsking(false)
+    access.recheck()
+
+    // Now rather than at its next retry, which can be seconds away.
+    if (now?.state === 'granted') await onSave(plugin.name, plugin.values ?? {})
+  }
 
   const save = async () => {
     setSaving(true)
@@ -301,6 +410,8 @@ function Entry({ plugin, onSave, onAct }) {
         on this row that matters, and it changes while they are away typing it.
       */}
       {plugin.notice ? <Notice notice={plugin.notice} /> : null}
+
+      {blocked ? <LocalAccess kind={gated} state={access.state} asking={asking} onAllow={allow} /> : null}
 
       {open ? (
         <div id={`ss-plugin-body-${plugin.name}`} className="ss-plugin-body flex flex-col gap-1">

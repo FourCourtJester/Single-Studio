@@ -253,6 +253,80 @@ describe('a service that does not', () => {
   })
 })
 
+describe('how long it waits between attempts', () => {
+  /** A socket service at `url` whose every attempt fails at once. */
+  class Refused extends SocketService {
+    static serviceName = 'refused'
+
+    constructor(url) {
+      super({ mutate: () => {} })
+      this.at = url
+    }
+
+    get url() {
+      return this.at
+    }
+
+    connect() {
+      throw new Error('nobody home')
+    }
+  }
+
+  /** The waits it chose across ten failures in a row, with `random` as the dice. */
+  const waits = async (url, random = Math.random) => {
+    vi.useFakeTimers()
+
+    const chosen = []
+    const real = globalThis.setTimeout
+
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(Math, 'random').mockImplementation(random)
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn, ms, ...rest) => {
+      if (ms >= 300) chosen.push(ms)
+
+      return real(fn, ms, ...rest)
+    })
+
+    const made = new Refused(url)
+
+    await made.start()
+    for (let i = 0; i < 10; i += 1) await vi.advanceTimersByTimeAsync(10_000)
+    await made.stop()
+
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+
+    return chosen
+  }
+
+  it('starts small and grows, and never waits longer than ten seconds', async () => {
+    // A game or OBS is down because somebody closed it. At a thirty-second cap the
+    // board still said Reconnecting 29 seconds after it was reopened.
+    const chosen = await waits('ws://localhost:49124', () => 0)
+
+    expect(chosen.slice(0, 6)).toEqual([500, 1_000, 2_000, 4_000, 8_000, 10_000])
+    expect(Math.max(...chosen)).toBe(10_000)
+  })
+
+  it('the same for something across the internet', async () => {
+    expect(Math.max(...(await waits('wss://eventsub.wss.twitch.tv/ws', () => 0)))).toBe(10_000)
+  })
+
+  it('takes a random amount off each wait, so machines that dropped together do not return together', async () => {
+    // Up to a quarter, and only ever off: the cap stays a ceiling.
+    const lowest = await waits('ws://localhost:49124', () => 0.999_999)
+    const dice = [0.1, 0.6, 0.3, 0.9, 0.5, 0.2, 0.8, 0.4, 0.7, 0]
+    let roll = 0
+    const rolled = await waits('ws://localhost:49124', () => dice[roll++ % dice.length])
+
+    expect(lowest.slice(-1)[0]).toBe(7_500)
+    expect(Math.min(...rolled.slice(5))).toBeGreaterThanOrEqual(7_500)
+    expect(Math.max(...rolled)).toBeLessThanOrEqual(10_000)
+    // Five in a row at the cap, five different waits.
+    expect(new Set(rolled.slice(5, 10)).size).toBe(5)
+  })
+})
+
 describe('a connection that is accepted and then abandoned', () => {
   /**
    * The one shape the retry never saw.
