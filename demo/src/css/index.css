@@ -16,3 +16,17 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    Your own CSS goes below.
    ───────────────────────────────────────────────────────────────────────────── */
+
+/* A chat line arriving: up and in, quickly, the way chat moves. Only the new line
+   animates -- the list is keyed, so the lines already there are the same elements
+   and do not replay it. */
+.twitch-line {
+  animation: twitch-line-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes twitch-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
