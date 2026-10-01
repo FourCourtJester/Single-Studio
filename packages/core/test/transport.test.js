@@ -40,7 +40,23 @@ const page = (made) => {
   return { port: port1, seen }
 }
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
+/**
+ * Wait until `check` holds, rather than for a fixed time.
+ *
+ * These used to wait 20ms and then look, and under a full `pnpm test` -- every
+ * package's suite at once -- the worker had sometimes not answered by then: "arrives
+ * down the port" failed once in a run that changed nothing near it, then passed
+ * alone 5/5. A deadline instead of a delay makes a busy machine slower, not red, and
+ * says what it was waiting for when something really does not arrive.
+ */
+const until = async (check, what) => {
+  const deadline = Date.now() + 2_000
+
+  while (!check()) {
+    if (Date.now() > deadline) throw new Error(`waited 2s for ${what}`)
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+}
 
 const valuesFor = (seen, path) => seen.filter((message) => message?.type === 'value' && message.path === path).map((message) => message.value)
 
@@ -57,10 +73,10 @@ describe('a change reaching a page', () => {
     await made.started
 
     port.postMessage({ type: 'subscribe', path: 'variables.home.name' })
-    await settle()
+    await until(() => valuesFor(seen, 'variables.home.name').length, 'the opening value')
 
     port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.name': 'Vanguard' } })
-    await settle()
+    await until(() => valuesFor(seen, 'variables.home.name').includes('Vanguard'), 'the change')
 
     expect(valuesFor(seen, 'variables.home.name')).toContain('Vanguard')
   })
@@ -74,13 +90,13 @@ describe('a change reaching a page', () => {
     await made.started
 
     port.postMessage({ type: 'subscribe', path: 'variables.home.score' })
-    await settle()
+    await until(() => valuesFor(seen, 'variables.home.score').length, 'the opening value')
 
     for (const score of [1, 2, 3]) {
       port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.score': score } })
     }
 
-    await settle()
+    await until(() => valuesFor(seen, 'variables.home.score').includes(3), 'the last change')
 
     expect(valuesFor(seen, 'variables.home.score')).toEqual([undefined, 1, 2, 3])
   })
@@ -96,10 +112,12 @@ describe('a change reaching a page', () => {
 
     watcher.port.postMessage({ type: 'subscribe', path: 'variables.home.name' })
     bystander.port.postMessage({ type: 'subscribe', path: 'timers.break' })
-    await settle()
+    await until(() => valuesFor(watcher.seen, 'variables.home.name').length && valuesFor(bystander.seen, 'timers.break').length, 'both opening values')
 
+    // Waiting on the watcher is what makes the bystander's silence mean something:
+    // by then the host has sent this change wherever it was going to send it.
     watcher.port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.name': 'Vanguard' } })
-    await settle()
+    await until(() => valuesFor(watcher.seen, 'variables.home.name').includes('Vanguard'), 'the watcher to hear it')
 
     expect(valuesFor(watcher.seen, 'variables.home.name')).toContain('Vanguard')
     expect(valuesFor(bystander.seen, 'variables.home.name')).toEqual([])
@@ -108,19 +126,23 @@ describe('a change reaching a page', () => {
   it('stops when the page says it has gone', async () => {
     const made = host({ name: `gone-${Math.random()}` })
     const { port, seen } = page(made)
+    // A second page on the same path, still here. Its hearing the change is what
+    // proves the change went out; without it, "nothing arrived" also passes when
+    // nothing was sent, or when it simply has not got here yet.
+    const witness = page(made)
 
     await made.started
 
     port.postMessage({ type: 'subscribe', path: 'variables.home.name' })
-    await settle()
+    witness.port.postMessage({ type: 'subscribe', path: 'variables.home.name' })
+    await until(() => valuesFor(seen, 'variables.home.name').length && valuesFor(witness.seen, 'variables.home.name').length, 'both opening values')
 
     port.postMessage({ type: 'bye' })
-    await settle()
 
     const before = seen.length
 
-    port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.name': 'Vanguard' } })
-    await settle()
+    witness.port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.name': 'Vanguard' } })
+    await until(() => valuesFor(witness.seen, 'variables.home.name').includes('Vanguard'), 'the witness to hear it')
 
     expect(seen.length).toBe(before)
   })
@@ -140,11 +162,11 @@ describe('two roads, one order', () => {
     await made.started
 
     port.postMessage({ type: 'subscribe', path: 'variables.home.score' })
-    await settle()
+    await until(() => valuesFor(seen, 'variables.home.score').length, 'the opening value')
 
     port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.score': 1 } })
     port.postMessage({ type: 'mutate', name: 'set', payload: { 'variables.home.score': 2 } })
-    await settle()
+    await until(() => valuesFor(seen, 'variables.home.score').includes(2), 'the second change')
 
     const values = seen.filter((message) => message?.type === 'value' && message.path === 'variables.home.score')
 
@@ -159,7 +181,7 @@ describe('two roads, one order', () => {
     const { seen } = page(made)
 
     await made.started
-    await settle()
+    await until(() => seen.some((message) => message?.type === 'sync' && message.state === 'connected'), 'the room to connect')
 
     const stamps = seen.filter((message) => message?.type === 'sync').map((message) => message.seq)
 
@@ -183,13 +205,14 @@ describe('answering a page that asks', () => {
     const { port, seen } = page(made)
 
     await made.started
-    await settle()
+    // Settled, so nothing newer is pushed between this reading and the answer.
+    await until(() => seen.some((message) => message?.type === 'sync' && message.state === 'connected'), 'the room to connect')
 
     const pushed = seen.filter((message) => message?.type === 'sync')
     const newest = Math.max(...pushed.map((message) => message.seq))
 
     port.postMessage({ type: 'sync:status' })
-    await settle()
+    await until(() => seen.filter((message) => message?.type === 'sync').length > pushed.length, 'the answer')
 
     const answer = seen.filter((message) => message?.type === 'sync').at(-1)
 
@@ -208,13 +231,15 @@ describe('answering a page that asks', () => {
     const { port, seen } = page(made)
 
     await made.started
+    await until(() => seen.some((message) => message?.type === 'sync' && message.state === 'connected'), 'the room to connect')
     made.sync.present({ name: 'Dez' })
-    await settle()
+    await until(() => seen.some((message) => message?.type === 'presence'), 'presence')
 
-    const newest = Math.max(...seen.filter((message) => message?.type === 'presence').map((message) => message.seq))
+    const told = seen.filter((message) => message?.type === 'presence')
+    const newest = Math.max(...told.map((message) => message.seq))
 
     port.postMessage({ type: 'sync:status' })
-    await settle()
+    await until(() => seen.filter((message) => message?.type === 'presence').length > told.length, 'the answer')
 
     expect(seen.filter((message) => message?.type === 'presence').at(-1).seq).toBe(newest)
   })
@@ -229,7 +254,7 @@ describe('status reaching a page', () => {
     const { seen } = page(made)
 
     await made.started
-    await settle()
+    await until(() => seen.some((message) => message?.type === 'ready'), 'ready')
 
     expect(seen.some((message) => message?.type === 'ready')).toBe(true)
   })
@@ -240,7 +265,7 @@ describe('status reaching a page', () => {
     const { seen } = page(made)
 
     await made.started
-    await settle()
+    await until(() => seen.some((message) => message?.type === 'sync' && message.state === 'connected'), 'the room to connect')
 
     const told = seen.filter((message) => message?.type === 'sync')
 
@@ -261,7 +286,7 @@ describe('status reaching a page', () => {
     const made = host({ name })
 
     await made.started
-    await settle()
+    await until(() => heard.some((message) => message?.type === 'ready'), 'ready on the channel')
 
     expect(heard.some((message) => message?.type === 'ready')).toBe(true)
   })
