@@ -4,6 +4,69 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.9.0
+
+A minor rather than a patch, because the Twitch plugin is set up differently: its
+operators sign in instead of pasting a token, and the fields they used to fill in
+are gone. That is the first item under **Changed**. Nothing in core that a studio
+calls has changed shape.
+
+### Changed
+
+- **Twitch: operators sign in, with a code, instead of pasting a token.** The
+  panel's Channel user id, Your user id, Access token and Events fields are gone. The
+  studio's author registers one app on Twitch, as a _Public_ client, and passes its
+  Client ID in the build: `twitch(MyShow, { clientId })`. An operator presses **Sign
+  in with Twitch**, types the code shown at twitch.tv/activate on any device, and
+  stays signed in; tokens refresh on their own. Moving from 0.8.0: add `clientId` to
+  `twitch()`, and each machine signs in once. A build without one still asks for it
+  on the panel. See the plugin's README.
+- **Twitch: every event, unless the author narrows it.** The panel's Events box was
+  free text anybody at the board could break with a typo, and the choice decides
+  which permissions a streamer is asked to approve, so it is the author's now:
+  `twitch(MyShow, { events: ['chat', 'raid'] })`, by handler name or Twitch's. The
+  panel names any event Twitch will not send to that sign-in, rather than leaving a
+  graphic that never shows a sub to look like a quiet night.
+- **A plugin that loses its connection tries again within ten seconds, not thirty.**
+  Waits still start at half a second and double, and each has up to a quarter taken
+  off at random, so machines that dropped together do not all come back on the same
+  beat.
+
+### Added
+
+- **Allow, for a studio on the web reaching this computer.** Chrome (from 142)
+  blocks a page on a public site — a studio on GitHub Pages — from reaching OBS, a
+  game or anything else on this computer until the user allows it, and a plugin
+  cannot ask: a WebSocket never shows the prompt, and a worker cannot. The plugin's
+  row on the board now says the browser is blocking it and offers **Allow**, which
+  brings the prompt up; once accepted, the plugin connects. See "A studio on the
+  web, a program on this computer" in [plugins.md](docs/plugins.md).
+- **Buttons and a live line on a plugin's panel.** `definePlugin({ actions })`
+  declares buttons, the runtime's `offers` says which make sense now and `act(key)`
+  runs one; `runtime.notice` puts a line on the row that stays current while the
+  panel is open; `context.save()` lets a plugin keep values in its own settings.
+  Sign in with Twitch is built from these.
+- **Twitch without Twitch.** `twitch(MyShow, { mock: true })` talks to the Twitch
+  CLI's mock server, and `pnpm --filter @single-studio/plugin-twitch mock` in this
+  repository turns single keys into follows, subs, raids and chat.
+- **Twitch: a moderator types a channel name**, not a numeric id, to run a board for
+  somebody else's channel.
+
+### Fixed
+
+- **`fit` no longer shrinks text to nothing.** A fitted `Variable` sitting directly
+  in an ordinary block measured its own inline span, which is always 0px wide, as
+  the box, and drew a 30px name at 0.0586px. It now measures the first container
+  with a width.
+- **A plugin connects once, however many pages open while it is connecting.** Every
+  page opened at startup started a slow-connecting plugin again, and each start left
+  a connection running: Twitch chat arrived three times. A plugin stopped while
+  connecting — a restart, a save — no longer comes up afterwards, and a polling
+  plugin stopped during its first read no longer polls forever. `open()` receives an
+  `AbortSignal` for a plugin that waits on something before it connects.
+- **The Twitch README named `onResubscribe`.** The handler is `onResub`; one written
+  from the README never ran.
+
 ## 0.8.0
 
 A minor rather than a patch, because two things a studio could have relied on have
