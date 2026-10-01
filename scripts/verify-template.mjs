@@ -549,6 +549,16 @@ try {
     demoShipping[name] = version
   }
 
+  // A first-party plugin the demo uses goes in from this build too, not from npm.
+  // From npm it would test last release's plugin against this release's core, and
+  // a release that bumps the demo's range installs nothing at all: the version it
+  // names is the one this run is rehearsing, and it is not published yet.
+  for (const dir of PLUGINS) {
+    const { name, version } = JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'))
+
+    if (demoManifest.dependencies?.[name]) demoShipping[name] = version
+  }
+
   mustAdmit('demo', demoManifest.dependencies, demoShipping)
 
   for (const name of Object.keys(demoShipping)) demoManifest.dependencies[name] = `file:${packed[name]}`
@@ -598,6 +608,12 @@ try {
           strict: false,
           skipLibCheck: true,
           types: ['vite/client'],
+          // Read a plugin's JavaScript the way an editor does: a JS project's default
+          // is two levels into node_modules. At 0, a plugin that ships source and no
+          // .d.ts -- all four of ours -- is `any`, and a studio's handler extending
+          // it loses every inherited member, so `this.mutate` was an error here on a
+          // handler that runs fine. Measured on the demo's Twitch handler.
+          maxNodeModuleJsDepth: 2,
         },
         include: ['src/**/*.js', 'src/**/*.jsx'],
       },
