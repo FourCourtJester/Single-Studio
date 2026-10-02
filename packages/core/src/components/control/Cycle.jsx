@@ -1,6 +1,7 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
+import { MIN_LINE } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -44,7 +45,8 @@ export function Cycle({ name, label, options = [], className, ...rest }) {
       type="button"
       onClick={onClick}
       className={cx(
-        'ss-cycle rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500',
+        'ss-cycle ss-unlabelled rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-slate-500',
+        MIN_LINE,
         className,
       )}
       {...rest}

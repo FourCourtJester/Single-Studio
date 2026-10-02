@@ -1,26 +1,36 @@
-import { cx } from '../../toolkits/cx'
-
 /**
  * @typedef {object} BreakProps
- * @property {string} [className] - Added to the component's own classes.
+ * @property {string} [className] - Ignored. Kept so existing boards still compile.
  */
 /**
- * Forces a line break inside a `Panel`, for when the natural wrap puts related
- * controls on different rows.
+ * Draws nothing. Kept so a board written for 0.9 still builds.
  *
- * Layout only, no state. `Panel` lays its children out with flex-wrap, so this is
- * how a studio groups controls into deliberate rows instead of letting them reflow
- * wherever the container width happens to put them.
+ * It forced a line break when `Panel` laid its controls out in one wrapping line.
+ * A Panel now gives every child a row of its own, so the break it made is the
+ * default, and controls that should share a line go in a `Row` instead.
+ *
+ * @deprecated Since 0.10. Delete it; put controls that share a line in a `Row`.
  *
  * @example
+ * // Before
  * <Panel title="Scores">
  *   <Stepper name="home.score" label="Home" />
+ *   <Stepper name="away.score" label="Away" />
  *   <Break />
  *   <Select name="period" options={PERIODS} />
  * </Panel>
  *
- * @param {BreakProps & import("react").HTMLAttributes<HTMLElement>} props
+ * // After
+ * <Panel title="Scores">
+ *   <Row>
+ *     <Stepper name="home.score" label="Home" />
+ *     <Stepper name="away.score" label="Away" />
+ *   </Row>
+ *   <Select name="period" options={PERIODS} />
+ * </Panel>
+ *
+ * @param {BreakProps} _props
  */
-export function Break({ className, ...rest }) {
-  return <div aria-hidden="true" className={cx('ss-break w-full basis-full', className)} {...rest} />
+export function Break(_props) {
+  return null
 }

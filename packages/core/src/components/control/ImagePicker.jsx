@@ -8,6 +8,7 @@ import { cx } from '../../toolkits/cx'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
 import { AssetLibraryDialog } from './AssetLibrary'
+import { LINE, Label } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -76,88 +77,83 @@ export function ImagePicker({ name, label = 'Image', className, ...rest }) {
   ].sort(([a], [b]) => a.localeCompare(b))
 
   return (
-    <section className={cx('ss-image-picker flex w-full flex-col gap-2', className)} {...rest}>
-      <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-        {label}
-        {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
-      </span>
+    <section className={cx('ss-image-picker flex flex-col gap-1', className)} {...rest}>
+      <Label text={label} dirty={dirty} />
 
-      <div className="flex items-center gap-3">
+      {/* One control in three parts, joined like the colour picker's swatch and hex:
+          the picture is the left cap, the dropdown the middle, the library the
+          right. The preview used to be a 64px square beside the dropdown, which put
+          the dropdown 12px below every input next to it in a row -- the preview is
+          the height of the line now, and the library shows the pictures large. */}
+      <div className={cx('ss-input-group flex', LINE)}>
         <div
           className={cx(
-            'flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-950 ring-1',
-            dirty ? 'ring-amber-500/70' : 'ring-slate-800',
+            'ss-image-preview flex aspect-square h-full shrink-0 items-center justify-center overflow-hidden rounded-l-md border bg-slate-950 transition-colors',
+            dirty ? 'border-amber-500/70' : 'border-slate-700',
           )}
         >
-          {preview ? <img src={preview} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-slate-600">none</span>}
+          {preview ? <img src={preview} alt="" className="max-h-full max-w-full object-contain" /> : <Icon name="image" className="h-4 w-4 text-slate-700" />}
         </div>
-
-        <div className="flex min-w-0 grow flex-col gap-1.5">
-          {/* One control in two halves: the divider between them is the select's
-              own right border, so they read as joined rather than adjacent. */}
-          <div className="ss-input-group flex">
-            <select
-              value={known ? value : ''}
-              onChange={(event) => onChange(event.target.value)}
-              aria-label={`${label} selection`}
-              className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-500 focus:relative"
-            >
-              <option value="">— none —</option>
-              {loose.map((entry) => (
+        <select
+          value={known ? value : ''}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={`${label} selection`}
+          className="-ml-px min-w-0 grow border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100 outline-none focus:relative focus:border-sky-500"
+        >
+          <option value="">— none —</option>
+          {loose.map((entry) => (
+            <option key={entry.key} value={toAssetRef(entry.key)}>
+              {describe(entry, entry.key)}
+            </option>
+          ))}
+          {grouped.map(([group, entries]) => (
+            <optgroup key={group} label={group}>
+              {entries.map((entry) => (
                 <option key={entry.key} value={toAssetRef(entry.key)}>
-                  {describe(entry, entry.key)}
+                  {describe(entry, leafOf(entry.key))}
                 </option>
               ))}
-              {grouped.map(([group, entries]) => (
-                <optgroup key={group} label={group}>
-                  {entries.map((entry) => (
-                    <option key={entry.key} value={toAssetRef(entry.key)}>
-                      {describe(entry, leafOf(entry.key))}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <Tooltip label="Browse the image library" align="end">
-              <button
-                type="button"
-                onClick={() => setBrowsing(true)}
-                aria-label={`Browse images for ${label}`}
-                className="ss-browse -ml-px flex h-full shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
-              >
-                <Icon name="search" />
-              </button>
-            </Tooltip>
-          </div>
-
-          {orphaned ? (
-            <span className="truncate text-xs text-amber-400" title={value}>
-              {isAssetRef(value) ? `"${key}" is not in the library` : value}
-            </span>
-          ) : null}
-
-          {/* Two different sentences, because the ownership rule changed which one is
-              true. Files are added on the machine running OBS, so an entry this
-              board cannot draw is one that lives on the machine going to air --
-              picking it is right, and only the preview is missing. Warning somebody
-              off it would now be warning them off the correct choice.
-
-              With nobody holding the role, though, the old hazard is back: files
-              could have come from anywhere, and one chosen here may go to air blank
-              on the machine that has to draw it. */}
-          {chosen && !chosen.here ? (
-            owner ? (
-              <span className="ss-elsewhere truncate text-xs text-amber-400" title={`"${chosen.key}" was added on another machine`}>
-                Not on this machine &mdash; it may not show on air
-              </span>
-            ) : (
-              <span className="ss-not-here truncate text-xs text-slate-500" title={`"${chosen.key}" lives on the machine running OBS`}>
-                On the studio machine &mdash; it will go to air, just not previewed here
-              </span>
-            )
-          ) : null}
-        </div>
+            </optgroup>
+          ))}
+        </select>
+        <Tooltip label="Browse the image library" align="end">
+          <button
+            type="button"
+            onClick={() => setBrowsing(true)}
+            aria-label={`Browse images for ${label}`}
+            className="ss-browse -ml-px flex h-full shrink-0 items-center justify-center rounded-r-md border border-slate-700 bg-slate-800 px-2.5 text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white focus:relative"
+          >
+            <Icon name="search" />
+          </button>
+        </Tooltip>
       </div>
+
+      {orphaned ? (
+        <span className="truncate text-xs text-amber-400" title={value}>
+          {isAssetRef(value) ? `"${key}" is not in the library` : value}
+        </span>
+      ) : null}
+
+      {/* Two different sentences, because the ownership rule changed which one is
+          true. Files are added on the machine running OBS, so an entry this
+          board cannot draw is one that lives on the machine going to air --
+          picking it is right, and only the preview is missing. Warning somebody
+          off it would now be warning them off the correct choice.
+
+          With nobody holding the role, though, the old hazard is back: files
+          could have come from anywhere, and one chosen here may go to air blank
+          on the machine that has to draw it. */}
+      {chosen && !chosen.here ? (
+        owner ? (
+          <span className="ss-elsewhere truncate text-xs text-amber-400" title={`"${chosen.key}" was added on another machine`}>
+            Not on this machine &mdash; it may not show on air
+          </span>
+        ) : (
+          <span className="ss-not-here truncate text-xs text-slate-500" title={`"${chosen.key}" lives on the machine running OBS`}>
+            On the studio machine &mdash; it will go to air, just not previewed here
+          </span>
+        )
+      ) : null}
 
       <AssetLibraryDialog
         open={browsing}

@@ -200,7 +200,7 @@ render on air. Each is a thin wrapper over `useVelcroValue`.
 
 **Control** (`Field`, `Select`, `ImageSelect`, `ImagePicker`, `Stepper`, `Cycle`,
 `Toggle`, `ImageToggle`, `SwapButton`, `ResetButton`, `Confirm`, `Countdown`,
-`CountdownTo`, `Stopwatch`, `Leaderboard`, `Panel`, `Break`) drive
+`CountdownTo`, `Stopwatch`, `Leaderboard`, `Panel`, `Row`) drive
 it. Styled with Tailwind, replacing Bootstrap and react-bootstrap.
 
 `Transition` is the machine underneath every source component. It sets three phase
@@ -384,9 +384,19 @@ storage shape here is already the one that will need.
 ## Sizing
 
 The control surface has two shapes to survive — a narrow OBS dock and a full screen
-— so `Panel` owns the responsive behaviour rather than each studio reinventing it.
-Children flex to `--ss-control-min` (12rem), wrap, and are clamped to the container
-width. See `.ss-panel-body`.
+— so `Panel` and `Row` own the responsive behaviour rather than each studio
+reinventing it. A Panel is one row per child. A Row is a twelve-column grid whose
+children take all twelve below 48rem and an equal share above it, unless a
+`col-span-*` says otherwise; it is media-query driven rather than a container query
+because container queries need Chrome 105 and the floor is 83. See `.ss-panel-body`
+and `.ss-row`.
+
+Until 0.10 a Panel was one wrapping flex line, with children flexing to
+`--ss-control-min` (12rem). That put related controls on different lines depending
+on the width, and lined them up along their bottoms, so any control with something
+below its input -- colour presets, a picker's warning -- sat higher than its
+neighbours. Rows align along the top instead, and every control shares one label
+height and one input height (`--ss-input-h`) so their inputs land on the same line.
 
 `Ticker` measures its travel rather than expressing it in percentages. A percentage
 transform resolves against the element's own width, so `translateX(100%)` on a short

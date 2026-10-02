@@ -1,6 +1,7 @@
 import { useTimer } from '../../hooks/useTimer'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { cx } from '../../toolkits/cx'
+import { LINE, Label } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'timers'
@@ -37,20 +38,26 @@ export function Stopwatch({ name, label = 'Stopwatch', className, ...rest }) {
 
   return (
     <div className={cx('ss-stopwatch flex flex-col gap-1', className)} {...rest}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
+      <Label text={label} />
       {/* Wraps rather than overflows. Three controls have a natural width the panel
           knows nothing about, and at the one width where three clocks fit in a row
           and each is barely wide enough, Reset used to hang out past the panel's
           edge. A control that runs out of room should fold, not escape. */}
-      <div className="flex flex-wrap items-stretch gap-2">
-        <output className="flex min-w-[4.5rem] items-center justify-center rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm tabular-nums text-slate-100">
+      <div className="flex flex-wrap items-start gap-2">
+        <output
+          className={cx(
+            'flex min-w-[4.5rem] items-center justify-center rounded-md border border-slate-700 bg-slate-950 px-3 text-sm tabular-nums text-slate-100',
+            LINE,
+          )}
+        >
           {active ? text : '00:00'}
         </output>
         <button
           type="button"
           onClick={() => send(running ? 'pause' : 'start')}
           className={cx(
-            'rounded-md px-3 py-2 text-sm font-medium text-white transition-colors',
+            'rounded-md px-3 text-sm font-medium text-white transition-colors',
+            LINE,
             running ? 'bg-amber-600 hover:bg-amber-500' : 'bg-sky-600 hover:bg-sky-500',
           )}
         >
@@ -60,7 +67,10 @@ export function Stopwatch({ name, label = 'Stopwatch', className, ...rest }) {
           type="button"
           onClick={() => send('reset')}
           disabled={!active}
-          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40 disabled:hover:border-slate-700"
+          className={cx(
+            'rounded-md border border-slate-700 bg-slate-900 px-3 text-sm font-medium text-slate-200 transition-colors hover:border-slate-500 disabled:opacity-40 disabled:hover:border-slate-700',
+            LINE,
+          )}
         >
           Reset
         </button>

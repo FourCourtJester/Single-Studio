@@ -1,6 +1,7 @@
 import { useDraftValue } from '../../studio/DraftProvider'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { cx } from '../../toolkits/cx'
+import { useRowLabel } from './Row'
 import { Thumb } from './Thumb'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
@@ -97,6 +98,8 @@ export function ImageSelect({ name, label = 'Select', options = [], multiple = f
     if (same(next, toList(draft.stored))) draft.revert()
     else draft.onChange(value)
   }
+
+  useRowLabel(Boolean(label))
 
   const pick = (value) => {
     if (!multiple) {

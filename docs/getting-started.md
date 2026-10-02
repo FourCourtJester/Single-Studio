@@ -256,29 +256,30 @@ instead, over `--ss-fade`; anything beyond that is a rule of your own on
 
 **Control** — the operator's board:
 
-| Component      | Writes             | Notes                                                                     |
-| -------------- | ------------------ | ------------------------------------------------------------------------- |
-| `Field`        | `variables.<name>` | One line of text. Staged until saved.                                     |
-| `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; the save shortcut saves.         |
-| `ImagePicker`  | `variables.<name>` | Preview, dropdown of library entries, and a magnifier to browse.          |
-| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                    |
-| `ImageToggle`  | `toggles.<name>`   | `Toggle` with a picture. `from` reads the face off a path.                |
-| `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.                        |
-| `Select`       | `variables.<name>` | `options` of strings or `{ label, value }`. Staged until saved.           |
-| `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.             |
-| `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.   |
-| `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                               |
-| `Toggle`       | `toggles.<name>`   | `group` names a radio group; buttons sharing one are exclusive.           |
+| Component      | Writes             | Notes                                                                            |
+| -------------- | ------------------ | -------------------------------------------------------------------------------- |
+| `Field`        | `variables.<name>` | One line of text. Staged until saved.                                            |
+| `TextArea`     | `variables.<name>` | Several lines. Enter makes a line break; the save shortcut saves.                |
+| `ImagePicker`  | `variables.<name>` | Preview, dropdown of library entries and a magnifier, on one line.               |
+| `ImageSelect`  | `variables.<name>` | Pick by picture. `multiple` + `max` for a composition.                           |
+| `ImageToggle`  | `toggles.<name>`   | `Toggle` with a picture. `from` reads the face off a path.                       |
+| `AssetLibrary` | —                  | Manage images: add by URL or file, rename, delete.                               |
+| `Select`       | `variables.<name>` | `options` of strings or `{ label, value }`. Staged until saved.                  |
+| `ColorPicker`  | `variables.<name>` | Swatch, hex field and optional `presets`. Staged until saved.                    |
+| `Stepper`      | `variables.<name>` | Numeric &minus;/+, sized by `step`. Type in it to set a value outright.          |
+| `Cycle`        | `variables.<name>` | Steps through `options`, wrapping to unset.                                      |
+| `Toggle`       | `toggles.<name>`   | `group` names a radio group; buttons sharing one are exclusive.                  |
 | `SwapButton`   | any paths          | Trades values pairwise, outermost first. Asks first; `confirm={false}` opts out. |
-| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". Asks first; `confirm={false}` opts out. |
-| `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second. |
-| `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.               |
-| `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                         |
-| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                           |
-| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                  |
-| `SaveButton`   | —                  | Commits every staged edit. Hosts the save and discard shortcuts.          |
-| `Panel`        | —                  | Titled group. Children wrap in a flex row.                                |
-| `Break`        | —                  | Forces a line break inside a `Panel`.                                     |
+| `ResetButton`  | any paths          | Unsets them. Reads "Reset `label`". Asks first; `confirm={false}` opts out.      |
+| `Confirm`      | —                  | A destructive button that arms on the first click and acts on the second.        |
+| `Countdown`    | `timers.<name>`    | Counts down a duration. Typed unless `duration` presets it.                      |
+| `CountdownTo`  | `timers.<name>`    | Counts down to a wall-clock time, not a duration.                                |
+| `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                                  |
+| `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                         |
+| `SaveButton`   | —                  | Commits every staged edit. Hosts the save and discard shortcuts.                 |
+| `Panel`        | —                  | Titled group. One row per child.                                                 |
+| `Row`          | —                  | Side by side when there is room, stacked in a dock. Widths in twelfths.          |
+| `Break`        | —                  | Deprecated: draws nothing. Use `Row`.                                            |
 
 ## Working with other people
 
@@ -749,37 +750,48 @@ in between to show.
 ## Sizing for the dock
 
 An OBS dock is either a narrow column pinned down one side or most of a monitor, and
-the same board has to work at both. `Panel` handles that by default: children grow to
-fill the row, wrap when they cannot, and never push the panel wider than the dock.
+the same board has to work at both. It does it by going row by row:
+
+- **A `Panel` is one row per child**, top to bottom, at every width.
+- **A `Row` puts controls side by side** from 768px up, and stacks them below that.
+  It is a twelve-column grid, so a width is a number of twelfths, the way Bootstrap's
+  `col-md-*` counts. Left alone, the controls share the row equally.
 
 ```jsx
 <Panel title="Teams">
-  <Field name="home.name" label="Home" />
-  <Stepper name="home.score" label="Home score" />
-  <Break /> {/* force a row break */}
-  <Leaderboard name="standings" /> {/* compound controls take a row */}
+  <Row>
+    <Field name="home.name" label="Home" className="md:col-span-8" />
+    <Stepper name="home.score" label="Home score" className="md:col-span-4" />
+  </Row>
+  <Leaderboard name="standings" /> {/* on its own row */}
 </Panel>
 ```
 
-Retune where it wraps with `--ss-control-min` (default `12rem`), globally or per panel:
+Widths are Tailwind's `col-span-*`. With a breakpoint (`md:col-span-8`) the width
+holds from there up and the control stacks below it; without one (`col-span-6`) it
+holds at every width, so two `col-span-6` buttons stay a pair even in a slim dock.
+
+Side by side, controls line up along their inputs. Every control is a label, then one
+input line of the same height, then anything extra — colour presets, a warning —
+below, where it cannot push its neighbours out of line. A switch or button beside a
+labelled control drops by a label's height to sit level with the inputs. Give a
+button of your own the `ss-unlabelled` class for the same treatment. The input line
+is `--ss-input-h` tall (default `2.5rem`):
 
 ```css
 .ss-control {
-  --ss-control-min: 9rem;
-} /* pack tighter */
-.ss-panel:has(.ss-leaderboard) {
-  --ss-control-min: 100%;
-} /* one per row */
+  --ss-input-h: 2.25rem;
+} /* a tighter board */
 ```
 
-Two rules make this work and are worth knowing if you write your own layout:
-`min-width: 0` is what lets a flex item shrink below its content at all, and
-`max-width: 100%` is what stops a wide control from forcing a horizontal scrollbar
-across the whole board. A control with a hard `min-w-*` will escape a narrow dock —
-that is the one thing to avoid.
+Two rules keep a wide control from breaking a narrow dock, and are worth knowing if
+you write your own layout: `min-width: 0` is what lets a flex or grid item shrink
+below its content at all, and `max-width: 100%` is what stops a wide control from
+forcing a horizontal scrollbar across the whole board. A control with a hard
+`min-w-*` will escape a narrow dock — that is the one thing to avoid.
 
 The smoke test asserts a 260px dock has no horizontal scroll and that no control
-escapes it.
+escapes it, and measures that a row's inputs line up.
 
 ## Saving
 

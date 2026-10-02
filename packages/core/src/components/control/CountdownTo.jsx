@@ -4,6 +4,7 @@ import { useTimer } from '../../hooks/useTimer'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { untilClockTime } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
+import { LINE, Label } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'timers'
@@ -72,47 +73,44 @@ export function CountdownTo({ name, label = 'Starts at', as = 'time', className,
 
   const stop = () => mutate('timer', { [path]: 0 })
 
-  if (active) {
-    return (
-      <button
-        type="button"
-        onClick={stop}
-        title={`Stop ${label}`}
-        className={cx(
-          'ss-countdown-to rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500',
-          className,
-        )}
-        {...rest}
-      >
-        {label} &middot; {text}
-      </button>
-    )
-  }
-
   return (
     <div className={cx('ss-countdown-to flex flex-col gap-1', className)} {...rest}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
-      {/* Joined into one control, like every other entry-then-go pair on the board. */}
-      <div className="ss-input-group flex">
-        <input
-          ref={ref}
-          type={as}
-          defaultValue={input ?? ''}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter') return
-            event.preventDefault()
-            start()
-          }}
-          className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors focus:relative focus:border-sky-500"
-        />
+      <Label text={label} />
+      {/* Running, the stop takes the input's place and the label stays, so the
+          control does not jump a line in its row when it starts. Not running, the
+          entry and its button are joined into one control, like every other
+          entry-then-go pair on the board. */}
+      {active ? (
         <button
           type="button"
-          onClick={start}
-          className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500 focus:relative"
+          onClick={stop}
+          title={`Stop ${label}`}
+          className={cx('rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500', LINE)}
         >
-          Start
+          Stop &middot; {text}
         </button>
-      </div>
+      ) : (
+        <div className={cx('ss-input-group flex', LINE)}>
+          <input
+            ref={ref}
+            type={as}
+            defaultValue={input ?? ''}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              start()
+            }}
+            className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors focus:relative focus:border-sky-500"
+          />
+          <button
+            type="button"
+            onClick={start}
+            className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500 focus:relative"
+          >
+            Start
+          </button>
+        </div>
+      )}
     </div>
   )
 }

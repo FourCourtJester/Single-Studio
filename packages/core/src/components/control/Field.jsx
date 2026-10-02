@@ -4,6 +4,7 @@ import { usePathPresence } from '../../hooks/useSync'
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
 import { Tooltip } from '../common/Tooltip'
+import { LINE, Label } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -113,11 +114,7 @@ function Input({ name, label, placeholder, as = 'input', rows, className, ...res
   return (
     <label className={cx('ss-field flex flex-col gap-1', className)} htmlFor={id}>
       {label ? (
-        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-          {label}
-          {/* Unsaved marker. An operator has to be able to see at a glance that
-              what is on their screen is not what is on air. */}
-          {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+        <Label text={label} dirty={dirty}>
           {/* Somebody else has this field open. A warning rather than a lock: two
               operators in one field is a conversation to have, not a state to
               forbid, and a lock is something that can strand a board when a laptop
@@ -137,7 +134,7 @@ function Input({ name, label, placeholder, as = 'input', rows, className, ...res
               </span>
             </Tooltip>
           ) : null}
-        </span>
+        </Label>
       ) : null}
       <Tag
         id={id}
@@ -149,6 +146,7 @@ function Input({ name, label, placeholder, as = 'input', rows, className, ...res
         data-dirty={dirty ? '' : undefined}
         className={cx(
           'rounded-md border bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors placeholder:text-slate-600',
+          multiline ? null : LINE,
           dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-slate-700 focus:border-sky-500',
         )}
         {...rest}
