@@ -1,6 +1,7 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
+import { MIN_LINE } from './Label'
 import { Confirm } from './Confirm'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
@@ -77,7 +78,7 @@ export function ResetButton({ names = [], paths = [], label = 'Reset', confirm =
    */
   if (confirm) {
     return (
-      <Confirm className={cx('ss-reset', className)} label={text} onConfirm={clear} title={text} {...rest}>
+      <Confirm className={cx('ss-reset ss-unlabelled', MIN_LINE, className)} label={text} onConfirm={clear} title={text} {...rest}>
         {children}
       </Confirm>
     )
@@ -88,7 +89,11 @@ export function ResetButton({ names = [], paths = [], label = 'Reset', confirm =
       type="button"
       onClick={clear}
       title={text}
-      className={cx('ss-reset rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-500', className)}
+      className={cx(
+        'ss-reset ss-unlabelled rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-500',
+        MIN_LINE,
+        className,
+      )}
       {...rest}
     >
       {children ?? text}

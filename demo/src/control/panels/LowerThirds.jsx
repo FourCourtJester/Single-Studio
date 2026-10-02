@@ -1,13 +1,13 @@
-import { Field, Panel, Toggle } from '@single-studio/core/control'
+import { Field, Panel, Row, Toggle } from '@single-studio/core/control'
 
-/** One strap: who it names, and whether it is up. */
+/** One strap on one line: who it names, and the switch that puts it up. */
 function Third({ which, label, name, tag }) {
   return (
-    <div className="flex flex-col gap-3">
+    <Row>
       <Field name={`third.${which}.name`} label={`${label} name`} placeholder={name} />
       <Field name={`third.${which}.tag`} label={`${label} gamertag`} placeholder={tag} />
       <Toggle name={`third.${which}`} label={label.toLowerCase()} />
-    </div>
+    </Row>
   )
 }
 

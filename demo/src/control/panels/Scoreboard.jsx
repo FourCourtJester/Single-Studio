@@ -1,18 +1,18 @@
 import { useVelcroMutate } from '@single-studio/core'
-import { ColorPicker, Field, ImagePicker, Panel, Stepper, SwapButton } from '@single-studio/core/control'
+import { ColorPicker, Field, ImagePicker, Panel, Row, Stepper, SwapButton } from '@single-studio/core/control'
 
-const button = 'rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500'
+const button = 'rounded-md bg-sky-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sky-500'
 
-/** One side's controls, top to bottom in the order the scoreboard reads them. */
+/** One side's controls, in the order the scoreboard reads them: a row in a wide board, a column in a dock. */
 function Team({ side, label, fallback, presets }) {
   return (
-    <div className="flex flex-col gap-3">
+    <Row>
       <Field name={`${side}.name`} label={label} placeholder={`${label} team`} />
       {/* A logo is a library entry: drop the file on the library, pick it here. */}
       <ImagePicker name={`${side}.logo`} label={`${label} logo`} />
       <Stepper name={`${side}.score`} label={`${label} score`} />
       <ColorPicker name={`${side}.color`} label={`${label} colour`} fallback={fallback} presets={presets} />
-    </div>
+    </Row>
   )
 }
 
@@ -36,14 +36,14 @@ export default function Scoreboard() {
       <Team side="home" label="Home" fallback="#0284c7" presets={['#0284c7', '#16a34a', '#ca8a04', '#7c3aed']} />
       <Team side="away" label="Away" fallback="#e11d48" presets={['#e11d48', '#ea580c', '#0891b2', '#4b5563']} />
 
-      <div className="flex flex-col gap-3">
+      <Row>
         {/* A field, not a stepper: empty, its placeholder says what the scoreboard shows. */}
         <Field name="round" label="Round" placeholder="1" />
         {/* One button, every path a side owns: half a swap is a scoreboard that lies. */}
-        <SwapButton label="sides" names={['home.name', 'home.logo', 'home.score', 'home.color', 'away.name', 'away.logo', 'away.score', 'away.color']} />
-      </div>
+        <SwapButton label="Swap sides" names={['home.name', 'home.logo', 'home.score', 'home.color', 'away.name', 'away.logo', 'away.score', 'away.color']} />
+      </Row>
 
-      <div className="flex flex-col gap-2">
+      <Row>
         <button type="button" onClick={() => mutate('demo:round', { team: 'home' })} className={button}>
           Home takes the round
         </button>
@@ -53,11 +53,11 @@ export default function Scoreboard() {
         <button
           type="button"
           onClick={() => mutate('demo:reset')}
-          className="rounded-md bg-slate-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+          className="rounded-md bg-slate-700 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-600"
         >
           New match
         </button>
-      </div>
+      </Row>
     </Panel>
   )
 }

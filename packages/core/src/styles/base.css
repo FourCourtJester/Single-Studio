@@ -412,79 +412,92 @@
 
   /*
    * The control surface has to survive both shapes an OBS dock takes: a narrow
-   * column pinned down one side, and most of a monitor. Rather than ask every
-   * studio to get that right, a Panel lays its children out so the same markup
-   * works at either extreme.
+   * column pinned down one side, and most of a monitor.
    *
-   * Each control grows to fill the row and wraps when it cannot fit. The two
-   * declarations that do the real work are easy to leave out and painful to debug:
-   * `min-width: 0` is what allows a flex item to shrink below its content width at
-   * all, and `max-width: 100%` is what stops a wide control -- a textarea, a long
-   * button label -- from pushing the panel wider than the dock and giving the whole
-   * board a horizontal scrollbar.
-   *
-   * Retune the wrap point with --ss-control-min, per panel or globally.
+   * A Panel is one row per child, top to bottom, at every width. Controls that share
+   * a line go in a Row, below. `min-width: 0` and `max-width: 100%` are the two
+   * declarations that keep a wide child -- a textarea, a long button label -- from
+   * pushing the panel wider than the dock and giving the whole board a horizontal
+   * scrollbar; they are easy to leave out and painful to find.
    */
   .ss-panel-body {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
+    flex-direction: column;
     gap: 0.75rem;
   }
 
-  .ss-panel-body > * {
-    flex: 1 1 var(--ss-control-min, 12rem);
+  .ss-panel-body > *,
+  .ss-row > * {
     min-width: 0;
     max-width: 100%;
   }
 
   /*
-   * Controls that need more than the default before they start folding.
+   * Twelve columns, so a width is said in twelfths: `col-span-6` is half, the way
+   * Bootstrap's `col-6` is. Below 48rem every control takes all twelve and the row
+   * stacks; from there up each takes its equal share, which Row works out and sets
+   * as `--ss-share`. A studio's own `col-span-*` wins over both, because utilities
+   * outrank this layer -- unprefixed it holds at every width, `md:` only from there.
    *
-   * `--ss-control-min` is the wrap point, and one number cannot be right for a
-   * text field and for a clock carrying a readout and two buttons. Rather than
-   * making every panel wider, the controls that know they need more say so, on
-   * themselves -- `flex-basis` above reads the property from the same element, so
-   * this is a per-control default that an integrator's own rule still overrides.
+   * 48rem because that is about where four controls stop being cramped side by
+   * side. A dock pulled out to 600px is still a dock.
+   *
+   * `align-items: start` and not `end`, which is what lined inputs up when a panel
+   * was one wrapping line: bottom-aligned, a colour picker's presets or an image's
+   * warning pushes its input above its neighbours'. Top-aligned, every control's
+   * input is one label line down, and whatever hangs below it hangs freely.
    */
-  .ss-panel-body > .ss-stopwatch,
-  .ss-panel-body > .ss-timer-button,
-  .ss-panel-body > .ss-countdown {
-    --ss-control-min: 15rem;
+  .ss-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+    gap: 0.75rem;
+  }
+
+  .ss-row > * {
+    grid-column: span 12;
+  }
+
+  @media (min-width: 48rem) {
+    .ss-row > * {
+      grid-column: span var(--ss-share, 12);
+    }
+
+    /* Twelve does not divide by five: 3, 3, 2, 2, 2 rather than five 2s and a hole. */
+    .ss-row[data-spare='1'] > :nth-child(-n + 1),
+    .ss-row[data-spare='2'] > :nth-child(-n + 2),
+    .ss-row[data-spare='3'] > :nth-child(-n + 3),
+    .ss-row[data-spare='4'] > :nth-child(-n + 4),
+    .ss-row[data-spare='5'] > :nth-child(-n + 5) {
+      grid-column: span var(--ss-share-more, 12);
+    }
+
+    /*
+     * A switch or button beside a labelled control drops by one label line so it
+     * sits level with the inputs instead of with the labels. Only side by side --
+     * stacked, there is nothing to line up with -- and only in a row that has a
+     * label in it at all, which the labels report to the Row themselves.
+     *
+     * 1.25rem is the label's 1rem line and the 0.25rem gap under it, in every
+     * control. Change one and this has to change with it.
+     */
+    .ss-row[data-labelled] > .ss-unlabelled {
+      margin-top: 1.25rem;
+    }
   }
 
   /*
-   * Tall controls hang from the top of their row instead of the bottom.
-   *
-   * flex-end above is right for a row of ordinary controls -- it lines their inputs
-   * up along one baseline no matter how tall each label wraps. It is wrong for a
-   * grid of tiles, where the height is the content: a one-row Faction picker, a
-   * two-row Commander picker and a three-row Army picker bottom-aligned put their
-   * headings at three different heights, which reads as a broken layout rather than
-   * as three controls of different sizes.
-   */
-  .ss-panel-body > .ss-image-select,
-  .ss-panel-body > .ss-color-picker {
-    align-self: flex-start;
-  }
-
-  /*
-   * A picture-faced switch sits at its natural size rather than growing to fill the
-   * row. Everything else on the board is a field or a full-width button, where
-   * growing is right; an image toggle stretched to twelve inches of empty box reads
+   * A picture-faced switch sits at its natural size rather than stretching to fill
+   * the line. Everything else on the board is a field or a full-width button, where
+   * filling is right; an image toggle stretched to twelve inches of empty box reads
    * as a layout mistake, and the picture stays the same size either way.
    */
   .ss-panel-body > .ss-image-toggle {
-    flex: 0 0 auto;
+    align-self: flex-start;
   }
 
-  /* Compound and structural children take a row to themselves. */
-  .ss-panel-body > .ss-break,
-  .ss-panel-body > .ss-leaderboard,
-  .ss-panel-body > .ss-image-picker,
-  .ss-panel-body > .ss-relay-admin,
-  .ss-panel-body > .ss-asset-library {
-    flex-basis: 100%;
+  .ss-row > .ss-image-toggle {
+    justify-self: start;
   }
 }
 

@@ -1,6 +1,7 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
+import { MIN_LINE } from './Label'
 import { Confirm } from './Confirm'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
@@ -63,7 +64,7 @@ export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = t
 
   if (confirm) {
     return (
-      <Confirm className={cx('ss-swap', className)} label={label} onConfirm={swap} tone="warn" title={label} {...rest}>
+      <Confirm className={cx('ss-swap ss-unlabelled', MIN_LINE, className)} label={label} onConfirm={swap} tone="warn" title={label} {...rest}>
         {children}
       </Confirm>
     )
@@ -73,7 +74,11 @@ export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = t
     <button
       type="button"
       onClick={swap}
-      className={cx('ss-swap rounded-md bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-amber-400', className)}
+      className={cx(
+        'ss-swap ss-unlabelled rounded-md bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-amber-400',
+        MIN_LINE,
+        className,
+      )}
       {...rest}
     >
       {children ?? label}

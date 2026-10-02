@@ -564,7 +564,7 @@ for (const width of widths) {
 
   const found = await dock.evaluate(() => {
     const root = document.documentElement
-    const spills = [...document.querySelectorAll('.ss-panel-body > *')]
+    const spills = [...document.querySelectorAll('.ss-panel-body > *, .ss-row > *')]
       .filter((el) => el.scrollWidth - el.clientWidth > 1)
       .map(
         (el) =>
@@ -585,6 +585,66 @@ for (const width of widths) {
 
 console.log(`  widths swept: ${widths.length}, breaks: ${breaks.length ? breaks.join(' | ') : 'none'}`)
 check(!breaks.length, `no control escapes its panel at any width (${widths[0]}-${widths.at(-1)}px)`)
+
+// -- Rows ---------------------------------------------------------------------
+// A Row is the board's one layout promise: stacked in a slim dock, side by side once
+// there is room, and side by side the controls line up along their inputs. Each of
+// those has been wrong in a way that still looked like a working board -- a
+// stepper's buttons 4px short of the field beside them, an image picker's dropdown
+// 12px lower than its neighbours' -- so they are measured rather than eyeballed.
+const rowsAt = async (width, measure) => {
+  const sized = await browser.newContext({ viewport: { width, height: 900 } })
+  const dock = await sized.newPage()
+  await dock.goto(`${BASE}/#/`)
+  await dock.waitForSelector('text=Clocks')
+  await dock.waitForTimeout(400)
+  const found = await dock.evaluate(measure)
+  await sized.close()
+  return found
+}
+
+// Each panel's measurements, by its heading: where every input line in it starts
+// and ends. "Input line" is the one row every control has after its label -- an
+// input, a select, a joined group, a switch.
+const lines = () => {
+  const panel = (title) => [...document.querySelectorAll('.ss-panel')].find((el) => el.querySelector('h2')?.textContent.trim().toLowerCase() === title)
+  const edges = (el) => {
+    const box = el.getBoundingClientRect()
+    return { top: Math.round(box.top), bottom: Math.round(box.bottom), left: Math.round(box.left), width: Math.round(box.width) }
+  }
+  const lineOf = (control) =>
+    control.matches('.ss-unlabelled')
+      ? control
+      : control.querySelector(':scope > .ss-input-group, :scope > input, :scope > select, :scope > input + *, :scope > div')
+  const row = (title) => [...panel(title).querySelectorAll('.ss-row > *')].map((control) => edges(lineOf(control) ?? control))
+  const cells = (title) => [...panel(title).querySelectorAll('.ss-row > *')].map(edges)
+  return {
+    sponsor: row('sponsor'),
+    guest: row('guest'),
+    third: row('lower third'),
+    match: cells('match').slice(0, 5),
+    rowWidth: Math.round(panel('sponsor').querySelector('.ss-row').getBoundingClientRect().width),
+  }
+}
+
+const wide = await rowsAt(1280, lines)
+const level = (row) => new Set(row.map((edge) => edge.top)).size === 1 && new Set(row.map((edge) => edge.bottom)).size === 1
+console.log(`  sponsor input lines at 1280px: ${wide.sponsor.map((edge) => `${edge.top}-${edge.bottom}`).join(', ')}`)
+check(wide.sponsor.length === 4 && level(wide.sponsor), 'side by side, a picker, a field, a colour and a switch share one input line')
+check(wide.guest.length === 4 && level(wide.guest), 'and so do a headshot, two fields and a switch')
+check(level(wide.third), 'a switch beside labelled fields sits level with their inputs, not with their labels')
+
+// Twelve shared five ways: the first two take the two spare columns.
+const [one, two, three, four, five] = wide.match.map((edge) => edge.width)
+console.log(`  five buttons in a row: ${wide.match.map((edge) => edge.width).join(', ')}px`)
+check(one === two && three === four && four === five && one > three, 'five in a row share twelve as 3, 3, 2, 2, 2 rather than leaving a hole')
+
+const slim = await rowsAt(380, lines)
+console.log(`  sponsor row at 380px: ${slim.sponsor.map((edge) => `${edge.left}+${edge.width}@${edge.top}`).join(', ')}`)
+check(
+  new Set(slim.sponsor.map((edge) => edge.left)).size === 1 && slim.sponsor.every((edge, i, all) => i === 0 || edge.top > all[i - 1].bottom),
+  'in a slim dock the same row stacks, one control under the next',
+)
 
 // -- Asset library -----------------------------------------------------------
 // Images arrive two ways and both become a named entry: a URL gets pasted, a file

@@ -2,6 +2,7 @@ import { useId } from 'react'
 
 import { useDraftValue } from '../../studio/DraftProvider'
 import { cx } from '../../toolkits/cx'
+import { LINE, Label } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -52,12 +53,7 @@ export function Select({ name, label = 'Select', options = [], children, placeho
 
   return (
     <label className={cx('ss-select flex flex-col gap-1', className)} htmlFor={id}>
-      {label ? (
-        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-          {label}
-          {dirty ? <span aria-label="unsaved" title="Unsaved" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
-        </span>
-      ) : null}
+      {label ? <Label text={label} dirty={dirty} /> : null}
       <select
         id={id}
         value={value ?? ''}
@@ -65,7 +61,8 @@ export function Select({ name, label = 'Select', options = [], children, placeho
         onKeyDown={onKeyDown}
         data-dirty={dirty ? '' : undefined}
         className={cx(
-          'rounded-md border bg-slate-900 px-3 py-2 text-slate-100 outline-none transition-colors',
+          'rounded-md border bg-slate-900 px-3 py-1 text-slate-100 outline-none transition-colors',
+          LINE,
           dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-slate-700 focus:border-sky-500',
         )}
         {...rest}

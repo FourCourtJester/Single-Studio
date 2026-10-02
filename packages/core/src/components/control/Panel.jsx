@@ -3,23 +3,29 @@ import { cx } from '../../toolkits/cx'
 /**
  * @typedef {object} PanelProps
  * @property {string} [title] - Heading for the group.
- * @property {import("react").ReactNode} [children] - Controls. They sit side by side and wrap onto the next line as needed.
+ * @property {import("react").ReactNode} [children] - Controls, one row each. Put several in a `Row` to share a line.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
- * A titled group of controls that arranges itself. The controls sit side by side
- * and drop onto the next line when they run out of room, so one board works both in
- * a narrow OBS dock and full screen on a second monitor without you writing a layout
- * for either.
+ * A titled group of controls, one row per child, top to bottom.
  *
- * To change how early they wrap, set `--ss-control-min` — it is the narrowest a
- * control is allowed to get before the row breaks. The panel's own box is
- * `.ss-panel-body` in the stylesheet if you want to take it further.
+ * Rows rather than a wrapping line because the board's narrowest shape is the one
+ * that matters most: an OBS dock is often a slim column, and controls that sit side
+ * by side and wrap where the width happens to break put related things on different
+ * lines in a dock and the same things in another order full screen. A row is a row
+ * at every width. To put controls side by side when there is room, put them in a
+ * `Row`, which stacks them again when there is not.
+ *
+ * The panel's own box is `.ss-panel-body` in the stylesheet if you want to take it
+ * further.
  *
  * @example
  * <Panel title="Scores">
- *   <Field name="home.name" label="Home" />
- *   <Stepper name="home.score" label="Home score" />
+ *   <Row>
+ *     <Field name="home.name" label="Home" />
+ *     <Stepper name="home.score" label="Home score" />
+ *   </Row>
+ *   <Toggle name="scores" label="scores" />
  * </Panel>
  *
  * @param {PanelProps & import("react").HTMLAttributes<HTMLElement>} props

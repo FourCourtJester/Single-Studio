@@ -4,6 +4,7 @@ import { useTimer } from '../../hooks/useTimer'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { parseDuration } from '../../toolkits/time'
 import { cx } from '../../toolkits/cx'
+import { LINE, Label, MIN_LINE } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'timers'
@@ -63,30 +64,30 @@ export function Countdown({ name, label, duration, placeholder = '5:00', classNa
     mutate('timer', { [path]: { duration: ms, input: String(raw) } })
   }
 
-  if (active) {
-    return (
-      <button
-        type="button"
-        onClick={stop}
-        aria-label={`Stop ${label ?? name}`}
-        className={cx(
-          'ss-countdown rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500',
-          className,
-        )}
-        {...rest}
-      >
-        Stop {text}
-      </button>
-    )
-  }
+  const stopper = (classes, props) => (
+    <button
+      type="button"
+      onClick={stop}
+      aria-label={`Stop ${label ?? name}`}
+      className={cx('rounded-md bg-rose-600 px-3 py-2 text-sm font-medium tabular-nums text-white transition-colors hover:bg-rose-500', classes)}
+      {...props}
+    >
+      Stop {text}
+    </button>
+  )
 
+  // A preset is one button with no label, running or not, so it lines up as a
+  // button in a row.
   if (duration !== undefined) {
+    if (active) return stopper(cx('ss-countdown ss-unlabelled', MIN_LINE, className), rest)
+
     return (
       <button
         type="button"
         onClick={() => start(duration)}
         className={cx(
-          'ss-countdown rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-medium tabular-nums text-slate-200 transition-colors hover:border-slate-500',
+          'ss-countdown ss-unlabelled rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-medium tabular-nums text-slate-200 transition-colors hover:border-slate-500',
+          MIN_LINE,
           className,
         )}
         {...rest}
@@ -98,29 +99,36 @@ export function Countdown({ name, label, duration, placeholder = '5:00', classNa
 
   return (
     <div className={cx('ss-countdown flex flex-col gap-1', className)} {...rest}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label ?? name}</span>
-      <div className="ss-input-group flex">
-        <input
-          ref={ref}
-          defaultValue={input ?? ''}
-          placeholder={placeholder}
-          aria-label={`${label ?? name} duration`}
-          spellCheck={false}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter') return
-            event.preventDefault()
-            start(ref.current?.value)
-          }}
-          className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 tabular-nums text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:relative focus:border-sky-500"
-        />
-        <button
-          type="button"
-          onClick={() => start(ref.current?.value)}
-          className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500 focus:relative"
-        >
-          Start
-        </button>
-      </div>
+      <Label text={label ?? name} />
+      {/* Running, the stop takes the input's place rather than the whole control's.
+          It used to replace the label too, and in a row that is the control jumping
+          up a line every time it starts and back down when it ends. */}
+      {active ? (
+        stopper(LINE)
+      ) : (
+        <div className={cx('ss-input-group flex', LINE)}>
+          <input
+            ref={ref}
+            defaultValue={input ?? ''}
+            placeholder={placeholder}
+            aria-label={`${label ?? name} duration`}
+            spellCheck={false}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              start(ref.current?.value)
+            }}
+            className="min-w-0 grow rounded-l-md border border-slate-700 bg-slate-900 px-3 py-2 tabular-nums text-slate-100 outline-none transition-colors placeholder:text-slate-600 focus:relative focus:border-sky-500"
+          />
+          <button
+            type="button"
+            onClick={() => start(ref.current?.value)}
+            className="-ml-px shrink-0 rounded-r-md border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:border-sky-500 hover:bg-sky-500 focus:relative"
+          >
+            Start
+          </button>
+        </div>
+      )}
     </div>
   )
 }

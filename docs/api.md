@@ -22,7 +22,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | A table          | [`Leaderboard`](#control-leaderboard) | _yours_ |
 | Scrolling text   | [`TextArea`](#control-textarea) | [`Ticker`](#source-ticker) |
 | Wall clock       | — | [`Clock`](#source-clock) |
-| Grouping         | [`Panel`](#control-panel), [`Break`](#control-break) | [`Scene`](#source-scene) |
+| Grouping         | [`Panel`](#control-panel), [`Row`](#control-row) | [`Scene`](#source-scene) |
 
 Every component takes a `name`, and knows for itself where that name lives: values
 under `variables`, on/off ones under `toggles`, clocks under `timers`. So a studio
@@ -37,7 +37,7 @@ Every component passes anything it does not recognise through to the DOM, so
 
 What the operator drives the show from — `@single-studio/core/control`. These render
 in `src/control/Control.jsx`, which is an ordinary React component: put controls in a
-[`Panel`](#control-panel) and it arranges them. Anything you *type* stages until you save, so a
+[`Panel`](#control-panel), one row each, and several in a [`Row`](#control-row) to share a line. Anything you *type* stages until you save, so a
 half-finished name never reaches air; anything you *press* takes effect at once. Each
 entry below says which.
 
@@ -62,6 +62,7 @@ piece of it you can also put on the board yourself.
 - [`Stopwatch`](#control-stopwatch)
 - [`Leaderboard`](#control-leaderboard)
 - [`Panel`](#control-panel)
+- [`Row`](#control-row)
 - [`Break`](#control-break)
 - [`Confirm`](#control-confirm)
 - [`Hotkeys`](#control-hotkeys)
@@ -538,20 +539,48 @@ A table an operator can paste into or edit row by row, stored as one delimited s
 
 `import { Panel } from '@single-studio/core/control'`
 
-A titled group of controls that arranges itself. The controls sit side by side and drop onto the next line when they run out of room, so one board works both in a narrow OBS dock and full screen on a second monitor without you writing a layout for either.
+A titled group of controls, one row per child, top to bottom.
 
 ```jsx
 <Panel title="Scores">
-  <Field name="home.name" label="Home" />
-  <Stepper name="home.score" label="Home score" />
+  <Row>
+    <Field name="home.name" label="Home" />
+    <Stepper name="home.score" label="Home score" />
+  </Row>
+  <Toggle name="scores" label="scores" />
 </Panel>
 ```
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | Controls. They sit side by side and wrap onto the next line as needed. |
+| `children` | `ReactNode` |  | Controls, one row each. Put several in a `Row` to share a line. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `title` | `string` |  | Heading for the group. |
+
+<a id="control-row"></a>
+
+### Row
+
+---
+
+`import { Row } from '@single-studio/core/control'`
+
+A line of controls inside a `Panel`: stacked one above the other in a slim OBS dock, side by side once the board is wider than 768px.
+
+```jsx
+<Panel title="Home">
+  <Row>
+    <Field name="home.name" label="Team" className="md:col-span-6" />
+    <Stepper name="home.score" label="Score" className="md:col-span-3" />
+    <Toggle name="home" label="home" className="md:col-span-3" />
+  </Row>
+</Panel>
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` |  | Controls. Each takes the whole row in a narrow dock and an equal share of it once there is room; give one a `col-span-*` class to set its width out of 12. |
+| `className` | `string` |  | Added to the component's own classes. |
 
 <a id="control-break"></a>
 
@@ -561,19 +590,30 @@ A titled group of controls that arranges itself. The controls sit side by side a
 
 `import { Break } from '@single-studio/core/control'`
 
-Forces a line break inside a `Panel`, for when the natural wrap puts related controls on different rows.
+Draws nothing. Kept so a board written for 0.9 still builds.
 
 ```jsx
+// Before
 <Panel title="Scores">
   <Stepper name="home.score" label="Home" />
+  <Stepper name="away.score" label="Away" />
   <Break />
+  <Select name="period" options={PERIODS} />
+</Panel>
+
+// After
+<Panel title="Scores">
+  <Row>
+    <Stepper name="home.score" label="Home" />
+    <Stepper name="away.score" label="Away" />
+  </Row>
   <Select name="period" options={PERIODS} />
 </Panel>
 ```
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `className` | `string` |  | Added to the component's own classes. |
+| `className` | `string` |  | Ignored. Kept so existing boards still compile. |
 
 <a id="control-confirm"></a>
 

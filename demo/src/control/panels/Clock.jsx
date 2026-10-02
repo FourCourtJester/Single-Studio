@@ -1,4 +1,4 @@
-import { Cycle, Panel, Toggle } from '@single-studio/core/control'
+import { Cycle, Panel, Row, Toggle } from '@single-studio/core/control'
 
 /**
  * The wall clock in the corner: whether it is up, and how it reads.
@@ -10,8 +10,10 @@ import { Cycle, Panel, Toggle } from '@single-studio/core/control'
 export default function Clock() {
   return (
     <Panel title="Clock">
-      <Toggle name="clock" label="clock" />
-      <Cycle name="clock.format" label="Format" options={['24-hour', '12-hour']} />
+      <Row>
+        <Toggle name="clock" label="clock" />
+        <Cycle name="clock.format" label="Format" options={['24-hour', '12-hour']} />
+      </Row>
     </Panel>
   )
 }

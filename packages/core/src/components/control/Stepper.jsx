@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
+import { LINE, Label } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'variables'
@@ -99,11 +100,14 @@ export function Stepper({ name, label, step = 1, className, ...rest }) {
     mutate('set', { [path]: next })
   }
 
-  const button = 'h-9 w-9 shrink-0 rounded-md border border-slate-700 bg-slate-900 text-lg leading-none text-slate-200 transition-colors hover:border-slate-500'
+  const button = cx(
+    LINE,
+    'aspect-square shrink-0 rounded-md border border-slate-700 bg-slate-900 text-lg leading-none text-slate-200 transition-colors hover:border-slate-500',
+  )
 
   return (
-    <div className={cx('ss-stepper flex flex-col gap-1', className)} {...rest}>
-      {label ? <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span> : null}
+    <div className={cx('ss-stepper flex flex-col gap-1', label ? null : 'ss-unlabelled', className)} {...rest}>
+      {label ? <Label text={label} /> : null}
       <div className="flex items-center gap-2">
         <button type="button" aria-label={`Decrease ${label ?? name}`} className={button} onClick={() => mutate('decrement', { [path]: step })}>
           &minus;
@@ -134,7 +138,8 @@ export function Stepper({ name, label, step = 1, className, ...rest }) {
              write where the buttons add -- and two controls a pixel apart that
              disagree about what they mean is worse than one control fewer. */
           className={cx(
-            'ss-stepper-value w-16 min-w-0 rounded-md border bg-slate-950 px-2 py-1.5 text-center text-xl font-semibold tabular-nums text-slate-100 outline-none transition-colors',
+            'ss-stepper-value w-16 min-w-0 rounded-md border bg-slate-950 px-2 text-center text-xl font-semibold tabular-nums text-slate-100 outline-none transition-colors',
+            LINE,
             '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
             dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-transparent focus:border-sky-500',
           )}

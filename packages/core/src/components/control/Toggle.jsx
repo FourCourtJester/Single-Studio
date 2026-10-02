@@ -2,6 +2,7 @@ import { useToggleGroup } from '../../hooks/useToggleGroup'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
+import { MIN_LINE } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'toggles'
@@ -56,7 +57,8 @@ export function Toggle({ name, label, group, className, children, ...rest }) {
       onClick={onClick}
       aria-pressed={active}
       className={cx(
-        'ss-toggle-button rounded-md px-3 py-2 text-sm font-medium transition-colors',
+        'ss-toggle-button ss-unlabelled rounded-md px-3 py-2 text-sm font-medium transition-colors',
+        MIN_LINE,
         active ? 'bg-sky-600 text-white hover:bg-sky-500' : 'border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500',
         className,
       )}

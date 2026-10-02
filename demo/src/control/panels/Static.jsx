@@ -1,4 +1,4 @@
-import { Countdown, CountdownTo, Field, Panel, Stopwatch, Toggle } from '@single-studio/core/control'
+import { Countdown, CountdownTo, Field, Panel, Row, Stopwatch, Toggle } from '@single-studio/core/control'
 
 /** A clock, and the button that puts it on the card in place of the others. */
 function Clock({ name, label, children }) {
@@ -29,18 +29,22 @@ function Clock({ name, label, children }) {
 export default function Static() {
   return (
     <Panel title="Static">
-      <Field name="static.message" label="Message" placeholder="Back shortly" />
-      <Field name="static.ticker" label="Ticker" placeholder="Scrolls along the bottom. Empty hides it." />
+      <Row>
+        <Field name="static.message" label="Message" placeholder="Back shortly" />
+        <Field name="static.ticker" label="Ticker" placeholder="Scrolls along the bottom. Empty hides it." />
+      </Row>
 
-      <Clock name="countdown" label="countdown">
-        <Countdown name="static.countdown" label="Back in" />
-      </Clock>
-      <Clock name="until" label="countdown to">
-        <CountdownTo name="static.until" label="Starts at" />
-      </Clock>
-      <Clock name="stopwatch" label="stopwatch">
-        <Stopwatch name="static.stopwatch" label="Running for" />
-      </Clock>
+      <Row>
+        <Clock name="countdown" label="countdown">
+          <Countdown name="static.countdown" label="Back in" />
+        </Clock>
+        <Clock name="until" label="countdown to">
+          <CountdownTo name="static.until" label="Starts at" />
+        </Clock>
+        <Clock name="stopwatch" label="stopwatch">
+          <Stopwatch name="static.stopwatch" label="Running for" />
+        </Clock>
+      </Row>
     </Panel>
   )
 }

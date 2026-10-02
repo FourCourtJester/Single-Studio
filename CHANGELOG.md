@@ -4,6 +4,52 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+The board goes row by row. A minor rather than a patch, because every existing board
+rearranges when it upgrades: what was one wrapping line of controls becomes one row
+per control until it is put in a `Row`.
+
+### Changed
+
+- **A `Panel` is one row per child.** It was one flex line that wrapped wherever the
+  width ran out, which put related controls on different lines in a slim dock and in
+  a different order full screen. To keep controls side by side, put them in a `Row`.
+  `--ss-control-min` is gone with the wrapping it tuned.
+- **Controls line up along their inputs.** Every control is a label, then one input
+  line of the same height, then anything extra below. Before, a field was 42px tall,
+  a button 36px and a stopwatch's readout 38px, and a control with something below its
+  input — colour presets, an image's warning — sat higher than its neighbours. The
+  height is `--ss-input-h`, `2.5rem` by default.
+- **`ImagePicker` is one line.** The preview is the left end of the input, the way
+  `ColorPicker`'s swatch is, instead of a 64px square beside it that put the dropdown
+  12px lower than every input next to it. The library still shows pictures large.
+- **A running `Countdown` or `CountdownTo` keeps its label.** The stop button takes
+  the input's place rather than the whole control's, so the control no longer jumps up
+  a line in its row when it starts. A preset `Countdown` (`duration`) is a button with
+  no label running or not, as before.
+
+### Added
+
+- **`Row`**, a twelve-column grid: controls take the whole row below 768px and an
+  equal share of it above. Give one a Tailwind `col-span-*` to size it in twelfths —
+  `md:col-span-8` from 768px up, or unprefixed at every width. A switch or button
+  beside a labelled control drops by one label line to sit level with the inputs;
+  `ss-unlabelled` gives a control of your own the same treatment.
+
+### Deprecated
+
+- **`Break`** draws nothing now — a Panel's children are already a row each. It is
+  kept so a 0.9 board still builds. Delete it, and put controls that share a line in a
+  `Row`.
+
+### For anybody building from the templates
+
+- **The template's board and the demo's use `Row`.** To try the demo from a branch
+  before its release, `node scripts/verify-template.mjs --keep` builds it against the
+  branch's own packages and prints where; `npm run dev` there. From npm, `demo/`
+  installs the last published framework, which has no `Row`.
+
 ## 0.9.1
 
 A patch. One fix to core's types, and a release so the demonstration studio picks up

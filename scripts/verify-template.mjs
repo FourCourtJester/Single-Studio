@@ -628,6 +628,8 @@ try {
 
   console.log('\ntemplates and the demo build against the packed packages')
 } finally {
-  if (keep) console.log(`\nleft behind at ${project}`)
+  // The demo is printed too, because this is the way to try a branch's demo before
+  // its release: from npm, `demo/` installs the last published framework.
+  if (keep) console.log(`\nleft behind at ${project}\nand the demo at ${demo} -- npm run dev there to try it`)
   else rmSync(stage, { recursive: true, force: true })
 }

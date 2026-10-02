@@ -56,6 +56,7 @@ const AUTHORED = {
     'Stopwatch',
     'Leaderboard',
     'Panel',
+    'Row',
     'Break',
     'Confirm',
     'Hotkeys',
@@ -287,7 +288,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | A table          | ${dash('Leaderboard')} | _yours_ |
 | Scrolling text   | ${dash('TextArea')} | ${air('Ticker')} |
 | Wall clock       | — | ${air('Clock')} |
-| Grouping         | ${dash('Panel')}, ${dash('Break')} | ${air('Scene')} |
+| Grouping         | ${dash('Panel')}, ${dash('Row')} | ${air('Scene')} |
 
 Every component takes a \`name\`, and knows for itself where that name lives: values
 under \`variables\`, on/off ones under \`toggles\`, clocks under \`timers\`. So a studio
@@ -302,7 +303,7 @@ Every component passes anything it does not recognise through to the DOM, so
 
 What the operator drives the show from — \`@single-studio/core/control\`. These render
 in \`src/control/Control.jsx\`, which is an ordinary React component: put controls in a
-${dash('Panel')} and it arranges them. Anything you *type* stages until you save, so a
+${dash('Panel')}, one row each, and several in a ${dash('Row')} to share a line. Anything you *type* stages until you save, so a
 half-finished name never reaches air; anything you *press* takes effect at once. Each
 entry below says which.
 
