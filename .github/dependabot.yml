@@ -8,6 +8,16 @@
 # Monthly and grouped on purpose. Weekly and ungrouped is how a repository ends up
 # with eleven open Dependabot PRs nobody reads, which is worse than no Dependabot at
 # all: the alerts that matter arrive in the same inbox as the ones that do not.
+#
+# That happened anyway, in October 2026: thirteen in one night. Not from weekly runs
+# but from five entries each opening their own -- the same yjs patch three times,
+# react-router and vite twice each, because the demo and both templates were separate
+# entries. They are one entry now, grouped by dependency name across all three.
+#
+# Every entry waits a week before offering a release. Most bad publishes -- a broken
+# build, a hijacked account -- are pulled within days, and nothing here needs a
+# release in its first week. Dependabot's own default is three days. Security updates
+# ignore the wait, which is the point: this delays routine drift, not fixes.
 version: 2
 
 updates:
@@ -17,7 +27,22 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
+    # Move the lockfile, and a range only when the new release falls outside it.
+    #
+    # The root manifest is private, so Dependabot's default took this for an app and
+    # raised every floor to the release it was offering: yjs went from ^13.6.20 to
+    # ^13.6.33 in core, provider-supabase and relay (#49), supabase-js likewise
+    # (#52). Those ranges are what every studio installing us has to satisfy, and
+    # nothing we ship needed the newer floor. CI still tests the newest release,
+    # because the lockfile moves either way.
+    #
+    # The cost: a security fix in a runtime dependency also stops at the lockfile.
+    # A fresh install picks it up through the caret regardless; raise the floor by
+    # hand when the advisory says older versions must not be installed at all.
+    versioning-strategy: increase-if-necessary
     groups:
       # Everything that only builds and tests this repository: React, vite, vitest,
       # eslint, TypeScript. None of it reaches a studio -- it is not in any published
@@ -44,58 +69,50 @@ updates:
     # IndexedDB and the wire format between machines -- so a major there is a data
     # migration for every studio with an existing show, not a dependency bump.
 
-  # The starter templates. Outside the pnpm workspace and carrying no lockfile, so
-  # the root entry above cannot see them, and a template left to drift is how a new
-  # studio starts a release behind on its first `pnpm install`.
+  # The demo and both starter templates. Outside the pnpm workspace and carrying no
+  # lockfile, so the root entry above cannot see them, and a template left to drift
+  # is how a new studio starts a release behind on its first `pnpm install`.
   #
-  # `pnpm verify:template` builds both against packed tarballs on every PR, so these
-  # arrive with real coverage rather than on trust.
+  # One entry for all three because they depend on the same things -- React, vite,
+  # yjs, react-router -- and a release of any of them is one decision, not three.
+  # `pnpm verify:template` builds all three against packed tarballs on every PR, so
+  # one PR touching all three gets the same coverage three did.
+  #
+  # No `versioning-strategy`: with no lockfile, the range *is* the only thing to move.
   - package-ecosystem: npm
-    directory: /templates/studio
+    directories:
+      - /demo
+      - /templates/studio
+      - /templates/plugin
     schedule:
       interval: monthly
-    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
     groups:
       # vite and its React plugin are one decision, not two. @vitejs/plugin-react@6
       # peers vite ^8, so the plugin arriving on its own is a broken peer and vite
       # arriving on its own is half a move -- which is exactly what happened: #23 and
       # #24 were the same change, split, and merging either alone was wrong.
+      #
+      # First, so it claims vite before the group below does: a dependency goes to
+      # the first group it matches.
       vite:
         patterns:
           - 'vite'
           - '@vitejs/*'
+      # Each other dependency once, across all three directories. Minors and patches
+      # only, for the same reason as the toolchain group above: a major arrives on its
+      # own, per directory, to be read.
+      same-everywhere:
+        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     ignore:
       # The framework's own pins. Those are release-managed -- see docs/internal/
-      # releasing.md -- and a bot bumping them races the release that sets them.
-      - dependency-name: '@single-studio/*'
-
-  - package-ecosystem: npm
-    directory: /templates/plugin
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 3
-    ignore:
-      - dependency-name: '@single-studio/*'
-
-  # The demo, for the same reason as the templates: outside the workspace, no
-  # lockfile, invisible to the root entry. Its @single-studio pins are release-
-  # managed and verify-template fails a pull request that lets them fall behind,
-  # so a bot bumping them would only race that.
-  - package-ecosystem: npm
-    directory: /demo
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 3
-    groups:
-      # vite and its React plugin are one decision, not two. @vitejs/plugin-react@6
-      # peers vite ^8, so the plugin arriving on its own is a broken peer and vite
-      # arriving on its own is half a move -- which is exactly what happened: #23 and
-      # #24 were the same change, split, and merging either alone was wrong.
-      vite:
-        patterns:
-          - 'vite'
-          - '@vitejs/*'
-    ignore:
+      # releasing.md -- and verify-template fails a pull request that lets them fall
+      # behind, so a bot bumping them would only race the release that sets them.
       - dependency-name: '@single-studio/*'
 
   # Actions. These move rarely, so one grouped PR a month is mostly a no-op and
@@ -109,6 +126,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
     groups:
       actions:
