@@ -4,6 +4,31 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.9.1
+
+A patch. One fix to core's types, and a release so the demonstration studio picks up
+its Twitch overlay — the demo is synced from this repository on release and on no
+other occasion.
+
+### Fixed
+
+- **`<Fit>` and `<Transition>` can be written without every prop.** Their props were
+  undescribed, so a studio typechecked with `checkJs` read every name in the
+  destructuring as required: `<Fit>{name}</Fit>` was an error for a missing `delta`,
+  `max`, `as` and `className`. All of `Fit`'s props are optional now, and only
+  `Transition`'s `trigger` is required, as at runtime. Nothing changes for a studio
+  that does not typecheck.
+
+### For anybody building from the templates
+
+- **The demo has a Twitch overlay.** A chat box bottom right, `#/source/twitch-chat`,
+  and alerts top centre, `#/source/twitch-alerts` — follows, subs, gifts, cheers and
+  raids, one at a time, queued so a burst plays out rather than piling up. The board
+  has a Twitch panel whose buttons put made-up ones on air, so the overlay can be
+  seen without a channel. It is written to stack with the scoreboard and the lower
+  third in one OBS scene. The demo's README walks through it as the example of a
+  plugin in a studio.
+
 ## 0.9.0
 
 A minor rather than a patch, because the Twitch plugin is set up differently: its
