@@ -66,11 +66,12 @@ class Stream extends TwitchHandler {
 }
 
 /**
- * The demo's Twitch app. A Client ID is public by design -- it ships in the build of
- * every studio that signs in to Twitch -- and it is what Twitch shows on the
- * approval screen. VITE_TWITCH_CLIENT_ID swaps in your own.
+ * The demo's own Twitch app, registered as a Public client so that whoever signs in
+ * from the public page sees a name meaning this demo on Twitch's approval screen,
+ * not the test fixture's. A Client ID is public by design -- it ships in the build of
+ * every studio that signs in to Twitch. VITE_TWITCH_CLIENT_ID swaps in your own.
  */
-const TWITCH_CLIENT_ID = import.meta.env.VITE_TWITCH_CLIENT_ID || 'k2o5ty3iracsimmlqstdhxfnlbwiiu'
+const TWITCH_CLIENT_ID = import.meta.env.VITE_TWITCH_CLIENT_ID || 'mx5nf5mj9z3966lacswbhy614qr53k'
 
 createVelcroHost({
   name: STUDIO_ID,
