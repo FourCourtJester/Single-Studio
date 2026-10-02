@@ -89,7 +89,7 @@
     "react-router-dom": "^7.18.3",
     "typescript": "^7.0.2",
     "vite": "^6.4.3",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.2"
   },
   "publishConfig": {
     "access": "public"
