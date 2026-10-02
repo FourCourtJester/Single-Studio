@@ -16,16 +16,27 @@ somebody else's browser.
 
 ## What it shows
 
-| graphic           | at                       | shows                                                        |
-| ----------------- | ------------------------ | ------------------------------------------------------------ |
-| **Scoreboard**    | `#/source/scoreboard`    | Values, a count-up clock, and team colours through CSS vars  |
-| **Lower third**   | `#/source/lower-third`   | A toggle driving an entrance and an exit                     |
-| **Standby**       | `#/source/standby`       | A slideshow off the image library, and a wall clock          |
-| **Break timer**   | `#/source/break-timer`   | A countdown that every machine derives rather than ticks     |
-| **Twitch chat**   | `#/source/twitch-chat`   | The last six chat messages, emotes included                  |
-| **Twitch alerts** | `#/source/twitch-alerts` | Follows, subs, gifts, cheers and raids, queued one at a time |
+| graphic           | at                       | shows                                                                 |
+| ----------------- | ------------------------ | --------------------------------------------------------------------- |
+| **Scoreboard**    | `#/source/scoreboard`    | Team names, logos from the image library, scores, round, team colours |
+| **Lower thirds**  | `#/source/lower-thirds`  | Two straps on two toggles: one slides in, one fades                   |
+| **Static**        | `#/source/static`        | A message, all three kinds of clock, a ticker, a slideshow behind     |
+| **Clock**         | `#/source/clock`         | The time of day in the corner, 12- or 24-hour                         |
+| **Twitch chat**   | `#/source/twitch-chat`   | The last six chat messages, emotes included                           |
+| **Twitch alerts** | `#/source/twitch-alerts` | Follows, subs, gifts, cheers and raids, queued one at a time          |
 
-The operator's board is at `#/`.
+The operator's board is at `#/`, with a panel for each, in the order a show uses
+them.
+
+Everything but Static is laid out to stack in one OBS scene: drag each source in at
+full canvas size and nothing overlaps. The scoreboard is top centre with Twitch alerts
+dropping in below it, the clock top right, the lower thirds bottom left and chat
+bottom right. Static is full screen, for a scene of its own before the show and in
+the breaks.
+
+Two things come from the image library rather than from a field: the team logos,
+picked on the Scoreboard panel, and Static's backdrop, which plays whatever is in the
+library's `static` group. Drop a folder called `static` on the library to dress it.
 
 ## Running it
 
@@ -47,7 +58,3 @@ with Twitch** puts your own channel's chat and alerts on the two Twitch graphics
 Until somebody does, the board's **Twitch** panel has buttons that send made-up
 events through the same mutations real ones use, so the overlay can be tried without
 a channel.
-
-The graphics are laid out to stack in one OBS scene with the rest: the scoreboard
-top centre with alerts dropping in below it, the lower third bottom left, chat bottom
-right.
