@@ -4,9 +4,9 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.10.0
 
-The board goes row by row. A minor rather than a patch, because every existing board
+The board goes row by row, and the demo is rebuilt around what a show uses. A minor rather than a patch, because every existing board
 rearranges when it upgrades: what was one wrapping line of controls becomes one row
 per control until it is put in a `Row`.
 
@@ -45,10 +45,16 @@ per control until it is put in a `Row`.
 
 ### For anybody building from the templates
 
-- **The template's board and the demo's use `Row`.** To try the demo from a branch
-  before its release, `node scripts/verify-template.mjs --keep` builds it against the
-  branch's own packages and prints where; `npm run dev` there. From npm, `demo/`
-  installs the last published framework, which has no `Row`.
+- **The template's board and the demo's use `Row`.**
+- **The demo is rebuilt around a show:** a scoreboard (names, logos from the image
+  library, scores, colours, the round), two lower thirds on their own toggles — one
+  slides in, one fades — a full-screen static card with a message, a ticker and all
+  three kinds of clock, a corner clock, and the Twitch overlay. Everything but the
+  static card stacks in one OBS scene without overlapping.
+- **To try a branch's demo before it is released**, run
+  `node scripts/verify-template.mjs --keep`. It builds the demo against the branch's
+  own packages and prints where; `npm run dev` there. From npm, `demo/` installs the
+  last published framework.
 
 ## 0.9.1
 
