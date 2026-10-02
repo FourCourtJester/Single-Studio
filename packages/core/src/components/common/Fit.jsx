@@ -73,6 +73,20 @@ function boxFor(element) {
   return ancestors.find((_node, at) => natural[at] > 0 && narrow[at] === natural[at]) ?? ancestors.at(-1)
 }
 
+/**
+ * Every prop optional, as it is at runtime. Undescribed, TypeScript read each
+ * destructured name as a required prop, so a studio checked with it could not write
+ * `<Fit>{name}</Fit>` -- the first one to try was the demo's Twitch alerts.
+ *
+ * @typedef {object} FitProps
+ * @property {import("react").ReactNode} [children]
+ * @property {string} [className] - Added to the component's own classes.
+ * @property {number} [delta] - How close to the box's width is close enough, in pixels. Defaults to 1.
+ * @property {number} [max] - The largest font size, in pixels. Defaults to the size the text inherits.
+ * @property {string} [as] - The element to render. Defaults to `"span"`.
+ */
+
+/** @param {FitProps & import("react").HTMLAttributes<HTMLElement>} props */
 export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...rest }) {
   const ref = useRef(null)
   const [pending, setPending] = useState(true)

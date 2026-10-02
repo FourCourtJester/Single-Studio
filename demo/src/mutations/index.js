@@ -9,7 +9,9 @@
 // Split by area as the show grows, one file per part of the broadcast.
 
 import { show } from './show'
+import { twitch } from './twitch'
 
 export const mutations = {
   ...show,
+  ...twitch,
 }

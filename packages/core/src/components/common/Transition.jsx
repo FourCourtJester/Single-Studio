@@ -82,6 +82,21 @@ function variantsOf(transition) {
     .map((name) => `ss-${name}`)
 }
 
+/**
+ * `trigger` is the one prop that matters and the only one a caller must think
+ * about; the rest are optional, as they are at runtime. Undescribed, TypeScript read
+ * `className` as required, which no caller in this repository had tripped over
+ * because none was typechecked against the published types until the demo's alerts.
+ *
+ * @typedef {object} TransitionProps
+ * @property {unknown} trigger - A new value runs the out, swap, in cycle. Falsy hides the content.
+ * @property {import("react").ReactNode} [children]
+ * @property {string} [transition] - Motion variants, space-separated -- e.g. `"slide-up ease-back"`. Defaults to `"fade"`.
+ * @property {string} [className] - Added to the component's own classes.
+ * @property {string} [as] - The element to render. Defaults to `"div"`.
+ */
+
+/** @param {TransitionProps & import("react").HTMLAttributes<HTMLElement>} props */
 export function Transition({ children, trigger, transition = 'fade', className, as: Tag = 'div', ...rest }) {
   const [content, setContent] = useState(children)
   const [phase, setPhase] = useState(trigger ? 'entering' : 'inactive')
