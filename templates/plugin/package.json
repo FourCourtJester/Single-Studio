@@ -28,10 +28,10 @@
     "lint": "eslint ."
   },
   "peerDependencies": {
-    "@single-studio/core": "^0.9.1"
+    "@single-studio/core": "^0.10.0"
   },
   "devDependencies": {
-    "@single-studio/core": "^0.9.1",
+    "@single-studio/core": "^0.10.0",
     "vitest": "^5.0.2"
   }
 }
