@@ -47,7 +47,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
+    "@supabase/supabase-js": "^2.117.2",
     "lib0": "^0.2.117",
     "y-protocols": "^1.0.7"
   },
