@@ -2263,9 +2263,9 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     executablePath,
     args: [`--host-resolver-rules=MAP studio.test ${served.hostname}`, `--unsafely-treat-insecure-origin-as-secure=${PUBLIC}`],
   })
-  const board = await (await elsewhere.newContext()).newPage()
-
-  await board.addInitScript(() => {
+  // The browser's answer, and the user accepting the prompt when asked. `__asked`
+  // counts the board asking at all.
+  const standIn = () => {
     let state = 'prompt'
     const heard = new Set()
     const status = {
@@ -2277,7 +2277,13 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     }
     const query = navigator.permissions.query.bind(navigator.permissions)
 
-    navigator.permissions.query = async (descriptor) => (descriptor.name === 'loopback-network' ? status : query(descriptor))
+    window.__asked = 0
+    navigator.permissions.query = async (descriptor) => {
+      if (descriptor.name !== 'loopback-network') return query(descriptor)
+      window.__asked += 1
+
+      return status
+    }
 
     const fetch = window.fetch.bind(window)
 
@@ -2292,13 +2298,18 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 
       return Promise.reject(new TypeError('Failed to fetch'))
     }
-  })
+  }
+  const openPlugins = async (page) => {
+    await page.goto(`${PUBLIC}/#/`)
+    await page.waitForSelector('text=Clocks')
+    await page.locator('.ss-control-bar').hover()
+    await page.locator('.ss-menu-open').click()
+    await page.locator('.ss-menu-plugins').click()
+  }
+  const board = await (await elsewhere.newContext()).newPage()
 
-  await board.goto(`${PUBLIC}/#/`)
-  await board.waitForSelector('text=Clocks')
-  await board.locator('.ss-control-bar').hover()
-  await board.locator('.ss-menu-open').click()
-  await board.locator('.ss-menu-plugins').click()
+  await board.addInitScript(standIn)
+  await openPlugins(board)
 
   const blocked = (plugin) => `.ss-plugin[data-plugin="${plugin}"] .ss-local-access`
 
@@ -2321,6 +2332,33 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     await becomes(board, (selector) => !document.querySelector(selector), blocked('rocket-league')),
     'and once it is granted, the panel stops blaming the browser',
   )
+
+  // Inside OBS the same board must not blame the browser. OBS 33's Chromium lets a
+  // plugin's socket through but still answers `prompt`, and has no prompt to show,
+  // so an Allow there is a button that does nothing beside a plugin that is down for
+  // another reason. Seen in the 33 beta, with the game closed. OBS is told by the
+  // user agent it sets in docks and sources.
+  const dock = await (
+    await elsewhere.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.7871.0 OBS/33.0.0 Safari/537.36',
+    })
+  ).newPage()
+
+  await dock.addInitScript(standIn)
+  await openPlugins(dock)
+  await dock.waitForSelector('.ss-plugin[data-plugin="rocket-league"]')
+  // Longer than the first board took to ask and show the notice, so a board that
+  // was going to ask has had the chance.
+  await dock.waitForTimeout(1500)
+
+  const inObs = await dock.evaluate(() => ({
+    status: document.querySelector('.ss-plugin[data-plugin="rocket-league"]')?.dataset.status,
+    asked: window.__asked,
+    notice: document.querySelectorAll('.ss-local-access').length,
+  }))
+
+  console.log(`  inside OBS: ${JSON.stringify(inObs)}`)
+  check(inObs.status !== 'connected' && inObs.asked === 0 && inObs.notice === 0, 'inside OBS, a game that is not connected is not blamed on the browser')
 
   await elsewhere.close()
 }

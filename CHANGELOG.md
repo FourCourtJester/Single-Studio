@@ -4,6 +4,18 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Fixed
+
+- **Inside OBS, a plugin that is down is no longer blamed on the browser.** OBS 33
+  moves to Chromium 150, which stops a page on a public site reaching this computer
+  but lets WebSockets — every plugin — through. It still reports the permission as
+  not granted, so a studio on GitHub Pages in an OBS dock said the browser was
+  blocking the game whenever the game was closed, and offered an Allow that OBS has
+  no prompt for. The board now recognises OBS by its user agent and leaves that
+  notice out there. Desktop Chrome is unchanged.
+
 ## 0.10.0
 
 The board goes row by row, and the demo is rebuilt around what a show uses. A minor rather than a patch, because every existing board

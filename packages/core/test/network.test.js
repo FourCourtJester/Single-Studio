@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { addressSpace, gatedBetween, localPermission, promptable } from '../src/toolkits/network'
+import { addressSpace, gatedBetween, gatesSockets, localPermission, promptable } from '../src/toolkits/network'
 
 describe('where an address is', () => {
   it('knows this computer by every name a studio writes it as', () => {
@@ -50,6 +50,24 @@ describe('what a studio has to be allowed', () => {
 
   it('nothing, for a plugin that talks to the internet', () => {
     expect(gatedBetween('https://fourcourtjester.github.io/', 'wss://eventsub.wss.twitch.tv/ws')).toBeNull()
+  })
+})
+
+describe('whether the browser is what stops a plugin', () => {
+  // CEF puts the product string OBS sets before "Safari", so OBS is mid-string.
+  const OBS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.7871.0 OBS/33.0.0 Safari/537.36'
+  const CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.8037.58 Safari/537.36'
+
+  it('it can be, in Chrome', () => {
+    expect(gatesSockets(CHROME)).toBe(true)
+  })
+
+  it('it is not, inside OBS, which lets a plugin’s socket through', () => {
+    expect(gatesSockets(OBS)).toBe(false)
+  })
+
+  it('a word that only contains OBS is not OBS', () => {
+    expect(gatesSockets(`${CHROME} JOBS/1.0`)).toBe(true)
   })
 })
 
