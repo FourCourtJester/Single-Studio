@@ -1,0 +1,178 @@
+# Push the demo and the templates to their mirrors when they change on main, without
+# a release.
+#
+# The release (release.yml) mirrors all three on every tag, because a framework
+# change can force a change in any of them. But a change to the demo's own layout, or
+# a fix to a template's README, reaches nobody through npm -- making it wait for a
+# version bump and a tag is ceremony with nothing to protect.
+#
+# What it does have to protect against is a mirror that cannot build. A mirror
+# installs the framework from npm, so a demo change that uses something only on main
+# would put a broken demo on Pages. Two guards, in order:
+#
+# - A push that also changed packages/ is left to the release. That is the usual
+#   shape of "the demo uses something new": both in one pull request, as #59 was --
+#   the demo's row-cols and col-auto needed the core that 0.11.0 shipped. It also
+#   catches the release pull request itself, whose version bump names a core npm does
+#   not serve until the tag.
+# - Otherwise it is installed from npm and built (and typechecked, or tested for the
+#   plugin template) in a directory with no workspace to fall back on, exactly as the
+#   mirror's own Pages build will. Red here means nothing was pushed.
+#
+# Not caught: a demo-only change that uses a class only an unreleased core styles.
+# An unknown class builds and typechecks fine and simply does nothing. Keep a demo
+# change that needs new framework behaviour in the same pull request as that change.
+name: Mirror
+
+on:
+  push:
+    branches: [main]
+    paths: ['demo/**', 'templates/**']
+  # Mirrors all three, guarded by the build but not by the packages/ rule -- you
+  # asked.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # One push at a time to each mirror, shared with the release's template job, so
+    # a push here and a release landing together cannot race each other's checkout
+    # and fail as a non-fast-forward.
+    concurrency:
+      group: mirror-${{ matrix.name }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: demo
+            source: demo
+            repository: FourCourtJester/SS-Demo
+            secret: DEMO_DEPLOY_KEY
+          - name: studio
+            source: templates/studio
+            repository: FourCourtJester/Single-Studio-Template
+            secret: TEMPLATE_DEPLOY_KEY
+          - name: plugin
+            source: templates/plugin
+            repository: FourCourtJester/Single-Studio-Plugin-Template
+            secret: PLUGIN_TEMPLATE_DEPLOY_KEY
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The whole history, so the push's first commit can be compared with
+          # whatever came before it.
+          fetch-depth: 0
+
+      - name: Decide whether this push is one to mirror
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SOURCE: ${{ matrix.source }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # A push's `before` is all zeros for a new branch and unknown after a
+          # force-push; the last commit alone is the honest fallback for both.
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" HEAD)
+          else
+            changed=$(git diff --name-only HEAD~1 HEAD)
+          fi
+
+          if ! grep -q "^$SOURCE/" <<< "$changed"; then
+            echo "$SOURCE did not change in this push."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          elif grep -q "^packages/" <<< "$changed"; then
+            echo "::notice::$SOURCE changed alongside packages/, so it may use framework changes npm does not have yet. The next release mirrors it."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v5
+        if: steps.decide.outputs.go == 'true'
+        with:
+          node-version: 22
+
+      # Outside the workspace, so nothing resolves to packages/ by accident: what
+      # installs here is what npm serves, as on the mirror.
+      #
+      # Both halves catch something. The build refuses an import of a component
+      # npm's core does not have ("Missing export"). The typecheck catches a prop
+      # the component does not have, which builds fine and is handed to the DOM:
+      # `<Cycle retries={3}>` built and failed only `tsc`. Same compiler settings as
+      # scripts/verify-template.mjs.
+      - name: Install from npm and build, as the mirror will
+        if: steps.decide.outputs.go == 'true'
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          typescript=$(node -p "require('./package.json').devDependencies.typescript")
+          check="$RUNNER_TEMP/check"
+          cp -a "${{ matrix.source }}/." "$check"
+          cd "$check"
+          npm install --no-audit --no-fund
+
+          if [ "$NAME" = plugin ]; then
+            npm test
+            exit 0
+          fi
+
+          npm run build
+          cat > tsconfig.mirror.json <<'EOF'
+          {
+            "compilerOptions": {
+              "allowJs": true,
+              "checkJs": true,
+              "noEmit": true,
+              "jsx": "react-jsx",
+              "module": "esnext",
+              "moduleResolution": "bundler",
+              "target": "es2022",
+              "lib": ["es2022", "dom", "dom.iterable"],
+              "strict": false,
+              "skipLibCheck": true,
+              "types": ["vite/client"],
+              "maxNodeModuleJsDepth": 2
+            },
+            "include": ["src/**/*.js", "src/**/*.jsx"]
+          }
+          EOF
+          npx --yes -p "typescript@$typescript" tsc -p tsconfig.mirror.json
+
+      - name: Check out the mirror
+        if: steps.decide.outputs.go == 'true'
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ matrix.repository }}
+          ssh-key: ${{ secrets[matrix.secret] }}
+          path: .mirror
+
+      # As the release does: replace rather than merge, so a file deleted here is
+      # deleted there; never force; no tag, because this is not a version.
+      - name: Copy across and push
+        if: steps.decide.outputs.go == 'true'
+        working-directory: .mirror
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$GITHUB_WORKSPACE/${{ matrix.source }}/." .
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "${{ matrix.name }} is already what main has."
+          else
+            git commit -m "Sync from Single-Studio ${GITHUB_SHA::7}"
+            git push origin HEAD:main
+          fi

@@ -378,6 +378,33 @@ mode is deliberate: the packages are already published by then, so the honest ou
 is a red release with a clear reason rather than a silent skip that leaves the
 template a version behind.
 
+### Between releases: mirror.yml
+
+A change to `demo/` or a template that reaches nobody through npm -- the demo's own
+layout, a template's README -- does not need a version. `mirror.yml` pushes it to the
+mirror when it lands on `main`, without a tag:
+
+- **Only what changed.** Each of the three is mirrored only if the push touched it.
+- **Not alongside `packages/`.** A push that also changed the framework may be using
+  something npm does not serve yet -- #59's demo needed 0.11.0's `row-cols` -- so it
+  waits for the release, which mirrors everything. That rule also skips the release
+  pull request itself, whose ranges name a version that is not on npm until the tag.
+- **Built from npm first.** Copied out of the workspace, installed from npm, then
+  built and typechecked (the plugin template: its tests), as the mirror's own Pages
+  build will. Red means nothing was pushed. Checked by breaking each: an import of a
+  component core does not have fails the build; `<Cycle retries={3}>` builds and
+  fails the typecheck; a failing test fails the plugin template.
+- **No tag.** The mirror gets a "Sync from Single-Studio <sha>" commit; tags stay
+  release versions.
+
+What it cannot catch: a demo-only change that uses a class only an unreleased core
+styles. An unknown class builds and typechecks and does nothing. Keep a demo change
+that needs new framework behaviour in the same pull request as that behaviour.
+
+**Run workflow** on the Actions tab mirrors all three by hand, still behind the build
+but not the `packages/` rule. It and the release's `template` job share a
+concurrency group per mirror, so they never push to the same repository at once.
+
 ## The demo is a mirror, like the templates
 
 **`SS-` is for studios, and only for studios.** `SS-Demo` is a show -- graphics, a
