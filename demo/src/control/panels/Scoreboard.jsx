@@ -38,12 +38,12 @@ export default function Scoreboard() {
   return (
     <Panel title="Scoreboard">
       <Team side="home" label="Home" fallback="#0284c7" presets={['#0284c7', '#16a34a', '#ca8a04', '#7c3aed']} />
-      {/* Below 768px a side is four or two lines of controls, and two sides of
-          identical controls run together without a line between them. Wider, each
-          side is one line and its labels say whose it is. */}
-      <hr className="border-slate-800 md:hidden" />
+      {/* Below 1024px a side is four or two lines of controls, and two sides of
+          identical controls run together without a line between them. From there
+          each side is one line and its labels say whose it is. */}
+      <hr className="border-slate-800 lg:hidden" />
       <Team side="away" label="Away" fallback="#e11d48" presets={['#e11d48', '#ea580c', '#0891b2', '#4b5563']} />
-      <hr className="border-slate-800 md:hidden" />
+      <hr className="border-slate-800 lg:hidden" />
 
       {/* The round takes the line and the swap only the room its words need, from 640px. */}
       <Row className="sm:row-cols-2">
