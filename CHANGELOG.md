@@ -4,7 +4,12 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.11.0
+
+A Row sized the way Bootstrap sizes one: how many controls to a line at each
+breakpoint, and a control that takes only the room it needs. A minor because a Row
+changed underneath — `col-span-*` keeps its widths, but a few unsized rows share
+their line differently, so a board can look slightly different after upgrading.
 
 ### Added
 
@@ -23,11 +28,9 @@ tag is checked against all six manifests, so they cannot drift apart.
   what makes `col-auto` possible. `col-span-*` keeps its meaning, so boards sized
   for 0.10 keep their widths. Two differences: five controls left alone share the
   line equally instead of 3, 3, 2, 2, 2 twelfths, and sizing one control no longer
-  sizes the rest -- a `col-span-8` beside an unsized control leaves it the other
+  sizes the rest — a `col-span-8` beside an unsized control leaves it the other
   third, where before it wrapped. `--ss-share` is gone. In Chrome 83, the oldest
   the framework supports, the controls in a row touch: flex `gap` is Chrome 84.
-- **The demo's panels change shape at more than one width**, and the template's
-  score rows use `md:col-auto`.
 
 ### Fixed
 
@@ -38,6 +41,16 @@ tag is checked against all six manifests, so they cannot drift apart.
   blocking the game whenever the game was closed, and offered an Allow that OBS has
   no prompt for. The board now recognises OBS by its user agent and leaves that
   notice out there. Desktop Chrome is unchanged.
+
+### For anybody building from the templates
+
+- **The template's score rows use `md:col-auto`**: the score keeps its own width
+  and the team name takes the rest of the line.
+- **The demo's panels change shape at more than one width.** The scoreboard is one
+  control to a line in a slim dock, two from 640px and four from 1024px, with the
+  score at its own width; Twitch's buttons are two, four, then all eight. Below
+  1024px a line separates home from away and away from the round, and the two
+  lower-third straps.
 
 ## 0.10.0
 
