@@ -31,6 +31,9 @@ export default function LowerThirds() {
   return (
     <Panel title="Lower thirds">
       <Third which="one" label="Host" name="Alex Morgan" tag="@morgs" />
+      {/* Below 768px each strap is three lines, and the two run together without
+          a line between them. */}
+      <hr className="border-slate-800 md:hidden" />
       <Third which="two" label="Guest" name="Sam Okafor" tag="@samokay" />
     </Panel>
   )
