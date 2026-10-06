@@ -1,4 +1,4 @@
-import { Children, createContext, useCallback, useContext, useLayoutEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useLayoutEffect, useState } from 'react'
 
 import { cx } from '../../toolkits/cx'
 
@@ -27,20 +27,27 @@ export function useRowLabel(present = true) {
 
 /**
  * @typedef {object} RowProps
- * @property {import("react").ReactNode} [children] - Controls. Each takes the whole row in a narrow dock and an equal share of it once there is room; give one a `col-span-*` class to set its width out of 12.
- * @property {string} [className] - Added to the component's own classes.
+ * @property {import("react").ReactNode} [children] - Controls. Each takes the whole row in a narrow dock and an equal share of it once there is room; size them with `row-cols-*` on the Row or `col-*` on a control.
+ * @property {string} [className] - Added to the component's own classes. `row-cols-*` goes here.
  */
 /**
  * A line of controls inside a `Panel`: stacked one above the other in a slim OBS
  * dock, side by side once the board is wider than 768px.
  *
- * It is a twelve-column grid, so widths are counted in twelfths, the way Bootstrap's
- * `col-md-*` counts them. Left alone, the controls share the row equally. To size
- * one, give it Tailwind's `col-span-*`: unprefixed, it applies at every width; with
- * a breakpoint (`md:col-span-8`) only from there up, stacking below it. The equal
- * share is worked out from how many controls there are, not from what is left over,
- * so size one and you size them all: a 6 beside two unsized controls is 6, 4 and 4,
- * and the last one wraps.
+ * Sized the way Bootstrap sizes a row, with Tailwind's breakpoints:
+ *
+ * - **Left alone**, the controls share the line equally from 768px up.
+ * - **`row-cols-*` on the Row** sets how many go on a line, at whatever breakpoints
+ *   you give it: `sm:row-cols-2 lg:row-cols-4` is one to a line in a slim dock, two
+ *   from 640px, four from 1024px. A line that does not fill has no hole at the end:
+ *   the last control on it takes the room.
+ * - **`col-span-*` on a control** sets its width out of twelve, the way
+ *   Bootstrap's `col-*` does: `md:col-span-8` is two thirds from 768px up.
+ * - **`col-auto` on a control** sizes it to its content, and the controls beside it
+ *   share what is left. A stepper is 160px wide however wide its share would be;
+ *   `lg:col-auto` gives the rest of its line that room instead of leaving it empty.
+ *
+ * Unprefixed, a class holds at every width; with a breakpoint, from there up.
  *
  * Controls line up along their inputs rather than their tops. Every control on the
  * board is a label, then one input line of the same height, then anything extra --
@@ -49,42 +56,38 @@ export function useRowLabel(present = true) {
  * height so it sits level with the inputs. A control of your own that should do the
  * same takes the `ss-unlabelled` class.
  *
- * The input line is `--ss-input-h` tall, 2.5rem unless a studio sets it.
+ * The input line is `--ss-input-h` tall, 2.5rem unless a studio sets it, and the
+ * gap between controls `--ss-row-gap`, 0.75rem.
  *
  * @example
- * <Panel title="Home">
- *   <Row>
- *     <Field name="home.name" label="Team" className="md:col-span-6" />
- *     <Stepper name="home.score" label="Score" className="md:col-span-3" />
- *     <Toggle name="home" label="home" className="md:col-span-3" />
- *   </Row>
- * </Panel>
+ * // One to a line in a dock, two from 640px, all four from 1024px with the
+ * // score at its own width.
+ * <Row className="sm:row-cols-2 lg:row-cols-4">
+ *   <Field name="home.name" label="Team" />
+ *   <ImagePicker name="home.logo" label="Logo" />
+ *   <Stepper name="home.score" label="Score" className="lg:col-auto" />
+ *   <ColorPicker name="home.color" label="Colour" />
+ * </Row>
+ *
+ * @example
+ * // Two thirds and a third, from 768px up.
+ * <Row>
+ *   <Field name="standings.title" label="Heading" className="md:col-span-8" />
+ *   <Toggle name="standings" label="standings" className="md:col-span-4" />
+ * </Row>
  *
  * @param {RowProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Row({ children, className, style, ...rest }) {
+export function Row({ children, className, ...rest }) {
   const [labels, setLabels] = useState(0)
   const claim = useCallback(() => {
     setLabels((count) => count + 1)
     return () => setLabels((count) => count - 1)
   }, [])
 
-  // An equal share of twelve, and the columns left over when twelve does not divide.
-  // Five controls are 3, 3, 2, 2, 2 rather than five 2s with a gap at the end: the
-  // first few take one more each, which the stylesheet does from `data-spare`.
-  const count = Children.toArray(children).length || 1
-  const share = Math.max(1, Math.floor(12 / count))
-  const spare = count < 12 ? 12 - share * count : 0
-
   return (
     <RowLabels.Provider value={claim}>
-      <div
-        className={cx('ss-row', className)}
-        data-labelled={labels > 0 ? '' : undefined}
-        data-spare={spare || undefined}
-        style={{ '--ss-share': share, '--ss-share-more': share + 1, ...style }}
-        {...rest}
-      >
+      <div className={cx('ss-row', className)} data-labelled={labels > 0 ? '' : undefined} {...rest}>
         {children}
       </div>
     </RowLabels.Provider>

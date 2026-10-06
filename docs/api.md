@@ -568,19 +568,28 @@ A titled group of controls, one row per child, top to bottom.
 A line of controls inside a `Panel`: stacked one above the other in a slim OBS dock, side by side once the board is wider than 768px.
 
 ```jsx
-<Panel title="Home">
-  <Row>
-    <Field name="home.name" label="Team" className="md:col-span-6" />
-    <Stepper name="home.score" label="Score" className="md:col-span-3" />
-    <Toggle name="home" label="home" className="md:col-span-3" />
-  </Row>
-</Panel>
+// One to a line in a dock, two from 640px, all four from 1024px with the
+// score at its own width.
+<Row className="sm:row-cols-2 lg:row-cols-4">
+  <Field name="home.name" label="Team" />
+  <ImagePicker name="home.logo" label="Logo" />
+  <Stepper name="home.score" label="Score" className="lg:col-auto" />
+  <ColorPicker name="home.color" label="Colour" />
+</Row>
+```
+
+```jsx
+// Two thirds and a third, from 768px up.
+<Row>
+  <Field name="standings.title" label="Heading" className="md:col-span-8" />
+  <Toggle name="standings" label="standings" className="md:col-span-4" />
+</Row>
 ```
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | Controls. Each takes the whole row in a narrow dock and an equal share of it once there is room; give one a `col-span-*` class to set its width out of 12. |
-| `className` | `string` |  | Added to the component's own classes. |
+| `children` | `ReactNode` |  | Controls. Each takes the whole row in a narrow dock and an equal share of it once there is room; size them with `row-cols-*` on the Row or `col-*` on a control. |
+| `className` | `string` |  | Added to the component's own classes. `row-cols-*` goes here. |
 
 <a id="control-break"></a>
 

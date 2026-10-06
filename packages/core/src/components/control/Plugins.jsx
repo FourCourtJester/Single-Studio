@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { usePlugins } from '../../hooks/usePlugins'
 import { cx } from '../../toolkits/cx'
-import { gatedBetween, localPermission, promptable } from '../../toolkits/network'
+import { gatedBetween, gatesSockets, localPermission, promptable } from '../../toolkits/network'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
 
@@ -298,8 +298,9 @@ function Entry({ plugin, onSave, onAct }) {
   const status = plugin.status ?? 'idle'
 
   // Only a step inwards from where this page is served is gated: a studio on GitHub
-  // Pages reaching localhost, not the dev server reaching it.
-  const gated = plugin.address ? gatedBetween(window.location.href, plugin.address) : null
+  // Pages reaching localhost, not the dev server reaching it. And never inside OBS,
+  // whose browser lets a plugin's socket through but still answers `prompt`.
+  const gated = plugin.address && gatesSockets() ? gatedBetween(window.location.href, plugin.address) : null
   const access = useLocalAccess(status === 'connected' ? null : gated)
   const [asking, setAsking] = useState(false)
   const blocked = access.state === 'prompt' || access.state === 'denied'

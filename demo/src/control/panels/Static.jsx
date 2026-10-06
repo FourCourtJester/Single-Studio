@@ -29,12 +29,14 @@ function Clock({ name, label, children }) {
 export default function Static() {
   return (
     <Panel title="Static">
+      {/* The ticker is the long one: a third and two thirds once there is room. */}
       <Row>
-        <Field name="static.message" label="Message" placeholder="Back shortly" />
+        <Field name="static.message" label="Message" placeholder="Back shortly" className="lg:col-span-4" />
         <Field name="static.ticker" label="Ticker" placeholder="Scrolls along the bottom. Empty hides it." />
       </Row>
 
-      <Row>
+      {/* Two to a line from 640px, all three from 1024px. */}
+      <Row className="sm:row-cols-2 lg:row-cols-3">
         <Clock name="countdown" label="countdown">
           <Countdown name="static.countdown" label="Back in" />
         </Clock>

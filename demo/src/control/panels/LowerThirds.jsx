@@ -1,12 +1,16 @@
 import { Field, Panel, Row, Toggle } from '@single-studio/core/control'
 
-/** One strap on one line: who it names, and the switch that puts it up. */
+/**
+ * One strap: who it names, and the switch that puts it up. Stacked in a dock, the
+ * two names side by side from 640px, and the switch beside them at its own width
+ * from 1024px.
+ */
 function Third({ which, label, name, tag }) {
   return (
-    <Row>
+    <Row className="sm:row-cols-2 lg:row-cols-3">
       <Field name={`third.${which}.name`} label={`${label} name`} placeholder={name} />
       <Field name={`third.${which}.tag`} label={`${label} gamertag`} placeholder={tag} />
-      <Toggle name={`third.${which}`} label={label.toLowerCase()} />
+      <Toggle name={`third.${which}`} label={label.toLowerCase()} className="lg:col-auto" />
     </Row>
   )
 }
@@ -27,6 +31,9 @@ export default function LowerThirds() {
   return (
     <Panel title="Lower thirds">
       <Third which="one" label="Host" name="Alex Morgan" tag="@morgs" />
+      {/* Below 1024px each strap is two or three lines, and the two run together
+          without a line between them. */}
+      <hr className="border-slate-800 lg:hidden" />
       <Third which="two" label="Guest" name="Sam Okafor" tag="@samokay" />
     </Panel>
   )

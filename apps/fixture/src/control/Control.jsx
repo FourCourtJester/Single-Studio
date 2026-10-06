@@ -53,8 +53,8 @@ export default function Control() {
   return (
     <div className="flex flex-col gap-4">
       <Panel title="Match">
-        {/* Five in a row: twelve does not divide by five, so this is the row that
-            shows the first two taking the spare columns. */}
+        {/* Five in a row, left to share the line: five equal widths. The e2e suite
+            measures that. */}
         <Row>
           <Cycle name="period" label="Game" options={['Game 1', 'Game 2', 'Game 3', 'Tiebreak']} />
           <SwapButton label="Swap sides" names={['home.name', 'home.score', 'away.name', 'away.score']} />
@@ -139,12 +139,16 @@ export default function Control() {
 
       <Panel title="Guest">
         {/* A headshot that arrives minutes before air: drop it in, it goes to the
-            local store, and the path is staged until save like any other field. */}
-        <Row>
+            local store, and the path is staged until save like any other field.
+
+            The row that changes shape more than once: one to a line in a dock, two
+            from 640px, all four from 1024px with the switch at its own width and the
+            fields taking the rest. The e2e suite measures each. */}
+        <Row className="sm:row-cols-2 lg:row-cols-4">
           <ImagePicker name="guest.photo" label="Headshot" />
           <Field name="guest.name" label="Guest name" placeholder="Guest" />
           <Field name="guest.title" label="Role" placeholder="Analyst" />
-          <Toggle name="guest" label="guest" />
+          <Toggle name="guest" label="guest" className="lg:col-auto" />
         </Row>
       </Panel>
 

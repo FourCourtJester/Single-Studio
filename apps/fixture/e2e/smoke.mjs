@@ -610,7 +610,13 @@ const lines = () => {
   const panel = (title) => [...document.querySelectorAll('.ss-panel')].find((el) => el.querySelector('h2')?.textContent.trim().toLowerCase() === title)
   const edges = (el) => {
     const box = el.getBoundingClientRect()
-    return { top: Math.round(box.top), bottom: Math.round(box.bottom), left: Math.round(box.left), width: Math.round(box.width) }
+    return {
+      top: Math.round(box.top),
+      bottom: Math.round(box.bottom),
+      left: Math.round(box.left),
+      right: Math.round(box.right),
+      width: Math.round(box.width),
+    }
   }
   const lineOf = (control) =>
     control.matches('.ss-unlabelled')
@@ -621,9 +627,13 @@ const lines = () => {
   return {
     sponsor: row('sponsor'),
     guest: row('guest'),
+    guestCells: cells('guest'),
+    guestRow: edges(panel('guest').querySelector('.ss-row')),
+    standings: cells('standings').slice(0, 2),
+    standingsRow: edges(panel('standings').querySelector('.ss-row')),
     third: row('lower third'),
     match: cells('match').slice(0, 5),
-    rowWidth: Math.round(panel('sponsor').querySelector('.ss-row').getBoundingClientRect().width),
+    gap: parseFloat(getComputedStyle(panel('guest').querySelector('.ss-row')).columnGap),
   }
 }
 
@@ -634,16 +644,62 @@ check(wide.sponsor.length === 4 && level(wide.sponsor), 'side by side, a picker,
 check(wide.guest.length === 4 && level(wide.guest), 'and so do a headshot, two fields and a switch')
 check(level(wide.third), 'a switch beside labelled fields sits level with their inputs, not with their labels')
 
-// Twelve shared five ways: the first two take the two spare columns.
-const [one, two, three, four, five] = wide.match.map((edge) => edge.width)
+// Left alone, five share the line equally -- what a twelve-column grid could not do,
+// which gave 3, 3, 2, 2, 2.
 console.log(`  five buttons in a row: ${wide.match.map((edge) => edge.width).join(', ')}px`)
-check(one === two && three === four && four === five && one > three, 'five in a row share twelve as 3, 3, 2, 2, 2 rather than leaving a hole')
+check(
+  new Set(wide.match.map((edge) => edge.top)).size === 1 && Math.max(...wide.match.map((e) => e.width)) - Math.min(...wide.match.map((e) => e.width)) <= 1,
+  'five in a row share the line equally',
+)
+
+// Within a pixel, because widths are fractions of a pixel and the edges are rounded.
+const near = (a, b) => Math.abs(a - b) <= 1
+
+// `md:col-span-8` and `md:col-span-4`, as boards written for 0.10 size them: two
+// thirds and a third of the line, the gap counted in, and nothing left over.
+const [heading, standingsSwitch] = wide.standings
+console.log(`  8 and 4 of twelve: ${heading.width} + ${standingsSwitch.width}px in ${wide.standingsRow.width}px, gap ${wide.gap}px`)
+check(
+  near(heading.width, 2 * standingsSwitch.width + wide.gap) && near(standingsSwitch.right, wide.standingsRow.right),
+  'col-span-8 beside col-span-4 is two thirds and a third, filling the line',
+)
+
+// `lg:row-cols-4` with the switch `lg:col-auto`: one line, the switch at its own
+// width and the three others sharing everything else, so nothing is left empty at
+// the end of the line.
+const [, , , guestSwitch] = wide.guestCells
+const others = wide.guestCells.slice(0, 3).map((edge) => edge.width)
+console.log(`  guest row at 1280px: ${wide.guestCells.map((edge) => edge.width).join(', ')}px in ${wide.guestRow.width}px`)
+check(
+  level(wide.guest) && guestSwitch.width < others[0] / 2 && Math.max(...others) - Math.min(...others) <= 1 && near(guestSwitch.right, wide.guestRow.right),
+  'a col-auto control keeps its own width and the others take the rest of the line',
+)
+
+// `sm:row-cols-2`, between 640px and 1024px: two to a line, and the switch beside
+// a field on the second line still level with the field's input.
+const middle = await rowsAt(800, lines)
+const pairs = middle.guestCells
+console.log(`  guest row at 800px: ${pairs.map((edge) => `${edge.left}+${edge.width}@${edge.top}`).join(', ')}`)
+check(
+  pairs.length === 4 &&
+    pairs[0].top === pairs[1].top &&
+    pairs[2].top > pairs[0].top &&
+    pairs[0].left === pairs[2].left &&
+    near(pairs[0].width, pairs[1].width) &&
+    near(pairs[1].right, middle.guestRow.right),
+  'at a middle width the same row is two to a line',
+)
+check(level(middle.guest.slice(2)), 'and the switch beside the field on the second line sits level with its input')
 
 const slim = await rowsAt(380, lines)
 console.log(`  sponsor row at 380px: ${slim.sponsor.map((edge) => `${edge.left}+${edge.width}@${edge.top}`).join(', ')}`)
 check(
   new Set(slim.sponsor.map((edge) => edge.left)).size === 1 && slim.sponsor.every((edge, i, all) => i === 0 || edge.top > all[i - 1].bottom),
   'in a slim dock the same row stacks, one control under the next',
+)
+check(
+  new Set(slim.guestCells.map((edge) => edge.left)).size === 1 && slim.guestCells.every((edge, i, all) => i === 0 || edge.top > all[i - 1].bottom),
+  'and so does the row that is two to a line at a middle width',
 )
 
 // -- Asset library -----------------------------------------------------------
@@ -2263,9 +2319,9 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     executablePath,
     args: [`--host-resolver-rules=MAP studio.test ${served.hostname}`, `--unsafely-treat-insecure-origin-as-secure=${PUBLIC}`],
   })
-  const board = await (await elsewhere.newContext()).newPage()
-
-  await board.addInitScript(() => {
+  // The browser's answer, and the user accepting the prompt when asked. `__asked`
+  // counts the board asking at all.
+  const standIn = () => {
     let state = 'prompt'
     const heard = new Set()
     const status = {
@@ -2277,7 +2333,13 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     }
     const query = navigator.permissions.query.bind(navigator.permissions)
 
-    navigator.permissions.query = async (descriptor) => (descriptor.name === 'loopback-network' ? status : query(descriptor))
+    window.__asked = 0
+    navigator.permissions.query = async (descriptor) => {
+      if (descriptor.name !== 'loopback-network') return query(descriptor)
+      window.__asked += 1
+
+      return status
+    }
 
     const fetch = window.fetch.bind(window)
 
@@ -2292,13 +2354,18 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 
       return Promise.reject(new TypeError('Failed to fetch'))
     }
-  })
+  }
+  const openPlugins = async (page) => {
+    await page.goto(`${PUBLIC}/#/`)
+    await page.waitForSelector('text=Clocks')
+    await page.locator('.ss-control-bar').hover()
+    await page.locator('.ss-menu-open').click()
+    await page.locator('.ss-menu-plugins').click()
+  }
+  const board = await (await elsewhere.newContext()).newPage()
 
-  await board.goto(`${PUBLIC}/#/`)
-  await board.waitForSelector('text=Clocks')
-  await board.locator('.ss-control-bar').hover()
-  await board.locator('.ss-menu-open').click()
-  await board.locator('.ss-menu-plugins').click()
+  await board.addInitScript(standIn)
+  await openPlugins(board)
 
   const blocked = (plugin) => `.ss-plugin[data-plugin="${plugin}"] .ss-local-access`
 
@@ -2321,6 +2388,33 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     await becomes(board, (selector) => !document.querySelector(selector), blocked('rocket-league')),
     'and once it is granted, the panel stops blaming the browser',
   )
+
+  // Inside OBS the same board must not blame the browser. OBS 33's Chromium lets a
+  // plugin's socket through but still answers `prompt`, and has no prompt to show,
+  // so an Allow there is a button that does nothing beside a plugin that is down for
+  // another reason. Seen in the 33 beta, with the game closed. OBS is told by the
+  // user agent it sets in docks and sources.
+  const dock = await (
+    await elsewhere.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.7871.0 OBS/33.0.0 Safari/537.36',
+    })
+  ).newPage()
+
+  await dock.addInitScript(standIn)
+  await openPlugins(dock)
+  await dock.waitForSelector('.ss-plugin[data-plugin="rocket-league"]')
+  // Longer than the first board took to ask and show the notice, so a board that
+  // was going to ask has had the chance.
+  await dock.waitForTimeout(1500)
+
+  const inObs = await dock.evaluate(() => ({
+    status: document.querySelector('.ss-plugin[data-plugin="rocket-league"]')?.dataset.status,
+    asked: window.__asked,
+    notice: document.querySelectorAll('.ss-local-access').length,
+  }))
+
+  console.log(`  inside OBS: ${JSON.stringify(inObs)}`)
+  check(inObs.status !== 'connected' && inObs.asked === 0 && inObs.notice === 0, 'inside OBS, a game that is not connected is not blamed on the browser')
 
   await elsewhere.close()
 }

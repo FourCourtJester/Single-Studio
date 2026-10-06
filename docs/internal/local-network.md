@@ -41,13 +41,20 @@ the site for "local network" in Chrome's site settings did not help.
     )
   ```
 
-- **OBS does not enforce it, today.** OBS's browser sources and docks run its own
-  Chromium, which was 127 when checked -- fifteen versions before enforcement began
-  in 142, so a studio on the web should reach `localhost` from inside OBS with no
-  prompt and no permission. That is read off the version, not watched happen. It
-  changes the day OBS ships a Chromium of 142 or later, and the
-  notice and Allow will not help there: a browser source has no address bar, no
-  site settings and nobody to click a prompt.
+- **Inside OBS it never stops a plugin.** OBS's docks and browser sources run its
+  own Chromium. Up to OBS 32 that was 127, fifteen versions before enforcement began
+  in 142. OBS 33 moves to 150 (obs-browser#523) and does enforce it, but lets
+  WebSockets through (obs-browser#538, milestoned for 33.0); `fetch`, XHR and
+  EventSource from a public site to this computer stay blocked, with no prompt.
+  Checked by hand in the 33 beta, October 2026: GameState on GitHub Pages, in a
+  custom browser dock, connected to the game on `ws://localhost:47600` through its
+  SharedWorker, nothing allowed anywhere. Browser sources were not tried; they run
+  the same browser.
+- **OBS 33 still answers `prompt`.** With the game closed, the same dock's
+  Rocket League row said the browser was blocking it and offered Allow -- a
+  button for a prompt OBS never shows, beside a plugin that was down because the
+  game was. So the board does not take the permission's answer inside OBS at all;
+  see below.
 
 ## What the framework does
 
@@ -55,6 +62,8 @@ the site for "local network" in Chrome's site settings did not help.
 - The board works out whether reaching it is a step inwards from where the page is
   served (`toolkits/network.js`), and asks the browser for the permission's state.
   A browser that knows none of the permission names gates nothing, so says nothing.
+- Inside OBS it stops there and says nothing (`gatesSockets`). OBS ends its user
+  agent with ` OBS/<version>` in docks and sources (`obs-browser-plugin.cpp`).
 - If the plugin is not connected and the state is `prompt` or `denied`, the row
   says the browser is blocking it. `prompt` gets an **Allow** button that makes the
   plain request above; `denied` gets directions to site settings, since the browser
@@ -68,3 +77,10 @@ the site for "local network" in Chrome's site settings did not help.
 - **The end-to-end test stands in for an enforcing browser.** It serves the fixture
   as `studio.test` and supplies the permission's answer; what it proves is the
   board's decision and the request it makes, not Chrome's side.
+- **OBS is told by its user agent, and the end-to-end test supplies one.** It
+  proves the board stays quiet given that string, not that every OBS build sends
+  it. It is read off obs-browser's source; the 33 beta's own user agent was not
+  looked at.
+- **A later OBS that blocks WebSockets too.** Then a plugin would fail in OBS with
+  nothing on the board saying why. Allow would not have helped either -- OBS shows
+  no prompt -- so the fix then is a different message, not putting this one back.

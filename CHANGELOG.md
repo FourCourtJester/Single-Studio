@@ -4,6 +4,41 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Added
+
+- **`col-auto` in a `Row`.** A control sized to its own content, with the controls
+  beside it sharing the rest of the line. A stepper is 160px wide; in a quarter of a
+  wide board that was 140px of empty space beside it.
+- **`row-cols-*` on a `Row`**, as in Bootstrap: how many controls go on a line, at
+  any breakpoint. `sm:row-cols-2 lg:row-cols-4` is one to a line in a slim dock,
+  two from 640px and four from 1024px. A line that does not fill has no hole at the
+  end; the last control takes the room.
+- **`col-span-full`** for a control that takes the whole line.
+
+### Changed
+
+- **A `Row` is a wrapping flex line rather than a twelve-column grid**, which is
+  what makes `col-auto` possible. `col-span-*` keeps its meaning, so boards sized
+  for 0.10 keep their widths. Two differences: five controls left alone share the
+  line equally instead of 3, 3, 2, 2, 2 twelfths, and sizing one control no longer
+  sizes the rest -- a `col-span-8` beside an unsized control leaves it the other
+  third, where before it wrapped. `--ss-share` is gone. In Chrome 83, the oldest
+  the framework supports, the controls in a row touch: flex `gap` is Chrome 84.
+- **The demo's panels change shape at more than one width**, and the template's
+  score rows use `md:col-auto`.
+
+### Fixed
+
+- **Inside OBS, a plugin that is down is no longer blamed on the browser.** OBS 33
+  moves to Chromium 150, which stops a page on a public site reaching this computer
+  but lets WebSockets — every plugin — through. It still reports the permission as
+  not granted, so a studio on GitHub Pages in an OBS dock said the browser was
+  blocking the game whenever the game was closed, and offered an Allow that OBS has
+  no prompt for. The board now recognises OBS by its user agent and leaves that
+  notice out there. Desktop Chrome is unchanged.
+
 ## 0.10.0
 
 The board goes row by row, and the demo is rebuilt around what a show uses. A minor rather than a patch, because every existing board

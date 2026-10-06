@@ -754,22 +754,34 @@ the same board has to work at both. It does it by going row by row:
 
 - **A `Panel` is one row per child**, top to bottom, at every width.
 - **A `Row` puts controls side by side** from 768px up, and stacks them below that.
-  It is a twelve-column grid, so a width is a number of twelfths, the way Bootstrap's
-  `col-md-*` counts. Left alone, the controls share the row equally.
+  Left alone, the controls share the line equally.
+
+A Row is sized the way Bootstrap sizes one, with Tailwind's breakpoints:
+
+| Class           | On      | Does                                                                         |
+| --------------- | ------- | ---------------------------------------------------------------------------- |
+| `row-cols-*`    | Row     | How many controls to a line. `sm:row-cols-2 lg:row-cols-4` is two, then four |
+| `col-span-*`    | control | Its width out of twelve. `md:col-span-8` is two thirds                       |
+| `col-auto`      | control | Its own width; the controls beside it share what is left                     |
+| `col-span-full` | control | The whole line                                                               |
 
 ```jsx
 <Panel title="Teams">
-  <Row>
-    <Field name="home.name" label="Home" className="md:col-span-8" />
-    <Stepper name="home.score" label="Home score" className="md:col-span-4" />
+  {/* One to a line in a dock, two from 640px, four from 1024px, where the
+      score keeps its own width and the other three share the rest. */}
+  <Row className="sm:row-cols-2 lg:row-cols-4">
+    <Field name="home.name" label="Home" />
+    <ImagePicker name="home.logo" label="Logo" />
+    <Stepper name="home.score" label="Score" className="lg:col-auto" />
+    <ColorPicker name="home.color" label="Colour" />
   </Row>
   <Leaderboard name="standings" /> {/* on its own row */}
 </Panel>
 ```
 
-Widths are Tailwind's `col-span-*`. With a breakpoint (`md:col-span-8`) the width
-holds from there up and the control stacks below it; without one (`col-span-6`) it
-holds at every width, so two `col-span-6` buttons stay a pair even in a slim dock.
+With a breakpoint a class holds from there up; without one, at every width, so
+`row-cols-2` keeps buttons in pairs even in a slim dock. A line that does not fill
+has no hole at the end: the last control on it takes the room.
 
 Side by side, controls line up along their inputs. Every control is a label, then one
 input line of the same height, then anything extra — colour presets, a warning —

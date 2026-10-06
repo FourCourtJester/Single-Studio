@@ -385,11 +385,21 @@ storage shape here is already the one that will need.
 
 The control surface has two shapes to survive — a narrow OBS dock and a full screen
 — so `Panel` and `Row` own the responsive behaviour rather than each studio
-reinventing it. A Panel is one row per child. A Row is a twelve-column grid whose
-children take all twelve below 48rem and an equal share above it, unless a
-`col-span-*` says otherwise; it is media-query driven rather than a container query
+reinventing it. A Panel is one row per child. A Row is a wrapping flex line whose
+children take the whole line below 48rem and an equal share above it, unless
+Bootstrap-style utilities say otherwise: `row-cols-*` on the Row, `col-span-*` and
+`col-auto` on a control. It is media-query driven rather than a container query
 because container queries need Chrome 105 and the floor is 83. See `.ss-panel-body`
 and `.ss-row`.
+
+0.10.0 shipped the Row as a twelve-column grid. A grid cannot do `col-auto`: its
+columns are the same width on every line, so a 160px stepper in a quarter of a
+1200px line left 140px of nothing beside it. As a flex line the stepper takes 160px
+and the other three take the rest (measured in the fixture: 360, 360, 360 and a
+99px switch in 1214px). `col-span-*` and `col-auto` are Tailwind's grid utilities,
+declared again in `base.css` for direct children of a Row, so 0.10 boards keep their
+widths. The cost is flex `gap`, Chrome 84 against a floor of 83: there the controls
+touch.
 
 Until 0.10 a Panel was one wrapping flex line, with children flexing to
 `--ss-control-min` (12rem). That put related controls on different lines depending

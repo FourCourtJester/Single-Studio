@@ -77,6 +77,28 @@ export function gatedBetween(from, to) {
 }
 
 /**
+ * Whether this browser can be what stops a plugin's socket.
+ *
+ * False inside OBS, docks and browser sources alike. OBS runs its own Chromium and
+ * never enforced the rule before 33 (Chromium 127, fifteen versions short of 142);
+ * 33 (Chromium 150) enforces it but lets WebSockets through, which is every plugin
+ * (obs-browser#538). Checked by hand in the 33 beta: GameState on GitHub Pages, in a
+ * dock, reached the game on `localhost`. The same board, with the game closed, still
+ * read the permission as `prompt`, so it blamed the browser and offered an Allow that
+ * OBS will never show a prompt for. Inside OBS, a plugin that is down is down for
+ * some other reason, and the row's own status is the one worth reading.
+ *
+ * Told by the user agent, which OBS ends with ` OBS/<version>` in docks and sources
+ * so that a server can tell (obs-browser, obs-browser-plugin.cpp). `window.obsstudio`
+ * would do for a page but is not set in a worker.
+ *
+ * @param {string} [userAgent]
+ */
+export function gatesSockets(userAgent = globalThis.navigator?.userAgent ?? '') {
+  return !/\sOBS\/\d/.test(userAgent)
+}
+
+/**
  * The permission names that cover a kind of address, newest first.
  *
  * Chrome has renamed this twice in a year -- `local-network-access`, then split

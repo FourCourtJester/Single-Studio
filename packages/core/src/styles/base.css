@@ -433,72 +433,126 @@
   }
 
   /*
-   * Twelve columns, so a width is said in twelfths: `col-span-6` is half, the way
-   * Bootstrap's `col-6` is. Below 48rem every control takes all twelve and the row
-   * stacks; from there up each takes its equal share, which Row works out and sets
-   * as `--ss-share`. A studio's own `col-span-*` wins over both, because utilities
-   * outrank this layer -- unprefixed it holds at every width, `md:` only from there.
+   * A Row is a wrapping flex line, so a control can take its natural width and the
+   * rest share what is left -- `col-auto`, which a grid cannot do: a grid's columns
+   * are the same width on every line, so a stepper's 160px is a whole column's width
+   * of empty space beside it on a wide board.
+   *
+   * Every control grows into the room on its line. `--ss-basis` is where it starts:
+   * the whole line below 48rem, so the row stacks, and nothing from there up, so the
+   * controls share the line equally whatever their content. `row-cols-*` replaces it
+   * with a fraction of the line, at whatever breakpoints it is given; `col-span-*`
+   * and `col-auto` (the utilities at the end of this file) size one control. Growing
+   * also means a line that does not fill -- five controls in rows of two -- has no
+   * hole at the end; the last one takes the line.
    *
    * 48rem because that is about where four controls stop being cramped side by
    * side. A dock pulled out to 600px is still a dock.
    *
-   * `align-items: start` and not `end`, which is what lined inputs up when a panel
-   * was one wrapping line: bottom-aligned, a colour picker's presets or an image's
-   * warning pushes its input above its neighbours'. Top-aligned, every control's
-   * input is one label line down, and whatever hangs below it hangs freely.
+   * `gap` on a flex container is Chrome 84, one version past the floor (83). The
+   * alternative, gutters as margins with a negative margin on the row, pushes a row
+   * 6px past its container, which in anything that scrolls -- the reset dialog --
+   * is a horizontal scrollbar in every browser. In 83 the controls touch; the
+   * layout is otherwise the same.
+   *
+   * `align-items: flex-start` and not `flex-end`, which is what lined inputs up when
+   * a panel was one wrapping line: bottom-aligned, a colour picker's presets or an
+   * image's warning pushes its input above its neighbours'. Top-aligned, every
+   * control's input is one label line down, and whatever hangs below it hangs freely.
    */
   .ss-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    align-items: start;
-    gap: 0.75rem;
+    --ss-row-gap: 0.75rem;
+    --ss-basis: calc(100% - var(--ss-row-gap));
+    --ss-label-offset: 0rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--ss-row-gap);
   }
 
   .ss-row > * {
-    grid-column: span 12;
+    flex: 1 1 var(--ss-basis);
   }
 
   @media (min-width: 48rem) {
-    .ss-row > * {
-      grid-column: span var(--ss-share, 12);
+    .ss-row {
+      --ss-basis: 0%;
+      --ss-label-offset: 1.25rem;
     }
+  }
 
-    /* Twelve does not divide by five: 3, 3, 2, 2, 2 rather than five 2s and a hole. */
-    .ss-row[data-spare='1'] > :nth-child(-n + 1),
-    .ss-row[data-spare='2'] > :nth-child(-n + 2),
-    .ss-row[data-spare='3'] > :nth-child(-n + 3),
-    .ss-row[data-spare='4'] > :nth-child(-n + 4),
-    .ss-row[data-spare='5'] > :nth-child(-n + 5) {
-      grid-column: span var(--ss-share-more, 12);
-    }
-
-    /*
-     * A switch or button beside a labelled control drops by one label line so it
-     * sits level with the inputs instead of with the labels. Only side by side --
-     * stacked, there is nothing to line up with -- and only in a row that has a
-     * label in it at all, which the labels report to the Row themselves.
-     *
-     * 1.25rem is the label's 1rem line and the 0.25rem gap under it, in every
-     * control. Change one and this has to change with it.
-     */
-    .ss-row[data-labelled] > .ss-unlabelled {
-      margin-top: 1.25rem;
-    }
+  /*
+   * A switch or button beside a labelled control drops by one label line so it sits
+   * level with the inputs instead of with the labels. Only side by side -- stacked,
+   * there is nothing to line up with, which is why the offset is 0 until the row
+   * goes side by side, and `row-cols-1` puts it back to 0 -- and only in a row that
+   * has a label in it at all, which the labels report to the Row themselves.
+   *
+   * 1.25rem is the label's 1rem line and the 0.25rem gap under it, in every control.
+   * Change one and this has to change with it.
+   */
+  .ss-row[data-labelled] > .ss-unlabelled {
+    margin-top: var(--ss-label-offset);
   }
 
   /*
    * A picture-faced switch sits at its natural size rather than stretching to fill
    * the line. Everything else on the board is a field or a full-width button, where
    * filling is right; an image toggle stretched to twelve inches of empty box reads
-   * as a layout mistake, and the picture stays the same size either way.
+   * as a layout mistake, and the picture stays the same size either way. In a Row
+   * that makes it `col-auto`: its neighbours take the room it does not.
    */
   .ss-panel-body > .ss-image-toggle {
     align-self: flex-start;
   }
 
   .ss-row > .ss-image-toggle {
-    justify-self: start;
+    flex: 0 0 auto;
   }
+}
+
+/*
+ * Widths in a Row, in Bootstrap's terms. Outside `@layer components` because a
+ * utility has to be declared at the top level; Tailwind puts them in its utilities
+ * layer, so they beat the Row's own rules above, and a breakpoint (`md:`, `lg:`)
+ * works on them as on any utility.
+ *
+ * `col-span-*` and `col-auto` are Tailwind's own names, for grid columns. Declaring
+ * them again adds these rules beside Tailwind's rather than replacing them, so they
+ * still place a grid item anywhere else, and the `md:col-span-8` boards were written
+ * with in 0.10 keep their widths. They only touch a direct child of a Row.
+ *
+ * A width out of twelve counts the gaps in: eight and four are the whole line, not
+ * the line less a gap. A row of N is the same sum with N in place of twelve.
+ */
+@utility col-span-* {
+  .ss-row > & {
+    flex: 0 0 calc((100% + var(--ss-row-gap)) * --value(integer) / 12 - var(--ss-row-gap));
+  }
+}
+
+@utility col-span-full {
+  .ss-row > & {
+    flex: 0 0 100%;
+  }
+}
+
+@utility col-auto {
+  .ss-row > & {
+    flex: 0 0 auto;
+  }
+}
+
+@utility row-cols-* {
+  --ss-basis: calc((100% + var(--ss-row-gap)) / --value(integer) - var(--ss-row-gap));
+  /*
+   * 0 for one to a line, a label's height for two or more. The length goes first:
+   * written `min(...) * 1.25rem`, the build's minifier turned it into
+   * `min(...)/.8rem`, a number divided by a length, which is invalid, so the offset
+   * quietly fell back to none.
+   */
+  --ss-label-offset: calc(1.25rem * min(--value(integer) - 1, 1));
 }
 
 @keyframes ss-bounce-in {
