@@ -10,8 +10,9 @@ import { Cycle, Panel, Row, Toggle } from '@single-studio/core/control'
 export default function Clock() {
   return (
     <Panel title="Clock">
-      <Row>
-        <Toggle name="clock" label="clock" />
+      {/* The switch at its own width beside the format, from 640px. */}
+      <Row className="sm:row-cols-2">
+        <Toggle name="clock" label="clock" className="sm:col-auto" />
         <Cycle name="clock.format" label="Format" options={['24-hour', '12-hour']} />
       </Row>
     </Panel>

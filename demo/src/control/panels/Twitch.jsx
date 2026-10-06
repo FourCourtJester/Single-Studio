@@ -55,16 +55,15 @@ export default function TwitchPanel() {
   return (
     <Panel title="Twitch">
       <p className="text-xs text-slate-400">Try the overlay without a channel. Your own: Settings → Plugins → Twitch → Sign in with Twitch.</p>
-      {/* Eight buttons as two columns in a dock and four on a wider board: widths
-          are twelfths, so half is 6 and a quarter is 3. */}
-      <Row>
+      {/* Eight buttons: two to a line in a dock, four from 640px, all eight from 1280px. */}
+      <Row className="row-cols-2 sm:row-cols-4 xl:row-cols-8">
         {tries.map(({ label, run }) => (
           <button
             key={label}
             type="button"
             data-twitch-try={label.toLowerCase()}
             onClick={run}
-            className="col-span-6 rounded-md bg-sky-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sky-500 md:col-span-3"
+            className="rounded-md bg-sky-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sky-500"
           >
             {label}
           </button>
@@ -72,7 +71,7 @@ export default function TwitchPanel() {
         <button
           type="button"
           onClick={() => mutate('twitch:clear')}
-          className="col-span-6 rounded-md bg-slate-700 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-600 md:col-span-3"
+          className="rounded-md bg-slate-700 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-600"
         >
           Clear
         </button>
