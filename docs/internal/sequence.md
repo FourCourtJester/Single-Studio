@@ -88,8 +88,8 @@ for its items' `duration`, and `toggle` says what it names.
 The obvious build -- show item 0, set a timeout for its duration, show item 1 -- is a
 counter, and a counter belongs to whichever tab is running it. A show has several
 copies of a graphic, every timeout in the chain is late by however long its tab was
-busy, and the lateness adds up item by item until the copies disagree. A source
-reloaded mid-show has no way back in at all.
+busy, and the lateness adds up item by item until copies that started together
+disagree.
 
 So `cueAt` in `toolkits/sequence.js` works out the current item from how long the
 sequence has been running and the list of durations, and the component only
@@ -98,44 +98,56 @@ up on the right item rather than the next one in line.
 
 ## What starts it
 
-- **Nothing** (no `toggle`) -- loops forever, timed from the room clock's epoch, the
-  way `Slideshow` is. Every output shows the same item at the same moment, and a
-  source reloaded mid-show comes back on the right one. This is the corner overlay.
+- **Its `Scene` mounting** (no `toggle`) -- plays from the first item the moment it
+  mounts, and goes round and round. That is the "scene goes live" trigger, where the
+  scene is the `Scene`, not OBS's programme: a browser source set to _Refresh browser
+  when scene becomes active_ remounts it every time the scene is taken. This is the
+  corner overlay.
 - **A toggle** (`toggle="intro"`) -- follows `toggles.intro`. Turning it on plays from
   the first item; turning it off sends the current item out. `loop={false}` holds the
   last item instead of going round again, until the toggle goes off.
 
-### What a toggle-started sequence does not do yet
+The first build timed a sequence without a toggle from the room clock's epoch, the
+way `Slideshow` is, so every output showed the same item and a reload came back on
+the right one. It was changed to start from its mount because a sequence is
+something that plays from its beginning when it comes up, which the epoch never
+gave it: it joined wherever the shared rotation happened to be.
 
-A toggle stores `true`, not when it was turned on, so each output times the sequence
-from the moment it saw the toggle change. Outputs that are open at the time start
-together, within the moment it takes a change to reach them, and stay together,
-because each one times every item from that same start rather than chaining
-timeouts. What does not work is joining late: a browser source reloaded mid-sequence,
-or opened after the toggle went on, starts again from the first item.
+## Each output keeps its own time
 
-The fix is for the toggle to store the instant it was turned on -- truthy, so every
-`Boolean(value)` reader is unaffected -- and for the sequence to time itself from
-that. It was left out of the first version because it changes a stored shape that
-plugins, studio mutations and `docs/data.md` all write as `true`, and those would
-still need the fallback.
+A known weakness, and not one we are addressing. Each output times its sequence
+from its own start -- its own mount, or the moment it saw the toggle change -- on
+its own clock. Outputs that start together stay together, because each times every
+item from that one start rather than chaining timeouts. But a browser source
+reloaded mid-sequence, or opened after the toggle went on, starts again from the
+first item, and two outputs mounted at different times are on different items.
 
-## Not in the first version
+Joining late would need the start stored in the shared state: for a toggle, the
+instant it was turned on rather than `true`, which plugins, studio mutations and
+`docs/data.md` all write; for a mount, there is no shared moment to store at all.
 
-- **The scene going live.** obs-browser dispatches `obsSourceActiveChanged` on
-  `window` with `event.detail.active` -- active meaning on programme, where
-  `obsSourceVisibleChanged` also counts studio mode's preview. That is a per-output
-  trigger by nature. Read from obs-browser's README; not yet tried against a real OBS.
-- **Events.** An item that holds until something happens rather than for a duration.
-  Even an event-driven item needs a timer for when the event never comes, so timed
-  came first.
-- **Overlap beyond the cross-fade**, and the build-up shape above.
+## Decided against
+
+- **Items that wait for an event.** Items are timed, and only timed. An item that
+  holds until something happens is a different component, if it is ever wanted.
+- **OBS's own programme signal.** obs-browser dispatches `obsSourceActiveChanged`
+  when a source goes on programme. The `Scene` mounting is the trigger instead,
+  which works the same in a browser as in OBS, and OBS's refresh-on-active setting
+  turns one into the other.
+
+## Not this
+
+- **The build-up shape** -- pieces that come in one after another and stay on screen
+  together (fade in a logo, slide in two teams, hold, reverse). That was the
+  `useSequence` hook first proposed, and is not a rotation.
+- **Overlap beyond the cross-fade.**
 
 ## Rules worth knowing
 
 - **Items are direct children.** `Sequence` reads `duration` off them. An item inside
   a component of your own, or a fragment, is invisible to it.
-- **Leave items out only on a shared value.** `{showSponsor && <SequenceItem>}`
-  changes the length of the loop. If `showSponsor` is shared, every output changes
-  together; if it is local to one page, that page drifts from the rest.
+- **Changing the items while it plays jumps.** `{showSponsor && <SequenceItem>}`, or
+  a changed duration, changes the length of the loop, and the sequence moves to
+  wherever the new durations say it would be by now rather than finishing the item
+  on screen.
 - **A duration of `0` takes an item out of the rotation** without unmounting it.

@@ -2480,7 +2480,7 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
 // -- A sequence ---------------------------------------------------------------
 // Slides of anything, each on screen for its own duration. What is checked is what
 // an audience would see: the order, how long each one holds, that one leaves as the
-// next arrives, that the box does not jump, and that two outputs agree.
+// next arrives, that the box does not jump, and that it starts from the top.
 //
 // Watched rather than sampled where timing matters, as the slideshow is: polling
 // either side of a change reads the state at the wrong instant.
@@ -2508,8 +2508,6 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   }
 
   const arrivals = (log) => log.filter((entry) => entry.state === 'entering')
-  const current = (selector) =>
-    [...document.querySelectorAll(`${selector} > .ss-sequence-item`)].findIndex((item) => ['entering', 'active'].includes(item.dataset.state))
 
   const rotation = await context.newPage()
 
@@ -2584,28 +2582,41 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   console.log(`  rotation heights: ${heights.join(', ')}`)
   check(heights.length === 1 && heights[0] === 96, 'the box is the size of the largest item throughout, so nothing around it moves')
 
-  // Off the room's clock, like the slideshow: a second output opened later has
-  // nobody to ask, and lands on the same item anyway.
+  // From its own mount, not off a clock in the room: a page that mounts it later
+  // starts from the first item, and holds that for its full duration. Read by a
+  // script that is in the page before the app is, because by the time a test could
+  // look the first item may be over. An observer rather than animation frames: the
+  // first frame after the items went in came 300ms late on a page still loading,
+  // which read as the first item being short.
   const second = await context.newPage()
 
+  await second.addInitScript(() => {
+    let mounted
+
+    new MutationObserver(() => {
+      const items = [...document.querySelectorAll('.probe-rotation > .ss-sequence-item')]
+
+      if (!items.length || window.__mount?.next) return
+
+      const now = performance.now()
+      const on = items.findIndex((item) => ['entering', 'active'].includes(item.dataset.state))
+
+      mounted ??= now
+      window.__mount ??= {}
+      if (on !== -1) window.__mount.first ??= { at: on, ms: Math.round(now - mounted) }
+      if (on !== -1 && window.__mount.first.at !== on) window.__mount.next = { at: on, ms: Math.round(now - mounted) }
+    }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] })
+  })
   await second.goto(`${BASE}/#/source/sequence`)
-  await second.waitForSelector('.probe-rotation > .ss-sequence-item[data-state="active"]')
+  await becomes(second, () => window.__mount?.next)
 
-  let agreed = 0
-  let disagreed = 0
+  const mount = await second.evaluate(() => window.__mount)
 
-  for (let i = 0; i < 12; i += 1) {
-    const [a, b] = await Promise.all([rotation.evaluate(current, '.probe-rotation'), second.evaluate(current, '.probe-rotation')])
-
-    if (a === b) agreed += 1
-    else disagreed += 1
-    await rotation.waitForTimeout(350)
-  }
-
-  console.log(`  two outputs sampled 12 times: ${agreed} agreed, ${disagreed} did not`)
-  // Not "always", for the slideshow's reason: a sample can straddle a boundary the
-  // two pages cross a few milliseconds apart.
-  check(disagreed <= 1, 'a second output opened later is on the same item, having agreed with nobody')
+  console.log(`  mounted later: ${JSON.stringify(mount)}`)
+  check(
+    mount.first?.at === 0 && mount.next?.at === 2 && Math.abs(mount.next.ms - 1200) <= 200,
+    'a page that mounts it later starts from the first item, rather than joining wherever another output is',
+  )
 
   await second.close()
 

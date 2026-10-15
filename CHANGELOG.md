@@ -13,8 +13,9 @@ tag is checked against all six manifests, so they cannot drift apart.
   `duration` and in and out with its own `transition`. A duration is the time an
   item is current, its exit not counted, so the default is a cross-fade. The
   sequence's own `duration` and `transition` are what an item without one gets.
-  Without a `toggle` it loops off the room's clock, so every output agrees; with one
-  it plays when that toggle goes on, and `loop={false}` holds the last item.
+  Without a `toggle` it plays from the first item when its `Scene` mounts; with one
+  it plays when that toggle goes on, and `loop={false}` holds the last item. Each
+  output keeps its own time, so a reloaded source starts again from the top.
 
 ## 0.11.0
 

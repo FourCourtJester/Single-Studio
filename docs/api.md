@@ -890,7 +890,7 @@ A folder of pictures, playing. What a standby screen is made of.
 Slides of anything, one at a time, each on screen for as long as it says. A `Slideshow` whose slides are whatever you put in them.
 
 ```jsx
-// The corner of a broadcast, forever
+// The corner of a broadcast, round and round from when its scene comes up
 <Sequence transition="slide-up">
   <SequenceItem duration={12}><Variable name="sponsor.line" /></SequenceItem>
   <SequenceItem duration={8}>
@@ -914,8 +914,8 @@ Slides of anything, one at a time, each on screen for as long as it says. A `Sli
 | `children` | `ReactNode` |  | `SequenceItem`s, or anything else, which is treated as an item with the defaults. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `duration` | `number` |  | Seconds an item without a `duration` of its own is the current one. Defaults to `8`. |
-| `loop` | `boolean` |  | Go round again after the last item. `false` holds the last one until the toggle goes off. Defaults to `true`. |
-| `toggle` | `string` |  | Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever. |
+| `loop` | `boolean` |  | Go round again after the last item. `false` holds the last one, until the toggle goes off if there is one. Defaults to `true`. |
+| `toggle` | `string` |  | Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence plays from the first item when it mounts. |
 | `transition` | `string` |  | Motion variants for every item without a `transition` of its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`. |
 
 <a id="source-sequenceitem"></a>

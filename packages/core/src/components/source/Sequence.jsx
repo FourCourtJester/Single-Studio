@@ -1,6 +1,5 @@
-import { Children, createContext, isValidElement, useContext, useEffect, useState } from 'react'
+import { Children, createContext, isValidElement, useContext, useEffect, useLayoutEffect, useState } from 'react'
 
-import { useClockOffset } from '../../hooks/useSync'
 import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 import { cueAt } from '../../toolkits/sequence'
@@ -13,24 +12,10 @@ const NAMESPACE = 'toggles'
 const Current = createContext({ on: false, transition: 'fade' })
 
 /**
- * The time since a sequence started, as the arithmetic wants it.
- *
- * Two clocks, deliberately. A free-running sequence is timed from the room's epoch
- * so that every output, on every machine, lands on the same item -- that needs the
- * room's time. A toggle-started one is timed from the moment *this page* saw the
- * toggle go on, which is a reading of this machine's clock, so it is measured
- * against the same clock: adding the room's offset to one end and not the other
- * would jump the sequence by the offset the moment the sync layer reported it.
- */
-function elapsedSince(begin, offset) {
-  return Date.now() + offset - begin
-}
-
-/**
  * @typedef {object} SequenceProps
- * @property {string} [toggle] - Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever.
+ * @property {string} [toggle] - Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence plays from the first item when it mounts.
  * @property {number} [duration] - Seconds an item without a `duration` of its own is the current one. Defaults to `8`.
- * @property {boolean} [loop] - Go round again after the last item. `false` holds the last one until the toggle goes off. Defaults to `true`.
+ * @property {boolean} [loop] - Go round again after the last item. `false` holds the last one, until the toggle goes off if there is one. Defaults to `true`.
  * @property {string} [transition] - Motion variants for every item without a `transition` of its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`.
  * @property {import("react").ReactNode} [children] - `SequenceItem`s, or anything else, which is treated as an item with the defaults.
  * @property {string} [className] - Added to the component's own classes.
@@ -51,14 +36,17 @@ function elapsedSince(begin, offset) {
  * `.ss-sequence-item.ss-active { transition-delay: 300ms }`. Timing for the motion
  * stays in the stylesheet, as it does for every `transition`.
  *
- * **Without a `toggle` it is decided by the clock, not a timer**, as a `Slideshow`
- * is: every output shows the same item at the same moment, having agreed with
- * nobody, and a browser source reopened mid-show comes back on the right one.
+ * **Without a `toggle` it starts when it mounts**, from the first item: when the
+ * `Scene` it is in comes up, which for a browser source set to refresh when its
+ * scene becomes active is when the scene is taken.
  *
  * **With a `toggle` it follows one**, playing from the first item when it goes
- * on. Each output times it from when that output saw the toggle change, so outputs
- * open at the time play together -- but one opened or reloaded afterwards starts
- * again from the first item. See docs/internal/sequence.md for what would fix that.
+ * on, and leaving when it goes off.
+ *
+ * Either way, each output times it from its own start -- its own mount, or the
+ * moment it saw the toggle change -- so a browser source reloaded mid-sequence
+ * starts again from the first item, and two outputs mounted at different times are
+ * on different items. That is by design; see docs/internal/sequence.md.
  *
  * Items are stacked in one place, so the sequence is the size of its largest item
  * and does not move as it plays. Everything stays mounted while it is off, as a
@@ -67,11 +55,12 @@ function elapsedSince(begin, offset) {
  *
  * Items have to be its direct children, because it reads `duration` off them. One
  * inside a component of your own, or a fragment, counts as a single item with the
- * defaults. Leave an item out only on a shared value: it changes the length of the
- * loop, and a page that disagrees with the others about it drifts from them.
+ * defaults. Leaving one out, or changing a duration, while it plays moves it to
+ * wherever the new durations say it would be by now, rather than finishing the item
+ * on screen.
  *
  * @example
- * // The corner of a broadcast, forever
+ * // The corner of a broadcast, round and round from when its scene comes up
  * <Sequence transition="slide-up">
  *   <SequenceItem duration={12}><Variable name="sponsor.line" /></SequenceItem>
  *   <SequenceItem duration={8}>
@@ -92,11 +81,11 @@ function elapsedSince(begin, offset) {
  */
 export function Sequence({ toggle, duration = 8, loop = true, transition = 'fade', className, children, ...rest }) {
   const { value, loaded } = useVelcroState(toggle ? `${NAMESPACE}.${toggle}` : undefined)
-  const offset = useClockOffset()
 
   // Hidden until the toggle has loaded, so a source rebuilt mid-show never plays
-  // its first item before finding out it was supposed to be off.
-  const on = loaded && Boolean(value)
+  // its first item before finding out it was supposed to be off. Without a toggle
+  // it is on from the moment it mounts.
+  const on = toggle ? loaded && Boolean(value) : true
 
   const items = Children.toArray(children)
     .filter(isValidElement)
@@ -114,19 +103,21 @@ export function Sequence({ toggle, duration = 8, loop = true, transition = 'fade
     })
     .join(',')
 
-  // When a toggle-started sequence began, on this machine's clock. Kept across
-  // renders while the toggle stays on, and forgotten when it goes off, so turning it
-  // on again plays from the top.
-  const [started, setStarted] = useState(null)
+  // When this page started it, on this machine's clock: at mount without a toggle,
+  // or when the toggle goes on. Kept across renders while it stays on, and forgotten
+  // when the toggle goes off, so turning it on again plays from the top.
+  //
+  // Stamped as the sequence goes into the page, not while it renders, and before
+  // the first paint. Rendering a source runs well ahead of committing it while the
+  // page loads: stamped in render, the fixture's 1.2s first item was on screen for
+  // 910ms; stamped here, 1201ms.
+  const [begin, setBegin] = useState(null)
 
-  useEffect(() => {
-    if (toggle) setStarted((was) => (on ? (was ?? Date.now()) : null))
-  }, [toggle, on])
+  useLayoutEffect(() => {
+    setBegin((was) => (on ? (was ?? Date.now()) : null))
+  }, [on])
 
-  const begin = toggle ? started : 0
-  const clock = toggle ? 0 : offset
-
-  const cue = () => cueAt({ elapsed: elapsedSince(begin, clock), durations: durations ? durations.split(',').map(Number) : [], loop })
+  const cue = () => cueAt({ elapsed: Date.now() - begin, durations: durations ? durations.split(',').map(Number) : [], loop })
 
   const [index, setIndex] = useState(() => (begin === null ? -1 : cue().index))
 
@@ -144,8 +135,8 @@ export function Sequence({ toggle, duration = 8, loop = true, transition = 'fade
     }
 
     // Read off the clock every time, never stepped on from the last item: a tab
-    // that was throttled in the background, or a machine whose offset has just
-    // been corrected, lands on the right item rather than the next one in line.
+    // that was throttled in the background lands on the right item rather than the
+    // next one in line.
     const now = cue()
 
     setIndex(now.index)
@@ -158,7 +149,7 @@ export function Sequence({ toggle, duration = 8, loop = true, transition = 'fade
     // `cue` is rebuilt every render from exactly the values listed here; listing it
     // would re-arm the timer on every render instead of on every change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [begin, clock, durations, loop, wake])
+  }, [begin, durations, loop, wake])
 
   if (!items.length) return null
 

@@ -3,8 +3,8 @@
 // Not a chain of timeouts -- show the first, wait its duration, show the next. A
 // chain is a counter, it belongs to the tab running it, and every timeout it waits
 // on is late by however long that tab was busy or throttled. The lateness adds up
-// along the chain, so two outputs of one graphic drift apart a little every item,
-// and a source reloaded mid-show has no way back in at all.
+// along the chain, so two outputs of one graphic that started together drift apart
+// a little every item.
 //
 // Reading the position off the elapsed time instead means a late wake-up lands on
 // the right item rather than the next one in line, and anything that agrees on

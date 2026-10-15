@@ -6,7 +6,7 @@ import { Scene, Sequence, SequenceItem } from '@single-studio/core/source'
  * Both ways a sequence starts, at timings short enough for the end-to-end suite to
  * watch several loops.
  *
- * The rotation runs forever off the room's clock: 1.2s, then 0.8s for the plain
+ * The rotation plays from its first item when the page mounts, round and round: 1.2s, then 0.8s for the plain
  * child (which gets the sequence's `duration`), then 1s, so one loop is 3s. The item of
  * no duration must never come on, and the tall one sets the box for all of them.
  *

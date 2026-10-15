@@ -231,19 +231,19 @@ The full generated reference, with every prop, is [api.md](api.md).
 
 **Source** — what goes on air:
 
-| Component   | Reads                        | Notes                                                                                                                  |
-| ----------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `Scene`     | —                            | Root of a graphic. `vars` maps CSS custom properties to paths.                                                         |
-| `Variable`  | `variables.<name>`           | Text. `fit` shrinks it to stay on one line.                                                                            |
-| `Image`     | `variables.<name>`           | A bundled path, a URL, or a library entry. Preloads and decodes before swapping.                                       |
-| `Toggle`    | `toggles.<name>`             | Shows or hides its children.                                                                                           |
-| `Timer`     | `timers.<name>`              | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran.       |
-| `ImageList` | `variables.<name>`           | A row of images from a multi-valued path. Same loading rules as `Image`.                                               |
-| `Slideshow` | the image library            | A folder of pictures, playing. Picks the one on screen off the time in the room, so every output agrees.               |
-| `Sequence`  | `toggles.<toggle>`, optional | Slides of anything, each on screen for its own `duration`. Loops off the room's clock, or plays when a toggle goes on. |
-| `Tally`     | `variables.<name>`           | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.         |
-| `Clock`     | — (local)                    | Wall clock. Never replicates.                                                                                          |
-| `Ticker`    | `variables.<name>`           | Crawl at a constant px/sec, swaps text between passes.                                                                 |
+| Component   | Reads                        | Notes                                                                                                               |
+| ----------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Scene`     | —                            | Root of a graphic. `vars` maps CSS custom properties to paths.                                                      |
+| `Variable`  | `variables.<name>`           | Text. `fit` shrinks it to stay on one line.                                                                         |
+| `Image`     | `variables.<name>`           | A bundled path, a URL, or a library entry. Preloads and decodes before swapping.                                    |
+| `Toggle`    | `toggles.<name>`             | Shows or hides its children.                                                                                        |
+| `Timer`     | `timers.<name>`              | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran.    |
+| `ImageList` | `variables.<name>`           | A row of images from a multi-valued path. Same loading rules as `Image`.                                            |
+| `Slideshow` | the image library            | A folder of pictures, playing. Picks the one on screen off the time in the room, so every output agrees.            |
+| `Sequence`  | `toggles.<toggle>`, optional | Slides of anything, each on screen for its own `duration`. Plays when its `Scene` mounts, or when a toggle goes on. |
+| `Tally`     | `variables.<name>`           | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.      |
+| `Clock`     | — (local)                    | Wall clock. Never replicates.                                                                                       |
+| `Ticker`    | `variables.<name>`           | Crawl at a constant px/sec, swaps text between passes.                                                              |
 
 `Variable`, `Timer` and `Clock` render a `<span>`, so a value can sit inside a
 sentence without breaking the line it is on. Pass `as` for anything else — `as="div"`
@@ -526,12 +526,17 @@ exit is not counted: it plays while the next item is already coming in, so the
 default is a cross-fade. For one to leave before the next arrives, delay the
 entrance — `.ss-sequence-item.ss-active { transition-delay: 300ms }`.
 
-**Without a `toggle` it loops forever off the room's clock**, as `Slideshow` does, so
-every output shows the same item and a reloaded source comes back on the right one.
-**With `toggle="intro"` it follows `toggles.intro`**: playing from the first item when
-the toggle goes on, and leaving when it goes off. `loop={false}` holds the last item
-instead of going round. Each output times a toggle-started sequence from when it saw
-the toggle change, so one opened mid-sequence starts again from the top.
+**Without a `toggle` it plays from the first item when its `Scene` mounts**, and
+goes round and round. Tick _Refresh browser when scene becomes active_ on the browser
+source in OBS and it starts from the top every time the scene is taken. **With
+`toggle="intro"` it follows `toggles.intro`**: playing from the first item when the
+toggle goes on, and leaving when it goes off. `loop={false}` holds the last item
+instead of going round.
+
+Each output keeps its own time, from its own mount or from when it saw the toggle
+change. A browser source reloaded mid-sequence starts again from the top, and two
+outputs mounted at different moments are on different items. If every output must
+show the same picture at the same moment, that is what `Slideshow` is for.
 
 Durations are in seconds. The sequence's own `duration` is the default for its items,
 8 unless you say, and `transition` likewise, `fade` unless you say; an item with
