@@ -231,19 +231,19 @@ The full generated reference, with every prop, is [api.md](api.md).
 
 **Source** — what goes on air:
 
-| Component   | Reads                      | Notes                                                                                                                  |
-| ----------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `Scene`     | —                          | Root of a graphic. `vars` maps CSS custom properties to paths.                                                         |
-| `Variable`  | `variables.<name>`         | Text. `fit` shrinks it to stay on one line.                                                                            |
-| `Image`     | `variables.<name>`         | A bundled path, a URL, or a library entry. Preloads and decodes before swapping.                                       |
-| `Toggle`    | `toggles.<name>`           | Shows or hides its children.                                                                                           |
-| `Timer`     | `timers.<name>`            | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran.       |
-| `ImageList` | `variables.<name>`         | A row of images from a multi-valued path. Same loading rules as `Image`.                                               |
-| `Slideshow` | the image library          | A folder of pictures, playing. Picks the one on screen off the time in the room, so every output agrees.               |
-| `Sequence`  | `toggles.<name>`, optional | Slides of anything, each on screen for its own `duration`. Loops off the room's clock, or plays when a toggle goes on. |
-| `Tally`     | `variables.<name>`         | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.         |
-| `Clock`     | — (local)                  | Wall clock. Never replicates.                                                                                          |
-| `Ticker`    | `variables.<name>`         | Crawl at a constant px/sec, swaps text between passes.                                                                 |
+| Component   | Reads                        | Notes                                                                                                                  |
+| ----------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `Scene`     | —                            | Root of a graphic. `vars` maps CSS custom properties to paths.                                                         |
+| `Variable`  | `variables.<name>`           | Text. `fit` shrinks it to stay on one line.                                                                            |
+| `Image`     | `variables.<name>`           | A bundled path, a URL, or a library entry. Preloads and decodes before swapping.                                       |
+| `Toggle`    | `toggles.<name>`             | Shows or hides its children.                                                                                           |
+| `Timer`     | `timers.<name>`              | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran.       |
+| `ImageList` | `variables.<name>`           | A row of images from a multi-valued path. Same loading rules as `Image`.                                               |
+| `Slideshow` | the image library            | A folder of pictures, playing. Picks the one on screen off the time in the room, so every output agrees.               |
+| `Sequence`  | `toggles.<toggle>`, optional | Slides of anything, each on screen for its own `duration`. Loops off the room's clock, or plays when a toggle goes on. |
+| `Tally`     | `variables.<name>`           | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.         |
+| `Clock`     | — (local)                    | Wall clock. Never replicates.                                                                                          |
+| `Ticker`    | `variables.<name>`           | Crawl at a constant px/sec, swaps text between passes.                                                                 |
 
 `Variable`, `Timer` and `Clock` render a `<span>`, so a value can sit inside a
 sentence without breaking the line it is on. Pass `as` for anything else — `as="div"`
@@ -252,7 +252,7 @@ a `<div>`.
 
 Every one of these except `Clock`, `Ticker` and `Slideshow` takes a `transition`
 prop — see [Transitions](#transitions). On a `Sequence` it is the default for its
-items, and each `SequenceItem` can have its own. `Slideshow` cross-fades between pictures
+items, `fade` unless you say, and each `SequenceItem` can have its own. `Slideshow` cross-fades between pictures
 instead, over `--ss-fade`; anything beyond that is a rule of your own on
 `.ss-slide[data-on]`.
 
@@ -515,7 +515,7 @@ line, a logo beside a clock, a countdown — each on screen for its own duration
       <Clock />
     </div>
   </SequenceItem>
-  <SequenceItem duration="0:15" transition="wipe">
+  <SequenceItem duration={15} transition="wipe">
     <Timer name="break" />
   </SequenceItem>
 </Sequence>
@@ -526,16 +526,18 @@ exit is not counted: it plays while the next item is already coming in, so the
 default is a cross-fade. For one to leave before the next arrives, delay the
 entrance — `.ss-sequence-item.ss-active { transition-delay: 300ms }`.
 
-**Without a `name` it loops forever off the room's clock**, as `Slideshow` does, so
+**Without a `toggle` it loops forever off the room's clock**, as `Slideshow` does, so
 every output shows the same item and a reloaded source comes back on the right one.
-**With `name="intro"` it follows `toggles.intro`**: playing from the first item when
+**With `toggle="intro"` it follows `toggles.intro`**: playing from the first item when
 the toggle goes on, and leaving when it goes off. `loop={false}` holds the last item
 instead of going round. Each output times a toggle-started sequence from when it saw
 the toggle change, so one opened mid-sequence starts again from the top.
 
-Items must be direct children, because the sequence reads `duration` off them. A
-child that is not a `SequenceItem` is one, held for the sequence's `every` (8
-seconds unless you say). A `duration` of `0` takes an item out of the rotation.
+Durations are in seconds. The sequence's own `duration` is the default for its items,
+8 unless you say, and `transition` likewise, `fade` unless you say; an item with
+neither of its own takes both. Items must be direct children, because the sequence
+reads `duration` off them, and a child that is not a `SequenceItem` is one with the
+defaults. A `duration` of `0` takes an item out of the rotation.
 
 ### Picking by picture
 

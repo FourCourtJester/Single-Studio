@@ -12,11 +12,11 @@ as it says.
   </SequenceItem>
   <SequenceItem duration={8}>
     <div className="flex gap-2">
-      <Image value="asset:logos/main" />
+      <Image name="logo" alt="" />
       <Clock />
     </div>
   </SequenceItem>
-  <SequenceItem duration="0:15">
+  <SequenceItem duration={15}>
     <Timer name="break" />
   </SequenceItem>
 </Sequence>
@@ -66,6 +66,23 @@ active time makes one loop exactly the sum of the durations, which is what makes
 arithmetic below possible. Timing for the motion stays in the stylesheet, as it is
 everywhere else.
 
+## What an item falls back to
+
+Durations are seconds, numbers only. The sequence's `duration` (8 by default) and
+`transition` (`fade` by default) are the last word for its items: a `SequenceItem`'s
+own default is `NaN` for `duration` and `null` for `transition`, and either means
+"the sequence's". A child that is not a `SequenceItem` takes both.
+
+`NaN` rather than leaving it out, so "say nothing" is a value an item can be given
+explicitly. The sequence reads `duration` off its children's props, where
+`SequenceItem`'s own default never applies, so it treats an absent one as `NaN` too.
+Anything that is not a number, such as an `"m:ss"` string, is `NaN` as well and falls
+back, rather than leaving the rotation without a word.
+
+The first draft called these props `every` and `name`, after `Slideshow` and
+`Toggle`. They were renamed so that the sequence's `duration` reads as the default
+for its items' `duration`, and `toggle` says what it names.
+
 ## Which item is on is arithmetic, not a timer
 
 The obvious build -- show item 0, set a timeout for its duration, show item 1 -- is a
@@ -81,10 +98,10 @@ up on the right item rather than the next one in line.
 
 ## What starts it
 
-- **Nothing** (no `name`) -- loops forever, timed from the room clock's epoch, the
+- **Nothing** (no `toggle`) -- loops forever, timed from the room clock's epoch, the
   way `Slideshow` is. Every output shows the same item at the same moment, and a
   source reloaded mid-show comes back on the right one. This is the corner overlay.
-- **A toggle** (`name="intro"`) -- follows `toggles.intro`. Turning it on plays from
+- **A toggle** (`toggle="intro"`) -- follows `toggles.intro`. Turning it on plays from
   the first item; turning it off sends the current item out. `loop={false}` holds the
   last item instead of going round again, until the toggle goes off.
 

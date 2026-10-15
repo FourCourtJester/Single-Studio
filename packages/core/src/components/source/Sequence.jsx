@@ -4,7 +4,6 @@ import { useClockOffset } from '../../hooks/useSync'
 import { useVelcroState } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
 import { cueAt } from '../../toolkits/sequence'
-import { parseDuration } from '../../toolkits/time'
 import { Transition } from '../common/Transition'
 
 /** Where a starting toggle lives. Not a prop: a studio never needs another. */
@@ -29,10 +28,10 @@ function elapsedSince(begin, offset) {
 
 /**
  * @typedef {object} SequenceProps
- * @property {string} [name] - Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever.
- * @property {string|number} [every] - How long an item without its own `duration` is on screen — seconds, or `"m:ss"`. Defaults to `8`.
+ * @property {string} [toggle] - Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever.
+ * @property {number} [duration] - Seconds an item without a `duration` of its own is the current one. Defaults to `8`.
  * @property {boolean} [loop] - Go round again after the last item. `false` holds the last one until the toggle goes off. Defaults to `true`.
- * @property {string} [transition] - Motion variants for every item without its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`.
+ * @property {string} [transition] - Motion variants for every item without a `transition` of its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`.
  * @property {import("react").ReactNode} [children] - `SequenceItem`s, or anything else, which is treated as an item with the defaults.
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -52,11 +51,11 @@ function elapsedSince(begin, offset) {
  * `.ss-sequence-item.ss-active { transition-delay: 300ms }`. Timing for the motion
  * stays in the stylesheet, as it does for every `transition`.
  *
- * **Without a `name` it is decided by the clock, not a timer**, as a `Slideshow`
+ * **Without a `toggle` it is decided by the clock, not a timer**, as a `Slideshow`
  * is: every output shows the same item at the same moment, having agreed with
  * nobody, and a browser source reopened mid-show comes back on the right one.
  *
- * **With a `name` it follows a toggle**, playing from the first item when it goes
+ * **With a `toggle` it follows one**, playing from the first item when it goes
  * on. Each output times it from when that output saw the toggle change, so outputs
  * open at the time play together -- but one opened or reloaded afterwards starts
  * again from the first item. See docs/internal/sequence.md for what would fix that.
@@ -78,12 +77,12 @@ function elapsedSince(begin, offset) {
  *   <SequenceItem duration={8}>
  *     <div className="flex gap-2"><Image name="logo" alt="" /><Clock /></div>
  *   </SequenceItem>
- *   <SequenceItem duration="0:15"><Timer name="break" /></SequenceItem>
+ *   <SequenceItem duration={15}><Timer name="break" /></SequenceItem>
  * </Sequence>
  *
  * @example
  * // Once through when the operator presses Show intro, holding on the last
- * <Sequence name="intro" loop={false} every={4}>
+ * <Sequence toggle="intro" loop={false} duration={4}>
  *   <Image name="event.logo" alt="" />
  *   <Variable name="home.name" />
  *   <Variable name="away.name" />
@@ -91,8 +90,8 @@ function elapsedSince(begin, offset) {
  *
  * @param {SequenceProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Sequence({ name, every = 8, loop = true, transition = 'fade', className, children, ...rest }) {
-  const { value, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
+export function Sequence({ toggle, duration = 8, loop = true, transition = 'fade', className, children, ...rest }) {
+  const { value, loaded } = useVelcroState(toggle ? `${NAMESPACE}.${toggle}` : undefined)
   const offset = useClockOffset()
 
   // Hidden until the toggle has loaded, so a source rebuilt mid-show never plays
@@ -103,9 +102,17 @@ export function Sequence({ name, every = 8, loop = true, transition = 'fade', cl
     .filter(isValidElement)
     .map((child) => (child.type === SequenceItem ? child : <SequenceItem key={child.key}>{child}</SequenceItem>))
 
-  // A string, so the effect below sees a change in what the durations are rather
-  // than a new array every render.
-  const durations = items.map((item) => parseDuration(item.props.duration ?? every)).join(',')
+  // An item's own `duration` defaults to NaN, which means "the sequence's". Read off
+  // its props here, where SequenceItem's own default never applies, so an absent one
+  // is NaN too. A string, so the effect below sees a change in what the durations
+  // are rather than a new array every render.
+  const durations = items
+    .map((item) => {
+      const own = Number(item.props.duration ?? NaN)
+
+      return (Number.isNaN(own) ? duration : own) * 1000
+    })
+    .join(',')
 
   // When a toggle-started sequence began, on this machine's clock. Kept across
   // renders while the toggle stays on, and forgotten when it goes off, so turning it
@@ -113,11 +120,11 @@ export function Sequence({ name, every = 8, loop = true, transition = 'fade', cl
   const [started, setStarted] = useState(null)
 
   useEffect(() => {
-    if (name) setStarted((was) => (on ? (was ?? Date.now()) : null))
-  }, [name, on])
+    if (toggle) setStarted((was) => (on ? (was ?? Date.now()) : null))
+  }, [toggle, on])
 
-  const begin = name ? started : 0
-  const clock = name ? 0 : offset
+  const begin = toggle ? started : 0
+  const clock = toggle ? 0 : offset
 
   const cue = () => cueAt({ elapsed: elapsedSince(begin, clock), durations: durations ? durations.split(',').map(Number) : [], loop })
 
@@ -168,8 +175,8 @@ export function Sequence({ name, every = 8, loop = true, transition = 'fade', cl
 
 /**
  * @typedef {object} SequenceItemProps
- * @property {string|number} [duration] - How long it is the current item — seconds, or `"m:ss"`. Its entrance counts, its exit does not. `0` takes it out of the rotation. Defaults to the sequence's `every`.
- * @property {string} [transition] - Motion variants — e.g. `"slide-up ease-back"`. Defaults to the sequence's `transition`.
+ * @property {number} [duration] - Seconds it is the current item. Its entrance counts, its exit does not. `0` takes it out of the rotation. `NaN`, the default, takes the sequence's `duration`.
+ * @property {string|null} [transition] - Motion variants — e.g. `"slide-up ease-back"`. `null`, the default, takes the sequence's `transition`.
  * @property {import("react").ReactNode} [children]
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -185,8 +192,9 @@ export function Sequence({ name, every = 8, loop = true, transition = 'fade', cl
  *
  * @param {SequenceItemProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function SequenceItem({ duration, transition, className, children, ...rest }) {
-  // `duration` is the Sequence's to read. Taken out here so it does not reach the DOM.
+export function SequenceItem({ duration: _duration = NaN, transition = null, className, children, ...rest }) {
+  // `duration` is the Sequence's to read, off these props, so the Sequence applies
+  // the same NaN default itself. Taken out here so it does not reach the DOM.
   const current = useContext(Current)
 
   return (

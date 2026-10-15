@@ -896,13 +896,13 @@ Slides of anything, one at a time, each on screen for as long as it says. A `Sli
   <SequenceItem duration={8}>
     <div className="flex gap-2"><Image name="logo" alt="" /><Clock /></div>
   </SequenceItem>
-  <SequenceItem duration="0:15"><Timer name="break" /></SequenceItem>
+  <SequenceItem duration={15}><Timer name="break" /></SequenceItem>
 </Sequence>
 ```
 
 ```jsx
 // Once through when the operator presses Show intro, holding on the last
-<Sequence name="intro" loop={false} every={4}>
+<Sequence toggle="intro" loop={false} duration={4}>
   <Image name="event.logo" alt="" />
   <Variable name="home.name" />
   <Variable name="away.name" />
@@ -913,10 +913,10 @@ Slides of anything, one at a time, each on screen for as long as it says. A `Sli
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | `SequenceItem`s, or anything else, which is treated as an item with the defaults. |
 | `className` | `string` |  | Added to the component's own classes. |
-| `every` | `string \| number` |  | How long an item without its own `duration` is on screen — seconds, or `"m:ss"`. Defaults to `8`. |
+| `duration` | `number` |  | Seconds an item without a `duration` of its own is the current one. Defaults to `8`. |
 | `loop` | `boolean` |  | Go round again after the last item. `false` holds the last one until the toggle goes off. Defaults to `true`. |
-| `name` | `string` |  | Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever. |
-| `transition` | `string` |  | Motion variants for every item without its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`. |
+| `toggle` | `string` |  | Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever. |
+| `transition` | `string` |  | Motion variants for every item without a `transition` of its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`. |
 
 <a id="source-sequenceitem"></a>
 
@@ -937,8 +937,8 @@ One slide of a `Sequence`: anything at all, in and out with a `transition` of it
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Added to the component's own classes. |
-| `duration` | `string \| number` |  | How long it is the current item — seconds, or `"m:ss"`. Its entrance counts, its exit does not. `0` takes it out of the rotation. Defaults to the sequence's `every`. |
-| `transition` | `string` |  | Motion variants — e.g. `"slide-up ease-back"`. Defaults to the sequence's `transition`. |
+| `duration` | `number` |  | Seconds it is the current item. Its entrance counts, its exit does not. `0` takes it out of the rotation. `NaN`, the default, takes the sequence's `duration`. |
+| `transition` | `string \| null` |  | Motion variants — e.g. `"slide-up ease-back"`. `null`, the default, takes the sequence's `transition`. |
 
 <a id="source-tally"></a>
 

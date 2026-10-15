@@ -2545,7 +2545,19 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
     'in order, going round again after the last, and skipping the item whose duration is nought',
   )
   check(!order.includes(1), 'the item of no duration never comes on')
-  check(order.includes(2), 'a plain child plays as an item, held for the sequence’s every')
+  check(order.includes(2), 'a plain child plays as an item, held for the sequence’s duration')
+
+  const motions = await rotation.evaluate(() =>
+    [...document.querySelectorAll('.probe-rotation > .ss-sequence-item')].map((item) =>
+      ['ss-slide-up', 'ss-cut'].filter((name) => item.classList.contains(name)).join(),
+    ),
+  )
+
+  console.log(`  rotation, motions: ${motions.join(' | ')}`)
+  check(
+    motions[0] === 'ss-slide-up' && motions[2] === 'ss-slide-up' && motions[3] === 'ss-cut',
+    'an item with no transition of its own, or a null one, moves as the sequence says, and one with its own keeps it',
+  )
 
   // Item to item, the gap is the outgoing item's duration and nothing else: its exit
   // happens on the next one's time.
