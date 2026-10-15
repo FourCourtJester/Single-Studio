@@ -16,6 +16,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | A picture        | [`ImagePicker`](#control-imagepicker), [`ImageSelect`](#control-imageselect) | [`Image`](#source-image) |
 | Several pictures | [`ImageSelect`](#control-imageselect) `multiple` | [`ImageList`](#source-imagelist) |
 | A folder of them | the image library | [`Slideshow`](#source-slideshow) |
+| Slides of anything | [`Toggle`](#control-toggle) to start one, or nothing | [`Sequence`](#source-sequence) |
 | On or off        | [`Toggle`](#control-toggle), [`ImageToggle`](#control-imagetoggle) | [`Toggle`](#source-toggle) |
 | Counting down    | [`Countdown`](#control-countdown), [`CountdownTo`](#control-countdownto) | [`Timer`](#source-timer) |
 | Counting up      | [`Stopwatch`](#control-stopwatch) | [`Timer`](#source-timer) |
@@ -697,6 +698,8 @@ arrived, so a graphic reopening mid-show never flashes a placeholder over the pr
 - [`Image`](#source-image)
 - [`ImageList`](#source-imagelist)
 - [`Slideshow`](#source-slideshow)
+- [`Sequence`](#source-sequence)
+- [`SequenceItem`](#source-sequenceitem)
 - [`Tally`](#source-tally)
 - [`Toggle`](#source-toggle)
 - [`Timer`](#source-timer)
@@ -875,6 +878,67 @@ A folder of pictures, playing. What a standby screen is made of.
 | `name` | `string` |  | Names a list under `variables` — e.g. `standby.slides`. Takes over from `group` whenever it holds anything. |
 | `order` | `'sequence' \| 'shuffle'` |  | In order, or a fresh deal each pass. Defaults to `"sequence"`. |
 | `preload` | `number` |  | How many either side of the current one hold a decoded image. Defaults to `1`. |
+
+<a id="source-sequence"></a>
+
+### Sequence
+
+---
+
+`import { Sequence } from '@single-studio/core/source'`
+
+Slides of anything, one at a time, each on screen for as long as it says. A `Slideshow` whose slides are whatever you put in them.
+
+```jsx
+// The corner of a broadcast, forever
+<Sequence transition="slide-up">
+  <SequenceItem duration={12}><Variable name="sponsor.line" /></SequenceItem>
+  <SequenceItem duration={8}>
+    <div className="flex gap-2"><Image name="logo" alt="" /><Clock /></div>
+  </SequenceItem>
+  <SequenceItem duration="0:15"><Timer name="break" /></SequenceItem>
+</Sequence>
+```
+
+```jsx
+// Once through when the operator presses Show intro, holding on the last
+<Sequence name="intro" loop={false} every={4}>
+  <Image name="event.logo" alt="" />
+  <Variable name="home.name" />
+  <Variable name="away.name" />
+</Sequence>
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` |  | `SequenceItem`s, or anything else, which is treated as an item with the defaults. |
+| `className` | `string` |  | Added to the component's own classes. |
+| `every` | `string \| number` |  | How long an item without its own `duration` is on screen — seconds, or `"m:ss"`. Defaults to `8`. |
+| `loop` | `boolean` |  | Go round again after the last item. `false` holds the last one until the toggle goes off. Defaults to `true`. |
+| `name` | `string` |  | Names a toggle under `toggles` — e.g. `intro`. Plays from the first item when it goes on, and takes the sequence off when it goes off. Without one, the sequence loops forever. |
+| `transition` | `string` |  | Motion variants for every item without its own — e.g. `"slide-up ease-back"`. Defaults to `"fade"`. |
+
+<a id="source-sequenceitem"></a>
+
+### SequenceItem
+
+---
+
+`import { SequenceItem } from '@single-studio/core/source'`
+
+One slide of a `Sequence`: anything at all, in and out with a `transition` of its own. Must be a direct child of the `Sequence`, which reads its `duration`; outside one it is never on.
+
+```jsx
+<SequenceItem duration={10} transition="wipe">
+  <Variable name="sponsor.line" />
+</SequenceItem>
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Added to the component's own classes. |
+| `duration` | `string \| number` |  | How long it is the current item — seconds, or `"m:ss"`. Its entrance counts, its exit does not. `0` takes it out of the rotation. Defaults to the sequence's `every`. |
+| `transition` | `string` |  | Motion variants — e.g. `"slide-up ease-back"`. Defaults to the sequence's `transition`. |
 
 <a id="source-tally"></a>
 

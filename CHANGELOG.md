@@ -4,6 +4,17 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Added
+
+- **`Sequence` and `SequenceItem`.** Slides of anything — a sponsor line, a logo
+  beside a clock, a countdown — one at a time, each on screen for its own
+  `duration` and in and out with its own `transition`. A duration is the time an
+  item is current, its exit not counted, so the default is a cross-fade. Without a
+  `name` it loops off the room's clock, so every output agrees; with one it plays
+  when that toggle goes on, and `loop={false}` holds the last item.
+
 ## 0.11.0
 
 A Row sized the way Bootstrap sizes one: how many controls to a line at each

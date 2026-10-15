@@ -167,6 +167,11 @@ export default function Control() {
         <TextArea name="ticker" label="Crawl text" rows={2} />
       </Panel>
 
+      {/* Starts the intro sequence on #/source/sequence. */}
+      <Panel title="Sequence">
+        <Toggle name="intro" label="intro" />
+      </Panel>
+
       <Panel title="Images">
         {/* The manager, inline. The same component opens as a modal from any picker. */}
         <AssetLibrary />

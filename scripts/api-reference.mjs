@@ -61,7 +61,7 @@ const AUTHORED = {
     'Confirm',
     'Hotkeys',
   ],
-  source: ['Scene', 'Variable', 'Image', 'ImageList', 'Slideshow', 'Tally', 'Toggle', 'Timer', 'Ticker', 'Clock'],
+  source: ['Scene', 'Variable', 'Image', 'ImageList', 'Slideshow', 'Sequence', 'SequenceItem', 'Tally', 'Toggle', 'Timer', 'Ticker', 'Clock'],
 }
 
 /** First sentence of a doc comment: what the thing is, before why it is that way. */
@@ -282,6 +282,7 @@ air — and they meet at a path. That pairing is the whole mental model:
 | A picture        | ${dash('ImagePicker')}, ${dash('ImageSelect')} | ${air('Image')} |
 | Several pictures | ${dash('ImageSelect')} \`multiple\` | ${air('ImageList')} |
 | A folder of them | the image library | ${air('Slideshow')} |
+| Slides of anything | ${dash('Toggle')} to start one, or nothing | ${air('Sequence')} |
 | On or off        | ${dash('Toggle')}, ${dash('ImageToggle')} | ${air('Toggle')} |
 | Counting down    | ${dash('Countdown')}, ${dash('CountdownTo')} | ${air('Timer')} |
 | Counting up      | ${dash('Stopwatch')} | ${air('Timer')} |
