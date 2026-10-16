@@ -4,7 +4,10 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.12.0
+
+`Sequence`: a rotation of anything, each item on screen for as long as it says. A
+minor because it is a new component; nothing that was there before changes.
 
 ### Added
 
