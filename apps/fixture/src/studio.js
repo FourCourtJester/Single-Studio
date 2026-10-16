@@ -31,5 +31,6 @@ export const studio = defineStudio({
     broken: () => import('./sources/Broken'),
     spacing: () => import('./sources/Spacing'),
     standby: () => import('./sources/Standby'),
+    sequence: () => import('./sources/Sequence'),
   },
 })

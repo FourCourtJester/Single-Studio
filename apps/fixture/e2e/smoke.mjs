@@ -2477,6 +2477,185 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await spacing.close()
 }
 
+// -- A sequence ---------------------------------------------------------------
+// Slides of anything, each on screen for its own duration. What is checked is what
+// an audience would see: the order, how long each one holds, that one leaves as the
+// next arrives, that the box does not jump, and that it starts from the top.
+//
+// Watched rather than sampled where timing matters, as the slideshow is: polling
+// either side of a change reads the state at the wrong instant.
+{
+  /** Every phase change of a sequence's items, with when it happened and what the others were doing. */
+  const watch = (selector) => {
+    const box = document.querySelector(selector)
+    const items = [...box.querySelectorAll(':scope > .ss-sequence-item')]
+    const log = []
+
+    window.__sequence = { ...window.__sequence, [selector]: log }
+
+    new MutationObserver((records) => {
+      for (const record of records) {
+        if (!items.includes(record.target) || record.target.dataset.state === record.oldValue) continue
+
+        log.push({
+          at: items.indexOf(record.target),
+          state: record.target.dataset.state,
+          t: performance.now(),
+          others: items.filter((item) => item !== record.target).map((item) => item.dataset.state),
+        })
+      }
+    }).observe(box, { attributes: true, attributeFilter: ['data-state'], attributeOldValue: true, subtree: true })
+  }
+
+  const arrivals = (log) => log.filter((entry) => entry.state === 'entering')
+
+  const rotation = await context.newPage()
+
+  await rotation.goto(`${BASE}/#/source/sequence`)
+  await rotation.waitForSelector('.probe-rotation > .ss-sequence-item')
+  await rotation.evaluate(watch, '.probe-rotation')
+
+  // Sampled alongside the watch: how many items are on, and how tall the box is.
+  const samples = []
+
+  for (let i = 0; i < 44; i += 1) {
+    samples.push(
+      await rotation.evaluate(() => {
+        const items = [...document.querySelectorAll('.probe-rotation > .ss-sequence-item')]
+
+        return {
+          on: items.filter((item) => ['entering', 'active'].includes(item.dataset.state)).length,
+          height: Math.round(document.querySelector('.probe-rotation').getBoundingClientRect().height),
+        }
+      }),
+    )
+    await rotation.waitForTimeout(150)
+  }
+
+  const log = await rotation.evaluate(() => window.__sequence['.probe-rotation'])
+  const came = arrivals(log)
+  const order = came.map((entry) => entry.at)
+
+  console.log(`  rotation, items coming on: ${order.join(', ')}`)
+  check(came.length >= 5, `a sequence with no toggle plays on its own (${came.length} items in about 7s)`)
+  check(
+    order.every((at, i) => i === 0 || at === { 0: 2, 2: 3, 3: 0 }[order[i - 1]]),
+    'in order, going round again after the last, and skipping the item whose duration is nought',
+  )
+  check(!order.includes(1), 'the item of no duration never comes on')
+  check(order.includes(2), 'a plain child plays as an item, held for the sequence’s duration')
+
+  const motions = await rotation.evaluate(() =>
+    [...document.querySelectorAll('.probe-rotation > .ss-sequence-item')].map((item) =>
+      ['ss-slide-up', 'ss-cut'].filter((name) => item.classList.contains(name)).join(),
+    ),
+  )
+
+  console.log(`  rotation, motions: ${motions.join(' | ')}`)
+  check(
+    motions[0] === 'ss-slide-up' && motions[2] === 'ss-slide-up' && motions[3] === 'ss-cut',
+    'an item with no transition of its own, or a null one, moves as the sequence says, and one with its own keeps it',
+  )
+
+  // Item to item, the gap is the outgoing item's duration and nothing else: its exit
+  // happens on the next one's time.
+  const held = { 0: 1200, 2: 800, 3: 1000 }
+  const gaps = came.slice(1).map((entry, i) => ({ item: came[i].at, ms: Math.round(entry.t - came[i].t) }))
+
+  console.log(`  rotation, held for: ${gaps.map((gap) => `${gap.item}:${gap.ms}ms`).join(', ')}`)
+  check(
+    gaps.length >= 4 && gaps.every((gap) => Math.abs(gap.ms - held[gap.item]) <= 150),
+    'each item is on for its own duration, its exit not counted, so one loop is the durations added up',
+  )
+
+  check(
+    came.slice(1).every((entry) => entry.others.includes('exiting')),
+    'each item comes in while the one before is still going out, so the default is a cross-fade',
+  )
+  check(
+    samples.every((sample) => sample.on === 1),
+    `exactly one item is on at any moment (${samples.filter((sample) => sample.on === 1).length}/${samples.length})`,
+  )
+
+  const heights = [...new Set(samples.map((sample) => sample.height))]
+
+  console.log(`  rotation heights: ${heights.join(', ')}`)
+  check(heights.length === 1 && heights[0] === 96, 'the box is the size of the largest item throughout, so nothing around it moves')
+
+  // From its own mount, not off a clock in the room: a page that mounts it later
+  // starts from the first item, and holds that for its full duration. Read by a
+  // script that is in the page before the app is, because by the time a test could
+  // look the first item may be over. An observer rather than animation frames: the
+  // first frame after the items went in came 300ms late on a page still loading,
+  // which read as the first item being short.
+  const second = await context.newPage()
+
+  await second.addInitScript(() => {
+    let mounted
+
+    new MutationObserver(() => {
+      const items = [...document.querySelectorAll('.probe-rotation > .ss-sequence-item')]
+
+      if (!items.length || window.__mount?.next) return
+
+      const now = performance.now()
+      const on = items.findIndex((item) => ['entering', 'active'].includes(item.dataset.state))
+
+      mounted ??= now
+      window.__mount ??= {}
+      if (on !== -1) window.__mount.first ??= { at: on, ms: Math.round(now - mounted) }
+      if (on !== -1 && window.__mount.first.at !== on) window.__mount.next = { at: on, ms: Math.round(now - mounted) }
+    }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] })
+  })
+  await second.goto(`${BASE}/#/source/sequence`)
+  await becomes(second, () => window.__mount?.next)
+
+  const mount = await second.evaluate(() => window.__mount)
+
+  console.log(`  mounted later: ${JSON.stringify(mount)}`)
+  check(
+    mount.first?.at === 0 && mount.next?.at === 2 && Math.abs(mount.next.ms - 1200) <= 200,
+    'a page that mounts it later starts from the first item, rather than joining wherever another output is',
+  )
+
+  await second.close()
+
+  // The intro: nothing until the operator says, then once through, holding the last.
+  const intro = () => [...document.querySelectorAll('.probe-intro > .ss-sequence-item')].map((item) => item.dataset.state)
+
+  check(
+    (await rotation.evaluate(intro)).every((state) => state === 'inactive'),
+    'a sequence on a toggle shows nothing while the toggle is off',
+  )
+
+  await rotation.evaluate(watch, '.probe-intro')
+  await control.locator('button:has-text("Show intro")').click()
+  await rotation.waitForTimeout(2600)
+
+  const played = arrivals(await rotation.evaluate(() => window.__sequence['.probe-intro']))
+
+  console.log(`  intro, items coming on: ${played.map((entry) => entry.at).join(', ')}`)
+  check(played.map((entry) => entry.at).join() === '0,1,2', 'turning the toggle on plays it from the first item, once')
+  check((await rotation.evaluate(intro)).join() === 'inactive,inactive,active', 'and it holds the last item rather than going round again')
+
+  await control.locator('button:has-text("Hide intro")').click()
+  check(
+    await becomes(rotation, () => [...document.querySelectorAll('.probe-intro > .ss-sequence-item')].every((item) => item.dataset.state === 'inactive')),
+    'turning it off takes the sequence off',
+  )
+
+  await rotation.evaluate(watch, '.probe-intro')
+  await control.locator('button:has-text("Show intro")').click()
+  check(await becomes(rotation, () => window.__sequence['.probe-intro'].some((entry) => entry.state === 'entering')), 'turning it on again plays it again')
+  check(
+    (await rotation.evaluate(() => window.__sequence['.probe-intro'].find((entry) => entry.state === 'entering').at)) === 0,
+    'from the top, rather than from wherever it was when it went off',
+  )
+
+  await control.locator('button:has-text("Hide intro")').click()
+  await rotation.close()
+}
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

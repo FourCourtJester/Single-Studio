@@ -145,6 +145,24 @@
   }
 
   /*
+   * A sequence stacks its items in one grid cell.
+   *
+   * Not cosmetic, for the same reason as the slideshow: laid out in the normal flow
+   * the items are a column, and the one coming in appears under the one going out
+   * rather than in its place. Unlike the slideshow it is sized by what it holds --
+   * the cell is as large as the largest item, whether or not that item is on -- so
+   * the box does not change size as it plays and nothing laid out around it moves.
+   * Where it sits is the studio's.
+   */
+  .ss-sequence {
+    display: grid;
+  }
+
+  .ss-sequence > .ss-sequence-item {
+    grid-area: 1 / 1;
+  }
+
+  /*
    * Motion variants.
    *
    * The state machine only ever sets three phase classes; what those phases look
