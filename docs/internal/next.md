@@ -7,13 +7,10 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **An actions slot on a control `Panel`.** A toolbar for extra components --
-  buttons, a toggle, a status dot -- right-aligned on the panel's title line. Today
-  `Panel` takes only `title`, `children` and `className`, and the title is a bare
-  `<h2>` with nothing beside it, so the likely shape is a `toolbar` prop rendered
-  opposite the title. Open before building: does it show on a panel with no `title`;
-  does it wrap under the title in a slim OBS dock; is it `Panel`'s alone or every
-  control container's.
+- **A `Panel` with header actions, that folds.** An `actions` slot on the title
+  line, a fold that starts closed on every load, and a small size for the buttons
+  that go in the header. Built and used in a studio first; see
+  [the section below](#panel-header-actions-and-folding) for what it found.
 - **`color-scheme: dark` on the board, in core.** A time input's clock icon is
   drawn by Chrome, dark unless the page declares a dark theme, so it all but
   vanished on the board. A studio fixed it with `color-scheme: dark` on the board
@@ -25,6 +22,70 @@ before anything else.
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
   taken.
+
+## Panel: header actions, and folding
+
+From the SS-Mercy-Riftbound-2v2 studio, which built all of it locally
+(`src/control/collapse.jsx` and its own `Panel.jsx`) because core's `Panel` has
+nothing beside its title. What it does, and what it learned, so core can take it
+over rather than rediscover it.
+
+**Behaviour.**
+
+- The title is a button -- chevron and title -- that folds the panel body away.
+- **Everything starts folded, on every load**, panels and the cards inside them
+  alike. A fresh board is a short list of headers, and the operator opens what the
+  next segment needs.
+- The fold is component state and nothing else. Not the show, which would fold the
+  panel on every operator's board; and not `localStorage`, so that a reload is
+  always the same board.
+- Header `actions` (Reset, Swap, Seed…) stay in the header and keep working while
+  folded.
+- A folded team card keeps a one-line summary -- "A1 · Comet Crew · 2–0 · 6 pts" --
+  so a folded group still reads at a glance. Folding hides the controls, not the
+  state of the show.
+
+**How the studio built it.**
+
+- `useCollapsed(initial = true)` returns `[collapsed, toggle]`: a plain `useState`,
+  no keys and no storage. `false` starts one open.
+- `<Chevron collapsed>` points down when open and turns −90° when folded.
+- Markup is `<h2><button aria-expanded aria-controls={bodyId}>…</button></h2>`, with
+  `id={bodyId}` from `useId` on the body. The button goes inside the heading: a
+  heading inside a button is invalid HTML.
+- The wrapper copies core's markup -- `.ss-panel`, `.ss-panel-body`, same classes
+  and spacing -- so board CSS aimed at those still applies. The header's bottom
+  margin goes while folded.
+
+**What bit.**
+
+- `.ss-panel-body { display: flex }` beats the `hidden` attribute, so the studio
+  sets the attribute _and_ Tailwind's `hidden` class. In core, the better fix is a
+  `[hidden]` rule beside the flex one, so a studio's own CSS cannot reintroduce it.
+- A grid of panels or cards needs `items-start`, or a folded one stretches to its
+  neighbours' height.
+- A folded summary reads saved values (`useVelcroValue`), not the staged draft, so
+  it changes when the operator saves, not as they type.
+
+**The shape asked for in core.**
+
+```jsx
+<Panel title="Slate" actions={<ResetButton … size="sm" />} collapsible defaultOpen={false}>
+```
+
+- `collapsible` turns folding on; `defaultOpen` starts one open. Folded is the
+  default.
+- `useCollapsed` and `Chevron` exported from `@single-studio/core/control`, so a
+  studio folds its own cards the same way.
+- It pairs with the other asks from the same studio:
+  - `actions` on `Panel`, rendered right-aligned on the title line;
+  - `size="sm"` on `Confirm`, `ResetButton`, `SwapButton` and `Toggle`, so a
+    header button needs no overrides -- today it takes
+    `min-h-0! px-2.5! py-1! text-xs!`. None of the four has a size yet;
+  - `color-scheme: dark` on the board, above.
+
+**Still open.** What a panel with `actions` but no `title` looks like, and whether
+the header wraps, or the actions drop under the title, in a slim OBS dock.
 
 ## Rocket League
 
