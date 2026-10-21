@@ -279,9 +279,22 @@ instead, over `--ss-fade`; anything beyond that is a rule of your own on
 | `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                                  |
 | `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                         |
 | `SaveButton`   | —                  | Commits every staged edit. Hosts the save and discard shortcuts.                 |
-| `Panel`        | —                  | Titled group. One row per child.                                                 |
+| `Panel`        | —                  | Titled group, one row per child. `actions` on the title line; `collapsible`.     |
 | `Row`          | —                  | Side by side when there is room, stacked in a dock. Widths in twelfths.          |
 | `Break`        | —                  | Deprecated: draws nothing. Use `Row`.                                            |
+
+A `Panel`'s `actions` go at the right of its title, and work while it is folded:
+anything at all, or a function given `{ open }` that returns it. `collapsible`
+makes the title fold the panel away. A collapsible panel starts folded on every
+load, so a fresh board is a short list of headers; `defaultOpen` starts one open.
+The fold is that page's alone, never the show's, so folding a panel on your board
+folds nobody else's.
+
+```jsx
+<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title']} />}>
+  <Field name="slate.title" label="Title" />
+</Panel>
+```
 
 ## Working with other people
 

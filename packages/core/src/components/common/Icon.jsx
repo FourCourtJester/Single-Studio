@@ -109,6 +109,8 @@ const shapes = {
       <path d="M6.3 16a8 8 0 1 0 .5-8" />
     </>
   ),
+  /* Pointing down: open. A folded Panel turns it a quarter to point at its title. */
+  chevron: <path d="M6 9l6 6 6-6" />,
   /* Two figures: one nearer, one behind. Collaboration, without a metaphor. */
   people: (
     <>

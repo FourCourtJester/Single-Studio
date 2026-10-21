@@ -552,10 +552,28 @@ A titled group of controls, one row per child, top to bottom.
 </Panel>
 ```
 
+```jsx
+// Folded until the operator opens it, with its reset reachable either way
+<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title', 'slate.subtitle']} />}>
+  <Field name="slate.title" label="Title" />
+  <Field name="slate.subtitle" label="Subtitle" />
+</Panel>
+```
+
+```jsx
+// Actions that change with the fold: the swap only while the names are in view
+<Panel title="Teams" collapsible actions={({ open }) => open && <SwapButton label="sides" names={['home.name', 'away.name']} />}>
+  …
+</Panel>
+```
+
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
+| `actions` | `ReactNode \| ((state: { open: boolean }) => ReactNode)` |  | Anything at all, right-aligned on the title line: a reset, a swap, a status light. Or a function that returns it, given whether the panel is open. |
 | `children` | `ReactNode` |  | Controls, one row each. Put several in a `Row` to share a line. |
 | `className` | `string` |  | Added to the component's own classes. |
+| `collapsible` | `boolean` |  | The title folds the panel away and opens it again. Defaults to `false`. |
+| `defaultOpen` | `boolean` |  | A collapsible panel starts folded on every load; `true` starts this one open. Defaults to `false`. |
 | `title` | `string` |  | Heading for the group. |
 
 <a id="control-row"></a>

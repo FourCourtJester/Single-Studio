@@ -4,6 +4,21 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Added
+
+- **A `Panel` header that does more.** `actions` puts anything -- a reset, a swap,
+  a status light -- at the right of the title, or a function given `{ open }` that
+  returns it. They stay in the header, and work, while the panel is folded, and
+  drop under the title in a dock too narrow for both. `collapsible` makes the title
+  a button that folds the panel away; a collapsible panel starts folded on every
+  load, and `defaultOpen` starts one open. The fold belongs to the page, not the
+  show, and is not remembered. A panel with no title keeps its actions and gets a
+  chevron of its own to fold by; one with nothing for a header to hold has none.
+  Panels that ask for neither are unchanged, except that the title now sits in a
+  `.ss-panel-header` line.
+
 ## 0.12.0
 
 `Sequence`: a rotation of anything, each item on screen for as long as it says. A

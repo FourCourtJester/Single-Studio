@@ -7,10 +7,11 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **A `Panel` with header actions, that folds.** An `actions` slot on the title
-  line, a fold that starts closed on every load, and a small size for the buttons
-  that go in the header. Built and used in a studio first; see
-  [the section below](#panel-header-actions-and-folding) for what it found.
+- **A `Panel` with header actions, that folds -- built, not released.** `actions`
+  (anything, or a function given `{ open }`), `collapsible` and `defaultOpen` are in
+  core on the branch. Still open from the same studio: `size="sm"` on the header
+  buttons, `useCollapsed` and `Chevron` exported for folding cards, and zebra
+  striping. See [the section below](#panel-header-actions-and-folding).
 - **`color-scheme: dark` on the board, in core.** A time input's clock icon is
   drawn by Chrome, dark unless the page declares a dark theme, so it all but
   vanished on the board. A studio fixed it with `color-scheme: dark` on the board
@@ -59,9 +60,12 @@ over rather than rediscover it.
 
 **What bit.**
 
-- `.ss-panel-body { display: flex }` beats the `hidden` attribute, so the studio
-  sets the attribute _and_ Tailwind's `hidden` class. In core, the better fix is a
-  `[hidden]` rule beside the flex one, so a studio's own CSS cannot reintroduce it.
+- The studio's notes say `.ss-panel-body { display: flex }` beats the `hidden`
+  attribute, so it sets Tailwind's `hidden` class as well. That does not reproduce
+  in core: Tailwind's preflight, which every studio imports, has
+  `[hidden] { display: none !important }`. A `[hidden]` rule written into `base.css`
+  for it changed nothing -- with it removed, the folded body still measured 0px tall
+  -- so core relies on the attribute alone.
 - A grid of panels or cards needs `items-start`, or a folded one stretches to its
   neighbours' height.
 - A folded summary reads saved values (`useVelcroValue`), not the staged draft, so
@@ -84,8 +88,30 @@ over rather than rediscover it.
     `min-h-0! px-2.5! py-1! text-xs!`. None of the four has a size yet;
   - `color-scheme: dark` on the board, above.
 
-**Still open.** What a panel with `actions` but no `title` looks like, and whether
-the header wraps, or the actions drop under the title, in a slim OBS dock.
+**What core has now** (on the branch, not released). `actions`, as anything or as
+a function given `{ open }`; `collapsible`, off by default, so existing boards are
+unchanged; `defaultOpen`. Settled on the way:
+
+- No title, but actions: the header holds just the actions. No title and
+  collapsible: a chevron of its own, named "Fold panel" or "Open panel". Neither,
+  and no actions: no header at all.
+- In a slim dock the actions take a line of their own under the title, still at the
+  right, and the title keeps one line. Measured at 380px and 1280px.
+- Folding hides the body without unmounting it, so a draft typed into a folded
+  panel survives.
+
+**Still open.**
+
+- `size="sm"` on `Confirm`, `ResetButton`, `SwapButton` and `Toggle`. The studio's
+  header buttons still need `min-h-0! px-2.5! py-1! text-xs!`.
+- `useCollapsed` and `Chevron`, exported, for the team cards the studio folds
+  inside a panel. Core's chevron is `<Icon name="chevron" />`, unexported as a
+  component of its own.
+- **Zebra striping.** The studio shades every other panel,
+  `.ss-control .ss-panel:nth-of-type(even) { background-color: rgb(30 41 59 / 0.7) }`,
+  and its team cards and bracket rows with `odd:`/`even:`. The owner likes how it
+  breaks up a long board; whether core does it by default, and for nested panels,
+  is undecided.
 
 ## Rocket League
 

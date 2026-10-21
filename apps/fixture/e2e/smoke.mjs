@@ -2656,6 +2656,107 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await rotation.close()
 }
 
+// -- A panel's header: folding, and actions on its line ------------------------
+// Everything here is local to the page -- a fold, a counter, a plain input -- so the
+// show is left exactly as the checks after it expect.
+const fold = control.locator('.fixture-fold')
+const foldState = () =>
+  control.evaluate(() => {
+    const panel = document.querySelector('.fixture-fold')
+    const body = panel.querySelector('.ss-panel-body')
+
+    return {
+      expanded: panel.querySelector('.ss-panel-fold').getAttribute('aria-expanded'),
+      shown: body.getBoundingClientRect().height > 0,
+      says: panel.querySelector('.fixture-fold-says')?.textContent,
+      presses: panel.querySelector('.fixture-fold-press')?.textContent,
+    }
+  })
+
+let state = await foldState()
+check(state.expanded === 'false' && !state.shown, 'a collapsible panel starts folded, its controls off the board')
+check(state.says === 'folded', 'and actions given as a function are told it is folded')
+
+await fold.locator('.fixture-fold-press').click()
+state = await foldState()
+check(state.presses === 'Pressed 1' && !state.shown, 'an action in the header works while the panel is folded, and pressing it does not open it')
+
+await fold.locator('.ss-panel-fold').click()
+check(
+  await becomes(control, () => document.querySelector('.fixture-fold .fixture-fold-says')?.textContent === 'open'),
+  'pressing the title opens it, and the actions hear about it',
+)
+state = await foldState()
+check(state.expanded === 'true' && state.shown, 'with its controls back on the board')
+
+await fold.locator('.fixture-fold-input').fill('still here')
+await fold.locator('.ss-panel-fold').click()
+await fold.locator('.ss-panel-fold').click()
+check(
+  (await fold.locator('.fixture-fold-input').inputValue()) === 'still here',
+  'folding hides the controls without unmounting them, so what was typed survives',
+)
+
+check(
+  (await control.locator('.ss-panel-fold').count()) === 2,
+  'and only the panels that ask to be collapsible fold -- every other panel on the board is as it was',
+)
+
+// Not remembered: a page that loads now starts folded, though this one is open.
+const reloaded = await context.newPage()
+await reloaded.goto(`${BASE}/#/`)
+await reloaded.waitForSelector('.fixture-fold')
+check(
+  (await reloaded.locator('.fixture-fold .ss-panel-fold').getAttribute('aria-expanded')) === 'false',
+  'a fold is not remembered: another load of the board starts folded while this one is open',
+)
+await reloaded.close()
+
+// Back to folded, as the board loads, for whatever comes after.
+await fold.locator('.fixture-fold-input').fill('')
+await fold.locator('.ss-panel-fold').click()
+
+const headers = await control.evaluate(() => {
+  const untitled = document.querySelector('.fixture-untitled')
+  const bare = document.querySelector('.fixture-bare')
+
+  return {
+    untitledHeading: untitled.querySelector('h2') !== null,
+    untitledAction: untitled.querySelector('.ss-panel-actions .fixture-untitled-action') !== null,
+    untitledFold: untitled.querySelector('.ss-panel-fold')?.getAttribute('aria-label'),
+    untitledOpen: untitled.querySelector('.ss-panel-body').getBoundingClientRect().height > 0,
+    bareHeader: bare.querySelector('.ss-panel-header') !== null,
+  }
+})
+check(!headers.untitledHeading && headers.untitledAction, 'a panel without a title has no heading, and its actions still have their line')
+check(headers.untitledFold === 'Fold panel' && headers.untitledOpen, 'its fold is a chevron with a name of its own, and defaultOpen starts it open')
+check(!headers.bareHeader, 'a panel with nothing for a header to hold has no header at all')
+
+// The title line in both shapes of dock. Wide, the actions sit at the right of the
+// title; slim, they take a line of their own rather than squeezing it, and nothing
+// pokes out of the panel.
+const titleLine = () => {
+  const panel = document.querySelector('.fixture-fold')
+  const box = (el) => el.getBoundingClientRect()
+  const title = box(panel.querySelector('h2'))
+  const tools = box(panel.querySelector('.ss-panel-actions'))
+  const edge = box(panel)
+
+  return {
+    beside: tools.top < title.bottom && tools.left >= title.right,
+    under: tools.top >= title.bottom,
+    inside: tools.right <= edge.right && title.right <= edge.right,
+    titleLines: Math.round(title.height / parseFloat(getComputedStyle(panel.querySelector('h2')).lineHeight)),
+  }
+}
+const wideLine = await rowsAt(1280, titleLine)
+check(wideLine.beside && wideLine.inside, 'on a wide board the actions sit on the title line, at its right')
+const slimLine = await rowsAt(380, titleLine)
+check(
+  slimLine.under && slimLine.inside && slimLine.titleLines === 1,
+  'in a slim dock they drop under the title, which keeps its line, and stay inside the panel',
+)
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an
