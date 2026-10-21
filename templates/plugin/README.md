@@ -57,6 +57,8 @@ The short version:
 1. Pick `ExampleSocket` or `ExamplePoller` in `src/index.js` and delete the other.
 2. Rewrite `src/events.js` to match what your far end actually sends.
 3. Rename the package, and the `name` inside `definePlugin`.
+4. Delete `.github/FUNDING.yml`, which is Single Studio's Sponsor button, or point it
+   at your own accounts.
 
 ## Licence
 

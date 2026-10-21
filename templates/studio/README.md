@@ -86,5 +86,8 @@ Once this is your studio rather than the starter, `LICENSE` is describing your w
 A show is a private application, so most people simply delete it; replace it instead
 if you ever open-source yours.
 
+`.github/FUNDING.yml` puts a Sponsor button for Single Studio on your repository.
+Delete it, or point it at your own accounts.
+
 The framework packages you install from npm are MIT and keep their own licences
 inside `node_modules`. That is the normal arrangement and needs nothing from you.
