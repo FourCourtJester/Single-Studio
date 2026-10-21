@@ -16,8 +16,30 @@ tag is checked against all six manifests, so they cannot drift apart.
   load, and `defaultOpen` starts one open. The fold belongs to the page, not the
   show, and is not remembered. A panel with no title keeps its actions and gets a
   chevron of its own to fold by; one with nothing for a header to hold has none.
-  Panels that ask for neither are unchanged, except that the title now sits in a
+  Panels that ask for neither keep their layout; the title now sits in a
   `.ss-panel-header` line.
+- **`size="sm"` on `Confirm`, `ResetButton`, `SwapButton` and `Toggle`**, for a
+  button in a panel's header: smaller text and padding, off the Row's input line,
+  and never under the 24px pointer target WCAG 2.5.8 asks for, however its padding
+  is squeezed. It replaces overriding the line height away with
+  `min-h-0! px-2.5! py-1! text-xs!`, which had no floor at all.
+- **`useCollapsed` and `Chevron`**, from `@single-studio/core/control`: what a
+  collapsible panel folds with, for folding anything else on the board the same
+  way -- a team card inside a panel, say.
+
+### Changed
+
+- **Panels are striped.** Every other panel on the board is a shade lighter, so a
+  long board reads as blocks rather than one slab. Counted among sibling panels:
+  a panel wrapped in an element of its own (`<div><Panel /></div>`) stays the
+  darker shade. A `bg-*` class on a panel, or a studio's own rule, still wins. The
+  panel's background moved from a class on the element into the stylesheet to make
+  the count possible.
+- **The board declares `color-scheme: dark`.** Chrome draws a time input's clock
+  icon, its picker, the list behind a `<select>` and scrollbars in the page's
+  scheme; on the board they were black on slate, and the clock icon in
+  `CountdownTo` all but disappeared. On `.ss-control` alone, so graphics are
+  untouched.
 
 ## 0.12.0
 

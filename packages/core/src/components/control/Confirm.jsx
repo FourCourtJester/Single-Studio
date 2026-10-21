@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { cx } from '../../toolkits/cx'
 import { ARMED_TONE, toneClass } from '../../toolkits/tone'
+import { SMALL } from './Label'
 
 const ARMED = 4000
 
@@ -12,6 +13,7 @@ const ARMED = 4000
  * @property {string} [ask] - What it says once armed. Defaults to `"Click to confirm"`.
  * @property {'danger'|'warn'|'go'|'primary'|'quiet'} [tone] - What the button means. Defaults to `"danger"`.
  * @property {boolean} [disabled] - Nothing happens on click.
+ * @property {'md'|'sm'} [size] - `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`.
  * @property {import("react").ReactNode} [children] - Replaces `label` when idle.
  * @property {string} [className] - Added to the component's own classes.
  */
@@ -77,7 +79,7 @@ const ASK = 'Click to confirm'
  *
  * @param {ConfirmProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled, className, children, ...rest }) {
+export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', size = 'md', disabled, className, children, ...rest }) {
   const [armed, setArmed] = useState(false)
   const timer = useRef(null)
 
@@ -118,7 +120,8 @@ export function Confirm({ onConfirm, label, ask = ASK, tone = 'danger', disabled
       disabled={disabled}
       data-armed={armed ? '' : undefined}
       className={cx(
-        'ss-confirm rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+        'ss-confirm rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+        size === 'sm' ? SMALL : 'px-3 py-1.5 text-sm',
         armed ? ARMED_TONE : looks,
         className,
       )}

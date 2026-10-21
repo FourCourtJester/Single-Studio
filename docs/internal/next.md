@@ -7,18 +7,12 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **A `Panel` with header actions, that folds -- built, not released.** `actions`
-  (anything, or a function given `{ open }`), `collapsible` and `defaultOpen` are in
-  core on the branch. Still open from the same studio: `size="sm"` on the header
-  buttons, `useCollapsed` and `Chevron` exported for folding cards, and zebra
-  striping. See [the section below](#panel-header-actions-and-folding).
-- **`color-scheme: dark` on the board, in core.** A time input's clock icon is
-  drawn by Chrome, dark unless the page declares a dark theme, so it all but
-  vanished on the board. A studio fixed it with `color-scheme: dark` on the board
-  in its own `index.css`, which also gave dark versions of the time picker's
-  popup, the menus behind `Select`, and the scrollbars. Every board is dark, so it
-  belongs in `base.css`, scoped to `.ss-control` as the board's cursors are, so it
-  never reaches a graphic.
+- **The Panel work and `color-scheme: dark` -- built, not released.** `actions`,
+  `collapsible`, `defaultOpen`, `size="sm"` on the header buttons, `useCollapsed`
+  and `Chevron`, striped panels and a dark scheme on the board are in core, under
+  Unreleased in the changelog. Next: release them, then move SS-Mercy-Riftbound-2v2
+  off its own `Panel.jsx`, `collapse.jsx`, `HEADER_BUTTON` and the two rules in its
+  `index.css`. See [the section below](#panel-header-actions-and-folding).
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
@@ -100,18 +94,12 @@ unchanged; `defaultOpen`. Settled on the way:
 - Folding hides the body without unmounting it, so a draft typed into a folded
   panel survives.
 
-**Still open.**
-
-- `size="sm"` on `Confirm`, `ResetButton`, `SwapButton` and `Toggle`. The studio's
-  header buttons still need `min-h-0! px-2.5! py-1! text-xs!`.
-- `useCollapsed` and `Chevron`, exported, for the team cards the studio folds
-  inside a panel. Core's chevron is `<Icon name="chevron" />`, unexported as a
-  component of its own.
-- **Zebra striping.** The studio shades every other panel,
-  `.ss-control .ss-panel:nth-of-type(even) { background-color: rgb(30 41 59 / 0.7) }`,
-  and its team cards and bracket rows with `odd:`/`even:`. The owner likes how it
-  breaks up a long board; whether core does it by default, and for nested panels,
-  is undecided.
+**Since then**, also in core: `size="sm"` on `Confirm`, `ResetButton`,
+`SwapButton` and `Toggle`, with a 24px floor that holds when a studio squeezes the
+padding; `useCollapsed` and `Chevron` exported from `@single-studio/core/control`;
+every other panel a shade lighter, by default; and `color-scheme: dark` on
+`.ss-control`. The stripes count sibling panels, so a panel wrapped in a `<div>` of
+its own stays the darker shade -- written into the docs rather than worked around.
 
 ## Rocket League
 

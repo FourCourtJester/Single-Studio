@@ -2,7 +2,7 @@ import { useToggleGroup } from '../../hooks/useToggleGroup'
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { useVelcroValue } from '../../hooks/useVelcroValue'
 import { cx } from '../../toolkits/cx'
-import { MIN_LINE } from './Label'
+import { MIN_LINE, SMALL } from './Label'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
 const NAMESPACE = 'toggles'
@@ -13,6 +13,7 @@ const NAMESPACE = 'toggles'
  * @property {string} [label] - Names what is toggled: the button reads "Show `<label>`".
  * @property {string} [group] - A group's name. Buttons sharing one behave as radio buttons.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Show `<label>`" text.
+ * @property {'md'|'sm'} [size] - `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -36,7 +37,7 @@ const NAMESPACE = 'toggles'
  *
  * @param {ToggleProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function Toggle({ name, label, group, className, children, ...rest }) {
+export function Toggle({ name, label, group, size = 'md', className, children, ...rest }) {
   const path = `${NAMESPACE}.${name}`
   const active = Boolean(useVelcroValue(path, false))
   const mutate = useVelcroMutate()
@@ -57,8 +58,8 @@ export function Toggle({ name, label, group, className, children, ...rest }) {
       onClick={onClick}
       aria-pressed={active}
       className={cx(
-        'ss-toggle-button ss-unlabelled rounded-md px-3 py-2 text-sm font-medium transition-colors',
-        MIN_LINE,
+        'ss-toggle-button ss-unlabelled rounded-md font-medium transition-colors',
+        size === 'sm' ? SMALL : cx('px-3 py-2 text-sm', MIN_LINE),
         active ? 'bg-sky-600 text-white hover:bg-sky-500' : 'border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500',
         className,
       )}

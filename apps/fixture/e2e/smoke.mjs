@@ -2757,6 +2757,63 @@ check(
   'in a slim dock they drop under the title, which keeps its line, and stay inside the panel',
 )
 
+// -- The board's own look: stripes, a dark scheme, header-sized buttons ---------
+await control.locator('.fixture-small-mount').click()
+await control.waitForSelector('.fixture-small-md')
+const look = await control.evaluate(() => {
+  const board = document.querySelector('.ss-control')
+  const panels = [...board.querySelectorAll('.ss-panel')].filter((panel) => !panel.parentElement.closest('.ss-panel'))
+  const fill = (el) => getComputedStyle(el).backgroundColor
+  const box = (el) => el.getBoundingClientRect()
+  const small = [...document.querySelectorAll('.fixture-small .ss-panel-actions > *')]
+
+  return {
+    fills: panels.slice(0, 4).map(fill),
+    scheme: getComputedStyle(board).colorScheme,
+    smallHeights: small.map((el) => Math.round(box(el).height)),
+    smallText: small.map((el) => getComputedStyle(el).fontSize),
+    regular: Math.round(box(document.querySelector('.fixture-small-md')).height),
+  }
+})
+console.log(`  panel fills: ${look.fills.join(' | ')}`)
+check(
+  look.fills[0] !== look.fills[1] && look.fills[0] === look.fills[2] && look.fills[1] === look.fills[3],
+  'panels are striped, every other one a shade lighter, without the studio asking',
+)
+check(look.scheme === 'dark', 'the board tells the browser it is dark, so native pickers and scrollbars draw dark')
+
+const plain = await context.newPage()
+await plain.goto(`${BASE}/#/source/sequence`)
+await plain.waitForSelector('.ss-source')
+check((await plain.evaluate(() => getComputedStyle(document.documentElement.querySelector('.ss-source')).colorScheme)) === 'normal', 'and a graphic does not')
+await plain.close()
+
+console.log(`  header buttons: ${look.smallHeights.join(', ')}px tall, ${[...new Set(look.smallText)].join(', ')}; on a row ${look.regular}px`)
+check(
+  look.smallHeights.length === 7 && look.smallHeights.every((height) => height >= 24 && height < look.regular),
+  'a header button at size="sm" is smaller than its row-sized self, and never under the 24px a pointer needs, even squeezed',
+)
+check(
+  look.smallText.every((size) => size === '12px'),
+  'with smaller text, on every button that takes the size, whichever way it renders',
+)
+await control.locator('.fixture-small-mount').click()
+
+// A card folded with core's own hook and chevron, as a studio folds one.
+const card = control.locator('.fixture-card')
+const cardState = () =>
+  card.evaluate((el) => ({
+    expanded: el.querySelector('.fixture-card-fold').getAttribute('aria-expanded'),
+    shown: el.querySelector('.fixture-card-body').getBoundingClientRect().height > 0,
+    turned: el.querySelector('.ss-chevron').classList.contains('-rotate-90'),
+  }))
+let folded = await cardState()
+check(folded.expanded === 'false' && !folded.shown && folded.turned, 'useCollapsed starts a card folded, and Chevron turns to say so')
+await card.locator('.fixture-card-fold').click()
+folded = await cardState()
+check(folded.expanded === 'true' && folded.shown && !folded.turned, 'and one press opens it, the chevron pointing down')
+await card.locator('.fixture-card-fold').click()
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

@@ -1,7 +1,7 @@
-import { useId, useState } from 'react'
+import { useId } from 'react'
 
 import { cx } from '../../toolkits/cx'
-import { Icon } from '../common/Icon'
+import { Chevron, useCollapsed } from './Collapse'
 
 /**
  * @typedef {object} PanelProps
@@ -38,6 +38,14 @@ import { Icon } from '../common/Icon'
  * without a title still get their line; a collapsible panel without one gets a
  * chevron on its own to fold it by.
  *
+ * A button in `actions` takes `size="sm"` -- Confirm, ResetButton, SwapButton and
+ * Toggle all have it -- to sit in the header rather than on a Row's input line.
+ * `useCollapsed` and `Chevron` fold anything else on the board the same way.
+ *
+ * Every other panel is a shade lighter, so a long board reads as blocks. The stripes
+ * count sibling panels: render panels directly, or in a fragment, rather than each in
+ * an element of its own.
+ *
  * The panel's own box is `.ss-panel-body` in the stylesheet if you want to take it
  * further; the title line is `.ss-panel-header`, the actions `.ss-panel-actions`.
  *
@@ -52,30 +60,28 @@ import { Icon } from '../common/Icon'
  *
  * @example
  * // Folded until the operator opens it, with its reset reachable either way
- * <Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title', 'slate.subtitle']} />}>
+ * <Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title', 'slate.subtitle']} size="sm" />}>
  *   <Field name="slate.title" label="Title" />
  *   <Field name="slate.subtitle" label="Subtitle" />
  * </Panel>
  *
  * @example
  * // Actions that change with the fold: the swap only while the names are in view
- * <Panel title="Teams" collapsible actions={({ open }) => open && <SwapButton label="sides" names={['home.name', 'away.name']} />}>
+ * <Panel title="Teams" collapsible actions={({ open }) => open && <SwapButton label="sides" names={['home.name', 'away.name']} size="sm" />}>
  *   …
  * </Panel>
  *
  * @param {PanelProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Panel({ title, actions, collapsible = false, defaultOpen = false, children, className, ...rest }) {
-  const [open, setOpen] = useState(() => !collapsible || defaultOpen)
+  const [collapsed, toggle] = useCollapsed(!defaultOpen)
   const body = useId()
 
   // Read every render rather than stored, so a panel that stops being collapsible
   // is simply open, whatever it was folded to.
-  const folded = collapsible && !open
+  const folded = collapsible && collapsed
   const tools = typeof actions === 'function' ? actions({ open: !folded }) : actions
   const hasTools = tools !== undefined && tools !== null && tools !== false && tools !== ''
-
-  const chevron = <Icon name="chevron" className={cx('transition-transform motion-reduce:transition-none', folded && '-rotate-90')} />
 
   // The button goes inside the heading, never the other way round: a heading inside
   // a button is invalid HTML, and a screen reader's list of headings loses it. The
@@ -83,13 +89,13 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
   const fold = (label) => (
     <button
       type="button"
-      onClick={() => setOpen((was) => !was)}
+      onClick={toggle}
       aria-expanded={!folded}
       aria-controls={body}
       aria-label={label ? undefined : folded ? 'Open panel' : 'Fold panel'}
       className="ss-panel-fold -m-1 flex items-center gap-2 rounded p-1 text-left uppercase tracking-wide transition-colors hover:text-slate-200"
     >
-      {chevron}
+      <Chevron collapsed={folded} />
       {label}
     </button>
   )
@@ -102,7 +108,7 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
 
   return (
     <section
-      className={cx('ss-panel rounded-lg border border-slate-800 bg-slate-900/40 p-3 sm:p-4', className)}
+      className={cx('ss-panel rounded-lg border border-slate-800 p-3 sm:p-4', className)}
       data-open={collapsible ? String(!folded) : undefined}
       {...rest}
     >

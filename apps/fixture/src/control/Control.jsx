@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { useVelcroMutate } from '@single-studio/core'
 import {
   AssetLibrary,
+  Chevron,
   ColorPicker,
+  Confirm,
   Countdown,
   CountdownTo,
   Cycle,
@@ -19,6 +21,7 @@ import {
   SwapButton,
   TextArea,
   Toggle,
+  useCollapsed,
 } from '@single-studio/core/control'
 
 import { ARMY_SIZE, COMMANDERS, FACTIONS, MAPS, UNITS } from '../roster'
@@ -54,8 +57,27 @@ function Draft({ side, title }) {
  * nothing bound to the show, so folding and pressing here leave the show exactly
  * as the checks around them expect it.
  */
+/** A card folded the way a Panel folds, with core's own hook and chevron. */
+function Card() {
+  const [collapsed, toggle] = useCollapsed()
+  const body = useId()
+
+  return (
+    <div className="fixture-card rounded-md border border-slate-800 p-2">
+      <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-controls={body} className="fixture-card-fold flex items-center gap-2 text-sm">
+        <Chevron collapsed={collapsed} />
+        Card
+      </button>
+      <p id={body} hidden={collapsed} className="fixture-card-body mt-2 text-sm text-slate-400">
+        Folded by useCollapsed.
+      </p>
+    </div>
+  )
+}
+
 function Folding() {
   const [presses, setPresses] = useState(0)
+  const [small, setSmall] = useState(false)
   const press = 'rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs text-slate-200'
 
   return (
@@ -91,6 +113,40 @@ function Folding() {
         }
       >
         <p className="text-sm text-slate-400">No title; starts open.</p>
+        <Card />
+      </Panel>
+
+      {/* Every header button at size="sm", both ways a reset and a swap render, beside
+          the same reset at its own size on a Row. Mounted only when the e2e suite asks,
+          because checks long before it find the board's one swap and one reset by
+          class. Bound to paths nothing else reads, and only measured, never pressed. */}
+      <Panel
+        title="Header buttons"
+        className="fixture-small"
+        actions={
+          small ? (
+            <>
+              <Confirm size="sm" label="Confirm" onConfirm={() => {}} />
+              <ResetButton size="sm" label="nothing" names={['fixture.nothing']} />
+              <ResetButton size="sm" label="at once" names={['fixture.nothing']} confirm={false} />
+              <SwapButton size="sm" label="nothing" names={['fixture.left', 'fixture.right']} />
+              <SwapButton size="sm" label="at once" names={['fixture.left', 'fixture.right']} confirm={false} />
+              <Toggle size="sm" name="fixture-small" label="small" />
+              {/* Squeezed the way a studio might, to fit one more in: the size keeps a
+                  floor under it however its padding is cut. */}
+              <Toggle size="sm" name="fixture-small" label="squeezed" style={{ paddingBlock: 0 }} />
+            </>
+          ) : null
+        }
+      >
+        <button type="button" onClick={() => setSmall((was) => !was)} className={`fixture-small-mount ${press}`}>
+          {small ? 'Unmount' : 'Mount'} header buttons
+        </button>
+        {small ? (
+          <Row>
+            <ResetButton label="nothing" names={['fixture.nothing']} className="fixture-small-md" />
+          </Row>
+        ) : null}
       </Panel>
 
       {/* Nothing for a header to hold, so no header. */}

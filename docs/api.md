@@ -64,6 +64,8 @@ piece of it you can also put on the board yourself.
 - [`Leaderboard`](#control-leaderboard)
 - [`Panel`](#control-panel)
 - [`Row`](#control-row)
+- [`useCollapsed`](#control-usecollapsed)
+- [`Chevron`](#control-chevron)
 - [`Break`](#control-break)
 - [`Confirm`](#control-confirm)
 - [`Hotkeys`](#control-hotkeys)
@@ -366,6 +368,7 @@ An on/off button for a path under `toggles`, which is what a graphic watches to 
 | `group` | `string` |  | A group's name. Buttons sharing one behave as radio buttons. |
 | `label` | `string` |  | Names what is toggled: the button reads "Show `<label>`". |
 | `name` | `string` | Yes | Names a value under `toggles` — e.g. `lowerthird`. |
+| `size` | `'md' \| 'sm'` |  | `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`. |
 
 <a id="control-swapbutton"></a>
 
@@ -402,6 +405,7 @@ Trade two sides of the board — teams changing ends. Asks first.
 | `label` | `string` |  | Names what gets traded, on the button. Defaults to `"Swap"`. |
 | `names` | `string[]` |  | One side, then the other, spelled the same way. Cut in half and traded. |
 | `paths` | `string[]` |  | Full paths, for trading values outside `variables`. |
+| `size` | `'md' \| 'sm'` |  | `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`. |
 
 <a id="control-resetbutton"></a>
 
@@ -430,6 +434,7 @@ Clear a set of values back to each source's own fallback. It unsets rather than 
 | `label` | `string` |  | Names what gets cleared: the button reads "Reset `<label>`". Defaults to `"Reset"`. |
 | `names` | `string[]` |  | Cleared back to each source's own fallback. |
 | `paths` | `string[]` |  | Full paths, for clearing `toggles` or `timers` in the same press. |
+| `size` | `'md' \| 'sm'` |  | `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`. |
 
 <a id="control-countdown"></a>
 
@@ -554,7 +559,7 @@ A titled group of controls, one row per child, top to bottom.
 
 ```jsx
 // Folded until the operator opens it, with its reset reachable either way
-<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title', 'slate.subtitle']} />}>
+<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title', 'slate.subtitle']} size="sm" />}>
   <Field name="slate.title" label="Title" />
   <Field name="slate.subtitle" label="Subtitle" />
 </Panel>
@@ -562,7 +567,7 @@ A titled group of controls, one row per child, top to bottom.
 
 ```jsx
 // Actions that change with the fold: the swap only while the names are in view
-<Panel title="Teams" collapsible actions={({ open }) => open && <SwapButton label="sides" names={['home.name', 'away.name']} />}>
+<Panel title="Teams" collapsible actions={({ open }) => open && <SwapButton label="sides" names={['home.name', 'away.name']} size="sm" />}>
   …
 </Panel>
 ```
@@ -609,6 +614,51 @@ A line of controls inside a `Panel`: stacked one above the other in a slim OBS d
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | Controls. Each takes the whole row in a narrow dock and an equal share of it once there is room; size them with `row-cols-*` on the Row or `col-*` on a control. |
 | `className` | `string` |  | Added to the component's own classes. `row-cols-*` goes here. |
+
+<a id="control-usecollapsed"></a>
+
+### useCollapsed
+
+---
+
+`import { useCollapsed } from '@single-studio/core/control'`
+
+Whether something on the board is folded away, and a function that flips it: `const [collapsed, toggle] = useCollapsed()`. Folded to begin with; `useCollapsed(false)` starts it open. What a collapsible `Panel` folds with, for folding anything else the same way -- a team card inside a panel, a row of advanced settings.
+
+```jsx
+function TeamCard({ team }) {
+  const [collapsed, toggle] = useCollapsed()
+  const body = useId()
+
+  return (
+    <div>
+      <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-controls={body}>
+        <Chevron collapsed={collapsed} /> {team}
+      </button>
+      <div id={body} hidden={collapsed}>…</div>
+    </div>
+  )
+}
+```
+
+<a id="control-chevron"></a>
+
+### Chevron
+
+---
+
+`import { Chevron } from '@single-studio/core/control'`
+
+The fold's chevron: pointing down when open, turned a quarter when folded, as a `Panel`'s is. Decoration -- the button it sits in says what it does, with `aria-expanded` saying which way it is.
+
+```jsx
+<Chevron collapsed={collapsed} />
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Added to the component's own classes. |
+| `collapsed` | `boolean` |  | Folded: turned a quarter to point at what it belongs to. |
 
 <a id="control-break"></a>
 
@@ -682,6 +732,7 @@ A destructive button that asks first, without a dialog: one click arms it, a sec
 | `disabled` | `boolean` |  | Nothing happens on click. |
 | `label` | `string` |  | What the button says when idle. |
 | `onConfirm` | `() => void` | Yes | Called on the second click. |
+| `size` | `'md' \| 'sm'` |  | `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`. |
 | `tone` | `'danger' \| 'warn' \| 'go' \| 'primary' \| 'quiet'` |  | What the button means. Defaults to `"danger"`. |
 
 <a id="control-hotkeys"></a>

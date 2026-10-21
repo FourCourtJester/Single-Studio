@@ -288,10 +288,16 @@ anything at all, or a function given `{ open }` that returns it. `collapsible`
 makes the title fold the panel away. A collapsible panel starts folded on every
 load, so a fresh board is a short list of headers; `defaultOpen` starts one open.
 The fold is that page's alone, never the show's, so folding a panel on your board
-folds nobody else's.
+folds nobody else's. A button in the header takes `size="sm"` — `Confirm`,
+`ResetButton`, `SwapButton` and `Toggle` all have it — and `useCollapsed` and
+`Chevron` fold anything else, such as a card inside a panel, the same way.
+
+Every other panel is a shade lighter, so a long board reads as blocks. The stripes
+count sibling panels, so render panels directly or in a fragment rather than each
+inside a `<div>` of its own.
 
 ```jsx
-<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title']} />}>
+<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title']} size="sm" />}>
   <Field name="slate.title" label="Title" />
 </Panel>
 ```

@@ -57,6 +57,8 @@ const AUTHORED = {
     'Leaderboard',
     'Panel',
     'Row',
+    'useCollapsed',
+    'Chevron',
     'Break',
     'Confirm',
     'Hotkeys',

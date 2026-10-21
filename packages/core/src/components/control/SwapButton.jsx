@@ -1,7 +1,7 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
-import { MIN_LINE } from './Label'
+import { MIN_LINE, SMALL } from './Label'
 import { Confirm } from './Confirm'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
@@ -14,6 +14,7 @@ const NAMESPACE = 'variables'
  * @property {string} [label] - Names what gets traded, on the button. Defaults to `"Swap"`.
  * @property {boolean} [confirm] - Ask before trading. Defaults to `true`; pass `confirm={false}` to trade on one press.
  * @property {import("react").ReactNode} [children] - Replaces the generated text.
+ * @property {'md'|'sm'} [size] - `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -56,7 +57,7 @@ const NAMESPACE = 'variables'
  *
  * @param {SwapButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = true, className, children, ...rest }) {
+export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = true, size = 'md', className, children, ...rest }) {
   const mutate = useVelcroMutate()
   const targets = qualify({ names, paths, namespace: NAMESPACE })
 
@@ -64,7 +65,15 @@ export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = t
 
   if (confirm) {
     return (
-      <Confirm className={cx('ss-swap ss-unlabelled', MIN_LINE, className)} label={label} onConfirm={swap} tone="warn" title={label} {...rest}>
+      <Confirm
+        className={cx('ss-swap ss-unlabelled', size === 'sm' ? null : MIN_LINE, className)}
+        size={size}
+        label={label}
+        onConfirm={swap}
+        tone="warn"
+        title={label}
+        {...rest}
+      >
         {children}
       </Confirm>
     )
@@ -75,8 +84,8 @@ export function SwapButton({ names = [], paths = [], label = 'Swap', confirm = t
       type="button"
       onClick={swap}
       className={cx(
-        'ss-swap ss-unlabelled rounded-md bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-amber-400',
-        MIN_LINE,
+        'ss-swap ss-unlabelled rounded-md bg-amber-500 font-medium text-slate-950 transition-colors hover:bg-amber-400',
+        size === 'sm' ? SMALL : cx('px-3 py-2 text-sm', MIN_LINE),
         className,
       )}
       {...rest}
