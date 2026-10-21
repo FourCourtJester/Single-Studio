@@ -7,12 +7,13 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **An actions slot on a control `Panel`.** A toolbar for extra components -- buttons, a toggle,
-  a status dot -- right-aligned on the panel's title line. Today `Panel` takes only
-  `title`, `children` and `className`, and the title is a bare `<h2>` with nothing
-  beside it, so the likely shape is a `toolbar` prop rendered opposite the title.
-  Open before building: does it show on a panel with no `title`; does it wrap under
-  the title in a slim OBS dock; is it `Panel`'s alone or every control container's.
+- **An actions slot on a control `Panel`.** A toolbar for extra components --
+  buttons, a toggle, a status dot -- right-aligned on the panel's title line. Today
+  `Panel` takes only `title`, `children` and `className`, and the title is a bare
+  `<h2>` with nothing beside it, so the likely shape is a `toolbar` prop rendered
+  opposite the title. Open before building: does it show on a panel with no `title`;
+  does it wrap under the title in a slim OBS dock; is it `Panel`'s alone or every
+  control container's.
 - **`color-scheme: dark` on the board, in core.** A time input's clock icon is
   drawn by Chrome, dark unless the page declares a dark theme, so it all but
   vanished on the board. A studio fixed it with `color-scheme: dark` on the board
