@@ -2,6 +2,22 @@
 
 Left here rather than in a chat, so it survives.
 
+## Raise these first
+
+Asked for at the top of any "where are we at": the owner wants reminding of these
+before anything else.
+
+- **A toolbar on a control `Panel`.** Room for extra components -- buttons, a toggle,
+  a status dot -- right-aligned on the panel's title line. Today `Panel` takes only
+  `title`, `children` and `className`, and the title is a bare `<h2>` with nothing
+  beside it, so the likely shape is a `toolbar` prop rendered opposite the title.
+  Open before building: does it show on a panel with no `title`; does it wrap under
+  the title in a slim OBS dock; is it `Panel`'s alone or every control container's.
+- **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
+  that matters: a browser source with _Refresh browser when scene becomes active_
+  ticked starts the sequence again from its first item every time the scene is
+  taken.
+
 ## Rocket League
 
 - **A test suite with the real game.** `dev/replay.mjs` proves the plugin and

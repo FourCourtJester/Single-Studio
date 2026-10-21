@@ -111,3 +111,6 @@ finding, and it lets somebody check you.
 | `templates/studio`                             | What a new studio is scaffolded from. Mirrored to its own repository on release.          |
 | `docs/`                                        | The published site. `docs/api.md` is **generated** — edit the JSDoc instead.              |
 | `docs/internal/`                               | Findings, decisions and open threads. Written to survive the conversation they came from. |
+
+Asked where things stand, start with `docs/internal/next.md`, and raise its **Raise
+these first** section before anything else.
