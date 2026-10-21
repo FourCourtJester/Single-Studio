@@ -98,10 +98,17 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # No package-manager cache. setup-node@v5 turns one on by itself when the
+      # checked-out package.json has a "packageManager", and ours names pnpm, which
+      # this job never installs: the first push to actually reach this step (#65)
+      # failed here with "Unable to locate executable file: pnpm", on both
+      # templates, before anything was pushed. The mirror installs with npm, from
+      # npm, in a directory of its own, so there is nothing of pnpm's to cache.
       - uses: actions/setup-node@v5
         if: steps.decide.outputs.go == 'true'
         with:
           node-version: 22
+          package-manager-cache: false
 
       # Outside the workspace, so nothing resolves to packages/ by accident: what
       # installs here is what npm serves, as on the mirror.
