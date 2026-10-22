@@ -11,6 +11,9 @@ import Twitch from './panels/Twitch'
  * scoreboard is touched every round, the lower thirds a few times an hour, the
  * static card at the start and the breaks, the clock once, and Twitch looks after
  * itself. Panels live in ./panels, one per file.
+ *
+ * Every panel folds, and all but the scoreboard start folded: the board opens on the
+ * one panel a round needs and a list of headers for the rest.
  */
 export default function Control() {
   return (

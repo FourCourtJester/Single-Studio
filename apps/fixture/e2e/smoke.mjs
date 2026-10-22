@@ -2814,6 +2814,36 @@ folded = await cardState()
 check(folded.expanded === 'true' && folded.shown && !folded.turned, 'and one press opens it, the chevron pointing down')
 await card.locator('.fixture-card-fold').click()
 
+// -- A stepper fills its cell ---------------------------------------------------
+// A stepper's field used to stop at 4rem, so a stepper was 160px in any cell and the
+// rest of the cell sat empty -- 414px of 574 at 640px wide. Measured across the
+// widths a dock and a board take, for every stepper and stopwatch on a Row.
+const fills = () => {
+  const edge = (el) => el.getBoundingClientRect()
+  const short = (cell, last) => Math.round(edge(cell).right - edge(last).right)
+  const steppers = [...document.querySelectorAll('.ss-row > .ss-stepper:not(.col-auto)')]
+  const watches = [...document.querySelectorAll('.ss-row > .ss-stopwatch')]
+  const auto = document.querySelector('.fixture-auto .ss-stepper')
+
+  return {
+    steppers: steppers.map((cell) => short(cell, [...cell.querySelectorAll('button')].at(-1))),
+    watches: watches.map((cell) => short(cell, [...cell.querySelectorAll('button')].at(-1))),
+    auto: Math.round(edge(auto).width),
+  }
+}
+for (const width of [380, 800, 1280]) {
+  const measured = await rowsAt(width, fills)
+  console.log(
+    `  at ${width}px: steppers short of their cell by ${measured.steppers.join(', ')}px; stopwatch ${measured.watches.join(', ')}px; col-auto stepper ${measured.auto}px`,
+  )
+  check(
+    measured.steppers.length >= 4 && measured.steppers.every((gap) => Math.abs(gap) <= 1),
+    `at ${width}px every stepper on a Row reaches the edge of its cell, with nothing empty beside it`,
+  )
+  check(measured.watches.length >= 1 && measured.watches.every((gap) => Math.abs(gap) <= 1), `and so does a stopwatch, at ${width}px`)
+  check(Math.abs(measured.auto - 160) <= 1, `while a col-auto stepper keeps its own 160px, at ${width}px`)
+}
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

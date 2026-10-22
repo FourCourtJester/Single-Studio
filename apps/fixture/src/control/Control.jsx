@@ -114,6 +114,13 @@ function Folding() {
       >
         <p className="text-sm text-slate-400">No title; starts open.</p>
         <Card />
+        {/* A stepper at its own width beside a field taking the rest: `col-auto` still
+            means 160px now that a stepper grows into any other cell. Measured, never
+            pressed or typed into. */}
+        <Row className="fixture-auto">
+          <Stepper name="fixture.auto" label="At its own width" className="col-auto" />
+          <Field name="fixture.beside" label="The rest" />
+        </Row>
       </Panel>
 
       {/* Every header button at size="sm", both ways a reset and a swap render, beside

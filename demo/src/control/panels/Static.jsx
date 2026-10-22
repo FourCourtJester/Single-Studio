@@ -28,7 +28,7 @@ function Clock({ name, label, children }) {
  */
 export default function Static() {
   return (
-    <Panel title="Static">
+    <Panel title="Static" collapsible>
       {/* The ticker is the long one: a third and two thirds once there is room. */}
       <Row>
         <Field name="static.message" label="Message" placeholder="Back shortly" className="lg:col-span-4" />

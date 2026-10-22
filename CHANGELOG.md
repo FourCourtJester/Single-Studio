@@ -29,6 +29,12 @@ tag is checked against all six manifests, so they cannot drift apart.
 
 ### Changed
 
+- **A `Stepper` and a `Stopwatch` fill their cell.** A stepper's number field
+  stopped at 4rem and a stopwatch's readout at its minimum, so on a board with
+  breakpoints both sat in the corner of their cell: a stepper left 170px of 330
+  empty in a slim dock, and 121–201px in the demo below 1024px. The field and the
+  readout now grow between their buttons. `col-auto` still keeps one at its own
+  width -- a stepper is 160px, as before.
 - **Panels are striped.** Every other panel on the board is a shade lighter, so a
   long board reads as blocks rather than one slab. Counted among sibling panels:
   a panel wrapped in an element of its own (`<div><Panel /></div>`) stays the

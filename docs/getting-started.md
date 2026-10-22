@@ -849,6 +849,11 @@ With a breakpoint a class holds from there up; without one, at every width, so
 `row-cols-2` keeps buttons in pairs even in a slim dock. A line that does not fill
 has no hole at the end: the last control on it takes the room.
 
+Every control fills the cell it is given, a `Stepper` and a `Stopwatch` included:
+the number field and the readout grow between their buttons. To keep one at its own
+width and give the rest of the line to its neighbours, that is what `col-auto` is
+for — a stepper is 160px.
+
 Side by side, controls line up along their inputs. Every control is a label, then one
 input line of the same height, then anything extra — colour presets, a warning —
 below, where it cannot push its neighbours out of line. A switch or button beside a
