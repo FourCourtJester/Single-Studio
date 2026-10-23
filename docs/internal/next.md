@@ -7,13 +7,12 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **The Panel work and `color-scheme: dark` -- built, not released.** `actions`,
-  `collapsible`, `defaultOpen`, `size="sm"` on the header buttons, `useCollapsed`
-  and `Chevron`, striped panels and a dark scheme on the board are in core, under
-  Unreleased in the changelog, as are steppers and stopwatches that fill their
-  cell and a demo whose panels fold. Next: release them, then move
-  SS-Mercy-Riftbound-2v2 off its own `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
-  `HEADER_BUTTON` and the two rules in its `index.css`. See [the section below](#panel-header-actions-and-folding).
+- **Move SS-Mercy-Riftbound-2v2 onto 0.13.0.** Everything it built for itself is in
+  core from 0.13.0: `actions`, `collapsible`, `size="sm"`, `useCollapsed` and
+  `Chevron`, the stripes, `color-scheme: dark`, and steppers that fill. Bump it to
+  `^0.13.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
+  `HEADER_BUTTON` and the two rules in its `index.css`. See
+  [the section below](#panel-header-actions-and-folding).
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
