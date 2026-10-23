@@ -4,7 +4,15 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.13.0
+
+A board that reads better and folds away: panels with actions on their title line
+that fold to a header, every other panel a shade lighter, header-sized buttons, a
+dark scheme for the browser's own pickers, and steppers and stopwatches that fill
+their cell instead of leaving it half empty. A minor because the board changes
+look without being asked -- the stripes, the dark scheme and the wider steppers --
+though no prop changes meaning and nothing is removed. The demo's panels fold, with
+its swap in the scoreboard's header.
 
 ### Added
 
