@@ -2656,6 +2656,194 @@ await becomes(control, () => !document.querySelector('.ss-plugins-dialog[open]')
   await rotation.close()
 }
 
+// -- A panel's header: folding, and actions on its line ------------------------
+// Everything here is local to the page -- a fold, a counter, a plain input -- so the
+// show is left exactly as the checks after it expect.
+const fold = control.locator('.fixture-fold')
+const foldState = () =>
+  control.evaluate(() => {
+    const panel = document.querySelector('.fixture-fold')
+    const body = panel.querySelector('.ss-panel-body')
+
+    return {
+      expanded: panel.querySelector('.ss-panel-fold').getAttribute('aria-expanded'),
+      shown: body.getBoundingClientRect().height > 0,
+      says: panel.querySelector('.fixture-fold-says')?.textContent,
+      presses: panel.querySelector('.fixture-fold-press')?.textContent,
+    }
+  })
+
+let state = await foldState()
+check(state.expanded === 'false' && !state.shown, 'a collapsible panel starts folded, its controls off the board')
+check(state.says === 'folded', 'and actions given as a function are told it is folded')
+
+await fold.locator('.fixture-fold-press').click()
+state = await foldState()
+check(state.presses === 'Pressed 1' && !state.shown, 'an action in the header works while the panel is folded, and pressing it does not open it')
+
+await fold.locator('.ss-panel-fold').click()
+check(
+  await becomes(control, () => document.querySelector('.fixture-fold .fixture-fold-says')?.textContent === 'open'),
+  'pressing the title opens it, and the actions hear about it',
+)
+state = await foldState()
+check(state.expanded === 'true' && state.shown, 'with its controls back on the board')
+
+await fold.locator('.fixture-fold-input').fill('still here')
+await fold.locator('.ss-panel-fold').click()
+await fold.locator('.ss-panel-fold').click()
+check(
+  (await fold.locator('.fixture-fold-input').inputValue()) === 'still here',
+  'folding hides the controls without unmounting them, so what was typed survives',
+)
+
+check(
+  (await control.locator('.ss-panel-fold').count()) === 2,
+  'and only the panels that ask to be collapsible fold -- every other panel on the board is as it was',
+)
+
+// Not remembered: a page that loads now starts folded, though this one is open.
+const reloaded = await context.newPage()
+await reloaded.goto(`${BASE}/#/`)
+await reloaded.waitForSelector('.fixture-fold')
+check(
+  (await reloaded.locator('.fixture-fold .ss-panel-fold').getAttribute('aria-expanded')) === 'false',
+  'a fold is not remembered: another load of the board starts folded while this one is open',
+)
+await reloaded.close()
+
+// Back to folded, as the board loads, for whatever comes after.
+await fold.locator('.fixture-fold-input').fill('')
+await fold.locator('.ss-panel-fold').click()
+
+const headers = await control.evaluate(() => {
+  const untitled = document.querySelector('.fixture-untitled')
+  const bare = document.querySelector('.fixture-bare')
+
+  return {
+    untitledHeading: untitled.querySelector('h2') !== null,
+    untitledAction: untitled.querySelector('.ss-panel-actions .fixture-untitled-action') !== null,
+    untitledFold: untitled.querySelector('.ss-panel-fold')?.getAttribute('aria-label'),
+    untitledOpen: untitled.querySelector('.ss-panel-body').getBoundingClientRect().height > 0,
+    bareHeader: bare.querySelector('.ss-panel-header') !== null,
+  }
+})
+check(!headers.untitledHeading && headers.untitledAction, 'a panel without a title has no heading, and its actions still have their line')
+check(headers.untitledFold === 'Fold panel' && headers.untitledOpen, 'its fold is a chevron with a name of its own, and defaultOpen starts it open')
+check(!headers.bareHeader, 'a panel with nothing for a header to hold has no header at all')
+
+// The title line in both shapes of dock. Wide, the actions sit at the right of the
+// title; slim, they take a line of their own rather than squeezing it, and nothing
+// pokes out of the panel.
+const titleLine = () => {
+  const panel = document.querySelector('.fixture-fold')
+  const box = (el) => el.getBoundingClientRect()
+  const title = box(panel.querySelector('h2'))
+  const tools = box(panel.querySelector('.ss-panel-actions'))
+  const edge = box(panel)
+
+  return {
+    beside: tools.top < title.bottom && tools.left >= title.right,
+    under: tools.top >= title.bottom,
+    inside: tools.right <= edge.right && title.right <= edge.right,
+    titleLines: Math.round(title.height / parseFloat(getComputedStyle(panel.querySelector('h2')).lineHeight)),
+  }
+}
+const wideLine = await rowsAt(1280, titleLine)
+check(wideLine.beside && wideLine.inside, 'on a wide board the actions sit on the title line, at its right')
+const slimLine = await rowsAt(380, titleLine)
+check(
+  slimLine.under && slimLine.inside && slimLine.titleLines === 1,
+  'in a slim dock they drop under the title, which keeps its line, and stay inside the panel',
+)
+
+// -- The board's own look: stripes, a dark scheme, header-sized buttons ---------
+await control.locator('.fixture-small-mount').click()
+await control.waitForSelector('.fixture-small-md')
+const look = await control.evaluate(() => {
+  const board = document.querySelector('.ss-control')
+  const panels = [...board.querySelectorAll('.ss-panel')].filter((panel) => !panel.parentElement.closest('.ss-panel'))
+  const fill = (el) => getComputedStyle(el).backgroundColor
+  const box = (el) => el.getBoundingClientRect()
+  const small = [...document.querySelectorAll('.fixture-small .ss-panel-actions > *')]
+
+  return {
+    fills: panels.slice(0, 4).map(fill),
+    scheme: getComputedStyle(board).colorScheme,
+    smallHeights: small.map((el) => Math.round(box(el).height)),
+    smallText: small.map((el) => getComputedStyle(el).fontSize),
+    regular: Math.round(box(document.querySelector('.fixture-small-md')).height),
+  }
+})
+console.log(`  panel fills: ${look.fills.join(' | ')}`)
+check(
+  look.fills[0] !== look.fills[1] && look.fills[0] === look.fills[2] && look.fills[1] === look.fills[3],
+  'panels are striped, every other one a shade lighter, without the studio asking',
+)
+check(look.scheme === 'dark', 'the board tells the browser it is dark, so native pickers and scrollbars draw dark')
+
+const plain = await context.newPage()
+await plain.goto(`${BASE}/#/source/sequence`)
+await plain.waitForSelector('.ss-source')
+check((await plain.evaluate(() => getComputedStyle(document.documentElement.querySelector('.ss-source')).colorScheme)) === 'normal', 'and a graphic does not')
+await plain.close()
+
+console.log(`  header buttons: ${look.smallHeights.join(', ')}px tall, ${[...new Set(look.smallText)].join(', ')}; on a row ${look.regular}px`)
+check(
+  look.smallHeights.length === 7 && look.smallHeights.every((height) => height >= 24 && height < look.regular),
+  'a header button at size="sm" is smaller than its row-sized self, and never under the 24px a pointer needs, even squeezed',
+)
+check(
+  look.smallText.every((size) => size === '12px'),
+  'with smaller text, on every button that takes the size, whichever way it renders',
+)
+await control.locator('.fixture-small-mount').click()
+
+// A card folded with core's own hook and chevron, as a studio folds one.
+const card = control.locator('.fixture-card')
+const cardState = () =>
+  card.evaluate((el) => ({
+    expanded: el.querySelector('.fixture-card-fold').getAttribute('aria-expanded'),
+    shown: el.querySelector('.fixture-card-body').getBoundingClientRect().height > 0,
+    turned: el.querySelector('.ss-chevron').classList.contains('-rotate-90'),
+  }))
+let folded = await cardState()
+check(folded.expanded === 'false' && !folded.shown && folded.turned, 'useCollapsed starts a card folded, and Chevron turns to say so')
+await card.locator('.fixture-card-fold').click()
+folded = await cardState()
+check(folded.expanded === 'true' && folded.shown && !folded.turned, 'and one press opens it, the chevron pointing down')
+await card.locator('.fixture-card-fold').click()
+
+// -- A stepper fills its cell ---------------------------------------------------
+// A stepper's field used to stop at 4rem, so a stepper was 160px in any cell and the
+// rest of the cell sat empty -- 414px of 574 at 640px wide. Measured across the
+// widths a dock and a board take, for every stepper and stopwatch on a Row.
+const fills = () => {
+  const edge = (el) => el.getBoundingClientRect()
+  const short = (cell, last) => Math.round(edge(cell).right - edge(last).right)
+  const steppers = [...document.querySelectorAll('.ss-row > .ss-stepper:not(.col-auto)')]
+  const watches = [...document.querySelectorAll('.ss-row > .ss-stopwatch')]
+  const auto = document.querySelector('.fixture-auto .ss-stepper')
+
+  return {
+    steppers: steppers.map((cell) => short(cell, [...cell.querySelectorAll('button')].at(-1))),
+    watches: watches.map((cell) => short(cell, [...cell.querySelectorAll('button')].at(-1))),
+    auto: Math.round(edge(auto).width),
+  }
+}
+for (const width of [380, 800, 1280]) {
+  const measured = await rowsAt(width, fills)
+  console.log(
+    `  at ${width}px: steppers short of their cell by ${measured.steppers.join(', ')}px; stopwatch ${measured.watches.join(', ')}px; col-auto stepper ${measured.auto}px`,
+  )
+  check(
+    measured.steppers.length >= 4 && measured.steppers.every((gap) => Math.abs(gap) <= 1),
+    `at ${width}px every stepper on a Row reaches the edge of its cell, with nothing empty beside it`,
+  )
+  check(measured.watches.length >= 1 && measured.watches.every((gap) => Math.abs(gap) <= 1), `and so does a stopwatch, at ${width}px`)
+  check(Math.abs(measured.auto - 160) <= 1, `while a col-auto stepper keeps its own 160px, at ${width}px`)
+}
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

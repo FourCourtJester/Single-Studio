@@ -29,7 +29,7 @@ function Third({ which, label, name, tag }) {
  */
 export default function LowerThirds() {
   return (
-    <Panel title="Lower thirds">
+    <Panel title="Lower thirds" collapsible>
       <Third which="one" label="Host" name="Alex Morgan" tag="@morgs" />
       {/* Below 1024px each strap is two or three lines, and the two run together
           without a line between them. */}

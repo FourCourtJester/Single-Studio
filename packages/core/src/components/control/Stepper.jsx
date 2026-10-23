@@ -18,6 +18,8 @@ const NAMESPACE = 'variables'
 /**
  * A number with minus and plus buttons, and a field to type into. The buttons add
  * and subtract, so two operators pressing +1 at once come to +2 rather than +1. Writes immediately.
+ * The field fills whatever width its cell has; `col-auto` keeps the stepper at its
+ * own 160px.
  *
  * The buttons use the `increment`/`decrement` mutations rather than writing an
  * absolute value, which is what makes two operators tapping +1 at the same moment
@@ -136,9 +138,15 @@ export function Stepper({ name, label, step = 1, className, ...rest }) {
           /* The native spinners are hidden rather than styled. They would sit beside
              the -/+ buttons doing the same job by a different rule -- an absolute
              write where the buttons add -- and two controls a pixel apart that
-             disagree about what they mean is worse than one control fewer. */
+             disagree about what they mean is worse than one control fewer.
+
+             It grows into whatever room its cell has, between the two buttons. At
+             4rem and no more it left a stepper 160px wide in any cell, and on a
+             board with breakpoints that was the empty space beside every stepper:
+             170px of 330 in a slim dock, 414px of 574 at 640px wide. `w-16` is
+             still where it starts, so a `col-auto` stepper is 160px as before. */
           className={cx(
-            'ss-stepper-value w-16 min-w-0 rounded-md border bg-slate-950 px-2 text-center text-xl font-semibold tabular-nums text-slate-100 outline-none transition-colors',
+            'ss-stepper-value w-16 min-w-0 grow rounded-md border bg-slate-950 px-2 text-center text-xl font-semibold tabular-nums text-slate-100 outline-none transition-colors',
             LINE,
             '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
             dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-transparent focus:border-sky-500',

@@ -16,6 +16,17 @@ export const LINE = 'h-[var(--ss-input-h,2.5rem)]'
 export const MIN_LINE = 'min-h-[var(--ss-input-h,2.5rem)]'
 
 /**
+ * A button sized for a Panel's header rather than for a Row: `size="sm"` on
+ * Confirm, ResetButton, SwapButton and Toggle.
+ *
+ * Off the input line on purpose -- nothing in a header lines up with a field -- but
+ * never under 24px tall, the smallest pointer target WCAG 2.5.8 allows. Before
+ * this, a studio got a header-sized button by overriding the line height away with
+ * `min-h-0! px-2.5! py-1! text-xs!`, and `min-h-0` has no floor at all.
+ */
+export const SMALL = 'min-h-6 px-2.5 py-1 text-xs'
+
+/**
  * A control's label line. One component so every control's line is the same height:
  * a Row lines its controls up by assuming it, and a label one pixel taller than its
  * neighbour's puts that control's input a pixel lower, which is visible down a row.

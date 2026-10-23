@@ -2,6 +2,106 @@
 
 Left here rather than in a chat, so it survives.
 
+## Raise these first
+
+Asked for at the top of any "where are we at": the owner wants reminding of these
+before anything else.
+
+- **The Panel work and `color-scheme: dark` -- built, not released.** `actions`,
+  `collapsible`, `defaultOpen`, `size="sm"` on the header buttons, `useCollapsed`
+  and `Chevron`, striped panels and a dark scheme on the board are in core, under
+  Unreleased in the changelog, as are steppers and stopwatches that fill their
+  cell and a demo whose panels fold. Next: release them, then move
+  SS-Mercy-Riftbound-2v2 off its own `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
+  `HEADER_BUTTON` and the two rules in its `index.css`. See [the section below](#panel-header-actions-and-folding).
+- **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
+  that matters: a browser source with _Refresh browser when scene becomes active_
+  ticked starts the sequence again from its first item every time the scene is
+  taken.
+
+## Panel: header actions, and folding
+
+From the SS-Mercy-Riftbound-2v2 studio, which built all of it locally
+(`src/control/collapse.jsx` and its own `Panel.jsx`) because core's `Panel` has
+nothing beside its title. What it does, and what it learned, so core can take it
+over rather than rediscover it.
+
+**Behaviour.**
+
+- The title is a button -- chevron and title -- that folds the panel body away.
+- **Everything starts folded, on every load**, panels and the cards inside them
+  alike. A fresh board is a short list of headers, and the operator opens what the
+  next segment needs.
+- The fold is component state and nothing else. Not the show, which would fold the
+  panel on every operator's board; and not `localStorage`, so that a reload is
+  always the same board.
+- Header `actions` (Reset, Swap, Seed…) stay in the header and keep working while
+  folded.
+- A folded team card keeps a one-line summary -- "A1 · Comet Crew · 2–0 · 6 pts" --
+  so a folded group still reads at a glance. Folding hides the controls, not the
+  state of the show.
+
+**How the studio built it.**
+
+- `useCollapsed(initial = true)` returns `[collapsed, toggle]`: a plain `useState`,
+  no keys and no storage. `false` starts one open.
+- `<Chevron collapsed>` points down when open and turns −90° when folded.
+- Markup is `<h2><button aria-expanded aria-controls={bodyId}>…</button></h2>`, with
+  `id={bodyId}` from `useId` on the body. The button goes inside the heading: a
+  heading inside a button is invalid HTML.
+- The wrapper copies core's markup -- `.ss-panel`, `.ss-panel-body`, same classes
+  and spacing -- so board CSS aimed at those still applies. The header's bottom
+  margin goes while folded.
+
+**What bit.**
+
+- The studio's notes say `.ss-panel-body { display: flex }` beats the `hidden`
+  attribute, so it sets Tailwind's `hidden` class as well. That does not reproduce
+  in core: Tailwind's preflight, which every studio imports, has
+  `[hidden] { display: none !important }`. A `[hidden]` rule written into `base.css`
+  for it changed nothing -- with it removed, the folded body still measured 0px tall
+  -- so core relies on the attribute alone.
+- A grid of panels or cards needs `items-start`, or a folded one stretches to its
+  neighbours' height.
+- A folded summary reads saved values (`useVelcroValue`), not the staged draft, so
+  it changes when the operator saves, not as they type.
+
+**The shape asked for in core.**
+
+```jsx
+<Panel title="Slate" actions={<ResetButton … size="sm" />} collapsible defaultOpen={false}>
+```
+
+- `collapsible` turns folding on; `defaultOpen` starts one open. Folded is the
+  default.
+- `useCollapsed` and `Chevron` exported from `@single-studio/core/control`, so a
+  studio folds its own cards the same way.
+- It pairs with the other asks from the same studio:
+  - `actions` on `Panel`, rendered right-aligned on the title line;
+  - `size="sm"` on `Confirm`, `ResetButton`, `SwapButton` and `Toggle`, so a
+    header button needs no overrides -- today it takes
+    `min-h-0! px-2.5! py-1! text-xs!`. None of the four has a size yet;
+  - `color-scheme: dark` on the board, above.
+
+**What core has now** (on the branch, not released). `actions`, as anything or as
+a function given `{ open }`; `collapsible`, off by default, so existing boards are
+unchanged; `defaultOpen`. Settled on the way:
+
+- No title, but actions: the header holds just the actions. No title and
+  collapsible: a chevron of its own, named "Fold panel" or "Open panel". Neither,
+  and no actions: no header at all.
+- In a slim dock the actions take a line of their own under the title, still at the
+  right, and the title keeps one line. Measured at 380px and 1280px.
+- Folding hides the body without unmounting it, so a draft typed into a folded
+  panel survives.
+
+**Since then**, also in core: `size="sm"` on `Confirm`, `ResetButton`,
+`SwapButton` and `Toggle`, with a 24px floor that holds when a studio squeezes the
+padding; `useCollapsed` and `Chevron` exported from `@single-studio/core/control`;
+every other panel a shade lighter, by default; and `color-scheme: dark` on
+`.ss-control`. The stripes count sibling panels, so a panel wrapped in a `<div>` of
+its own stays the darker shade -- written into the docs rather than worked around.
+
 ## Rocket League
 
 - **A test suite with the real game.** `dev/replay.mjs` proves the plugin and

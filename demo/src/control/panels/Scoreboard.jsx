@@ -36,7 +36,21 @@ export default function Scoreboard() {
   const mutate = useVelcroMutate()
 
   return (
-    <Panel title="Scoreboard">
+    // Open on load, where every other panel starts folded: it is the one touched every
+    // round. The swap is in the header, so it can be pressed with the panel folded.
+    <Panel
+      title="Scoreboard"
+      collapsible
+      defaultOpen
+      actions={
+        // One button, every path a side owns: half a swap is a scoreboard that lies.
+        <SwapButton
+          size="sm"
+          label="Swap sides"
+          names={['home.name', 'home.logo', 'home.score', 'home.color', 'away.name', 'away.logo', 'away.score', 'away.color']}
+        />
+      }
+    >
       <Team side="home" label="Home" fallback="#0284c7" presets={['#0284c7', '#16a34a', '#ca8a04', '#7c3aed']} />
       {/* Below 1024px a side is four or two lines of controls, and two sides of
           identical controls run together without a line between them. From there
@@ -45,17 +59,8 @@ export default function Scoreboard() {
       <Team side="away" label="Away" fallback="#e11d48" presets={['#e11d48', '#ea580c', '#0891b2', '#4b5563']} />
       <hr className="border-slate-800 lg:hidden" />
 
-      {/* The round takes the line and the swap only the room its words need, from 640px. */}
-      <Row className="sm:row-cols-2">
-        {/* A field, not a stepper: empty, its placeholder says what the scoreboard shows. */}
-        <Field name="round" label="Round" placeholder="1" />
-        {/* One button, every path a side owns: half a swap is a scoreboard that lies. */}
-        <SwapButton
-          className="sm:col-auto"
-          label="Swap sides"
-          names={['home.name', 'home.logo', 'home.score', 'home.color', 'away.name', 'away.logo', 'away.score', 'away.color']}
-        />
-      </Row>
+      {/* A field, not a stepper: empty, its placeholder says what the scoreboard shows. */}
+      <Field name="round" label="Round" placeholder="1" />
 
       <Row className="sm:row-cols-3">
         <button type="button" onClick={() => mutate('demo:round', { team: 'home' })} className={button}>

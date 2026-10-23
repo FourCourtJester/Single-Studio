@@ -53,7 +53,7 @@ export default function TwitchPanel() {
   ]
 
   return (
-    <Panel title="Twitch">
+    <Panel title="Twitch" collapsible>
       <p className="text-xs text-slate-400">Try the overlay without a channel. Your own: Settings → Plugins → Twitch → Sign in with Twitch.</p>
       {/* Eight buttons: two to a line in a dock, four from 640px, all eight from 1280px. */}
       <Row className="row-cols-2 sm:row-cols-4 xl:row-cols-8">

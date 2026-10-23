@@ -15,6 +15,7 @@ const NAMESPACE = 'timers'
 /**
  * Counts up from when it was started, with pause and reset. Stores an origin
  * rather than a running total, so every machine derives the same number. Writes immediately.
+ * The readout fills whatever width its cell has, with the buttons at the end.
  *
  * The third of the three clocks. <Countdown> counts down a duration, <CountdownTo>
  * counts down to a wall-clock time, and this one counts up from the moment it was
@@ -42,11 +43,15 @@ export function Stopwatch({ name, label = 'Stopwatch', className, ...rest }) {
       {/* Wraps rather than overflows. Three controls have a natural width the panel
           knows nothing about, and at the one width where three clocks fit in a row
           and each is barely wide enough, Reset used to hang out past the panel's
-          edge. A control that runs out of room should fold, not escape. */}
+          edge. A control that runs out of room should fold, not escape.
+
+          The readout grows into the rest of the line, as a stepper's field does, so
+          the buttons end at the cell's edge instead of leaving up to 295px empty
+          beside them on a wide board. */}
       <div className="flex flex-wrap items-start gap-2">
         <output
           className={cx(
-            'flex min-w-[4.5rem] items-center justify-center rounded-md border border-slate-700 bg-slate-950 px-3 text-sm tabular-nums text-slate-100',
+            'flex min-w-[4.5rem] grow items-center justify-center rounded-md border border-slate-700 bg-slate-950 px-3 text-sm tabular-nums text-slate-100',
             LINE,
           )}
         >

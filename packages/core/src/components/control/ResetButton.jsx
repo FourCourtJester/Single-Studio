@@ -1,7 +1,7 @@
 import { useVelcroMutate } from '../../hooks/useVelcroMutate'
 import { qualify } from '../../toolkits/address'
 import { cx } from '../../toolkits/cx'
-import { MIN_LINE } from './Label'
+import { MIN_LINE, SMALL } from './Label'
 import { Confirm } from './Confirm'
 
 /** Where this component's values live. Not a prop: a studio never needs another. */
@@ -14,6 +14,7 @@ const NAMESPACE = 'variables'
  * @property {string} [label] - Names what gets cleared: the button reads "Reset `<label>`". Defaults to `"Reset"`.
  * @property {boolean} [confirm] - Ask before clearing. Defaults to `true`; pass `confirm={false}` for a button that fires on one press.
  * @property {import("react").ReactNode} [children] - Replaces the generated "Reset `<label>`" text.
+ * @property {'md'|'sm'} [size] - `"sm"` for a Panel's header: smaller, off the input line, never under a 24px target. Defaults to `"md"`.
  * @property {string} [className] - Added to the component's own classes.
  */
 /**
@@ -54,7 +55,7 @@ const NAMESPACE = 'variables'
  *
  * @param {ResetButtonProps & import("react").ButtonHTMLAttributes<HTMLElement>} props
  */
-export function ResetButton({ names = [], paths = [], label = 'Reset', confirm = true, className, children, ...rest }) {
+export function ResetButton({ names = [], paths = [], label = 'Reset', confirm = true, size = 'md', className, children, ...rest }) {
   const mutate = useVelcroMutate()
   const targets = qualify({ names, paths, namespace: NAMESPACE })
 
@@ -78,7 +79,14 @@ export function ResetButton({ names = [], paths = [], label = 'Reset', confirm =
    */
   if (confirm) {
     return (
-      <Confirm className={cx('ss-reset ss-unlabelled', MIN_LINE, className)} label={text} onConfirm={clear} title={text} {...rest}>
+      <Confirm
+        className={cx('ss-reset ss-unlabelled', size === 'sm' ? null : MIN_LINE, className)}
+        size={size}
+        label={text}
+        onConfirm={clear}
+        title={text}
+        {...rest}
+      >
         {children}
       </Confirm>
     )
@@ -90,8 +98,8 @@ export function ResetButton({ names = [], paths = [], label = 'Reset', confirm =
       onClick={clear}
       title={text}
       className={cx(
-        'ss-reset ss-unlabelled rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-500',
-        MIN_LINE,
+        'ss-reset ss-unlabelled rounded-md bg-rose-600 font-medium text-white transition-colors hover:bg-rose-500',
+        size === 'sm' ? SMALL : cx('px-3 py-2 text-sm', MIN_LINE),
         className,
       )}
       {...rest}

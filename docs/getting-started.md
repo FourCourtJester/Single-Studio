@@ -279,9 +279,28 @@ instead, over `--ss-fade`; anything beyond that is a rule of your own on
 | `Stopwatch`    | `timers.<name>`    | Counts up. Start, pause, reset.                                                  |
 | `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                         |
 | `SaveButton`   | —                  | Commits every staged edit. Hosts the save and discard shortcuts.                 |
-| `Panel`        | —                  | Titled group. One row per child.                                                 |
+| `Panel`        | —                  | Titled group, one row per child. `actions` on the title line; `collapsible`.     |
 | `Row`          | —                  | Side by side when there is room, stacked in a dock. Widths in twelfths.          |
 | `Break`        | —                  | Deprecated: draws nothing. Use `Row`.                                            |
+
+A `Panel`'s `actions` go at the right of its title, and work while it is folded:
+anything at all, or a function given `{ open }` that returns it. `collapsible`
+makes the title fold the panel away. A collapsible panel starts folded on every
+load, so a fresh board is a short list of headers; `defaultOpen` starts one open.
+The fold is that page's alone, never the show's, so folding a panel on your board
+folds nobody else's. A button in the header takes `size="sm"` — `Confirm`,
+`ResetButton`, `SwapButton` and `Toggle` all have it — and `useCollapsed` and
+`Chevron` fold anything else, such as a card inside a panel, the same way.
+
+Every other panel is a shade lighter, so a long board reads as blocks. The stripes
+count sibling panels, so render panels directly or in a fragment rather than each
+inside a `<div>` of its own.
+
+```jsx
+<Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title']} size="sm" />}>
+  <Field name="slate.title" label="Title" />
+</Panel>
+```
 
 ## Working with other people
 
@@ -829,6 +848,11 @@ A Row is sized the way Bootstrap sizes one, with Tailwind's breakpoints:
 With a breakpoint a class holds from there up; without one, at every width, so
 `row-cols-2` keeps buttons in pairs even in a slim dock. A line that does not fill
 has no hole at the end: the last control on it takes the room.
+
+Every control fills the cell it is given, a `Stepper` and a `Stopwatch` included:
+the number field and the readout grow between their buttons. To keep one at its own
+width and give the rest of the line to its neighbours, that is what `col-auto` is
+for — a stepper is 160px.
 
 Side by side, controls line up along their inputs. Every control is a label, then one
 input line of the same height, then anything extra — colour presets, a warning —

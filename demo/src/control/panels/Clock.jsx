@@ -9,7 +9,7 @@ import { Cycle, Panel, Row, Toggle } from '@single-studio/core/control'
  */
 export default function Clock() {
   return (
-    <Panel title="Clock">
+    <Panel title="Clock" collapsible>
       {/* The switch at its own width beside the format, from 640px. */}
       <Row className="sm:row-cols-2">
         <Toggle name="clock" label="clock" className="sm:col-auto" />

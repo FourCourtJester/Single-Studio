@@ -1,7 +1,11 @@
+import { useId, useState } from 'react'
+
 import { useVelcroMutate } from '@single-studio/core'
 import {
   AssetLibrary,
+  Chevron,
   ColorPicker,
+  Confirm,
   Countdown,
   CountdownTo,
   Cycle,
@@ -17,6 +21,7 @@ import {
   SwapButton,
   TextArea,
   Toggle,
+  useCollapsed,
 } from '@single-studio/core/control'
 
 import { ARMY_SIZE, COMMANDERS, FACTIONS, MAPS, UNITS } from '../roster'
@@ -44,6 +49,118 @@ function Draft({ side, title }) {
       </Row>
       <ResetButton label="draft" names={[`${side}.faction`, `${side}.commander`, `${side}.army`]} />
     </Panel>
+  )
+}
+
+/**
+ * The three shapes a Panel's header takes. Kept to plain inputs and local state,
+ * nothing bound to the show, so folding and pressing here leave the show exactly
+ * as the checks around them expect it.
+ */
+/** A card folded the way a Panel folds, with core's own hook and chevron. */
+function Card() {
+  const [collapsed, toggle] = useCollapsed()
+  const body = useId()
+
+  return (
+    <div className="fixture-card rounded-md border border-slate-800 p-2">
+      <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-controls={body} className="fixture-card-fold flex items-center gap-2 text-sm">
+        <Chevron collapsed={collapsed} />
+        Card
+      </button>
+      <p id={body} hidden={collapsed} className="fixture-card-body mt-2 text-sm text-slate-400">
+        Folded by useCollapsed.
+      </p>
+    </div>
+  )
+}
+
+function Folding() {
+  const [presses, setPresses] = useState(0)
+  const [small, setSmall] = useState(false)
+  const press = 'rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs text-slate-200'
+
+  return (
+    <>
+      {/* Folded on load, with actions that read the fold and one that counts its
+          presses, folded or not. The title is long enough that a slim dock has to
+          put the actions on a line of their own; the e2e suite measures that. */}
+      <Panel
+        title="Folding, with actions on its line"
+        collapsible
+        className="fixture-fold"
+        actions={({ open }) => (
+          <>
+            <span className="fixture-fold-says text-xs text-slate-500">{open ? 'open' : 'folded'}</span>
+            <button type="button" onClick={() => setPresses((n) => n + 1)} className={`fixture-fold-press ${press}`}>
+              Pressed {presses}
+            </button>
+          </>
+        )}
+      >
+        <input aria-label="Kept while folded" className="fixture-fold-input rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </Panel>
+
+      {/* No title: actions keep their line, and the fold is a chevron of its own. */}
+      <Panel
+        collapsible
+        defaultOpen
+        className="fixture-untitled"
+        actions={
+          <button type="button" className={`fixture-untitled-action ${press}`}>
+            Untitled action
+          </button>
+        }
+      >
+        <p className="text-sm text-slate-400">No title; starts open.</p>
+        <Card />
+        {/* A stepper at its own width beside a field taking the rest: `col-auto` still
+            means 160px now that a stepper grows into any other cell. Measured, never
+            pressed or typed into. */}
+        <Row className="fixture-auto">
+          <Stepper name="fixture.auto" label="At its own width" className="col-auto" />
+          <Field name="fixture.beside" label="The rest" />
+        </Row>
+      </Panel>
+
+      {/* Every header button at size="sm", both ways a reset and a swap render, beside
+          the same reset at its own size on a Row. Mounted only when the e2e suite asks,
+          because checks long before it find the board's one swap and one reset by
+          class. Bound to paths nothing else reads, and only measured, never pressed. */}
+      <Panel
+        title="Header buttons"
+        className="fixture-small"
+        actions={
+          small ? (
+            <>
+              <Confirm size="sm" label="Confirm" onConfirm={() => {}} />
+              <ResetButton size="sm" label="nothing" names={['fixture.nothing']} />
+              <ResetButton size="sm" label="at once" names={['fixture.nothing']} confirm={false} />
+              <SwapButton size="sm" label="nothing" names={['fixture.left', 'fixture.right']} />
+              <SwapButton size="sm" label="at once" names={['fixture.left', 'fixture.right']} confirm={false} />
+              <Toggle size="sm" name="fixture-small" label="small" />
+              {/* Squeezed the way a studio might, to fit one more in: the size keeps a
+                  floor under it however its padding is cut. */}
+              <Toggle size="sm" name="fixture-small" label="squeezed" style={{ paddingBlock: 0 }} />
+            </>
+          ) : null
+        }
+      >
+        <button type="button" onClick={() => setSmall((was) => !was)} className={`fixture-small-mount ${press}`}>
+          {small ? 'Unmount' : 'Mount'} header buttons
+        </button>
+        {small ? (
+          <Row>
+            <ResetButton label="nothing" names={['fixture.nothing']} className="fixture-small-md" />
+          </Row>
+        ) : null}
+      </Panel>
+
+      {/* Nothing for a header to hold, so no header. */}
+      <Panel className="fixture-bare">
+        <p className="text-sm text-slate-400">No title, no actions.</p>
+      </Panel>
+    </>
   )
 }
 
@@ -171,6 +288,8 @@ export default function Control() {
       <Panel title="Sequence">
         <Toggle name="intro" label="intro" />
       </Panel>
+
+      <Folding />
 
       <Panel title="Images">
         {/* The manager, inline. The same component opens as a modal from any picker. */}

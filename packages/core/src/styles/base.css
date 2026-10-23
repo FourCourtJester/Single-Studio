@@ -332,6 +332,18 @@
   }
 
   /*
+   * The board is dark, so it says so. Chrome draws a native control's own pieces --
+   * a time input's clock icon, its picker, the list behind a <select>, scrollbars --
+   * in the page's colour scheme, and without this they came out black on the
+   * board's slate: the clock icon in CountdownTo all but disappeared. Found in a
+   * studio, which set it in its own index.css. On `.ss-control` alone, so a graphic,
+   * which has a scene behind it rather than a board, never gets it.
+   */
+  .ss-control {
+    color-scheme: dark;
+  }
+
+  /*
    * Cursors on the board.
    *
    * Tailwind's reset leaves a button at `cursor: default`, so every control on the
@@ -438,6 +450,26 @@
    * pushing the panel wider than the dock and giving the whole board a horizontal
    * scrollbar; they are easy to leave out and painful to find.
    */
+  /*
+   * Every other panel a shade lighter, so a long board reads as separate blocks
+   * rather than one slab of slate. Taken from a studio that did it for itself, as
+   * the default because every board is expected to want it.
+   *
+   * Counted among sibling panels, so panels nested inside a panel alternate among
+   * themselves. A panel wrapped in an element of its own -- `<div><Panel /></div>` --
+   * is the only one of its kind in there and never counts as even; render panels
+   * directly, or in a fragment, to keep the stripes. Here rather than as a class on
+   * the element so the count can be made at all, and in this layer so a studio's
+   * `bg-*` on one panel, or its own rule, still wins.
+   */
+  .ss-panel {
+    background-color: rgb(15 23 42 / 0.4);
+  }
+
+  .ss-panel:nth-of-type(even) {
+    background-color: rgb(30 41 59 / 0.7);
+  }
+
   .ss-panel-body {
     display: flex;
     flex-direction: column;
