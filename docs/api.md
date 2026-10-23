@@ -130,7 +130,7 @@ Several lines of text an operator types, bound to a path. Staged until saved.
 
 `import { Stepper } from '@single-studio/core/control'`
 
-A number with minus and plus buttons, and a field to type into. The buttons add and subtract, so two operators pressing +1 at once come to +2 rather than +1. Writes immediately.
+A number with minus and plus buttons, and a field to type into. The buttons add and subtract, so two operators pressing +1 at once come to +2 rather than +1. Writes immediately. The field fills whatever width its cell has; `col-auto` keeps the stepper at its own 160px.
 
 ```jsx
 <Stepper name="home.score" label="Home score" />
@@ -497,7 +497,7 @@ Counts down to a time of day rather than a length — "we go live at 19:30". Rol
 
 `import { Stopwatch } from '@single-studio/core/control'`
 
-Counts up from when it was started, with pause and reset. Stores an origin rather than a running total, so every machine derives the same number. Writes immediately.
+Counts up from when it was started, with pause and reset. Stores an origin rather than a running total, so every machine derives the same number. Writes immediately. The readout fills whatever width its cell has, with the buttons at the end.
 
 ```jsx
 <Stopwatch name="match" label="Show elapsed" />
