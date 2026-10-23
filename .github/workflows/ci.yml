@@ -8,6 +8,11 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # A healthy run is about 4 minutes. Without a limit GitHub allows 360, and on
+    # 2026-10-23 three runs hung in the Chromium install for 7-10 minutes each,
+    # holding a pull request until somebody noticed and cancelled. The install has
+    # its own retries below; this is only the floor under everything else.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -77,8 +82,41 @@ jobs:
 
       # Integration coverage for the parts that only exist in a browser:
       # SharedWorker startup, cross-tab BroadcastChannel fan-out, IndexedDB.
+      #
+      # The browser is cached, keyed on Playwright's version, so most runs do not
+      # download it at all. The download is what hung: three times on 2026-10-23,
+      # 7-10 minutes each against 20-27 seconds healthy, and a re-run on another
+      # runner always went straight through. So each attempt gets two minutes and
+      # three tries, and a stall costs two minutes rather than a cancelled run.
+      # The system packages (`install-deps`) still install every run -- they are
+      # not in the cache path -- under the same retries.
+      - name: Find Playwright's version
+        id: playwright
+        run: echo "version=$(apps/fixture/node_modules/.bin/playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Chromium
+        id: browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Chromium
-        run: pnpm --filter @single-studio/fixture exec playwright install --with-deps chromium
+        timeout-minutes: 8
+        env:
+          CACHED: ${{ steps.browsers.outputs.cache-hit }}
+        run: |
+          if [ "$CACHED" = true ]; then what='install-deps chromium'; else what='install --with-deps chromium'; fi
+
+          for attempt in 1 2 3; do
+            # `timeout` signals the whole process group, so a hung apt-get under
+            # sudo goes with Playwright rather than holding the dpkg lock.
+            if timeout --kill-after=10 120 apps/fixture/node_modules/.bin/playwright $what; then exit 0; fi
+            echo "::warning::Chromium install attempt $attempt stalled or failed after up to 2 minutes; trying again"
+          done
+
+          echo "::error::Chromium did not install in three attempts"
+          exit 1
 
       - name: Smoke test
         working-directory: apps/fixture
