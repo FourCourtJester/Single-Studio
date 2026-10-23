@@ -344,6 +344,47 @@
   }
 
   /*
+   * The board's own spacing, as properties a studio can set rather than utilities
+   * it has to beat. These were `p-3 sm:p-4` on every panel, `gap-3 p-3 sm:gap-4
+   * sm:p-4` on the board and `px-3 py-2.5 sm:px-4 sm:py-3` on the bar, in the
+   * markup: a studio that wanted one size at every width had to write unlayered
+   * CSS against Tailwind's utilities, and reach the board as `.ss-control > main`
+   * because it had no class. Reported from a studio whose panels went collapsible
+   * and short enough to show the step -- in an OBS dock the viewport is the dock,
+   * so the chrome re-flowed as an operator dragged its edge past 640px.
+   *
+   * Same values and the same step at 40rem by default, so nothing moves for a board
+   * that does not care. Declared on `.ss-control`, in this layer: a studio sets them
+   * there in its own CSS, which wins at every width, step and all.
+   */
+  .ss-control {
+    --ss-board-pad: 0.75rem;
+    --ss-board-gap: 0.75rem;
+    --ss-panel-pad: 0.75rem;
+    --ss-bar-pad-x: 0.75rem;
+    --ss-bar-pad-y: 0.625rem;
+  }
+
+  @media (min-width: 40rem) {
+    .ss-control {
+      --ss-board-pad: 1rem;
+      --ss-board-gap: 1rem;
+      --ss-panel-pad: 1rem;
+      --ss-bar-pad-x: 1rem;
+      --ss-bar-pad-y: 0.75rem;
+    }
+  }
+
+  .ss-board {
+    padding: var(--ss-board-pad, 1rem);
+    gap: var(--ss-board-gap, 1rem);
+  }
+
+  .ss-control-bar {
+    padding: var(--ss-bar-pad-y, 0.75rem) var(--ss-bar-pad-x, 1rem);
+  }
+
+  /*
    * Cursors on the board.
    *
    * Tailwind's reset leaves a button at `cursor: default`, so every control on the
@@ -463,6 +504,7 @@
    * `bg-*` on one panel, or its own rule, still wins.
    */
   .ss-panel {
+    padding: var(--ss-panel-pad, 1rem);
     background-color: rgb(15 23 42 / 0.4);
   }
 
@@ -588,9 +630,28 @@
   }
 }
 
+/*
+ * `col-auto` sizes a control to its content and never shrinks it, which is right for
+ * content with a ceiling -- a stepper is 160px for ever -- and wrong for content the
+ * operator supplies. An ImagePicker is a <select>, as wide as the longest key in the
+ * library: measured in a studio on a 640px board, 136px with a key of `x` and 365px
+ * with `northwind-esports-primary-logo-2026`, leaving the Field beside it 25px. A
+ * board checked at design time degraded months later because a logo was named
+ * descriptively.
+ *
+ * So a `col-auto` picker stops at `--ss-picker-max`. Here, inside the utility, so that
+ * `sm:col-auto` caps it only from `sm` up: a studio cannot write this rule itself,
+ * because the class `sm:col-auto` is on the element at every width, and a selector
+ * that matched it would also cap the picker below the breakpoint, where it has a line
+ * to itself and must fill it.
+ */
 @utility col-auto {
   .ss-row > & {
     flex: 0 0 auto;
+  }
+
+  .ss-row > &.ss-image-picker {
+    max-width: var(--ss-picker-max, 9.25rem);
   }
 }
 

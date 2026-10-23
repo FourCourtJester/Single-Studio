@@ -7,16 +7,100 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **Move SS-Mercy-Riftbound-2v2 onto 0.13.0.** Everything it built for itself is in
+- **Move SS-Mercy-Riftbound-2v2 onto 0.14.0.** Everything it built for itself is in
   core from 0.13.0: `actions`, `collapsible`, `size="sm"`, `useCollapsed` and
   `Chevron`, the stripes, `color-scheme: dark`, and steppers that fill. Bump it to
-  `^0.13.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
-  `HEADER_BUTTON` and the two rules in its `index.css`. See
+  `^0.14.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
+  `HEADER_BUTTON`, the two rules in its `index.css`, and from 0.14.0 its spacing
+  overrides (now `--ss-panel-pad` and friends) and its picker width band. See
   [the section below](#panel-header-actions-and-folding).
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
   taken.
+
+## Reports from client work, 2026-10-23
+
+Filed by a studio running 0.13.0, every number measured on a live board. Each one is
+checked against the code here; none is a 0.13.0 regression.
+
+**All three are in 0.14.0**: the spacing properties and `.ss-board`, the
+`col-auto` picker cap with `--ss-picker-max`, and the docs. Kept for the measurements.
+
+### The board re-pads itself at 640px, and a studio cannot turn it off
+
+Three things step at Tailwind's `sm`, as utilities in the markup:
+
+| Element              | Where                                              | Below 640px    | From 640px     |
+| -------------------- | -------------------------------------------------- | -------------- | -------------- |
+| `.ss-panel`          | `Panel.jsx`, `p-3 sm:p-4`                          | 12px           | 16px           |
+| the board's `<main>` | `pages/Control.jsx`, `gap-3 p-3 sm:gap-4 sm:p-4`   | 12px, gap 12px | 16px, gap 16px |
+| `.ss-control-bar`    | `pages/Control.jsx`, `px-3 py-2.5 sm:px-4 sm:py-3` | 12px / 10px    | 16px / 12px    |
+
+Why it matters: a studio can only undo it with unlayered CSS that beats
+`@layer utilities`, which is overriding the framework's markup rather than setting a
+value it offers -- unlike the Row, which exposes `--ss-row-gap`, `--ss-basis` and
+`--ss-label-offset` on purpose. The `<main>` has no class at all, so the override has
+to reach it as `.ss-control > main`. And it is keyed to the viewport, which in an OBS
+dock is the dock: the chrome re-flows while an operator drags the dock edge past
+640px, mid-show.
+
+The ask: custom properties with today's values as defaults --
+`--ss-panel-pad`, `--ss-board-pad`, `--ss-board-gap`, `--ss-bar-pad-x`,
+`--ss-bar-pad-y` -- with the 640px step moved into `base.css` so it still happens by
+default, and an `ss-board` class on the `<main>`. The studio carries unlayered
+overrides pinned to the 640px-and-up values until then.
+
+### `col-auto` on a control with operator-supplied content has no ceiling
+
+`col-auto` is `flex: 0 0 auto` (`base.css`, `@utility col-auto`): size to content, never
+shrink. Right for a Stepper, which is 160px for ever. Wrong for an `ImagePicker`,
+which is a `<select>` and so as wide as the longest key in the library -- something
+the operator sets at run time. Measured on a 640px board by renaming one asset:
+
+| Longest key                           | Picker | The Field beside it |
+| ------------------------------------- | ------ | ------------------- |
+| `x`                                   | 136px  | 255px               |
+| `broadcaster`                         | 202px  | 188px               |
+| `northwind-esports-primary-logo-2026` | 365px  | 25px                |
+
+A board checked at design time degrades months later because somebody named a logo
+descriptively, and the neighbour that loses is usually the name field.
+
+The ask is a cap inside the utility, where a breakpoint variant wraps it too:
+`.ss-row > &.ss-image-picker { max-width: var(--ss-picker-max, 9.25rem) }`. A studio
+cannot write that rule itself: `sm:col-auto` is a literal class at every width, so an
+attribute selector also matches below the breakpoint, where the picker has a line to
+itself and must fill it. The studio carries a width-band cap meanwhile, which also
+holds back pickers that are not `col-auto` -- about 338px unused at 700px in one panel.
+
+Open before building: whether the cap belongs to `ImagePicker` alone or to any control
+sized by operator content, and whether a cap or a select that does not size to its
+options is the better fix.
+
+### Reading an `--ss-*` property, and a dev server that serves half a stylesheet
+
+Not core's code, but core's users hit it, because core's layer runs on custom
+properties. `max-width: var(--undefined)` is invalid at computed-value time and
+resolves to `none` -- the same as a stylesheet that never loaded -- so a misspelt or
+renamed property fails in silence. The studio met it twice in one day through Vite's
+dev server: once a hot update applied one of two edits to the same file, and once an
+auto-restart (a branch checkout touched `vite.config.js`'s mtime) brought the CSS
+back with Tailwind's theme tokens but not one utility class. `npm run build` was right
+both times; a restart fixed both.
+
+The ask is docs only, where `getting-started.md` introduces the properties:
+
+- read an `--ss-*` property with a fallback, `var(--ss-basis, 0%)`, so a typo or a
+  rename degrades to a default rather than to nothing;
+- when a rule has no effect, read the page's served `<style>`, not the file; a
+  restart, not a reload, clears a half-applied hot update;
+- a board with no utility classes but its theme intact is the dev server's utility
+  scan, not the studio's CSS; if `npm run build` is right, stop reading your own
+  files.
+
+And a release that renames an `--ss-*` property is breaking for every studio that
+overrides it, quietly, so it gets a line in the release notes.
 
 ## Panel: header actions, and folding
 
@@ -120,7 +204,7 @@ Found on a real machine, and high severity: one unreachable plugin made a studio
 render nothing at all, with no error anywhere a person will look. `started` waits for
 every plugin's `start()`, every port message queues behind `started`, and
 `SocketService.open()` settles only on the socket's `open` or `error` -- so an address
-that *accepts and then does nothing* never settles, and the board never handles a
+that _accepts and then does nothing_ never settles, and the board never handles a
 single message.
 
 The existing mitigation makes plugin starts concurrent with each other, which
@@ -136,17 +220,17 @@ in `SocketService`, and a board that cannot say "not ready" — in
 
 `vars` maps one custom property to one path and passes the value through verbatim.
 That is the whole surface, and it means the prop is all-or-nothing: the moment a
-scene needs *any* resolution logic, it drops out of `vars` entirely and does every
+scene needs _any_ resolution logic, it drops out of `vars` entirely and does every
 property in `style` instead.
 
 The case that found this is the BSU Rocket League studio, which needs four:
 
-| Property           | Wants                                                   |
-| ------------------ | ------------------------------------------------------- |
+| Property           | Wants                                                                   |
+| ------------------ | ----------------------------------------------------------------------- |
 | `--home-primary`   | the roster sheet's brand colour, else the colour the team is playing in |
-| `--home-secondary` | that, darkened, for the far end of every gradient        |
-| `--away-primary`   | as above                                                 |
-| `--away-secondary` | as above                                                 |
+| `--home-secondary` | that, darkened, for the far end of every gradient                       |
+| `--away-primary`   | as above                                                                |
+| `--away-secondary` | as above                                                                |
 
 None of the four can be written as `vars`, so all four are in `style` and the studio
 re-implements the subscription `useVelcroVars` already does.
@@ -155,7 +239,7 @@ Two different gaps are tangled up in that, and only one is worth closing.
 
 **Worth closing: a fallback chain.** `vars={{ '--home': ['home.color', 'rl.blue.color'] }}`
 — the first path holding something wins. This is the commonest shape in any studio
-driven by both a person and a feed: *operator override, else what the feed says.* It
+driven by both a person and a feed: _operator override, else what the feed says._ It
 needs no new concept, because "empty means no value" is already the store's rule
 everywhere else. A studio that only needs this would keep using `vars`.
 
@@ -178,7 +262,7 @@ So the change is two things, not one:
 2. Say in [api.md](../api.md) that `vars` is the convenience form for properties
    nothing else reads, and that `style` with `useVelcroValue` is the right shape —
    not a failure to use `vars` — the moment a scene needs the value itself. Right
-   now the API reference reads as though `vars` is *the* way to drive a graphic from
+   now the API reference reads as though `vars` is _the_ way to drive a graphic from
    operator input, and a studio author following it hits this and assumes they have
    done something wrong.
 

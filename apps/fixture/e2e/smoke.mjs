@@ -2844,6 +2844,91 @@ for (const width of [380, 800, 1280]) {
   check(Math.abs(measured.auto - 160) <= 1, `while a col-auto stepper keeps its own 160px, at ${width}px`)
 }
 
+// -- The board's spacing is the studio's to set ---------------------------------
+// It stepped at 640px through utilities in the markup, which a studio could only
+// beat with CSS aimed at the framework's own classes. Now properties, with the same
+// values and the same step by default, which a studio sets on .ss-control.
+const spacing = () => {
+  const px = (el, prop) => Math.round(parseFloat(getComputedStyle(el)[prop]))
+  const panel = document.querySelector('.ss-panel')
+  const board = document.querySelector('.ss-board') ?? document.querySelector('.ss-control > main')
+  const bar = document.querySelector('.ss-control-bar')
+
+  return {
+    named: board.classList.contains('ss-board') && board.parentElement.classList.contains('ss-control'),
+    panel: px(panel, 'paddingTop'),
+    board: px(board, 'paddingTop'),
+    gap: px(board, 'rowGap'),
+    barX: px(bar, 'paddingLeft'),
+    barY: px(bar, 'paddingTop'),
+  }
+}
+const studioSets = () => {
+  const style = document.createElement('style')
+  style.textContent = '.ss-control { --ss-panel-pad: 20px; --ss-board-pad: 20px; --ss-board-gap: 20px; --ss-bar-pad-x: 20px; --ss-bar-pad-y: 20px; }'
+  document.head.append(style)
+  const px = (el, prop) => Math.round(parseFloat(getComputedStyle(el)[prop]))
+  const board = document.querySelector('.ss-board') ?? document.querySelector('.ss-control > main')
+  const bar = document.querySelector('.ss-control-bar')
+
+  return [px(document.querySelector('.ss-panel'), 'paddingTop'), px(board, 'paddingTop'), px(board, 'rowGap'), px(bar, 'paddingLeft'), px(bar, 'paddingTop')]
+}
+const slimSpacing = await rowsAt(380, spacing)
+const wideSpacing = await rowsAt(1280, spacing)
+console.log(`  spacing at 380px: ${JSON.stringify(slimSpacing)}; at 1280px: ${JSON.stringify(wideSpacing)}`)
+check(slimSpacing.named, "the board's <main> has a class of its own, .ss-board")
+check(
+  [slimSpacing.panel, slimSpacing.board, slimSpacing.gap, slimSpacing.barX, slimSpacing.barY].join() === '12,12,12,12,10' &&
+    [wideSpacing.panel, wideSpacing.board, wideSpacing.gap, wideSpacing.barX, wideSpacing.barY].join() === '16,16,16,16,12',
+  'left alone, the board keeps the spacing it always had, and its step at 640px',
+)
+const setSlim = await rowsAt(380, studioSets)
+const setWide = await rowsAt(1280, studioSets)
+check(
+  [...setSlim, ...setWide].every((value) => value === 20),
+  'a studio that sets the spacing on .ss-control gets it at every width, step and all',
+)
+
+// -- A col-auto picker stops at a width -------------------------------------------
+// An ImagePicker is as wide as the longest name in the library. col-auto let it take
+// that, however long, out of the field beside it.
+await control.locator('.ss-asset-library input[aria-label="Image URL"]').fill(`${BASE}/logos/broncos.svg`)
+await control.locator('.ss-asset-library input[aria-label="Asset name"]').fill('northwind-esports-primary-logo-2026')
+await control.locator('.ss-asset-library button:has-text("Add URL")').click()
+check(
+  await becomes(control, () => [...document.querySelectorAll('.fixture-capped option')].some((option) => /northwind/.test(option.textContent))),
+  'a long name reaches the picker',
+)
+const capped = () => {
+  const width = (el) => Math.round(el.getBoundingClientRect().width)
+  const row = document.querySelector('.fixture-capped')
+
+  const picker = row.querySelector('.ss-image-picker').getBoundingClientRect()
+  const field = row.querySelector('.ss-field').getBoundingClientRect()
+
+  return {
+    picker: Math.round(picker.width),
+    field: Math.round(field.width),
+    row: width(row),
+    gap: Math.round(parseFloat(getComputedStyle(row).columnGap)),
+    shared: Math.abs(picker.top - field.top) < 1,
+  }
+}
+const viewport = control.viewportSize()
+await control.setViewportSize({ width: 1024, height: 900 })
+await control.waitForTimeout(300)
+const capWide = await control.evaluate(capped)
+await control.setViewportSize({ width: 380, height: 900 })
+await control.waitForTimeout(300)
+const capSlim = await control.evaluate(capped)
+await control.setViewportSize(viewport)
+console.log(`  at 1024px: picker ${capWide.picker}px, field ${capWide.field}px of ${capWide.row}px; at 380px: picker ${capSlim.picker}px of ${capSlim.row}px`)
+check(
+  capWide.shared && capWide.picker === 148 && capWide.field === capWide.row - capWide.picker - capWide.gap,
+  'a col-auto picker with a long name stops at 9.25rem, and the field on its line keeps the rest',
+)
+check(capSlim.picker === capSlim.row, 'below its breakpoint the same picker has its line to itself, uncapped')
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

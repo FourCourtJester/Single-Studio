@@ -37,6 +37,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 19-28 seconds when healthy. A limit so a hung step fails rather than holding
+    # the pages concurrency group, and with it the next deploy, for GitHub's 360.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -76,6 +79,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # 9-13 seconds when healthy.
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

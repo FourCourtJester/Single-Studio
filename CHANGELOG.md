@@ -4,6 +4,44 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.14.0
+
+Three findings from a studio running 0.13.0 on client work, each measured on a live
+board. A minor because a `col-auto` image picker now stops at a width, and a board's
+own spacing moved from Tailwind utilities in the markup to `base.css`: a studio that
+overrode those utilities by name should move to the properties below.
+
+### Added
+
+- **The board's spacing as properties.** `--ss-panel-pad`, `--ss-board-pad`,
+  `--ss-board-gap`, `--ss-bar-pad-x` and `--ss-bar-pad-y`, set on `.ss-control`. They
+  default to what the board always had, stepping up at 640px; a studio that sets one
+  gets it at every width -- in an OBS dock the viewport is the dock, so the step
+  re-flowed the board as an operator dragged its edge. The board's `<main>` has a
+  class of its own, `.ss-board`, instead of being reachable only as
+  `.ss-control > main`.
+- **`--ss-picker-max`**, the widest a `col-auto` `ImagePicker` grows. Defaults to
+  `9.25rem`.
+
+### Changed
+
+- **A `col-auto` `ImagePicker` stops at `--ss-picker-max`.** A picker is a `<select>`,
+  as wide as the longest name in the image library, which the operator chooses: in
+  the studio, a logo named `northwind-esports-primary-logo-2026` made the picker
+  365px and left the `Field` beside it 25px. The cap is part of `col-auto` itself, so
+  `sm:col-auto` caps only from `sm` up, and below that the picker still has its line
+  to itself. That is the part a studio could not write: the class is on the element
+  at every width.
+
+### Documented
+
+- **Read an `--ss-*` property with a fallback**, `var(--ss-basis, 0%)`. A misspelt or
+  renamed property makes the declaration invalid, which the browser treats as no rule
+  at all.
+- **A dev server serving half a stylesheet**, in Troubleshooting: a CSS change with no
+  effect, or a board with its colours but no utility classes, is the dev server when
+  `npm run build` is right, and a restart clears it.
+
 ## 0.13.0
 
 A board that reads better and folds away: panels with actions on their title line
