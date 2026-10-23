@@ -867,6 +867,35 @@ is `--ss-input-h` tall (default `2.5rem`):
 } /* a tighter board */
 ```
 
+The board's own spacing is set the same way. Each steps up at 640px by default, as it
+always has; set one on `.ss-control` and it holds at every width.
+
+| Property          | Spaces                              | Below 640px | From 640px |
+| ----------------- | ----------------------------------- | ----------- | ---------- |
+| `--ss-panel-pad`  | inside every `Panel`                | `0.75rem`   | `1rem`     |
+| `--ss-board-pad`  | around the board (`.ss-board`)      | `0.75rem`   | `1rem`     |
+| `--ss-board-gap`  | between the panels                  | `0.75rem`   | `1rem`     |
+| `--ss-bar-pad-x`  | the top bar, either side            | `0.75rem`   | `1rem`     |
+| `--ss-bar-pad-y`  | the top bar, above and below        | `0.625rem`  | `0.75rem`  |
+| `--ss-picker-max` | the widest a `col-auto` ImagePicker | `9.25rem`   | `9.25rem`  |
+
+```css
+.ss-control {
+  --ss-panel-pad: 1rem;
+  --ss-board-pad: 1rem;
+  --ss-board-gap: 1rem;
+} /* one size at every width, in a dock you resize mid-show */
+```
+
+`--ss-picker-max` exists because an `ImagePicker` is as wide as the longest name in the
+library, which the operator chooses: given `col-auto`, a picker with a long logo name
+took the line from the field beside it. It stops there now.
+
+**Reading an `--ss-*` property, give it a fallback** — `var(--ss-basis, 0%)`, not
+`var(--ss-basis)`. A property that is misspelt, or renamed in a later release, makes
+the whole declaration invalid, and the browser treats that as if the rule were not
+there at all: no error, just nothing. A fallback turns that into a default.
+
 Two rules keep a wide control from breaking a narrow dock, and are worth knowing if
 you write your own layout: `min-width: 0` is what lets a flex or grid item shrink
 below its content at all, and `max-width: 100%` is what stops a wide control from
@@ -1165,6 +1194,19 @@ text over the programme.
 **Keep the dock open**, though. It is what holds the show while the graphics are
 unloaded. If the dock is closed and every graphic is hidden at once, the next one to
 appear reloads the show from disk — slower, but nothing is lost.
+
+### A CSS change has no effect, or the board comes up unstyled, in `npm run dev`
+
+Run `npm run build` and look at the CSS it writes to `dist`. If that is right, your
+code is right and the dev server is not: **restart it** — a reload does not help.
+
+Two ways it goes wrong, both seen in a real studio. A hot update can apply one of two
+quick edits to the same file, so a rule arrives but the custom property it reads does
+not, and the rule silently does nothing. And when the dev server restarts itself — a
+branch checkout touching `vite.config.js` is enough — it can come back serving
+Tailwind's colours but none of its utility classes, so the board is serif text and
+bare buttons. To tell which you have, read the page's own `<style>` in the browser's
+dev tools rather than your file.
 
 ### The board will not load on my phone
 

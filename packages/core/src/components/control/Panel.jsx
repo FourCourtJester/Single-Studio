@@ -108,7 +108,7 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
 
   return (
     <section
-      className={cx('ss-panel rounded-lg border border-slate-800 p-3 sm:p-4', className)}
+      className={cx('ss-panel rounded-lg border border-slate-800', className)}
       data-open={collapsible ? String(!folded) : undefined}
       {...rest}
     >

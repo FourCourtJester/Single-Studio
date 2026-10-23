@@ -478,3 +478,11 @@ compatibility matrix.
 The plugins peer on `@single-studio/core` at `^0.6.0` rather than an exact version,
 so a patch release does not need those ranges touched — `^0.6.0` already admits
 `0.6.1`. Only the `version` fields move.
+
+**Renaming an `--ss-*` custom property is a breaking change**, and a quiet one. Studios
+set them in their own CSS (`--ss-input-h`, `--ss-panel-pad`, `--ss-picker-max` and the
+rest), and a rename does not fail anywhere: the studio's declaration still parses, sets
+a property nothing reads any more, and the board goes back to the default. Rename one
+only in a minor, keep the old name read as a fallback for at least one release
+(`var(--ss-new, var(--ss-old, 1rem))`), and say so in the changelog. Reported by a
+studio that met the same silence from a typo of its own.

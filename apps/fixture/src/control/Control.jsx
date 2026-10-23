@@ -123,6 +123,16 @@ function Folding() {
         </Row>
       </Panel>
 
+      <Panel title="Picker width">
+        {/* A picker at its own width from 640px, beside the field that used to lose:
+          with a long name in the library it stops at --ss-picker-max rather than
+          leaving the field 25px. Below 640px it has the line to itself. */}
+        <Row className="fixture-capped">
+          <ImagePicker name="fixture.logo" label="Crest" className="sm:col-auto" />
+          <Field name="fixture.team" label="Team name" />
+        </Row>
+      </Panel>
+
       {/* Every header button at size="sm", both ways a reset and a swap render, beside
           the same reset at its own size on a Row. Mounted only when the e2e suite asks,
           because checks long before it find the board's one swap and one reset by

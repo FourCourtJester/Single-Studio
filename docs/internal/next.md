@@ -7,16 +7,13 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
-- **Move SS-Mercy-Riftbound-2v2 onto 0.13.0.** Everything it built for itself is in
+- **Move SS-Mercy-Riftbound-2v2 onto 0.14.0.** Everything it built for itself is in
   core from 0.13.0: `actions`, `collapsible`, `size="sm"`, `useCollapsed` and
   `Chevron`, the stripes, `color-scheme: dark`, and steppers that fill. Bump it to
-  `^0.13.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
-  `HEADER_BUTTON` and the two rules in its `index.css`. See
+  `^0.14.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
+  `HEADER_BUTTON`, the two rules in its `index.css`, and from 0.14.0 its spacing
+  overrides (now `--ss-panel-pad` and friends) and its picker width band. See
   [the section below](#panel-header-actions-and-folding).
-- **Three reports from client work, on 0.13.0.** The board's padding steps at 640px
-  and a studio cannot tune it; `col-auto` on an `ImagePicker` has no ceiling; and
-  the docs should say how a studio reads an `--ss-*` property safely. Each checked
-  against the code. See [the section below](#reports-from-client-work-2026-10-23).
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
@@ -26,6 +23,9 @@ before anything else.
 
 Filed by a studio running 0.13.0, every number measured on a live board. Each one is
 checked against the code here; none is a 0.13.0 regression.
+
+**All three are in 0.14.0**: the spacing properties and `.ss-board`, the
+`col-auto` picker cap with `--ss-picker-max`, and the docs. Kept for the measurements.
 
 ### The board re-pads itself at 640px, and a studio cannot turn it off
 
