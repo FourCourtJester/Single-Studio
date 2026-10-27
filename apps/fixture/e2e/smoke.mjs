@@ -28,10 +28,29 @@ const asset = (name) => fileURLToPath(new URL(`../public/${name}`, import.meta.u
 
 const BASE = process.argv[2] ?? 'http://localhost:4173'
 let failed = 0
+
+// In CI, a failure is also a GitHub annotation. The job's log is not always
+// readable from where the failure gets diagnosed -- an agent's proxy refused it
+// outright on 2026-10-27 -- but annotations come through the checks API, so a red
+// run names the check that failed instead of only "exit code 1".
+const annotate = (msg) => {
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=e2e::${String(msg).split('\n')[0].slice(0, 300)}`)
+}
+
 const check = (ok, msg) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`)
-  if (!ok) failed += 1
+  if (!ok) {
+    failed += 1
+    annotate(msg)
+  }
 }
+
+// A throw ends the suite before any check can fail by name, so it is annotated too.
+process.on('uncaughtException', (error) => {
+  annotate(`crashed: ${error?.message ?? error}`)
+  console.error(error)
+  process.exit(1)
+})
 
 /**
  * Poll for a condition instead of sleeping and hoping.
