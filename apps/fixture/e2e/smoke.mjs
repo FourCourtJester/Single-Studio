@@ -2929,6 +2929,55 @@ check(
 )
 check(capSlim.picker === capSlim.row, 'below its breakpoint the same picker has its line to itself, uncapped')
 
+// -- The OBS check page ----------------------------------------------------------
+// A diagnostic to load in OBS as a dock and as a source, which reports what
+// window.obsstudio really answers there. Checked here against a stand-in, because a
+// diagnostic that misreads silence as an answer, or calls something that changes
+// OBS, would be worse than none.
+const outside = await context.newPage()
+await outside.goto(`${BASE}/obs-check.html`)
+const outsideReport = await outside.evaluate(() => window.__obsCheck)
+check(!outsideReport.obsstudio && Object.values(outsideReport.calls).every((said) => said === 'absent'), 'outside OBS the check page says so, and calls nothing')
+await outside.close()
+
+const inside = await context.newPage()
+await inside.addInitScript(() => {
+  window.__changed = []
+  const change = (name) => () => window.__changed.push(name)
+  window.obsstudio = {
+    pluginVersion: '2.99.0',
+    getControlLevel: (cb) => setTimeout(() => cb(4), 50),
+    getStatus: () => {
+      throw new Error('stand-in refuses')
+    },
+    // getCurrentScene and the rest of the readers never call back, as a dock's are
+    // expected not to.
+    getCurrentScene: () => {},
+    getScenes: () => {},
+    getTransitions: () => {},
+    getCurrentTransition: () => {},
+    setCurrentScene: change('setCurrentScene'),
+    startStreaming: change('startStreaming'),
+    startRecording: change('startRecording'),
+  }
+})
+await inside.goto(`${BASE}/obs-check.html`)
+await inside.evaluate(() => window.dispatchEvent(new CustomEvent('obsSceneChanged', { detail: { name: 'Gameplay' } })))
+await inside.waitForTimeout(3500)
+const stood = await inside.evaluate(() => ({ report: window.__obsCheck, changed: window.__changed, text: document.body.innerText }))
+check(
+  stood.report.calls.getControlLevel?.answered === 4 && /4 \(ADVANCED\)/.test(stood.text),
+  'in OBS it shows an answer as an answer, with the permission level named',
+)
+check(stood.report.calls.getCurrentScene === 'no answer' && stood.report.calls.getScenes === 'no answer', 'and silence as silence, after three seconds')
+check(stood.report.calls.getStatus?.threw === 'stand-in refuses', 'and a call that throws as one that threw')
+check(stood.changed.length === 0 && stood.report.present.setCurrentScene === true, 'it lists what could change OBS without ever calling it')
+check(
+  stood.report.events.some((event) => event.name === 'obsSceneChanged' && event.detail?.name === 'Gameplay'),
+  'and logs an OBS event as it arrives',
+)
+await inside.close()
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an
