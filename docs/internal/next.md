@@ -7,6 +7,21 @@ Left here rather than in a chat, so it survives.
 Asked for at the top of any "where are we at": the owner wants reminding of these
 before anything else.
 
+- **Restart data, from the board.** The next thing to build. A worker cannot be
+  killed from a page, but it can end itself with `self.close()`, and a page can
+  reload itself with plain JS -- no OBS involved: measured on 2026-10-27, a dock's
+  `window.obsstudio` answers nothing (see [obs.md](obs.md)). So a "Restart data" item
+  in the board's menu, behind a confirm: the worker stops its plugins, leaves the
+  room, waits for IndexedDB, posts "restarting" on the status channel and calls
+  `self.close()` in the same task, so no page reconnects to it while it dies; every
+  page then reloads, which starts a fresh worker that loads the show from
+  IndexedDB. Warn about, or save, unsaved drafts first. An e2e check that a fresh
+  worker comes up with the show intact and every open page on it. Known limits: a
+  source unloaded while hidden does not reload, but starts fresh when shown; right
+  after a deploy a reload can serve the old build from the HTTP cache for a few
+  minutes. It also settles the two-worker window after a deploy, since the status
+  channel reaches pages of either build. Reconnecting in place, without a page
+  reload, is the polished version, for later.
 - **Move SS-Mercy-Riftbound-2v2 onto 0.14.0.** Everything it built for itself is in
   core from 0.13.0: `actions`, `collapsible`, `size="sm"`, `useCollapsed` and
   `Chevron`, the stripes, `color-scheme: dark`, and steppers that fill. Bump it to
