@@ -440,6 +440,12 @@ heading in every picker's dropdown. A hundred images in one flat list is a scrol
 an operator has to read; the same hundred under a handful of prefixes is a menu
 they can aim at.
 
+In the image store, loose images come first and every group starts folded, showing
+only its name and how many images it holds; press a group to open it. A filter
+opens every group it finds something in, a folder you have just uploaded opens so
+you can see what arrived, and the store opened from a picker opens on the group its
+current image is in.
+
 Groups are deliberately not a second concept with their own storage and their own
 editing screen. The key already existed, renaming it already worked, and a graphic
 still points at one string — so **re-filing an image is renaming it**, and nothing

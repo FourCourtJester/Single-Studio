@@ -2929,6 +2929,92 @@ check(
 )
 check(capSlim.picker === capSlim.row, 'below its breakpoint the same picker has its line to itself, uncapped')
 
+// -- The image store folds its groups --------------------------------------------
+// A season of slides is one group of hundreds, and loose images used to sort below
+// every group. Now loose ones come first and named groups start folded, on every
+// load, unless a filter, a picker's current image, or a fresh upload opens one.
+const store = control.locator('.ss-asset-library').first()
+// Several files under a typed group, not the folder input: a folder upload this far
+// down the suite stalls, as AGENTS.md describes for the asset library, and the
+// typed group files them identically.
+const fileUnder = async (group, folder, names) => {
+  await store.locator('input[aria-label="Asset name"]').fill(group)
+  await store.locator('input[aria-label="Add image files"]').setInputFiles(names.map((name) => asset(`${folder}/${name}.svg`)))
+}
+await fileUnder('commanders', 'commanders', ['ash', 'iris', 'kestrel', 'solomon', 'vulcan', 'wren'])
+await becomes(control, () => [...document.querySelectorAll('.ss-asset-group')].some((group) => /commanders/.test(group.textContent)))
+await fileUnder('maps', 'maps', ['ashfall', 'dry-harbour', 'redline'])
+check(
+  await becomes(control, () => {
+    const maps = [...document.querySelectorAll('.ss-asset-library .ss-asset-group')].find((group) =>
+      /^\s*maps/i.test(group.querySelector('h3')?.textContent ?? ''),
+    )
+
+    return maps?.dataset.open === 'true' && [...maps.querySelectorAll('.ss-asset-tile')].every((tile) => tile.getBoundingClientRect().height > 0)
+  }),
+  'a group just uploaded shows open, so what arrived is on screen',
+)
+
+const fresh = await context.newPage()
+await fresh.goto(`${BASE}/#/`)
+await fresh.waitForSelector('.ss-asset-library .ss-asset-group')
+await fresh.waitForTimeout(600)
+const groupsNow = () =>
+  [...document.querySelectorAll('.ss-asset-library')][0]
+    ? [...[...document.querySelectorAll('.ss-asset-library')][0].querySelectorAll('.ss-asset-group')].map((group) => ({
+        name: group.querySelector('.ss-asset-group-fold')?.textContent.replace(/\d+$/, '').trim() || '',
+        open: group.dataset.open ?? 'loose',
+        shown: [...group.querySelectorAll('.ss-asset-tile')].filter((tile) => tile.getBoundingClientRect().height > 0).length,
+        tiles: group.querySelectorAll('.ss-asset-tile').length,
+      }))
+    : []
+const loaded = await fresh.evaluate(groupsNow)
+console.log(`  groups on load: ${loaded.map((group) => `${group.name || 'loose'}:${group.open}:${group.shown}/${group.tiles}`).join(', ')}`)
+check(
+  loaded[0]?.open === 'loose' && loaded[0].shown === loaded[0].tiles && loaded[0].tiles > 0,
+  'on a fresh load the loose images come first, and are on screen',
+)
+check(
+  loaded.length >= 3 && loaded.slice(1).every((group) => group.open === 'false' && group.shown === 0 && group.tiles > 0),
+  'and every named group starts folded, its images kept but hidden',
+)
+
+const lib = fresh.locator('.ss-asset-library').first()
+await lib.locator('.ss-asset-group-fold', { hasText: 'maps' }).click()
+const opened = await fresh.evaluate(groupsNow)
+check(
+  opened.find((group) => group.name === 'maps')?.shown === 3 && opened.find((group) => group.name === 'commanders')?.open === 'false',
+  'pressing a group opens that group and no other',
+)
+
+await lib.locator('input[aria-label="Filter images"]').fill('kestrel')
+const filtered = await fresh.evaluate(groupsNow)
+check(filtered.find((group) => group.name === 'commanders')?.shown === 1, 'a filter shows a match inside a folded group')
+await lib.locator('input[aria-label="Filter images"]').fill('')
+const cleared = await fresh.evaluate(groupsNow)
+check(
+  cleared.find((group) => group.name === 'commanders')?.open === 'false' && cleared.find((group) => group.name === 'maps')?.open === 'true',
+  'and clearing it puts every group back as it was',
+)
+
+// A chooser opens on the group its current image is in.
+await fresh.locator('.fixture-capped select').selectOption('asset:commanders/wren')
+await fresh.locator('button[aria-label="Browse images for Crest"]').click()
+await fresh.waitForSelector('dialog[open] .ss-asset-library')
+const chooser = await fresh.evaluate(() => {
+  const dialog = document.querySelector('dialog[open] .ss-asset-library')
+
+  return [...dialog.querySelectorAll('.ss-asset-group')].map((group) => ({
+    name: group.querySelector('.ss-asset-group-fold')?.textContent.replace(/\d+$/, '').trim() || '',
+    open: group.dataset.open ?? 'loose',
+  }))
+})
+check(
+  chooser.find((group) => group.name === 'commanders')?.open === 'true' && chooser.find((group) => group.name === 'maps')?.open === 'false',
+  'a picker opens the store on the group its current image is in, and leaves the rest folded',
+)
+await fresh.close()
+
 // -- The OBS check page ----------------------------------------------------------
 // A diagnostic to load in OBS as a dock and as a source, which reports what
 // window.obsstudio really answers there. Checked here against a stand-in, because a

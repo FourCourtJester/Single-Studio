@@ -4,6 +4,18 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Changed
+
+- **The image store folds its groups, and loose images come first.** A season of
+  slides is one group of hundreds, and loose images sorted below every group, so the
+  one-off logo an operator wanted was at the foot of a long scroll. Each named group
+  now starts folded, on every load, showing its name and count. A filter opens every
+  group it matches in and puts the folds back when it clears; a folder just uploaded
+  opens; and the store opened from an `ImagePicker` opens on the group holding its
+  current image.
+
 ## 0.14.0
 
 Three findings from a studio running 0.13.0 on client work, each measured on a live
