@@ -2956,7 +2956,9 @@ await inside.addInitScript(() => {
     // getCurrentScene and the rest of the readers never call back, as a dock's are
     // expected not to.
     getCurrentScene: () => {},
-    getScenes: () => {},
+    // Below its level a source calls back with null, as OBS 33 did on a default
+    // source: that is a refusal, not an answer.
+    getScenes: (cb) => setTimeout(() => cb(null), 50),
     getTransitions: () => {},
     getCurrentTransition: () => {},
     setCurrentScene: change('setCurrentScene'),
@@ -2972,7 +2974,11 @@ check(
   stood.report.calls.getControlLevel?.answered === 4 && /4 \(ADVANCED\)/.test(stood.text),
   'in OBS it shows an answer as an answer, with the permission level named',
 )
-check(stood.report.calls.getCurrentScene === 'no answer' && stood.report.calls.getScenes === 'no answer', 'and silence as silence, after three seconds')
+check(stood.report.calls.getCurrentScene === 'no answer' && stood.report.calls.getTransitions === 'no answer', 'and silence as silence, after three seconds')
+check(
+  stood.report.calls.getScenes?.refused === null && stood.report.calls.getScenes?.needs === 2 && /refused: null, needs level 2 \(READ_USER\)/.test(stood.text),
+  'and a null from a read the level does not allow as a refusal, naming the level it needs',
+)
 check(stood.report.calls.getStatus?.threw === 'stand-in refuses', 'and a call that throws as one that threw')
 check(stood.changed.length === 0 && stood.report.present.setCurrentScene === true, 'it lists what could change OBS without ever calling it')
 check(
@@ -3001,6 +3007,42 @@ const small = await inside.evaluate(() => {
 })
 check(small.reachable, 'in a small source with a long event log, Copy report is still on screen and clickable')
 check(small.shown === 50 && small.newest && small.kept === 81, 'with the newest event first, fifty shown, and every event kept for the report')
+
+// A browser source is refused the clipboard in OBS 33. Refused here the same way,
+// the report must open where the button is, selected, rather than at the foot of
+// the page under the events.
+await inside.evaluate(() => {
+  navigator.clipboard.writeText = () => Promise.reject(new Error('refused'))
+})
+await inside.locator('#copy').click()
+const refused = await inside.evaluate(() => {
+  const box = document.getElementById('report')
+  const visible = () => {
+    const at = box?.getBoundingClientRect()
+
+    return Boolean(at) && at.top >= 0 && at.bottom <= window.innerHeight
+  }
+  // Selecting it scrolls the page to it, so on screen where it lands proves
+  // nothing. Wherever the operator has scrolled to -- top or foot -- it has to be
+  // in view, which only the pinned header gives it.
+  const selection = [box?.selectionStart, box?.selectionEnd]
+  window.scrollTo(0, 0)
+  const atTop = visible()
+  window.scrollTo(0, document.body.scrollHeight)
+  const atFoot = visible()
+  box?.setSelectionRange(...selection)
+
+  return {
+    onScreen: atTop && atFoot,
+    selected: document.activeElement === box && box.selectionStart === 0 && box.selectionEnd === box.value.length,
+    whole: box ? JSON.parse(box.value).events.length === window.__obsCheck.events.length : false,
+    says: document.getElementById('copied').textContent,
+  }
+})
+check(
+  refused.onScreen && refused.selected && refused.whole && /Ctrl\+C/.test(refused.says),
+  'refused the clipboard, as a source is, it opens the whole report under the button, selected for Ctrl+C',
+)
 await inside.close()
 
 // -- A graphic that crashes ---------------------------------------------------

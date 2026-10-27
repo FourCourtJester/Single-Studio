@@ -170,6 +170,11 @@
         'obsExit',
       ]
       const LEVELS = ['NONE', 'READ_OBS', 'READ_USER', 'BASIC', 'ADVANCED', 'ALL']
+      // What each read needs, from obs-browser's README. Below it, a source still
+      // calls back -- with null. Measured in OBS 33.0.0 on a default source (level 1):
+      // the four scene and transition reads all answered null, which an earlier cut of
+      // this page showed as a green "answered".
+      const NEEDS = { getControlLevel: 0, getStatus: 1, getCurrentScene: 2, getScenes: 2, getTransitions: 2, getCurrentTransition: 2 }
 
       const obs = window.obsstudio
       const report = {
@@ -221,7 +226,12 @@
         try {
           obs[name]((answer) => {
             const said = name === 'getControlLevel' && Number.isInteger(answer) ? `${answer} (${LEVELS[answer] ?? '?'})` : text(answer)
-            done('yes', `answered: ${said}`, { answered: answer })
+            if (answer === null && NEEDS[name] > 0) {
+              const needs = `${NEEDS[name]} (${LEVELS[NEEDS[name]]})`
+              done('no', `refused: null, needs level ${needs}`, { refused: null, needs: NEEDS[name] })
+            } else {
+              done('yes', `answered: ${said}`, { answered: answer })
+            }
           })
         } catch (error) {
           done('no', `threw: ${error.message}`, { threw: error.message })
@@ -257,12 +267,24 @@
           await navigator.clipboard.writeText(said)
           document.getElementById('copied').textContent = ' copied'
         } catch {
-          // A dock or source may not be allowed the clipboard. The report is still
-          // here to select by hand.
-          const pre = document.createElement('pre')
-          pre.textContent = said
-          document.body.append(pre)
-          document.getElementById('copied').textContent = ' clipboard refused; report printed below'
+          // A browser source is refused the clipboard -- measured in OBS 33.0.0, where
+          // the dock was allowed it. The report used to be printed at the foot of the
+          // page, under the events, which in a small source is as out of reach as the
+          // button had been. Now it opens under the button, selected, for Ctrl+C.
+          let box = document.getElementById('report')
+          if (!box) {
+            box = document.createElement('textarea')
+            box.id = 'report'
+            box.readOnly = true
+            box.rows = 6
+            box.style.cssText =
+              'display:block;width:100%;box-sizing:border-box;margin-top:8px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;font:12px ui-monospace,monospace'
+            document.querySelector('header').append(box)
+          }
+          box.value = said
+          box.focus()
+          box.select()
+          document.getElementById('copied').textContent = ' clipboard refused here: the report is selected below, press Ctrl+C'
         }
       })
 

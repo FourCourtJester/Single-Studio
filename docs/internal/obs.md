@@ -98,3 +98,36 @@ None needs OBS running. What is **not** tested is the one thing a fake socket
 cannot check: that a real OBS accepts the auth string. The algorithm matches the
 published one and the test pins its properties, but the first real connection is
 still the first real proof.
+
+## `window.obsstudio`, measured: a dock gets it and nothing answers
+
+obs-browser puts its own JS API, `window.obsstudio`, on every page it loads. Whether
+the board could use it -- to switch scenes without obs-websocket, say -- was settled
+by measuring rather than reading. The probe is `apps/fixture/public/obs-check.html`,
+plain HTML that loads from a local file as a dock or a source; it calls only the
+read-only functions and lists the rest.
+
+Measured 2026-10-27 on OBS 33.0.0, obs-browser 2.27.4, Chromium 150, Windows:
+
+|                                 | Custom dock               | Browser source, default permissions                          |
+| ------------------------------- | ------------------------- | ------------------------------------------------------------ |
+| `window.obsstudio`              | present, all 19 functions | present, all 19 functions                                    |
+| `getControlLevel`               | no answer in 3s           | `1` (READ_OBS)                                               |
+| `getStatus`                     | no answer                 | answers: recording, streaming, replay buffer, virtual camera |
+| scene and transition reads      | no answer                 | called back with `null`: they need level 2                   |
+| `navigator.clipboard.writeText` | allowed                   | refused                                                      |
+
+What it means:
+
+- **The board cannot use it.** A dock gets the object -- `BrowserApp::OnContextCreated`
+  adds it to every page -- but only a source's `BrowserClient` handles the calls; a
+  dock's `QCefBrowserClient` has no handler, and there is no Page permissions setting
+  for a dock at all. Controlling OBS from the board stays with `plugin-obs` over
+  obs-websocket.
+- **A source's default is level 1, not 2.** A graphic that wants the current scene
+  needs its Page permissions raised to "read user" or higher. Below the level a call
+  still calls back, with `null`, so `null` reads as a refusal, not an empty answer.
+- **A local-file source is served from `http://absolute/…`**, not `file://`.
+
+Not measured: whether a dock receives `obs*` events at all, since nothing was
+switched while the probe was open in one.
