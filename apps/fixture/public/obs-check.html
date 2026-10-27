@@ -81,8 +81,20 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
+      /* Pinned, because a browser source is often small and the events list grows:
+         at the bottom of the page, under the list, Copy report was out of reach in
+         OBS's Interact window before anything had been copied. */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: -12px -12px 0;
+        padding: 12px 12px 8px;
+        background: #020617;
+        border-bottom: 1px solid #1e293b;
+      }
       button {
-        margin-top: 12px;
+        margin-top: 8px;
         padding: 6px 12px;
         border: 1px solid #334155;
         border-radius: 6px;
@@ -93,8 +105,12 @@
     </style>
   </head>
   <body>
-    <h1>OBS check</h1>
-    <div id="where"></div>
+    <header>
+      <h1>OBS check</h1>
+      <div id="where"></div>
+      <button id="copy" type="button">Copy report</button>
+      <span id="copied"></span>
+    </header>
 
     <h2>Read-only calls (3s each)</h2>
     <table id="calls"></table>
@@ -102,16 +118,13 @@
     <h2>Calls that change OBS (listed, never called)</h2>
     <table id="present"></table>
 
-    <h2>Events, as they arrive</h2>
+    <h2>Events, newest first (last 50 shown; the report keeps them all)</h2>
     <table id="events">
       <tr>
         <td class="wait">none yet: switch scene, hide this source, start a recording…</td>
         <td></td>
       </tr>
     </table>
-
-    <button id="copy" type="button">Copy report</button>
-    <span id="copied"></span>
 
     <script>
       const READ = ['getControlLevel', 'getStatus', 'getCurrentScene', 'getScenes', 'getTransitions', 'getCurrentTransition']
@@ -229,7 +242,8 @@
         if (!report.events.length) events.innerHTML = ''
         const entry = { at: new Date().toISOString().slice(11, 23), name, detail }
         report.events.push(entry)
-        row(events, `${entry.at} ${name}`, 'yes', detail === undefined ? '' : text(detail))
+        events.prepend(row(events, `${entry.at} ${name}`, 'yes', detail === undefined ? '' : text(detail)))
+        while (events.rows.length > 50) events.deleteRow(-1)
       }
       for (const name of EVENTS) window.addEventListener(name, (event) => log(name, event.detail))
       if (obs) {

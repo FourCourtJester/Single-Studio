@@ -2937,7 +2937,10 @@ check(capSlim.picker === capSlim.row, 'below its breakpoint the same picker has 
 const outside = await context.newPage()
 await outside.goto(`${BASE}/obs-check.html`)
 const outsideReport = await outside.evaluate(() => window.__obsCheck)
-check(!outsideReport.obsstudio && Object.values(outsideReport.calls).every((said) => said === 'absent'), 'outside OBS the check page says so, and calls nothing')
+check(
+  !outsideReport.obsstudio && Object.values(outsideReport.calls).every((said) => said === 'absent'),
+  'outside OBS the check page says so, and calls nothing',
+)
 await outside.close()
 
 const inside = await context.newPage()
@@ -2976,6 +2979,28 @@ check(
   stood.report.events.some((event) => event.name === 'obsSceneChanged' && event.detail?.name === 'Gameplay'),
   'and logs an OBS event as it arrives',
 )
+// In a small browser source the events list used to grow over Copy report, so in
+// OBS's Interact window it could not be reached. Measured in a source-sized window
+// after eighty events, scrolled to the bottom as an operator would.
+await inside.setViewportSize({ width: 400, height: 300 })
+await inside.evaluate(() => {
+  for (let n = 1; n <= 80; n += 1) window.dispatchEvent(new CustomEvent('obsSceneChanged', { detail: { n } }))
+  window.scrollTo(0, document.body.scrollHeight)
+})
+const small = await inside.evaluate(() => {
+  const copy = document.getElementById('copy').getBoundingClientRect()
+  const rows = [...document.querySelectorAll('#events tr')]
+
+  return {
+    reachable:
+      copy.top >= 0 && copy.bottom <= window.innerHeight && document.elementFromPoint(copy.left + copy.width / 2, copy.top + copy.height / 2)?.id === 'copy',
+    shown: rows.length,
+    newest: rows[0]?.textContent.includes('"n":80'),
+    kept: window.__obsCheck.events.length,
+  }
+})
+check(small.reachable, 'in a small source with a long event log, Copy report is still on screen and clickable')
+check(small.shown === 50 && small.newest && small.kept === 81, 'with the newest event first, fifty shown, and every event kept for the report')
 await inside.close()
 
 // -- A graphic that crashes ---------------------------------------------------
