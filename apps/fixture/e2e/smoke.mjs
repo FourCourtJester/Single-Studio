@@ -28,10 +28,29 @@ const asset = (name) => fileURLToPath(new URL(`../public/${name}`, import.meta.u
 
 const BASE = process.argv[2] ?? 'http://localhost:4173'
 let failed = 0
+
+// In CI, a failure is also a GitHub annotation. The job's log is not always
+// readable from where the failure gets diagnosed -- an agent's proxy refused it
+// outright on 2026-10-27 -- but annotations come through the checks API, so a red
+// run names the check that failed instead of only "exit code 1".
+const annotate = (msg) => {
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=e2e::${String(msg).split('\n')[0].slice(0, 300)}`)
+}
+
 const check = (ok, msg) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`)
-  if (!ok) failed += 1
+  if (!ok) {
+    failed += 1
+    annotate(msg)
+  }
 }
+
+// A throw ends the suite before any check can fail by name, so it is annotated too.
+process.on('uncaughtException', (error) => {
+  annotate(`crashed: ${error?.message ?? error}`)
+  console.error(error)
+  process.exit(1)
+})
 
 /**
  * Poll for a condition instead of sleeping and hoping.
@@ -2928,6 +2947,271 @@ check(
   'a col-auto picker with a long name stops at 9.25rem, and the field on its line keeps the rest',
 )
 check(capSlim.picker === capSlim.row, 'below its breakpoint the same picker has its line to itself, uncapped')
+
+// -- Fit on more than one line ----------------------------------------------------
+// The same long name in identical 360px boxes of 48px text, wrapped to one line and
+// to two. Two lines should let it stay larger, take two lines and no more, and
+// overflow nothing; and it should be the largest size that does, not merely a size.
+const linesPage = await context.newPage()
+await linesPage.goto(`${BASE}/#/source/lines`)
+await linesPage.waitForSelector('.lines-variable .ss-fit')
+await linesPage.waitForTimeout(600)
+const wrapped = await linesPage.evaluate(() => {
+  const linesOf = (element) => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0).sort((a, b) => a.top - b.top)
+    let count = 0
+    let floor = -Infinity
+    for (const rect of rects) {
+      if (rect.top >= floor) {
+        count += 1
+        floor = rect.top + rect.height / 2
+      }
+    }
+    return count
+  }
+  const read = (selector) => {
+    const fit = document.querySelector(`${selector} .ss-fit`)
+    const box = fit.closest(selector)
+    const size = parseFloat(getComputedStyle(fit).fontSize)
+    const room = box.clientWidth
+    const now = { size: Math.round(size * 10) / 10, lines: linesOf(fit), inside: fit.scrollWidth <= room }
+
+    // The largest that fits: five percent larger has to break one of the two rules.
+    const was = fit.style.fontSize
+    fit.style.fontSize = `${size * 1.05}px`
+    now.largest = fit.scrollWidth > room || linesOf(fit) > (selector === '.lines-word' ? 3 : 2)
+    fit.style.fontSize = was
+
+    return now
+  }
+  return {
+    one: read('.lines-one'),
+    two: read('.lines-two'),
+    short: read('.lines-short'),
+    word: read('.lines-word'),
+    variable: read('.lines-variable'),
+  }
+})
+await linesPage.close()
+console.log(
+  `  fit: one line ${wrapped.one.size}px; two lines ${wrapped.two.size}px over ${wrapped.two.lines}; word ${wrapped.word.size}px; Variable ${wrapped.variable.size}px over ${wrapped.variable.lines}`,
+)
+check(wrapped.one.lines === 1 && wrapped.one.inside, 'Fit with no lines keeps a long name on one line, inside its box, as before')
+check(
+  wrapped.two.lines === 2 && wrapped.two.inside && wrapped.two.size > wrapped.one.size * 1.3,
+  'lines={2} wraps it onto two lines and keeps it much larger than one line allows',
+)
+check(wrapped.two.largest, 'at the largest size that fits two lines: five percent more would not')
+check(wrapped.short.size === 48 && wrapped.short.lines === 1, 'text that already fits is left at its own size, on one line')
+check(wrapped.word.inside && wrapped.word.size < 48 && wrapped.word.largest, 'a single word wider than the box shrinks until it fits, since wrapping cannot help')
+check(
+  wrapped.variable.lines === 2 && Math.abs(wrapped.variable.size - wrapped.two.size) < 0.2,
+  "a Variable's lines reaches its Fit, and fits the same as Fit itself",
+)
+
+// -- The image store folds its groups --------------------------------------------
+// A season of slides is one group of hundreds, and loose images used to sort below
+// every group. Now loose ones come first and named groups start folded, on every
+// load, unless a filter, a picker's current image, or a fresh upload opens one.
+const store = control.locator('.ss-asset-library').first()
+// Several files under a typed group, not the folder input: a folder upload this far
+// down the suite stalls, as AGENTS.md describes for the asset library, and the
+// typed group files them identically.
+const fileUnder = async (group, folder, names) => {
+  await store.locator('input[aria-label="Asset name"]').fill(group)
+  await store.locator('input[aria-label="Add image files"]').setInputFiles(names.map((name) => asset(`${folder}/${name}.svg`)))
+}
+await fileUnder('commanders', 'commanders', ['ash', 'iris', 'kestrel', 'solomon', 'vulcan', 'wren'])
+await becomes(control, () => [...document.querySelectorAll('.ss-asset-group')].some((group) => /commanders/.test(group.textContent)))
+await fileUnder('maps', 'maps', ['ashfall', 'dry-harbour', 'redline'])
+check(
+  await becomes(control, () => {
+    const maps = [...document.querySelectorAll('.ss-asset-library .ss-asset-group')].find((group) =>
+      /^\s*maps/i.test(group.querySelector('h3')?.textContent ?? ''),
+    )
+
+    return maps?.dataset.open === 'true' && [...maps.querySelectorAll('.ss-asset-tile')].every((tile) => tile.getBoundingClientRect().height > 0)
+  }),
+  'a group just uploaded shows open, so what arrived is on screen',
+)
+
+const fresh = await context.newPage()
+await fresh.goto(`${BASE}/#/`)
+await fresh.waitForSelector('.ss-asset-library .ss-asset-group')
+await fresh.waitForTimeout(600)
+const groupsNow = () =>
+  [...document.querySelectorAll('.ss-asset-library')][0]
+    ? [...[...document.querySelectorAll('.ss-asset-library')][0].querySelectorAll('.ss-asset-group')].map((group) => ({
+        name: group.querySelector('.ss-asset-group-fold')?.textContent.replace(/\d+$/, '').trim() || '',
+        open: group.dataset.open ?? 'loose',
+        shown: [...group.querySelectorAll('.ss-asset-tile')].filter((tile) => tile.getBoundingClientRect().height > 0).length,
+        tiles: group.querySelectorAll('.ss-asset-tile').length,
+      }))
+    : []
+const loaded = await fresh.evaluate(groupsNow)
+console.log(`  groups on load: ${loaded.map((group) => `${group.name || 'loose'}:${group.open}:${group.shown}/${group.tiles}`).join(', ')}`)
+check(
+  loaded[0]?.open === 'loose' && loaded[0].shown === loaded[0].tiles && loaded[0].tiles > 0,
+  'on a fresh load the loose images come first, and are on screen',
+)
+check(
+  loaded.length >= 3 && loaded.slice(1).every((group) => group.open === 'false' && group.shown === 0 && group.tiles > 0),
+  'and every named group starts folded, its images kept but hidden',
+)
+
+const lib = fresh.locator('.ss-asset-library').first()
+await lib.locator('.ss-asset-group-fold', { hasText: 'maps' }).click()
+const opened = await fresh.evaluate(groupsNow)
+check(
+  opened.find((group) => group.name === 'maps')?.shown === 3 && opened.find((group) => group.name === 'commanders')?.open === 'false',
+  'pressing a group opens that group and no other',
+)
+
+await lib.locator('input[aria-label="Filter images"]').fill('kestrel')
+const filtered = await fresh.evaluate(groupsNow)
+check(filtered.find((group) => group.name === 'commanders')?.shown === 1, 'a filter shows a match inside a folded group')
+await lib.locator('input[aria-label="Filter images"]').fill('')
+const cleared = await fresh.evaluate(groupsNow)
+check(
+  cleared.find((group) => group.name === 'commanders')?.open === 'false' && cleared.find((group) => group.name === 'maps')?.open === 'true',
+  'and clearing it puts every group back as it was',
+)
+
+// A chooser opens on the group its current image is in.
+await fresh.locator('.fixture-capped select').selectOption('asset:commanders/wren')
+await fresh.locator('button[aria-label="Browse images for Crest"]').click()
+await fresh.waitForSelector('dialog[open] .ss-asset-library')
+const chooser = await fresh.evaluate(() => {
+  const dialog = document.querySelector('dialog[open] .ss-asset-library')
+
+  return [...dialog.querySelectorAll('.ss-asset-group')].map((group) => ({
+    name: group.querySelector('.ss-asset-group-fold')?.textContent.replace(/\d+$/, '').trim() || '',
+    open: group.dataset.open ?? 'loose',
+  }))
+})
+check(
+  chooser.find((group) => group.name === 'commanders')?.open === 'true' && chooser.find((group) => group.name === 'maps')?.open === 'false',
+  'a picker opens the store on the group its current image is in, and leaves the rest folded',
+)
+await fresh.close()
+
+// -- The OBS check page ----------------------------------------------------------
+// A diagnostic to load in OBS as a dock and as a source, which reports what
+// window.obsstudio really answers there. Checked here against a stand-in, because a
+// diagnostic that misreads silence as an answer, or calls something that changes
+// OBS, would be worse than none.
+const outside = await context.newPage()
+await outside.goto(`${BASE}/obs-check.html`)
+const outsideReport = await outside.evaluate(() => window.__obsCheck)
+check(
+  !outsideReport.obsstudio && Object.values(outsideReport.calls).every((said) => said === 'absent'),
+  'outside OBS the check page says so, and calls nothing',
+)
+await outside.close()
+
+const inside = await context.newPage()
+await inside.addInitScript(() => {
+  window.__changed = []
+  const change = (name) => () => window.__changed.push(name)
+  window.obsstudio = {
+    pluginVersion: '2.99.0',
+    getControlLevel: (cb) => setTimeout(() => cb(4), 50),
+    getStatus: () => {
+      throw new Error('stand-in refuses')
+    },
+    // getCurrentScene and the rest of the readers never call back, as a dock's are
+    // expected not to.
+    getCurrentScene: () => {},
+    // Below its level a source calls back with null, as OBS 33 did on a default
+    // source: that is a refusal, not an answer.
+    getScenes: (cb) => setTimeout(() => cb(null), 50),
+    getTransitions: () => {},
+    getCurrentTransition: () => {},
+    setCurrentScene: change('setCurrentScene'),
+    startStreaming: change('startStreaming'),
+    startRecording: change('startRecording'),
+  }
+})
+await inside.goto(`${BASE}/obs-check.html`)
+await inside.evaluate(() => window.dispatchEvent(new CustomEvent('obsSceneChanged', { detail: { name: 'Gameplay' } })))
+await inside.waitForTimeout(3500)
+const stood = await inside.evaluate(() => ({ report: window.__obsCheck, changed: window.__changed, text: document.body.innerText }))
+check(
+  stood.report.calls.getControlLevel?.answered === 4 && /4 \(ADVANCED\)/.test(stood.text),
+  'in OBS it shows an answer as an answer, with the permission level named',
+)
+check(stood.report.calls.getCurrentScene === 'no answer' && stood.report.calls.getTransitions === 'no answer', 'and silence as silence, after three seconds')
+check(
+  stood.report.calls.getScenes?.refused === null && stood.report.calls.getScenes?.needs === 2 && /refused: null, needs level 2 \(READ_USER\)/.test(stood.text),
+  'and a null from a read the level does not allow as a refusal, naming the level it needs',
+)
+check(stood.report.calls.getStatus?.threw === 'stand-in refuses', 'and a call that throws as one that threw')
+check(stood.changed.length === 0 && stood.report.present.setCurrentScene === true, 'it lists what could change OBS without ever calling it')
+check(
+  stood.report.events.some((event) => event.name === 'obsSceneChanged' && event.detail?.name === 'Gameplay'),
+  'and logs an OBS event as it arrives',
+)
+// In a small browser source the events list used to grow over Copy report, so in
+// OBS's Interact window it could not be reached. Measured in a source-sized window
+// after eighty events, scrolled to the bottom as an operator would.
+await inside.setViewportSize({ width: 400, height: 300 })
+await inside.evaluate(() => {
+  for (let n = 1; n <= 80; n += 1) window.dispatchEvent(new CustomEvent('obsSceneChanged', { detail: { n } }))
+  window.scrollTo(0, document.body.scrollHeight)
+})
+const small = await inside.evaluate(() => {
+  const copy = document.getElementById('copy').getBoundingClientRect()
+  const rows = [...document.querySelectorAll('#events tr')]
+
+  return {
+    reachable:
+      copy.top >= 0 && copy.bottom <= window.innerHeight && document.elementFromPoint(copy.left + copy.width / 2, copy.top + copy.height / 2)?.id === 'copy',
+    shown: rows.length,
+    newest: rows[0]?.textContent.includes('"n":80'),
+    kept: window.__obsCheck.events.length,
+  }
+})
+check(small.reachable, 'in a small source with a long event log, Copy report is still on screen and clickable')
+check(small.shown === 50 && small.newest && small.kept === 81, 'with the newest event first, fifty shown, and every event kept for the report')
+
+// A browser source is refused the clipboard in OBS 33. Refused here the same way,
+// the report must open where the button is, selected, rather than at the foot of
+// the page under the events.
+await inside.evaluate(() => {
+  navigator.clipboard.writeText = () => Promise.reject(new Error('refused'))
+})
+await inside.locator('#copy').click()
+const refused = await inside.evaluate(() => {
+  const box = document.getElementById('report')
+  const visible = () => {
+    const at = box?.getBoundingClientRect()
+
+    return Boolean(at) && at.top >= 0 && at.bottom <= window.innerHeight
+  }
+  // Selecting it scrolls the page to it, so on screen where it lands proves
+  // nothing. Wherever the operator has scrolled to -- top or foot -- it has to be
+  // in view, which only the pinned header gives it.
+  const selection = [box?.selectionStart, box?.selectionEnd]
+  window.scrollTo(0, 0)
+  const atTop = visible()
+  window.scrollTo(0, document.body.scrollHeight)
+  const atFoot = visible()
+  box?.setSelectionRange(...selection)
+
+  return {
+    onScreen: atTop && atFoot,
+    selected: document.activeElement === box && box.selectionStart === 0 && box.selectionEnd === box.value.length,
+    whole: box ? JSON.parse(box.value).events.length === window.__obsCheck.events.length : false,
+    says: document.getElementById('copied').textContent,
+  }
+})
+check(
+  refused.onScreen && refused.selected && refused.whole && /Ctrl\+C/.test(refused.says),
+  'refused the clipboard, as a source is, it opens the whole report under the button, selected for Ctrl+C',
+)
+await inside.close()
 
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not

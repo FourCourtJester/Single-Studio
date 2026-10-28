@@ -830,6 +830,11 @@ One value on air, as text. This is the component most graphics are mostly made o
 ```
 
 ```jsx
+// Wrap onto two lines first, and shrink only past that
+<Variable name="home.name" fallback="Home" fit lines={2} />
+```
+
+```jsx
 <Variable name="lowerthird.headline" fallback="" />
 ```
 
@@ -843,7 +848,8 @@ One value on air, as text. This is the component most graphics are mostly made o
 | `as` | `string` |  | The element to render. Defaults to `"span"`, so a value can sit inside a sentence. |
 | `className` | `string` |  | Added to the component's own classes. |
 | `fallback` | `string` |  | Shown when the value is empty. Defaults to `""`. |
-| `fit` | `boolean \| number` |  | Shrink the text to fit its box. A number caps how far. |
+| `fit` | `boolean \| number` |  | Shrink the text to fit its box. A number is read as `true`; it was documented as a cap that was never built. |
+| `lines` | `number` |  | With `fit`, the most lines the text may wrap onto before it shrinks. Defaults to `1`. |
 | `name` | `string` | Yes | Names a value under `variables` — e.g. `home.score`. |
 | `transition` | `string` |  | Motion variants, space-separated — e.g. `"slide-up ease-back"`. `"number"` counts from the old value to the new one instead. See [the transitions guide](getting-started.md#transitions). |
 

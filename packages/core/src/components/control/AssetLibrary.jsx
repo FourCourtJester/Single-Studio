@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { useAssetLibrary, useAssetUrl } from '../../hooks/useAssets'
 import { useOwner } from '../../hooks/useSync'
-import { groupOf, leafOf, toAssetRef } from '../../velcro/assets'
+import { assetKeyOf, groupOf, isAssetRef, leafOf, toAssetRef } from '../../velcro/assets'
 import { filesFromDrop } from '../../toolkits/entries'
 import { cx } from '../../toolkits/cx'
+import { Chevron } from './Collapse'
 import { Confirm } from './Confirm'
 import { Icon } from '../common/Icon'
 import { Tooltip } from '../common/Tooltip'
@@ -55,6 +56,19 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
   const [error, setError] = useState(null)
   const [over, setOver] = useState(false)
   const [filter, setFilter] = useState('')
+  // The named groups that are open. Every one starts folded, on every load, except
+  // the one holding a chooser's current image: a picker opens the library to answer
+  // "which image", and the answer it already has should be on screen.
+  const [unfolded, setUnfolded] = useState(() => new Set(isAssetRef(selected) ? [groupOf(assetKeyOf(selected))] : []))
+  const flip = (group) =>
+    setUnfolded((was) => {
+      const next = new Set(was)
+
+      if (next.has(group)) next.delete(group)
+      else next.add(group)
+
+      return next
+    })
   const input = useRef(null)
   const folder = useRef(null)
 
@@ -110,6 +124,9 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
     setProgress(null)
 
     if (result?.failed?.length) setError(`${result.failed.length} of ${chosen.length} could not be read`)
+    // A dropped folder opens, so what arrived is on screen rather than folded behind
+    // a count.
+    if (result?.added?.length) setUnfolded((was) => new Set([...was, ...result.added.map((entry) => groupOf(entry.key))]))
     if (result?.added?.length === 1 && onPick) onPick(result.added[0])
     setKey('')
   }
@@ -126,8 +143,9 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
     }
   }
 
-  // Ungrouped entries sort last: they are the leftovers, and a heading-less block
-  // above a set of named ones reads as a mistake rather than as a category.
+  // Loose entries first. They sorted last once, as the leftovers, and under a group
+  // of a few hundred slides that put the one-off logo an operator was after at the
+  // foot of a long scroll. Named groups fold, so first no longer buries anything.
   const needle = filter.trim().toLowerCase()
   const groups = [
     ...assets
@@ -137,7 +155,7 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
 
         return map.set(group, [...(map.get(group) ?? []), entry])
       }, new Map()),
-  ].sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+  ].sort(([a], [b]) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b)))
 
   return (
     <section className={cx('ss-asset-library flex w-full flex-col gap-3', className)} {...rest}>
@@ -281,31 +299,33 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
 
           {groups.length ? (
             groups.map(([group, entries]) => (
-              <section key={group || '—'} className="ss-asset-group flex flex-col gap-1.5">
-                {/* The ungrouped block gets a heading only when something above it
-                    has one. On a flat library it would be a label for everything,
-                    which is no label at all; under a set of named groups its absence
-                    reads as a rendering fault. */}
-                {group || groups.length > 1 ? (
-                  <h3 className="flex items-baseline gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    {group || <span className="text-slate-600">ungrouped</span>}
-                    <span className="text-[0.65rem] normal-case tracking-normal text-slate-600">{entries.length}</span>
-                  </h3>
-                ) : null}
-                <ul className="ss-asset-grid grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7rem, 1fr))' }}>
-                  {entries.map((entry) => (
-                    <AssetTile
-                      key={entry.key}
-                      entry={entry}
-                      selected={selected === toAssetRef(entry.key)}
-                      onPick={onPick}
-                      onRemove={() => remove(entry.key)}
-                      onRename={(next) => rename(entry.key, next)}
-                      owner={owner}
-                    />
-                  ))}
-                </ul>
-              </section>
+              <AssetGroup
+                key={group || '—'}
+                group={group}
+                count={entries.length}
+                // The ungrouped block gets a heading only when something else has
+                // one. On a flat library it would be a label for everything, which
+                // is no label at all; beside a set of named groups its absence reads
+                // as a rendering fault.
+                labelled={Boolean(group) || groups.length > 1}
+                // A filter opens every group it matches in, so a match is never
+                // behind a fold the operator did not know to open; the folds are
+                // untouched, and come back as they were when it clears.
+                folded={Boolean(group) && !needle && !unfolded.has(group)}
+                onToggle={() => flip(group)}
+              >
+                {entries.map((entry) => (
+                  <AssetTile
+                    key={entry.key}
+                    entry={entry}
+                    selected={selected === toAssetRef(entry.key)}
+                    onPick={onPick}
+                    onRemove={() => remove(entry.key)}
+                    onRename={(next) => rename(entry.key, next)}
+                    owner={owner}
+                  />
+                ))}
+              </AssetGroup>
             ))
           ) : (
             <p className="text-xs text-slate-500">Nothing matches &ldquo;{filter}&rdquo;.</p>
@@ -332,6 +352,53 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
           <span className="text-xs text-slate-500">Everything above, off this machine and out of the show. It cannot be undone.</span>
         </div>
       ) : null}
+    </section>
+  )
+}
+
+/**
+ * One group of the library, folded to its heading and count until opened.
+ *
+ * A studio's library is a few groups and some loose images until it holds a season
+ * of slides, and then one group is a few hundred tiles every other image sits
+ * below. So a named group starts folded, on every load, the way a collapsible Panel
+ * does; loose images never fold, because they are the one-offs being looked for.
+ *
+ * Which groups are open is the library's to remember, not the group's: a filter
+ * unmounts every group without a match, and a group that kept its own fold came
+ * back from a cleared filter folded again, whatever the operator had opened. Folded
+ * tiles stay mounted, as a Panel's controls do.
+ */
+function AssetGroup({ group, count, labelled, folded, onToggle, children }) {
+  const body = useId()
+
+  return (
+    <section className="ss-asset-group flex flex-col gap-1.5" data-open={group ? String(!folded) : undefined}>
+      {labelled ? (
+        <h3 className="flex items-baseline gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          {group ? (
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-expanded={!folded}
+              aria-controls={body}
+              className="ss-asset-group-fold -m-1 flex items-baseline gap-2 rounded p-1 text-left uppercase tracking-wide transition-colors hover:text-slate-200"
+            >
+              <Chevron collapsed={folded} className="self-center" />
+              {group}
+              <span className="text-[0.65rem] normal-case tracking-normal text-slate-600">{count}</span>
+            </button>
+          ) : (
+            <>
+              <span className="text-slate-600">ungrouped</span>
+              <span className="text-[0.65rem] normal-case tracking-normal text-slate-600">{count}</span>
+            </>
+          )}
+        </h3>
+      ) : null}
+      <ul id={body} hidden={folded} className="ss-asset-grid grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7rem, 1fr))' }}>
+        {children}
+      </ul>
     </section>
   )
 }

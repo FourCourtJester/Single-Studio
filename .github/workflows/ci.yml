@@ -7,7 +7,13 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest. GitHub began moving ubuntu-latest to Ubuntu 26 on
+    # 2026-10-19, and Playwright knows the system packages for Ubuntu 20.04, 22.04
+    # and 24.04 only: on 26 it names the host ubuntu26.04-x64, has no package list
+    # for it, and `install-deps` fails in seconds. On PR #70, 2026-10-27, both
+    # pull_request runs failed that way three attempts running while the push runs
+    # beside them passed. Move to the next LTS when Playwright supports it.
+    runs-on: ubuntu-24.04
     # A healthy run is about 4 minutes. Without a limit GitHub allows 360, and on
     # 2026-10-23 three runs hung in the Chromium install for 7-10 minutes each,
     # holding a pull request until somebody noticed and cancelled. The install has
@@ -108,11 +114,19 @@ jobs:
         run: |
           if [ "$CACHED" = true ]; then what='install-deps chromium'; else what='install --with-deps chromium'; fi
 
+          # Which Ubuntu, in the log and as a notice, so a failure here says
+          # whether it is the runner image rather than leaving that to be guessed.
+          echo "::notice title=runner::$(. /etc/os-release && echo "$PRETTY_NAME")"
+
           for attempt in 1 2 3; do
             # `timeout` signals the whole process group, so a hung apt-get under
             # sudo goes with Playwright rather than holding the dpkg lock.
-            if timeout --kill-after=10 120 apps/fixture/node_modules/.bin/playwright $what; then exit 0; fi
-            echo "::warning::Chromium install attempt $attempt stalled or failed after up to 2 minutes; trying again"
+            if timeout --kill-after=10 120 apps/fixture/node_modules/.bin/playwright $what 2>&1 | tee "$RUNNER_TEMP/chromium.log"; [ "${PIPESTATUS[0]}" -eq 0 ]; then exit 0; fi
+            # Playwright's own last error, as the annotation: the job log is not
+            # always readable from where a failure is diagnosed.
+            said=$(grep -iE 'error|not support|unable|failed' "$RUNNER_TEMP/chromium.log" | tail -1 | cut -c1-200)
+            echo "::warning::Chromium install attempt $attempt failed or stalled: ${said:-no error printed}"
+            sleep $((attempt * 10))
           done
 
           echo "::error::Chromium did not install in three attempts"

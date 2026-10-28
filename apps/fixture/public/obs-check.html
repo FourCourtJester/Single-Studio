@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OBS check</title>
+    <!--
+      What OBS's own `window.obsstudio` actually does here, measured rather than read.
+
+      Reading obs-browser's source (master, 2026-10-27) says every page gets the
+      object -- `BrowserApp::OnContextCreated` adds it with no check of what the page
+      is -- but only a browser source answers its calls: `BrowserClient` handles the
+      message they send, and a dock's `QCefBrowserClient` has no handler at all. So in
+      a dock the functions should exist and never call back. This page is how to find
+      out: load it as a custom dock and as a browser source, at different Page
+      permissions, and compare the reports.
+
+      Plain HTML and nothing else, so it loads from a file:// path in OBS with no
+      server and nothing of the framework's in the way. Only the read-only functions
+      are called. The ones that change OBS -- switching scenes, starting a stream --
+      are listed as present or absent and never called: a diagnostic that could start
+      somebody's stream is not one anybody should load.
+    -->
+    <style>
+      :root {
+        color-scheme: dark;
+        font:
+          14px/1.45 system-ui,
+          sans-serif;
+        background: #020617;
+        color: #e2e8f0;
+      }
+      body {
+        margin: 0;
+        padding: 12px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+      h2 {
+        margin: 16px 0 6px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      td {
+        padding: 3px 8px 3px 0;
+        vertical-align: top;
+        border-bottom: 1px solid #1e293b;
+      }
+      td:first-child {
+        white-space: nowrap;
+        font-family: ui-monospace, monospace;
+        color: #cbd5e1;
+      }
+      .yes {
+        color: #4ade80;
+      }
+      .no {
+        color: #f87171;
+      }
+      .wait {
+        color: #fbbf24;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      /* Pinned, because a browser source is often small and the events list grows:
+         at the bottom of the page, under the list, Copy report was out of reach in
+         OBS's Interact window before anything had been copied. */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: -12px -12px 0;
+        padding: 12px 12px 8px;
+        background: #020617;
+        border-bottom: 1px solid #1e293b;
+      }
+      button {
+        margin-top: 8px;
+        padding: 6px 12px;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        background: #0f172a;
+        color: #e2e8f0;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>OBS check</h1>
+      <div id="where"></div>
+      <button id="copy" type="button">Copy report</button>
+      <span id="copied"></span>
+    </header>
+
+    <h2>Read-only calls (3s each)</h2>
+    <table id="calls"></table>
+
+    <h2>Calls that change OBS (listed, never called)</h2>
+    <table id="present"></table>
+
+    <h2>Events, newest first (last 50 shown; the report keeps them all)</h2>
+    <table id="events">
+      <tr>
+        <td class="wait">none yet: switch scene, hide this source, start a recording…</td>
+        <td></td>
+      </tr>
+    </table>
+
+    <script>
+      const READ = ['getControlLevel', 'getStatus', 'getCurrentScene', 'getScenes', 'getTransitions', 'getCurrentTransition']
+      const CHANGE = [
+        'saveReplayBuffer',
+        'startReplayBuffer',
+        'stopReplayBuffer',
+        'setCurrentScene',
+        'setCurrentTransition',
+        'startStreaming',
+        'stopStreaming',
+        'startRecording',
+        'stopRecording',
+        'pauseRecording',
+        'unpauseRecording',
+        'startVirtualcam',
+        'stopVirtualcam',
+      ]
+      const EVENTS = [
+        'obsSceneChanged',
+        'obsSceneListChanged',
+        'obsTransitionChanged',
+        'obsTransitionListChanged',
+        'obsSourceVisibleChanged',
+        'obsSourceActiveChanged',
+        'obsStreamingStarting',
+        'obsStreamingStarted',
+        'obsStreamingStopping',
+        'obsStreamingStopped',
+        'obsRecordingStarting',
+        'obsRecordingStarted',
+        'obsRecordingPaused',
+        'obsRecordingUnpaused',
+        'obsRecordingStopping',
+        'obsRecordingStopped',
+        'obsReplaybufferStarting',
+        'obsReplaybufferStarted',
+        'obsReplaybufferSaved',
+        'obsReplaybufferStopping',
+        'obsReplaybufferStopped',
+        'obsVirtualcamStarted',
+        'obsVirtualcamStopped',
+        'obsExit',
+      ]
+      const LEVELS = ['NONE', 'READ_OBS', 'READ_USER', 'BASIC', 'ADVANCED', 'ALL']
+      // What each read needs, from obs-browser's README. Below it, a source still
+      // calls back -- with null. Measured in OBS 33.0.0 on a default source (level 1):
+      // the four scene and transition reads all answered null, which an earlier cut of
+      // this page showed as a green "answered".
+      const NEEDS = { getControlLevel: 0, getStatus: 1, getCurrentScene: 2, getScenes: 2, getTransitions: 2, getCurrentTransition: 2 }
+
+      const obs = window.obsstudio
+      const report = {
+        at: new Date().toISOString(),
+        page: location.href,
+        userAgent: navigator.userAgent,
+        obsstudio: Boolean(obs),
+        pluginVersion: obs?.pluginVersion ?? null,
+        calls: {},
+        present: {},
+        events: [],
+      }
+
+      const text = (value) => (typeof value === 'string' ? value : JSON.stringify(value))
+      const row = (table, name, cls, value) => {
+        const tr = document.createElement('tr')
+        tr.dataset.name = name
+        tr.innerHTML = `<td>${name}</td><td class="${cls}"><pre></pre></td>`
+        tr.querySelector('pre').textContent = value
+        table.append(tr)
+        return tr
+      }
+
+      document.getElementById('where').innerHTML = obs
+        ? `<span class="yes">window.obsstudio is here</span>, obs-browser <code></code>`
+        : `<span class="no">No window.obsstudio</span>: not inside OBS, or OBS older than its browser API.`
+      if (obs) document.querySelector('#where code').textContent = text(obs.pluginVersion)
+
+      // Each read-only call, raced against three seconds. An answer of any kind,
+      // even an empty one, is an answer; silence is the finding a dock is expected
+      // to give.
+      const calls = document.getElementById('calls')
+      for (const name of READ) {
+        if (typeof obs?.[name] !== 'function') {
+          report.calls[name] = 'absent'
+          row(calls, name, 'no', 'absent')
+          continue
+        }
+
+        const tr = row(calls, name, 'wait', 'waiting…')
+        const cell = tr.querySelector('td:last-child')
+        const done = (cls, value, kept) => {
+          if (report.calls[name] !== undefined) return
+          report.calls[name] = kept
+          cell.className = cls
+          cell.querySelector('pre').textContent = value
+        }
+
+        try {
+          obs[name]((answer) => {
+            const said = name === 'getControlLevel' && Number.isInteger(answer) ? `${answer} (${LEVELS[answer] ?? '?'})` : text(answer)
+            if (answer === null && NEEDS[name] > 0) {
+              const needs = `${NEEDS[name]} (${LEVELS[NEEDS[name]]})`
+              done('no', `refused: null, needs level ${needs}`, { refused: null, needs: NEEDS[name] })
+            } else {
+              done('yes', `answered: ${said}`, { answered: answer })
+            }
+          })
+        } catch (error) {
+          done('no', `threw: ${error.message}`, { threw: error.message })
+        }
+
+        setTimeout(() => done('no', 'no answer in 3s', 'no answer'), 3000)
+      }
+
+      const present = document.getElementById('present')
+      for (const name of CHANGE) {
+        const here = typeof obs?.[name] === 'function'
+        report.present[name] = here
+        row(present, name, here ? 'yes' : 'no', here ? 'present' : 'absent')
+      }
+
+      const events = document.getElementById('events')
+      const log = (name, detail) => {
+        if (!report.events.length) events.innerHTML = ''
+        const entry = { at: new Date().toISOString().slice(11, 23), name, detail }
+        report.events.push(entry)
+        events.prepend(row(events, `${entry.at} ${name}`, 'yes', detail === undefined ? '' : text(detail)))
+        while (events.rows.length > 50) events.deleteRow(-1)
+      }
+      for (const name of EVENTS) window.addEventListener(name, (event) => log(name, event.detail))
+      if (obs) {
+        obs.onVisibilityChange = (visible) => log('onVisibilityChange', visible)
+        obs.onActiveChange = (active) => log('onActiveChange', active)
+      }
+
+      document.getElementById('copy').addEventListener('click', async () => {
+        const said = JSON.stringify(report, null, 2)
+        try {
+          await navigator.clipboard.writeText(said)
+          document.getElementById('copied').textContent = ' copied'
+        } catch {
+          // A browser source is refused the clipboard -- measured in OBS 33.0.0, where
+          // the dock was allowed it. The report used to be printed at the foot of the
+          // page, under the events, which in a small source is as out of reach as the
+          // button had been. Now it opens under the button, selected, for Ctrl+C.
+          let box = document.getElementById('report')
+          if (!box) {
+            box = document.createElement('textarea')
+            box.id = 'report'
+            box.readOnly = true
+            box.rows = 6
+            box.style.cssText =
+              'display:block;width:100%;box-sizing:border-box;margin-top:8px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;font:12px ui-monospace,monospace'
+            document.querySelector('header').append(box)
+          }
+          box.value = said
+          box.focus()
+          box.select()
+          document.getElementById('copied').textContent = ' clipboard refused here: the report is selected below, press Ctrl+C'
+        }
+      })
+
+      window.__obsCheck = report
+    </script>
+  </body>
+</html>
