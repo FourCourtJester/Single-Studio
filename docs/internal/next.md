@@ -22,13 +22,6 @@ before anything else.
   minutes. It also settles the two-worker window after a deploy, since the status
   channel reaches pages of either build. Reconnecting in place, without a page
   reload, is the polished version, for later.
-- **Move SS-Mercy-Riftbound-2v2 onto 0.14.0.** Everything it built for itself is in
-  core from 0.13.0: `actions`, `collapsible`, `size="sm"`, `useCollapsed` and
-  `Chevron`, the stripes, `color-scheme: dark`, and steppers that fill. Bump it to
-  `^0.14.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
-  `HEADER_BUTTON`, the two rules in its `index.css`, and from 0.14.0 its spacing
-  overrides (now `--ss-panel-pad` and friends) and its picker width band. See
-  [the section below](#panel-header-actions-and-folding).
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
