@@ -2948,6 +2948,69 @@ check(
 )
 check(capSlim.picker === capSlim.row, 'below its breakpoint the same picker has its line to itself, uncapped')
 
+// -- Fit on more than one line ----------------------------------------------------
+// The same long name in identical 360px boxes of 48px text, wrapped to one line and
+// to two. Two lines should let it stay larger, take two lines and no more, and
+// overflow nothing; and it should be the largest size that does, not merely a size.
+const linesPage = await context.newPage()
+await linesPage.goto(`${BASE}/#/source/lines`)
+await linesPage.waitForSelector('.lines-variable .ss-fit')
+await linesPage.waitForTimeout(600)
+const wrapped = await linesPage.evaluate(() => {
+  const linesOf = (element) => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0).sort((a, b) => a.top - b.top)
+    let count = 0
+    let floor = -Infinity
+    for (const rect of rects) {
+      if (rect.top >= floor) {
+        count += 1
+        floor = rect.top + rect.height / 2
+      }
+    }
+    return count
+  }
+  const read = (selector) => {
+    const fit = document.querySelector(`${selector} .ss-fit`)
+    const box = fit.closest(selector)
+    const size = parseFloat(getComputedStyle(fit).fontSize)
+    const room = box.clientWidth
+    const now = { size: Math.round(size * 10) / 10, lines: linesOf(fit), inside: fit.scrollWidth <= room }
+
+    // The largest that fits: five percent larger has to break one of the two rules.
+    const was = fit.style.fontSize
+    fit.style.fontSize = `${size * 1.05}px`
+    now.largest = fit.scrollWidth > room || linesOf(fit) > (selector === '.lines-word' ? 3 : 2)
+    fit.style.fontSize = was
+
+    return now
+  }
+  return {
+    one: read('.lines-one'),
+    two: read('.lines-two'),
+    short: read('.lines-short'),
+    word: read('.lines-word'),
+    variable: read('.lines-variable'),
+  }
+})
+await linesPage.close()
+console.log(
+  `  fit: one line ${wrapped.one.size}px; two lines ${wrapped.two.size}px over ${wrapped.two.lines}; word ${wrapped.word.size}px; Variable ${wrapped.variable.size}px over ${wrapped.variable.lines}`,
+)
+check(wrapped.one.lines === 1 && wrapped.one.inside, 'Fit with no lines keeps a long name on one line, inside its box, as before')
+check(
+  wrapped.two.lines === 2 && wrapped.two.inside && wrapped.two.size > wrapped.one.size * 1.3,
+  'lines={2} wraps it onto two lines and keeps it much larger than one line allows',
+)
+check(wrapped.two.largest, 'at the largest size that fits two lines: five percent more would not')
+check(wrapped.short.size === 48 && wrapped.short.lines === 1, 'text that already fits is left at its own size, on one line')
+check(wrapped.word.inside && wrapped.word.size < 48 && wrapped.word.largest, 'a single word wider than the box shrinks until it fits, since wrapping cannot help')
+check(
+  wrapped.variable.lines === 2 && Math.abs(wrapped.variable.size - wrapped.two.size) < 0.2,
+  "a Variable's lines reaches its Fit, and fits the same as Fit itself",
+)
+
 // -- The image store folds its groups --------------------------------------------
 // A season of slides is one group of hundreds, and loose images used to sort below
 // every group. Now loose ones come first and named groups start folded, on every

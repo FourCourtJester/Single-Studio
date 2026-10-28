@@ -234,7 +234,7 @@ The full generated reference, with every prop, is [api.md](api.md).
 | Component   | Reads                        | Notes                                                                                                               |
 | ----------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `Scene`     | —                            | Root of a graphic. `vars` maps CSS custom properties to paths.                                                      |
-| `Variable`  | `variables.<name>`           | Text. `fit` shrinks it to stay on one line.                                                                         |
+| `Variable`  | `variables.<name>`           | Text. `fit` shrinks it to fit its box, on one line or on up to `lines` of them.                                     |
 | `Image`     | `variables.<name>`           | A bundled path, a URL, or a library entry. Preloads and decodes before swapping.                                    |
 | `Toggle`    | `toggles.<name>`             | Shows or hides its children.                                                                                        |
 | `Timer`     | `timers.<name>`              | Any of the three clocks; reads the stored shape. Clears itself when done. `limit` marks a count-up that overran.    |
@@ -244,6 +244,13 @@ The full generated reference, with every prop, is [api.md](api.md).
 | `Tally`     | `variables.<name>`           | A count said in icons — three demolitions is three marks. `of` fills a race instead. Only the change animates.      |
 | `Clock`     | — (local)                    | Wall clock. Never replicates.                                                                                       |
 | `Ticker`    | `variables.<name>`           | Crawl at a constant px/sec, swaps text between passes.                                                              |
+
+`fit` shrinks a name until it fits its box, keeping it on one line. Add `lines` to let
+it wrap first: `<Variable name="home.name" fit lines={2} />` takes up to two lines and
+shrinks only as far as that needs, so a long team name stays large across two lines
+rather than going small on one. A single word wider than the box still shrinks, and the
+box's height is not consulted, so size the box for the lines you allow.
+`<Fit lines={2}>` from `@single-studio/core` does the same for text of your own.
 
 `Variable`, `Timer` and `Clock` render a `<span>`, so a value can sit inside a
 sentence without breaking the line it is on. Pass `as` for anything else — `as="div"`

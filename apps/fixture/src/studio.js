@@ -32,5 +32,6 @@ export const studio = defineStudio({
     spacing: () => import('./sources/Spacing'),
     standby: () => import('./sources/Standby'),
     sequence: () => import('./sources/Sequence'),
+    lines: () => import('./sources/Lines'),
   },
 })

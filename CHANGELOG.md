@@ -6,6 +6,16 @@ tag is checked against all six manifests, so they cannot drift apart.
 
 ## Unreleased
 
+### Added
+
+- **`lines` on `Fit` and `Variable`**: fit text across several lines rather than one.
+  `<Variable name="home.name" fit lines={2} />` wraps a name onto up to two lines
+  and shrinks it only as far as that needs -- in a 360px box of 48px text, a long
+  team name fitted to 31.9px over two lines against 17.7px on one. Lines are counted
+  from the text's own line boxes, so `line-height` does not matter; no word is broken,
+  and a single word wider than the box still shrinks. `lines` defaults to 1, which is
+  Fit exactly as before.
+
 ### Changed
 
 - **The image store folds its groups, and loose images come first.** A season of
@@ -15,6 +25,8 @@ tag is checked against all six manifests, so they cannot drift apart.
   group it matches in and puts the folds back when it clears; a folder just uploaded
   opens; and the store opened from an `ImagePicker` opens on the group holding its
   current image.
+- **`fit={n}` on a `Variable` is documented as what it does:** the same as `fit`. It
+  was described as a cap on how far the text shrinks, which was never built.
 
 ## 0.14.0
 

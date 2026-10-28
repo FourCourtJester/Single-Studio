@@ -74,6 +74,32 @@ function boxFor(element) {
 }
 
 /**
+ * How many lines the text takes, counted from its line boxes rather than from
+ * `line-height`: a Range over the text gives one rect per line fragment, and rects
+ * starting more than half a line below the last one start a new line. `line-height:
+ * normal` computes to the word "normal", and a bold or larger span inside a line
+ * sits a few pixels off its neighbours' tops -- both of which a division by
+ * line-height gets wrong.
+ */
+function linesOf(element) {
+  const range = document.createRange()
+  range.selectNodeContents(element)
+
+  const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0).sort((a, b) => a.top - b.top)
+  let lines = 0
+  let floor = -Infinity
+
+  for (const rect of rects) {
+    if (rect.top >= floor) {
+      lines += 1
+      floor = rect.top + rect.height / 2
+    }
+  }
+
+  return Math.max(lines, 1)
+}
+
+/**
  * Every prop optional, as it is at runtime. Undescribed, TypeScript read each
  * destructured name as a required prop, so a studio checked with it could not write
  * `<Fit>{name}</Fit>` -- the first one to try was the demo's Twitch alerts.
@@ -83,11 +109,30 @@ function boxFor(element) {
  * @property {string} [className] - Added to the component's own classes.
  * @property {number} [delta] - How close to the box's width is close enough, in pixels. Defaults to 1.
  * @property {number} [max] - The largest font size, in pixels. Defaults to the size the text inherits.
+ * @property {number} [lines] - The most lines the text may wrap onto. Defaults to `1`, which keeps it on one line.
  * @property {string} [as] - The element to render. Defaults to `"span"`.
  */
 
-/** @param {FitProps & import("react").HTMLAttributes<HTMLElement>} props */
-export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...rest }) {
+/**
+ * Text shrunk to fit its box: the largest size, up to the one it inherits, at which
+ * it fits.
+ *
+ * On one line by default. `lines={2}` lets it wrap onto two and shrinks it only as
+ * far as two lines and the box's width need -- a team name that is a long word and
+ * a short one stays large across two lines rather than going small on one. No word
+ * is broken: a single word wider than the box shrinks the text until it fits. The
+ * box's height is not consulted; a box sized for N lines at the text's own size
+ * holds N lines at any smaller one.
+ *
+ * @example
+ * <div className="w-[360px] text-5xl">
+ *   <Fit lines={2}>{team}</Fit>
+ * </div>
+ *
+ * @param {FitProps & import("react").HTMLAttributes<HTMLElement>} props
+ */
+export function Fit({ children, className, delta = 1, max, lines = 1, as: Tag = 'span', ...rest }) {
+  const many = lines > 1
   const ref = useRef(null)
   const [pending, setPending] = useState(true)
 
@@ -113,7 +158,35 @@ export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...
     // No room at all means no layout yet -- an ancestor not displayed, a box not
     // sized -- not a box the text has to vanish into. Leave it at its natural size;
     // the observers measure again once there is something to measure against.
-    if (available() <= 0 || element.scrollWidth <= available()) return
+    if (available() <= 0) return
+
+    if (many) {
+      // Wrapping makes "fits" two questions, the width and the count, and leaves no
+      // single measurement to stop early on -- so this searches on size alone and
+      // ends on the largest that fitted, never on the last one tried. That last one
+      // can be a size that did not fit, and on one line the slack is a sub-pixel of
+      // width; on several it is a whole extra line.
+      const fits = () => element.scrollWidth <= available() && linesOf(element) <= lines
+
+      if (fits()) return
+
+      let low = 0
+      let high = ceiling
+
+      for (let i = 0; i < ITERATIONS && high - low > 0.01; i += 1) {
+        const mid = (low + high) / 2
+
+        element.style.fontSize = `${mid}px`
+
+        if (fits()) low = mid
+        else high = mid
+      }
+
+      element.style.fontSize = `${low}px`
+      return
+    }
+
+    if (element.scrollWidth <= available()) return
 
     let low = 0
     let high = ceiling
@@ -130,7 +203,7 @@ export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...
       if (width > room) high = mid
       else low = mid
     }
-  }, [delta, max])
+  }, [delta, max, lines, many])
 
   useLayoutEffect(() => {
     if (!pending) return
@@ -161,7 +234,7 @@ export function Fit({ children, className, delta = 1, max, as: Tag = 'span', ...
   }, [])
 
   return (
-    <Tag ref={ref} className={cx('ss-fit whitespace-nowrap', className)} {...rest}>
+    <Tag ref={ref} className={cx('ss-fit', many ? 'whitespace-normal' : 'whitespace-nowrap', className)} {...rest}>
       {children}
     </Tag>
   )

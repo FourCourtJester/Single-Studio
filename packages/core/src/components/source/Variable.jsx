@@ -13,7 +13,8 @@ const NAMESPACE = 'variables'
  * @typedef {object} VariableProps
  * @property {string} name - Names a value under `variables` — e.g. `home.score`.
  * @property {string} [fallback] - Shown when the value is empty. Defaults to `""`.
- * @property {boolean|number} [fit] - Shrink the text to fit its box. A number caps how far.
+ * @property {boolean|number} [fit] - Shrink the text to fit its box. A number is read as `true`; it was documented as a cap that was never built.
+ * @property {number} [lines] - With `fit`, the most lines the text may wrap onto before it shrinks. Defaults to `1`.
  * @property {string} [as] - The element to render. Defaults to `"span"`, so a value can sit inside a sentence.
  * @property {string} [transition] - Motion variants, space-separated — e.g. `"slide-up ease-back"`. `"number"` counts from the old value to the new one instead. See [the transitions guide](getting-started.md#transitions).
  * @property {string} [className] - Added to the component's own classes.
@@ -36,6 +37,10 @@ const NAMESPACE = 'variables'
  * <Variable name="guest.title" fallback="Guest" fit />
  *
  * @example
+ * // Wrap onto two lines first, and shrink only past that
+ * <Variable name="home.name" fallback="Home" fit lines={2} />
+ *
+ * @example
  * <Variable name="lowerthird.headline" fallback="" />
  *
  * @example
@@ -44,7 +49,7 @@ const NAMESPACE = 'variables'
  *
  * @param {VariableProps & import("react").HTMLAttributes<HTMLElement>} props
  */
-export function Variable({ name, fallback = '', fit = false, as = 'span', transition, className, ...rest }) {
+export function Variable({ name, fallback = '', fit = false, lines = 1, as = 'span', transition, className, ...rest }) {
   const { value, loaded } = useVelcroState(name ? `${NAMESPACE}.${name}` : undefined)
   const text = value === undefined || value === '' ? fallback : String(value)
 
@@ -59,7 +64,7 @@ export function Variable({ name, fallback = '', fit = false, as = 'span', transi
   if (!counting) {
     return (
       <Transition trigger={loaded ? text : false} transition={transition} as={as} className={cx('ss-variable', className)} {...rest}>
-        {loaded ? fit ? <Fit>{text}</Fit> : text : null}
+        {loaded ? fit ? <Fit lines={lines}>{text}</Fit> : text : null}
       </Transition>
     )
   }
@@ -75,7 +80,7 @@ export function Variable({ name, fallback = '', fit = false, as = 'span', transi
     <Transition trigger={loaded ? COUNTING : false} transition={transition} as={as} className={cx('ss-variable', className)} {...rest}>
       {loaded ? (
         <span ref={style} className="ss-count">
-          {fit ? <Fit>{shown}</Fit> : shown}
+          {fit ? <Fit lines={lines}>{shown}</Fit> : shown}
         </span>
       ) : null}
     </Transition>
