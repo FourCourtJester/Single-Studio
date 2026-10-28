@@ -4,7 +4,11 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.15.0
+
+Text that fits across several lines, and an image store that stays short however
+many slides it holds. A minor because the image store looks different without being
+asked: every group now starts folded, and loose images come first.
 
 ### Added
 

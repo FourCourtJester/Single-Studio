@@ -22,13 +22,6 @@ before anything else.
   minutes. It also settles the two-worker window after a deploy, since the status
   channel reaches pages of either build. Reconnecting in place, without a page
   reload, is the polished version, for later.
-- **Move SS-Mercy-Riftbound-2v2 onto 0.14.0.** Everything it built for itself is in
-  core from 0.13.0: `actions`, `collapsible`, `size="sm"`, `useCollapsed` and
-  `Chevron`, the stripes, `color-scheme: dark`, and steppers that fill. Bump it to
-  `^0.14.0` and delete its `Panel.jsx`, `collapse.jsx`, `FillStepper.jsx`,
-  `HEADER_BUTTON`, the two rules in its `index.css`, and from 0.14.0 its spacing
-  overrides (now `--ss-panel-pad` and friends) and its picker width band. See
-  [the section below](#panel-header-actions-and-folding).
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
@@ -407,3 +400,38 @@ ready to copy, with the port already filled in.
   observer overlays. Candidates to look at are a local API in the Reforged client,
   memory readers, and replay parsing. Replay parsing only helps after a game, not
   during one.
+
+## An NGS plugin, for Heroes of the Storm
+
+Asked for on 2026-10-29, as an idea to come back to. NGS is the Nexus Gaming Series,
+the amateur Heroes of the Storm league; FCJ-Heroes-StormInterface, the studio this
+would serve, takes its broadcast look from a 2018 NGS show. Nothing is built and
+nothing here is checked: this container could not reach the league's site.
+
+**Not a game feed.** Heroes has no live game-state API to dial, so this is not the
+shape of `plugin-rocket-league`. What a league broadcast wants from NGS is the
+league around the match -- the two teams, their logos and rosters, records and
+standings, the schedule, results as they are reported -- and that comes from the
+league's website, which makes it the shape of `plugin-sheets`: a poller that reads
+something on a timer and writes it into the show.
+
+**The questions that decide the shape, in order:**
+
+- **Is there a public API, and what does it return?** The NGS site is a web app;
+  whether it serves JSON a plugin can read -- teams, matches, divisions, standings --
+  and without a login, is the first thing to find out. If there is none, the plugin
+  is not worth starting.
+- **Will a browser be let read it?** A studio is a page, often on GitHub Pages, and a
+  poller in the worker is subject to CORS. If the API does not allow cross-origin
+  reads, they go through a relay route rather than straight from the studio.
+  `plugin-sheets` never needed one only because Google's API allows cross-origin
+  reads with a key (see [sheets.md](sheets.md)).
+- **What does a match look like, and how is it named?** The useful operator action
+  is "this week's match is these two teams" and the rest -- names, logos, records,
+  rosters -- following from it. That needs a stable match or team id to choose by,
+  rather than names an operator types.
+
+**What it would write, if the answers are yes:** each side's name, short name, logo
+and record under the paths a Heroes studio already reads, the division standings as
+a Leaderboard-shaped list, and the match's casters and time where the league has
+them. Logos as URL entries in the image library, so every machine draws them.
