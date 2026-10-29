@@ -166,8 +166,9 @@ treat the name as a placeholder.
 season's logo lives in `ngs-archive-image` instead. S3 serves them as
 `application/octet-stream` and without CORS headers, which does not matter for an
 `<img>`: measured in Chromium, it loads at 500×350, and a missing name fires `error`.
-So a logo goes into the show as that URL, and core's `<Image>` draws it as is, with
-its `fallback` for the three teams without one. It cannot be fetched into the asset
+So a logo goes into the show as that URL, and core's `<Image>` draws it as is. For
+the three teams without one the value is empty, and an `<Image>` with an empty value
+draws nothing; how a team with no logo looks is the studio's design. It cannot be fetched into the asset
 library's IndexedDB, which would need CORS.
 
 ## What was built
@@ -206,8 +207,8 @@ the steps were filters, it was rebuilt so they are.
   IndexedDB, and a plugin handler writes from the worker, so its entries are only in
   the index. Now `useAssetUrl` falls back to the index for a URL entry; an e2e check
   deletes a URL entry's local row and still sees the graphic draw it, and fails
-  without the fix. A team with no logo gets no entry, and a graphic shows its
-  fallback, as it always did.
+  without the fix. A team with no logo gets no entry and an empty logo, and
+  draws nothing, which is unchanged.
 - **The map pool is a copy.** The API does not serve it; the league's
   match-reporting page has it as a list in the code. Twelve maps.
 - **A table that will not come does not lose the match.** Cup divisions answer in a
