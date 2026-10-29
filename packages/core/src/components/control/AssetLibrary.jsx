@@ -367,7 +367,8 @@ export function AssetLibrary({ onPick, selected, className, ...rest }) {
  * Which groups are open is the library's to remember, not the group's: a filter
  * unmounts every group without a match, and a group that kept its own fold came
  * back from a cleared filter folded again, whatever the operator had opened. Folded
- * tiles stay mounted, as a Panel's controls do.
+ * tiles stay mounted, as a Panel's controls do. The fold button fills the heading's
+ * row, as a Panel's does, so the space beside the name folds it too.
  */
 function AssetGroup({ group, count, labelled, folded, onToggle, children }) {
   const body = useId()
@@ -382,7 +383,7 @@ function AssetGroup({ group, count, labelled, folded, onToggle, children }) {
               onClick={onToggle}
               aria-expanded={!folded}
               aria-controls={body}
-              className="ss-asset-group-fold -m-1 flex items-baseline gap-2 rounded p-1 text-left uppercase tracking-wide transition-colors hover:text-slate-200"
+              className="ss-asset-group-fold -m-1 flex grow items-baseline gap-2 rounded p-1 text-left uppercase tracking-wide transition-colors hover:text-slate-200"
             >
               <Chevron collapsed={folded} className="self-center" />
               {group}

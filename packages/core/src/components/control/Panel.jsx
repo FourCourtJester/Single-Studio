@@ -86,6 +86,11 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
   // The button goes inside the heading, never the other way round: a heading inside
   // a button is invalid HTML, and a screen reader's list of headings loses it. The
   // negative margin and padding give it a bigger target without moving the title.
+  //
+  // The heading grows to the actions and the button fills it, so the whole row is
+  // the target. As wide as its words, only the title text folded the panel, and the
+  // stretch of header beside it -- the obvious place to click -- did nothing:
+  // client feedback, 2026-10-29. The actions stay their own buttons.
   const fold = (label) => (
     <button
       type="button"
@@ -93,7 +98,7 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
       aria-expanded={!folded}
       aria-controls={body}
       aria-label={label ? undefined : folded ? 'Open panel' : 'Fold panel'}
-      className="ss-panel-fold -m-1 flex items-center gap-2 rounded p-1 text-left uppercase tracking-wide transition-colors hover:text-slate-200"
+      className="ss-panel-fold -m-1 flex w-full items-center gap-2 rounded p-1 text-left uppercase tracking-wide transition-colors hover:text-slate-200"
     >
       <Chevron collapsed={folded} />
       {label}
@@ -101,17 +106,13 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
   )
 
   const heading = title ? (
-    <h2 className="min-w-0 text-sm font-semibold uppercase tracking-wide text-slate-400">{collapsible ? fold(title) : title}</h2>
+    <h2 className="min-w-0 grow text-sm font-semibold uppercase tracking-wide text-slate-400">{collapsible ? fold(title) : title}</h2>
   ) : collapsible ? (
-    <span className="text-slate-400">{fold(null)}</span>
+    <span className="min-w-0 grow text-slate-400">{fold(null)}</span>
   ) : null
 
   return (
-    <section
-      className={cx('ss-panel rounded-lg border border-slate-800', className)}
-      data-open={collapsible ? String(!folded) : undefined}
-      {...rest}
-    >
+    <section className={cx('ss-panel rounded-lg border border-slate-800', className)} data-open={collapsible ? String(!folded) : undefined} {...rest}>
       {heading || hasTools ? (
         // Wraps rather than shrinking the title: in a slim dock the actions take the
         // next line, still at the right, and the title keeps its words.
