@@ -1,6 +1,19 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { ASSET_SCHEME, assetKeyOf, groupOf, hashBytes, isAssetRef, leafOf, toAssetRef, toKey, uploadKey } from '../src/velcro/assets'
+import {
+  ASSET_SCHEME,
+  assetKeyOf,
+  forgetAssets,
+  groupOf,
+  hashBytes,
+  isAssetRef,
+  leafOf,
+  resolveAsset,
+  toAssetRef,
+  toKey,
+  uploadKey,
+  urlAssets,
+} from '../src/velcro/assets'
 
 const bytes = (text) => new TextEncoder().encode(text).buffer
 
@@ -120,5 +133,62 @@ describe('content addressing', () => {
     // Pinned against a known vector rather than against itself, so a change of
     // algorithm cannot quietly pass.
     expect(await hashBytes(bytes('abc'))).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+  })
+})
+
+describe('resolving an entry this machine does not hold', () => {
+  // A store with nothing in it: the machine that never saw the entry being added.
+  const empty = { get: async () => null, blob: async () => null }
+  const holding = (entry) => ({ get: async (key) => (key === entry.key ? entry : null), blob: async () => null })
+
+  afterEach(() => forgetAssets())
+
+  it('a URL entry known only to the room still resolves to its URL', async () => {
+    expect(await resolveAsset(empty, 'ngs/stormblessed', { kind: 'url', url: 'https://example.com/s.png' })).toBe('https://example.com/s.png')
+  })
+
+  it('a file entry known only to the room resolves to nothing, because its bytes are not here', async () => {
+    expect(await resolveAsset(empty, 'players/ada', { kind: 'file', hash: 'abc' })).toBeNull()
+  })
+
+  it('this machine’s own entry wins over the room’s copy', async () => {
+    const store = holding({ key: 'logo', kind: 'url', url: 'https://example.com/mine.png' })
+
+    expect(await resolveAsset(store, 'logo', { kind: 'url', url: 'https://example.com/theirs.png' })).toBe('https://example.com/mine.png')
+  })
+
+  it('the room’s copy is read afresh on each call, not cached with the miss', async () => {
+    // The cache holds this machine's answer for the life of the page. If the room's
+    // URL were cached with it, an entry repointed elsewhere would stay on the old
+    // image until a reload.
+    await resolveAsset(empty, 'logo', { kind: 'url', url: 'https://example.com/a.png' })
+
+    expect(await resolveAsset(empty, 'logo', { kind: 'url', url: 'https://example.com/b.png' })).toBe('https://example.com/b.png')
+  })
+})
+
+describe('urlAssets', () => {
+  it('writes each entry at its own index path, in the shape the library reads', () => {
+    expect(urlAssets([{ key: 'ngs/Stormblessed', url: 'https://example.com/s.png', name: 'Stormblessed' }])).toEqual({
+      'assets.ngs/stormblessed': { kind: 'url', url: 'https://example.com/s.png', name: 'Stormblessed' },
+    })
+  })
+
+  it('leaves out an entry with no URL or no usable key rather than writing it blank', () => {
+    expect(
+      urlAssets([
+        { key: 'ngs/no-logo', url: null },
+        { key: '!!!', url: 'https://example.com/x.png' },
+        { key: 'ok', url: ' https://example.com/ok.png ' },
+      ]),
+    ).toEqual({
+      'assets.ok': { kind: 'url', url: 'https://example.com/ok.png', name: 'https://example.com/ok.png' },
+    })
+  })
+
+  it('writes the same thing twice for the same list, so a repeated fetch changes nothing', () => {
+    const list = [{ key: 'a', url: 'https://example.com/a.png', name: 'A' }]
+
+    expect(urlAssets(list)).toEqual(urlAssets(list))
   })
 })

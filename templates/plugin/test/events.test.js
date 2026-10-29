@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { EMITS, normalise } from '../src/events'
+import { EMITS, normalise } from '../src/events.js'
 
 // The tests worth having first.
 //

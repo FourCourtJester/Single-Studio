@@ -443,37 +443,39 @@ ready to copy, with the port already filled in.
   memory readers, and replay parsing. Replay parsing only helps after a game, not
   during one.
 
-## An NGS plugin, for Heroes of the Storm
+## The NGS plugin, and the first plugin outside this repository
 
-Asked for on 2026-10-29, as an idea to come back to. NGS is the Nexus Gaming Series,
-the amateur Heroes of the Storm league; FCJ-Heroes-StormInterface, the studio this
-would serve, takes its broadcast look from a 2018 NGS show. Nothing is built and
-nothing here is checked: this container could not reach the league's site.
+The Nexus Gaming Series plugin for Heroes of the Storm was built and measured here
+and **moved to [SS-Plugin-NGS-Heroes](https://github.com/FourCourtJester/SS-Plugin-NGS-Heroes)**,
+with its own versions, as `@single-studio/plugin-ngs`. Its findings on the league's
+API went with it, to `docs/league-api.md` there. What stays here is the core fix it
+needed: URL entries known only to the room's index now draw on graphics, and
+`urlAssets` writes them from code.
 
-**Not a game feed.** Heroes has no live game-state API to dial, so this is not the
-shape of `plugin-rocket-league`. What a league broadcast wants from NGS is the
-league around the match -- the two teams, their logos and rosters, records and
-standings, the schedule, results as they are reported -- and that comes from the
-league's website, which makes it the shape of `plugin-sheets`: a poller that reads
-something on a timer and writes it into the show.
+It is the first Single Studio plugin made from Single-Studio-Plugin-Template and
+published on its own; every other plugin releases in lockstep with core. Moving it
+out found four gaps in the template, all closed, each with a check that was broken
+to see it go red:
 
-**The questions that decide the shape, in order:**
+- **The core peer was `^0.15.0`,** which below 1.0.0 admits one minor, so every core
+  release would have put every standalone plugin in a peer conflict. Now
+  `>=0.15.0 <1.0.0`; the dev dependency stays a caret. `verify-template.mjs`'s
+  `admits` learned that one extra form and still throws on any other, and
+  `mustAdmit` now checks the dev dependency too -- a `^0.14.0` there is refused.
+- **Its own example broke its own rule.** `src/index.js` imported `'./events'` with
+  no `.js`, which Node refuses, while its AGENTS.md said the examples were the style
+  to copy. Tests could not see it: Vitest resolves either. Fixed, and
+  `verify-template` now packs the template, installs it by name beside the packed
+  core and imports it under Node -- the extensionless import fails that with
+  `ERR_MODULE_NOT_FOUND`.
+- **`npm run lint` could not run**: `eslint .` with neither eslint nor a config. Now
+  both, with a rule refusing an extensionless relative import in `src/`, run by
+  `verify-template` and `mirror.yml`.
+- **No workflows.** Now `test.yml` (test, lint, pack dry-run) and `publish.yml` (on
+  a tag: tag matches version, not still the example, `repository.url` names the
+  repository, then test, lint and publish with provenance, by token or trusted
+  publisher). The publish job skips Single-Studio-Plugin-Template itself, which
+  every release tags. Its checks were run locally, not on GitHub.
 
-- **Is there a public API, and what does it return?** The NGS site is a web app;
-  whether it serves JSON a plugin can read -- teams, matches, divisions, standings --
-  and without a login, is the first thing to find out. If there is none, the plugin
-  is not worth starting.
-- **Will a browser be let read it?** A studio is a page, often on GitHub Pages, and a
-  poller in the worker is subject to CORS. If the API does not allow cross-origin
-  reads, they go through a relay route rather than straight from the studio.
-  `plugin-sheets` never needed one only because Google's API allows cross-origin
-  reads with a key (see [sheets.md](sheets.md)).
-- **What does a match look like, and how is it named?** The useful operator action
-  is "this week's match is these two teams" and the rest -- names, logos, records,
-  rosters -- following from it. That needs a stable match or team id to choose by,
-  rather than names an operator types.
-
-**What it would write, if the answers are yes:** each side's name, short name, logo
-and record under the paths a Heroes studio already reads, the division standings as
-a Leaderboard-shaped list, and the match's casters and time where the league has
-them. Logos as URL entries in the image library, so every machine draws them.
+**Waiting on somebody who runs NGS broadcasts:** whether one match at a time is
+right, or a night wants a queue; and the paths FCJ-Heroes-StormInterface reads.

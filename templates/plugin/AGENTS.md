@@ -64,7 +64,11 @@ restrict the credential rather than mentioning it in passing.
 ```bash
 npm install
 npm test
+npm run lint
 ```
+
+`.github/workflows/test.yml` runs all three on every push and pull request, and a
+`npm pack --dry-run` so the log shows exactly what a studio would install.
 
 `@single-studio/core/testing` gives you `FakeSocket` and `fakeSockets()`. Subclass the
 fake to add your protocol's own shorthand — see `ExampleFeed` in the tests.
@@ -85,28 +89,47 @@ is worse than nothing.
 This ships **source**, not a build — a studio's bundler compiles it, so there is no
 build step, no `dist`, and no bundler config to keep working.
 
-Three things that will bite:
+**Push a version tag and `.github/workflows/publish.yml` publishes it:**
+`git tag v0.1.0 && git push --tags`. It refuses when the tag is not the version in
+`package.json`, when the package is still named `single-studio-plugin-example`, and
+when `repository.url` does not name your repository; then it runs the tests and lint,
+and publishes with provenance. It does nothing in the template's own repository.
+
+The first publish of a new name needs a token: npm can only attach a trusted
+publisher to a package that already exists. Add an `NPM_TOKEN` secret — a granular
+token with read and write, and **Bypass 2FA on**, or the publish uploads and then
+stops asking for a code a runner cannot give. Once it is published, add your
+repository as the package's trusted publisher on npmjs.com, **opt it into `npm
+publish`** (new ones only allow `npm stage publish`), and delete the secret.
+
+Four things that will bite:
 
 - **`@single-studio/core` must stay a `peerDependency`.** If it is a normal
   dependency, npm is free to install a second copy — and two copies of the framework
   in one worker means two document registries. The plugin connects, emits, and
   nothing reaches the show. It fails silently, which is the worst way for it to fail.
+- **The peer range is `>=0.15.0 <1.0.0`, and keep it that shape.** Below 1.0.0 a
+  caret pins the _minor_: `^0.15.0` admits 0.15.x and refuses 0.16.0, so every core
+  release would put your plugin in a peer conflict — which npm refuses by default —
+  until you republished. Single Studio's own plugins never meet this, because they
+  release in lockstep with core; yours does not. The dev dependency stays a caret:
+  it is what your tests run against, and bumping it is how you test a new core.
+  Raise the floor when you start using something a newer core added.
 - **Relative imports need their `.js`.** Your source is resolved by Node, not by a
-  bundler, so `from './events'` throws on install where `from './events.js'` works.
-  The example files are correct; copy their style.
-- **`repository` must name your repository if you publish with `--provenance`.**
-  npm compares it against the repository that built the tarball and refuses the
-  publish outright — `422 ... "repository.url" is "", expected to match ...` — rather
-  than quietly publishing unsigned. `package.json` here says `YOUR-NAME/YOUR-REPO`;
-  change it. Nothing local catches this: `npm pack` builds the tarball happily and
-  the refusal only comes back from npm's servers.
+  bundler, so `from './events'` throws `ERR_MODULE_NOT_FOUND` on install where
+  `from './events.js'` works — and the tests cannot tell you, because Vitest
+  resolves either. `npm run lint` refuses the extensionless form in `src/`.
+- **`repository` must name your repository.** npm compares it against the repository
+  that built the tarball and refuses a provenance publish outright — `422 ...
+"repository.url" is "", expected to match ...`. `package.json` here says
+  `YOUR-NAME/YOUR-REPO`; change it. The publish workflow checks it before uploading.
 
-Before publishing: `npm test`, then `npm pack` and look inside the tarball. npm
-refuses to unpublish after 72 hours.
+Before the first publish: `npm pack` and look inside the tarball. npm refuses to
+unpublish after 72 hours.
 
 Decide the licence while you are there. The template ships the Unlicense, which is
 what makes the starter code free for you to take -- nobody's copyright follows it
-into your repository. But once the code is yours, that file is dedicating *your*
+into your repository. But once the code is yours, that file is dedicating _your_
 plugin to the public domain, and publishing is not the moment to discover you did
 that by default. Replace `LICENSE` with whatever you want -- MIT is the usual answer
 -- and set `license` in `package.json` to match.
@@ -114,11 +137,6 @@ that by default. Replace `LICENSE` with whatever you want -- MIT is the usual an
 Watch the spelling if you go proprietary: npm's `UNLICENSED` means "you may not use
 this" and SPDX's `Unlicense` means "this belongs to everybody". One letter, opposite
 meanings.
-
-If you publish from CI with a trusted publisher, note that new ones are **stage-only**
-by default: they permit `npm stage publish`, which uploads to a staging area you then
-approve by hand, and not `npm publish`. Opt into `npm publish` if your workflow
-expects to publish outright, or your release will authenticate and then refuse.
 
 ## Naming
 

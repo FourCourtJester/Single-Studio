@@ -50,7 +50,7 @@ npm test
 ```
 
 Then read [AGENTS.md](AGENTS.md) — it covers which of the two shapes to keep, what
-belongs on the operator's panel, and the two things that bite at publish time.
+belongs on the operator's panel, and the four things that bite at publish time.
 
 The short version:
 
@@ -59,6 +59,8 @@ The short version:
 3. Rename the package, and the `name` inside `definePlugin`.
 4. Delete `.github/FUNDING.yml`, which is Single Studio's Sponsor button, or point it
    at your own accounts.
+5. Push a tag to publish: `git tag v0.1.0 && git push --tags`. The first publish of a
+   new name needs an `NPM_TOKEN` secret; AGENTS.md says why and what to do after.
 
 ## Licence
 
@@ -71,7 +73,7 @@ by Shaun "FourCourtJester" Delaney, which is the courtesy version of that senten
 rather than a condition of it.
 
 **Then pick your own licence.** Once the starter code is your plugin, `LICENSE` is
-dedicating *your* work to the public domain, which is a real choice but should be a
+dedicating _your_ work to the public domain, which is a real choice but should be a
 deliberate one. Replace the file with whatever you want — MIT is the usual answer —
 and set `license` in `package.json` to match it.
 

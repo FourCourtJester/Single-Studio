@@ -28,6 +28,13 @@ const VERSION = 2
 
 export const ASSET_SCHEME = 'asset:'
 
+/**
+ * Where the library's index lives in the document: one path per entry,
+ * `assets.<key>`. See useAssets.js for why the index replicates and the bytes do
+ * not.
+ */
+export const ASSET_INDEX = 'assets'
+
 export const isAssetRef = (value) => typeof value === 'string' && value.startsWith(ASSET_SCHEME)
 export const toAssetRef = (key) => `${ASSET_SCHEME}${key}`
 export const assetKeyOf = (ref) => (isAssetRef(ref) ? ref.slice(ASSET_SCHEME.length) : null)
@@ -352,21 +359,68 @@ const urls = new Map()
  *
  * A URL entry hands back its URL; a file entry hands back an object URL over the
  * stored bytes. Callers do not care which, which is the point of the library.
+ *
+ * `indexed` is the entry as the room knows it, from `assets.<key>`, and it answers
+ * when this machine's own store has no row for the key. Only for a URL entry: the
+ * index carries the URL itself, so it renders anywhere, while a file entry's bytes
+ * are only where they were added and the index cannot stand in for them. Without
+ * it a URL entry added anywhere but here -- another operator's board, or a plugin
+ * handler writing from the worker -- was offered by every picker, because the
+ * picker reads the index, and resolved to nothing on the graphic, which reads the
+ * store.
+ *
+ * Local first, so a machine that holds the entry answers exactly as it always did.
+ * The index is applied after the cache rather than cached with it: it changes
+ * under a mounted graphic, and the cache is per key for the life of the page.
  */
-export function resolveAsset(store, key) {
+export function resolveAsset(store, key, indexed) {
   if (!key) return Promise.resolve(null)
-  if (urls.has(key)) return urls.get(key)
 
-  const pending = store.get(key).then((entry) => {
-    if (!entry) return null
-    if (entry.kind === 'url') return entry.url
+  if (!urls.has(key)) {
+    urls.set(
+      key,
+      store.get(key).then((entry) => {
+        if (!entry) return null
+        if (entry.kind === 'url') return entry.url
 
-    return store.blob(entry.hash).then((blob) => (blob ? URL.createObjectURL(blob) : null))
-  })
+        return store.blob(entry.hash).then((blob) => (blob ? URL.createObjectURL(blob) : null))
+      }),
+    )
+  }
 
-  urls.set(key, pending)
+  return urls.get(key).then((local) => local ?? (indexed?.kind === 'url' && indexed.url ? indexed.url : null))
+}
 
-  return pending
+/**
+ * URL entries as a payload for the `set` mutation.
+ *
+ * For code that has the document but not a page's library: a plugin handler in the
+ * worker, a mutation. An image that lives at a URL needs nothing but its index
+ * entry to render on every machine, so writing the index is the whole of adding
+ * one, and this is that write in the shape the library reads.
+ *
+ *   this.mutate('set', urlAssets([{ key: 'logos/stormblessed', url, name: 'Stormblessed' }]))
+ *
+ * Keys go through `toKey`, as a typed one would. An entry with no usable key or URL
+ * is left out rather than written blank. No `addedAt`, so writing the same list
+ * twice writes nothing the second time.
+ *
+ * @param {Array<{ key: string, url: string, name?: string }>} entries
+ * @returns {Record<string, { kind: 'url', url: string, name: string }>}
+ */
+export function urlAssets(entries) {
+  const patch = {}
+
+  for (const entry of entries ?? []) {
+    const key = toKey(entry?.key)
+    const url = String(entry?.url ?? '').trim()
+
+    if (!key || !url) continue
+
+    patch[`${ASSET_INDEX}.${key}`] = { kind: 'url', url, name: entry.name ?? url }
+  }
+
+  return patch
 }
 
 /** Drop a cached resolution so a renamed or replaced entry is re-read. */
