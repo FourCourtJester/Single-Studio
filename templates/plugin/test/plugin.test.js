@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FakeSocket, fakeSockets } from '@single-studio/core/testing'
 
-import { example, ExampleHandler, ExamplePoller } from '../src/index'
+import { example, ExampleHandler, ExamplePoller } from '../src/index.js'
 
 // Both shapes are tested here because both ship. Delete the half you are not using
 // along with the class it covers.
@@ -113,7 +113,10 @@ describe('shape one: something that tells you', () => {
 
 describe('shape two: something that must be asked', () => {
   const poller = (config, answer) => {
-    vi.stubGlobal('fetch', vi.fn(async () => answer))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => answer),
+    )
 
     return new ExamplePoller({ mutate: vi.fn(), owner: () => true, config })
   }

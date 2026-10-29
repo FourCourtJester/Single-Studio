@@ -37,29 +37,49 @@ import { fileURLToPath } from 'node:url'
 /**
  * Does `range` admit `version`?
  *
- * Understands only the caret ranges the templates actually use, and throws on
- * anything else rather than guessing. A range check that quietly returns true for a
- * form it does not recognise is worse than no check at all.
+ * Understands only the two forms the templates actually use, and throws on anything
+ * else rather than guessing. A range check that quietly returns true for a form it
+ * does not recognise is worse than no check at all.
+ *
+ *   ^0.15.0             a caret, which below 1.0.0 pins the minor
+ *   >=0.15.0 <1.0.0     a floor and a ceiling, for a plugin's peer on core
+ *
+ * The second exists because a caret is wrong for a standalone plugin's peer: below
+ * 1.0.0 it admits one minor, so every core release would put every plugin made from
+ * the template in a peer conflict until each republished. The first-party plugins
+ * never see that, because they release in lockstep with core.
  */
 const admits = (range, version) => {
-  const caret = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(range)
-
-  if (!caret) throw new Error(`cannot reason about the range ${JSON.stringify(range)}. Teach verify-template about it before a template depends on it.`)
-
   const target = /^(\d+)\.(\d+)\.(\d+)/.exec(version)
 
   if (!target) throw new Error(`cannot read the version ${JSON.stringify(version)}`)
 
-  const [, wantMajor, wantMinor, wantPatch] = caret.map(Number)
   const [, major, minor, patch] = target.map(Number)
+  const caret = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(range)
 
-  // Caret pins the leftmost non-zero, and below 1.0.0 that is the *minor*. This is
-  // the whole trap: ^0.6.0 admits 0.6.1 and does not admit 0.7.0.
-  if (major !== wantMajor) return false
-  if (wantMajor === 0 && minor !== wantMinor) return false
-  if (minor < wantMinor) return false
+  if (caret) {
+    const [, wantMajor, wantMinor, wantPatch] = caret.map(Number)
 
-  return minor > wantMinor || patch >= wantPatch
+    // Caret pins the leftmost non-zero, and below 1.0.0 that is the *minor*. This is
+    // the whole trap: ^0.6.0 admits 0.6.1 and does not admit 0.7.0.
+    if (major !== wantMajor) return false
+    if (wantMajor === 0 && minor !== wantMinor) return false
+    if (minor < wantMinor) return false
+
+    return minor > wantMinor || patch >= wantPatch
+  }
+
+  const bounded = /^>=(\d+)\.(\d+)\.(\d+) <(\d+)\.(\d+)\.(\d+)$/.exec(range)
+
+  if (bounded) {
+    const [, ...edges] = bounded.map(Number)
+    const order = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
+    const at = [major, minor, patch]
+
+    return order(at, edges.slice(0, 3)) >= 0 && order(at, edges.slice(3)) < 0
+  }
+
+  throw new Error(`cannot reason about the range ${JSON.stringify(range)}. Teach verify-template about it before a template depends on it.`)
 }
 
 /**
@@ -507,9 +527,14 @@ try {
   if (!pluginManifest.peerDependencies?.['@single-studio/core'])
     throw new Error('templates/plugin must depend on @single-studio/core as a *peer*, or a studio can end up with two copies of the framework in one worker')
 
-  mustAdmit('templates/plugin', pluginManifest.peerDependencies, {
-    '@single-studio/core': JSON.parse(readFileSync(join(root, 'packages/core/package.json'), 'utf8')).version,
-  })
+  // Both. The peer is what a studio resolves, and is a wide range that admits every
+  // 0.x core, so it is not what goes stale. The dev dependency is what the template's
+  // own tests install, and is a caret -- a release that does not bump it leaves every
+  // new plugin testing against last release's core.
+  const coreVersion = JSON.parse(readFileSync(join(root, 'packages/core/package.json'), 'utf8')).version
+
+  mustAdmit('templates/plugin (peer)', pluginManifest.peerDependencies, { '@single-studio/core': coreVersion })
+  mustAdmit('templates/plugin (dev)', pluginManifest.devDependencies, { '@single-studio/core': coreVersion })
 
   // Both, and for different reasons: the peer is what a studio resolves, the dev
   // dependency is what the template's own tests run against.
@@ -520,8 +545,35 @@ try {
 
   run('npm', ['install', '--no-audit', '--no-fund'], plugin)
   run('npm', ['test'], plugin)
+  run('npm', ['run', 'lint'], plugin)
 
-  console.log('  the plugin template installs and its tests pass against the packed core')
+  console.log('  the plugin template installs, and its tests and lint pass against the packed core')
+
+  /*
+   * And imported the way a studio gets it: packed, installed by name beside the
+   * packed core, and loaded by Node.
+   *
+   * The tests cannot see this. Vitest resolves an extensionless relative import that
+   * Node refuses, so the template's own `from './events'` passed every test here
+   * and threw ERR_MODULE_NOT_FOUND the moment anything loaded it as a package --
+   * while its AGENTS.md told authors the example files were the style to copy.
+   */
+  const templated = join(stage, 'templated')
+  const plugged = capture('npm', ['pack', '--pack-destination', tarballs], plugin).split('\n').at(-1)
+
+  mkdirSync(templated, { recursive: true })
+  writeFileSync(join(templated, 'package.json'), `${JSON.stringify({ name: 'templated', private: true, type: 'module' }, null, 2)}\n`)
+  run('npm', ['install', '--no-audit', '--no-fund', core, join(tarballs, plugged)], templated)
+
+  const templateExports = capture(
+    'node',
+    ['--input-type=module', '-e', `const m = await import('${pluginManifest.name}'); process.stdout.write(String(Object.keys(m).length))`],
+    templated,
+  )
+
+  if (Number(templateExports) < 1) throw new Error(`the plugin template, packed and installed as ${pluginManifest.name}, exports nothing`)
+
+  console.log(`  packed and installed by name, it imports under Node: ${templateExports} exports`)
 
   /**
    * The demo, against the same tarballs.

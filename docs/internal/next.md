@@ -412,18 +412,28 @@ needed: URL entries known only to the room's index now draw on graphics, and
 
 It is the first Single Studio plugin made from Single-Studio-Plugin-Template and
 published on its own; every other plugin releases in lockstep with core. Moving it
-out showed three things about the template, none of which `verify:template` can
-see, because it runs the template inside this repository's release:
+out found four gaps in the template, all closed, each with a check that was broken
+to see it go red:
 
-- **`^0.15.0` as the core peer range locks a plugin to one minor.** On a 0.x
-  version a caret is `>=0.15.0 <0.16.0`, so every core minor puts every standalone
-  plugin in a peer conflict, which npm refuses by default, until each republishes.
-  Lockstep hides it from the first-party plugins. The NGS plugin uses
-  `>=0.15.0 <1.0.0`. The template should say the same, or say why not.
-- **`npm run lint` cannot run.** The template's script is `eslint .`, with no eslint
-  in its dependencies and no config.
-- **No CI and no publishing workflow.** Its AGENTS.md describes publishing by hand.
-  The NGS repository has a test workflow; a publishing one is still to write.
+- **The core peer was `^0.15.0`,** which below 1.0.0 admits one minor, so every core
+  release would have put every standalone plugin in a peer conflict. Now
+  `>=0.15.0 <1.0.0`; the dev dependency stays a caret. `verify-template.mjs`'s
+  `admits` learned that one extra form and still throws on any other, and
+  `mustAdmit` now checks the dev dependency too -- a `^0.14.0` there is refused.
+- **Its own example broke its own rule.** `src/index.js` imported `'./events'` with
+  no `.js`, which Node refuses, while its AGENTS.md said the examples were the style
+  to copy. Tests could not see it: Vitest resolves either. Fixed, and
+  `verify-template` now packs the template, installs it by name beside the packed
+  core and imports it under Node -- the extensionless import fails that with
+  `ERR_MODULE_NOT_FOUND`.
+- **`npm run lint` could not run**: `eslint .` with neither eslint nor a config. Now
+  both, with a rule refusing an extensionless relative import in `src/`, run by
+  `verify-template` and `mirror.yml`.
+- **No workflows.** Now `test.yml` (test, lint, pack dry-run) and `publish.yml` (on
+  a tag: tag matches version, not still the example, `repository.url` names the
+  repository, then test, lint and publish with provenance, by token or trusted
+  publisher). The publish job skips Single-Studio-Plugin-Template itself, which
+  every release tags. Its checks were run locally, not on GitHub.
 
 **Waiting on somebody who runs NGS broadcasts:** whether one match at a time is
 right, or a night wants a queue; and the paths FCJ-Heroes-StormInterface reads.

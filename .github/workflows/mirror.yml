@@ -131,6 +131,7 @@ jobs:
 
           if [ "$NAME" = plugin ]; then
             npm test
+            npm run lint
             exit 0
           fi
 
