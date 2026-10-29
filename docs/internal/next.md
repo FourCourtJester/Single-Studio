@@ -403,40 +403,40 @@ ready to copy, with the port already filled in.
 
 ## An NGS plugin, for Heroes of the Storm
 
-Asked for on 2026-10-29, as an idea to come back to. NGS is the Nexus Gaming Series,
-the amateur Heroes of the Storm league; FCJ-Heroes-StormInterface, the studio this
-would serve, takes its broadcast look from a 2018 NGS show. Nothing is built and
-nothing here is checked: this container could not reach the league's site.
+Asked for on 2026-10-29. NGS is the Nexus Gaming Series, the amateur Heroes of the
+Storm league; FCJ-Heroes-StormInterface, the studio this serves, takes its broadcast
+look from a 2018 NGS show. **Built**, as `packages/plugin-ngs`, and not released.
+[ngs.md](ngs.md) has the API as measured and what was built; the plugin's README has
+the handler and the board.
 
-**Since then:** [ngs.md](ngs.md) answers all three questions below, from the
-league's source and then the live API: the reads are open, any origin may read them,
-so no relay, and a match has a stable `matchId` that brings both teams with it. The
-score arrives only when a captain reports the match, so it is not a live scoreboard.
+What the owner asked for, and where it landed:
 
-**Not a game feed.** Heroes has no live game-state API to dial, so this is not the
-shape of `plugin-rocket-league`. What a league broadcast wants from NGS is the
-league around the match -- the two teams, their logos and rosters, records and
-standings, the schedule, results as they are reported -- and that comes from the
-league's website, which makes it the shape of `plugin-sheets`: a poller that reads
-something on a timer and writes it into the show.
+- **A fetch button**, and a list of matches to fill from: Fetch matches on the
+  plugin's panel, then Division and Match pickers on the board, then Load.
+- **Season info in another button**: Fetch season, with the season number, the
+  divisions, every team with logo and roster, and the map pool -- which the league's
+  API does not serve, so it is a copy of the league's own list.
+- **Every logo in the image store under its team's name**: `ngs/<team>` URL
+  entries, through core's new `urlAssets`. That took a fix in core, since a URL entry
+  known only to the room's index drew nothing on a graphic.
 
-**The questions that decide the shape, in order:**
+**Before it can be released**, a decision and an npm step. It is not in `PACKAGES` in
+`release.yml` on purpose: `@single-studio/plugin-ngs` has never been published, OIDC
+cannot publish a name that does not exist, and a release that tried would fail partway
+-- after `core` had gone out. Adding it is one line, and the release that carries it
+needs the temporary-token path in [releasing.md](releasing.md#introducing-a-package-name-that-has-never-been-published),
+then a trusted publisher set to allow `npm publish`. Then it joins the plugin lists in
+the root README, `docs/plugins.md` ("the four first-party plugins") and
+`releasing.md`'s table, which leave it out until it can be installed.
 
-- **Is there a public API, and what does it return?** The NGS site is a web app;
-  whether it serves JSON a plugin can read -- teams, matches, divisions, standings --
-  and without a login, is the first thing to find out. If there is none, the plugin
-  is not worth starting.
-- **Will a browser be let read it?** A studio is a page, often on GitHub Pages, and a
-  poller in the worker is subject to CORS. If the API does not allow cross-origin
-  reads, they go through a relay route rather than straight from the studio.
-  `plugin-sheets` never needed one only because Google's API allows cross-origin
-  reads with a key (see [sheets.md](sheets.md)).
-- **What does a match look like, and how is it named?** The useful operator action
-  is "this week's match is these two teams" and the rest -- names, logos, records,
-  rosters -- following from it. That needs a stable match or team id to choose by,
-  rather than names an operator types.
+**Waiting on somebody who runs NGS broadcasts:**
 
-**What it would write, if the answers are yes:** each side's name, short name, logo
-and record under the paths a Heroes studio already reads, the division standings as
-a Leaderboard-shaped list, and the match's casters and time where the league has
-them. Logos as URL entries in the image library, so every machine draws them.
+- Whether the waterfall was Division then Match, as remembered, or something else.
+- Whether a show wants one match at a time or a night's queue.
+- The paths FCJ-Heroes-StormInterface actually reads; the README's handler is a guess
+  at them.
+
+**Worth reporting to the league**, all measured and in [ngs.md](ngs.md): `team/get`
+takes `teamId` where its docs say `id`; `team/fetch/teams` by ids never matches (a
+`_ids` typo); `casted/playing` compares string times with a number; and the
+scheduled-matches route ignores the season it is given.

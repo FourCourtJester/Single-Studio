@@ -112,7 +112,7 @@ const PACKAGES = ['packages/core', 'packages/provider-supabase']
  * import. Nothing else in the repository looks at a package the way somebody
  * installing it does.
  */
-const PLUGINS = ['packages/plugin-obs', 'packages/plugin-sheets', 'packages/plugin-twitch', 'packages/plugin-rocket-league']
+const PLUGINS = ['packages/plugin-obs', 'packages/plugin-sheets', 'packages/plugin-twitch', 'packages/plugin-rocket-league', 'packages/plugin-ngs']
 
 /**
  * Where npm expects these to say they came from.

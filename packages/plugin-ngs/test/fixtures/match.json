@@ -1,0 +1,78 @@
+{
+  "message": "Found match",
+  "route": "/api/schedule/fetch/match",
+  "returnObject": {
+    "_id": "6ad56e9cef536200226492cf",
+    "vodLinks": [],
+    "idChildren": ["9j1jaymvek8jy5", "9j1jaymvek8jy6"],
+    "challonge_idChildren": ["476254827", "476254828"],
+    "challonge_match_ref": "476254830",
+    "type": "tournament",
+    "season": 22,
+    "challonge_tournament_ref": "18641390",
+    "matchId": "9j1jaymvek8jy8",
+    "round": 2,
+    "divisionConcat": "heroic",
+    "parentId": "9j1jaymvek8jy9",
+    "__v": 0,
+    "home": {
+      "_id": "6ad835123d70d400227130be",
+      "id": "695d8198e510c60020a1ae10",
+      "pos": "home",
+      "teamName": "Pending",
+      "logo": null,
+      "teamName_lower": "pending",
+      "ticker": "PENDING",
+      "score": 2
+    },
+    "away": {
+      "_id": "6ad8a2653d70d400227166ce",
+      "id": "6867226f42add30020ce7f19",
+      "pos": "home",
+      "teamName": "Hat saika and r",
+      "logo": null,
+      "teamName_lower": "hat saika and r",
+      "ticker": "hsr",
+      "score": 3
+    },
+    "boX": 5,
+    "other": {
+      "1": {
+        "winner": "away"
+      },
+      "2": {
+        "winner": "home"
+      },
+      "3": {
+        "winner": "away"
+      },
+      "4": {
+        "winner": "home"
+      },
+      "5": {
+        "winner": "away"
+      },
+      "homeTeamPlayer": "Someone#0000",
+      "awayTeamPlayer": "Someone#0000"
+    },
+    "scheduledTime": {
+      "_id": "6ae1412129fdbd0022d11f92",
+      "endTime": "1793241900000",
+      "priorScheduled": true,
+      "startTime": "1793236500000"
+    },
+    "casterName": "Rakugan The Gorgon",
+    "casterUrl": "https://www.twitch.tv/rakuganvt/",
+    "mapBans": {
+      "awayOne": "Garden of Terror",
+      "awayTwo": "Sky Temple",
+      "homeOne": "Braxis Holdout",
+      "homeTwo": "Volskaya Foundry"
+    },
+    "postedToHP": true,
+    "replays": {
+      "_id": "6ae2cd4187251600225d8ee9"
+    },
+    "reported": true
+  }
+}

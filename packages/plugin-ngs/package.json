@@ -1,0 +1,48 @@
+{
+  "name": "@single-studio/plugin-ngs",
+  "version": "0.15.0",
+  "description": "The Nexus Gaming Series for Single Studio: teams, logos, matches and standings from the Heroes of the Storm league.",
+  "license": "MIT",
+  "author": {
+    "name": "Shaun \"FourCourtJester\" Delaney",
+    "url": "https://github.com/FourCourtJester"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FourCourtJester/Single-Studio.git",
+    "directory": "packages/plugin-ngs"
+  },
+  "homepage": "https://github.com/FourCourtJester/Single-Studio#readme",
+  "bugs": "https://github.com/FourCourtJester/Single-Studio/issues",
+  "type": "module",
+  "keywords": [
+    "single-studio",
+    "single-studio-plugin",
+    "obs",
+    "broadcast",
+    "heroes-of-the-storm",
+    "ngs"
+  ],
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@single-studio/core": "^0.15.0"
+  },
+  "devDependencies": {
+    "@single-studio/core": "workspace:*",
+    "fake-indexeddb": "^6.2.5",
+    "vitest": "^5.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

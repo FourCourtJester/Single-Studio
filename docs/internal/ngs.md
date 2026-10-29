@@ -45,8 +45,8 @@ whose `message` lists what was wanted; an unknown `matchId` is a `400`.
 | `admin/getSeasonInfo`                 | GET    | `season`, optional                 | `{ value, seasonStartDate, … }`           | 0.2s            |
 | `division/get/all`                    | GET    | —                                  | 7 divisions                               | 3KB             |
 | `schedule/fetch/match`                | POST   | `matchId`                          | one match                                 | 3KB, 0.7s       |
-| `schedule/fetch/matches`              | POST   | `season`, `round`, `division`      | a division's round, both kinds            | 15KB            |
-| `schedule/get/matches/scheduled`      | GET    | `season`                           | every match of the season, 278            | 493KB, 1.4s     |
+| `schedule/fetch/matches`              | POST   | `season`; `division`, `round`      | the season's matches, all 321             | 514KB, 1.6s     |
+| `schedule/get/matches/scheduled`      | GET    | — (`season` is ignored)            | only those with a time, 278               | 493KB, 1.4s     |
 | `standings/fetch/division`            | POST   | `season`, `pastSeason`, `division` | a sorted array                            | 2KB, 0.6s       |
 | `team/get`                            | GET    | `team`, `ticker` or **`teamId`**   | one team, roster included                 | 3KB             |
 | `team/fetch/teams`                    | POST   | `teams` (names) or `teamTickers`   | several teams                             | 7KB for two     |
@@ -56,6 +56,14 @@ whose `message` lists what was wanted; an unknown `matchId` is a `400`.
 
 `division` is the `divisionConcat` — `heroic`, `nexus`, `a`, `b-east`, `b-west`,
 `c-east`, `c-west` in season 22 — not the display name.
+
+**The season's matches come from `schedule/fetch/matches`**, with only `season`:
+`division` and `round` are optional, and one division alone is 69KB. The route named
+for scheduled matches looks like the one to use and is not: it keeps only matches
+with a start time, 278 of 321, and reads the current season whatever it is asked.
+Neither match route carries the division's display name — `divisionDisplayName` is on
+0 of 321 from `fetch/matches` and absent from `fetch/match` — so names come from
+`division/get/all`.
 
 ## Where the league's API is wrong, measured
 
@@ -73,7 +81,8 @@ whose `message` lists what was wanted; an unknown `matchId` is a `400`.
   scheduled cast settles it. Built on, it would fail silently, so the plugin does not
   depend on it.
 
-All three are worth reporting upstream.
+All three are worth reporting upstream, along with the scheduled-matches route
+ignoring its `season`.
 
 ## The shapes
 
@@ -99,19 +108,24 @@ All three are worth reporting upstream.
 }
 ```
 
-- `type` is `seasonal` (257 of 278) or `tournament` (21, the playoffs). `boX` is
-  present on only 21: 17 tournament matches say 5, 4 seasonal ones say 3, and 4
-  tournament matches have none. Absent means the model's default of 3, which for a
-  playoff match is probably wrong, so the operator needs a way to say 5.
-- Times are **epoch milliseconds as strings**.
-- `casterName` and `casterUrl` are on 127 of 278.
+Counted over all 321 matches of season 22:
+
+- `type` is `seasonal` (282) or `tournament` (39, the playoffs). `boX` is present on
+  only 26: 22 tournament matches say 5, 4 seasonal ones say 3, and 17 tournament
+  matches have none. Absent means the model's default of 3, which for a playoff
+  match is probably wrong, so the plugin leaves it null rather than guess.
+- Times are **epoch milliseconds as strings**. 43 matches have none: nobody
+  scheduled them. 25 of those are reported anyway, 24 of them as forfeits.
+- **A side can be missing.** Playoff brackets are made ahead of time, and 16 slots
+  were waiting on one team or both, with no `home` or `away` key at all.
+- `casterName` is on 122 of 321.
 - `other` holds the winner of each game, once reported.
 - Some ids are tournament bracket links: `parentId`, `idChildren`, and the
   Challonge references.
 
-**The score is only there once a captain reports the match.** All 13 unreported
-matches had no `score` on either side, including three whose scheduled start had
-passed. So the plugin is not a live scoreboard: during a series the operator keeps the
+**The score is only there once a captain reports the match.** None of the 31
+unreported matches had a `score` on either side, three of them already past their
+start. So the plugin is not a live scoreboard: during a series the operator keeps the
 score, and the league's result arrives after it. The plugin must not overwrite a score
 the operator is keeping with a missing one.
 
@@ -156,22 +170,41 @@ So a logo goes into the show as that URL, and core's `<Image>` draws it as is, w
 its `fallback` for the three teams without one. It cannot be fetched into the asset
 library's IndexedDB, which would need CORS.
 
-## The shape this suggests
+## What was built
 
-A poller in the shape of `plugin-sheets`: one machine asks, an unchanged answer says
-nothing.
+`packages/plugin-ngs`. Not a poller, which is the decision everything else follows
+from: the score — the one thing that changes during a broadcast — is not in the
+league until after it, and the rest changes between shows. Polling would have a
+volunteer league's server answer the same question all night for nothing. So it
+fetches when told, on the machine where it was told; a press is one request, so
+there is nothing for an owner to dedupe.
 
-- **The operator picks a match** by `matchId`. The board could offer the season's
-  unreported matches — 13 of them, from `schedule/get/matches/scheduled` read once —
-  rather than a typed id, which no operator knows.
-- **The match gives** both names, tickers, logos, the division, the best-of, the
-  casters and the reported result. One `schedule/fetch/match`, polled.
-- **The division's standings** come from one `standings/fetch/division`, read when the
-  match is picked and again when it is reported; they do not change in between.
-- **Rosters**, when a graphic wants them, are one `team/get?teamId=` per side.
+| Press, or `ask`     | Requests                                                          | Event     |
+| ------------------- | ----------------------------------------------------------------- | --------- |
+| Fetch season        | `getSeasonInfo`, `division/get/all`, `team/get/registered`        | `season`  |
+| Fetch matches       | `schedule/fetch/matches` (+ season, division names on first need) | `matches` |
+| `load` from a board | `schedule/fetch/match`, `standings/fetch/division`                | `match`   |
+| Refresh match       | the same, for the last match loaded                               | `match`   |
 
-Open: whether "this week's match" should be one selection or a queue; whether the
-season's 493KB schedule is worth reading at all, against asking per division
-(`schedule/fetch/matches`, 15KB for a round); and the poll floor — the league is a
-volunteer one, there are no rate limits in the code, and the plugin should not be the
-reason it needs them.
+Measured live from Node: Fetch season 0.7s for 52 teams, 49 with logos; Fetch
+matches 1.3s for 321; a load gave both sides their record from the table.
+
+- **The waterfall is the board's.** One Fetch matches, then Division and Match are
+  pickers over what the handler wrote, with no request between them. A plugin's panel
+  can hold buttons but not a choice, so loading a chosen match is a mutation
+  (`ngsMutations`, `ngs:load`) that asks the plugin.
+- **Logos go into the image library as URL entries**, `ngs/<team name>`, through
+  `urlAssets` in the studio's handler — the plugin still writes nothing. That needed a
+  fix in core: a URL entry only in the room's index was offered by every picker and
+  drew nothing on a graphic, because `resolveAsset` read only this machine's
+  IndexedDB. A plugin handler writes from the worker, so its entries are only in the
+  index, everywhere. Now `useAssetUrl` falls back to the index for a URL entry; an
+  e2e check deletes a URL entry's local row and still sees the graphic draw it, and
+  fails without the fix.
+- **The map pool is a copy.** The API does not serve it; the league's
+  match-reporting page has it as a list in the code. Twelve maps.
+- **A table that will not come does not lose the match.** Cup divisions answer in a
+  different shape, and none existed to measure.
+
+Still open: whether "this week's match" wants a queue rather than one selection;
+what a cup division's table looks like; and `casted/playing` during a live cast.
