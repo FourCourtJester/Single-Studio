@@ -18,7 +18,6 @@ carry status markers rather than instructions.
 | [twitch.md](twitch.md)               | EventSub, the auth constraint that shapes it, and what is still unverified                                                                       |
 | [local-network.md](local-network.md) | Chrome blocking a public studio from reaching this computer, and the board's Allow button                                                        |
 | [releasing.md](releasing.md)         | Publishing both packages to npm — trusted publishing, tags, and the rehearsal                                                                    |
-| [ngs.md](ngs.md)                     | The Nexus Gaming Series API, measured live: open, any origin allowed, what a Heroes show reads                                                   |
 | [sequence.md](sequence.md)           | `Sequence`: slides of anything on a rotation, why a duration is time in the active state, what starts it, and why each output keeps its own time |
 
 **If you are building a studio, none of this is for you.** Start at

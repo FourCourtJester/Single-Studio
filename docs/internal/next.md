@@ -401,42 +401,29 @@ ready to copy, with the port already filled in.
   memory readers, and replay parsing. Replay parsing only helps after a game, not
   during one.
 
-## An NGS plugin, for Heroes of the Storm
+## The NGS plugin, and the first plugin outside this repository
 
-Asked for on 2026-10-29. NGS is the Nexus Gaming Series, the amateur Heroes of the
-Storm league; FCJ-Heroes-StormInterface, the studio this serves, takes its broadcast
-look from a 2018 NGS show. **Built**, as `packages/plugin-ngs`, and **moving to a
-repository of its own**, with its own versions: it does not ship with Single Studio,
-so it is in neither `release.yml` nor `verify:template`. [ngs.md](ngs.md) has the API
-as measured and what was built; the plugin's README has the handler and the board.
+The Nexus Gaming Series plugin for Heroes of the Storm was built and measured here
+and **moved to [SS-Plugin-NGS-Heroes](https://github.com/FourCourtJester/SS-Plugin-NGS-Heroes)**,
+with its own versions, as `@single-studio/plugin-ngs`. Its findings on the league's
+API went with it, to `docs/league-api.md` there. What stays here is the core fix it
+needed: URL entries known only to the room's index now draw on graphics, and
+`urlAssets` writes them from code.
 
-What the owner asked for, and where it landed:
+It is the first Single Studio plugin made from Single-Studio-Plugin-Template and
+published on its own; every other plugin releases in lockstep with core. Moving it
+out showed three things about the template, none of which `verify:template` can
+see, because it runs the template inside this repository's release:
 
-- **Season > Division > Match > Load.** Fetch season on the plugin's panel;
-  choosing a division on the board fetches only that division's matches and its
-  table; Load is the studio's own mutation and fetches nothing, writing the teams,
-  logos, maps, division and "Game 1 of Y" that are already in the show.
-- **Season info**: the season number, the divisions, every team with logo and
-  roster, and the map pool -- which the league's API does not serve, so it is a copy
-  of the league's own list.
-- **Every logo in the image store under its team's name**: `ngs/<team>` URL
-  entries, through core's new `urlAssets`. That took the core fix above it in the
-  history: a URL entry known only to the room's index drew nothing on a graphic.
-- **No scores, ever, and no refreshing a match.** Team names do not change, and the
-  score is the operator's.
+- **`^0.15.0` as the core peer range locks a plugin to one minor.** On a 0.x
+  version a caret is `>=0.15.0 <0.16.0`, so every core minor puts every standalone
+  plugin in a peer conflict, which npm refuses by default, until each republishes.
+  Lockstep hides it from the first-party plugins. The NGS plugin uses
+  `>=0.15.0 <1.0.0`. The template should say the same, or say why not.
+- **`npm run lint` cannot run.** The template's script is `eslint .`, with no eslint
+  in its dependencies and no config.
+- **No CI and no publishing workflow.** Its AGENTS.md describes publishing by hand.
+  The NGS repository has a test workflow; a publishing one is still to write.
 
-**Waiting on somebody who runs NGS broadcasts:**
-
-- Whether one match at a time is right, or a night wants a queue.
-- The paths FCJ-Heroes-StormInterface actually reads; the README's handler is a guess
-  at them.
-
-**When it moves:** it peers on core and uses `urlAssets` in the README's handler,
-which is new in core and not yet released, so the plugin's first release wants the
-core release that carries it. Its `vitest.config.js` aliases core's source in this
-repository, which will not exist there.
-
-**Worth reporting to the league**, all measured and in [ngs.md](ngs.md): `team/get`
-takes `teamId` where its docs say `id`; `team/fetch/teams` by ids never matches (a
-`_ids` typo); `casted/playing` compares string times with a number; and the
-scheduled-matches route ignores the season it is given.
+**Waiting on somebody who runs NGS broadcasts:** whether one match at a time is
+right, or a night wants a queue; and the paths FCJ-Heroes-StormInterface reads.

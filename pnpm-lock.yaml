@@ -131,18 +131,6 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2(vite@6.4.3(jiti@2.7.0)(lightningcss@1.32.0))
 
-  packages/plugin-ngs:
-    devDependencies:
-      '@single-studio/core':
-        specifier: workspace:*
-        version: link:../core
-      fake-indexeddb:
-        specifier: ^6.2.5
-        version: 6.2.5
-      vitest:
-        specifier: ^5.0.2
-        version: 5.0.2(vite@6.4.3(jiti@2.7.0)(lightningcss@1.32.0))
-
   packages/plugin-obs:
     devDependencies:
       '@single-studio/core':
