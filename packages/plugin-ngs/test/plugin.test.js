@@ -51,7 +51,7 @@ const league = (over = {}) => {
 
 /** A studio's handler that records what it was told. */
 const watching = () => {
-  const told = { season: [], matches: [], match: [], problem: [] }
+  const told = { season: [], matches: [], problem: [] }
 
   class MyShow extends NgsHandler {
     onSeason(payload) {
@@ -60,10 +60,6 @@ const watching = () => {
 
     onMatches(payload) {
       told.matches.push(payload)
-    }
-
-    onMatch(payload) {
-      told.match.push(payload)
     }
 
     onProblem(payload) {
@@ -141,8 +137,9 @@ describe('choosing a division', () => {
     await vi.waitFor(() => expect(told.matches).toHaveLength(1))
 
     // The season was not known, so it was asked for first.
-    expect(asked.map((request) => request.route)).toEqual(['admin/getSeasonInfo', 'schedule/fetch/matches', 'division/get/all'])
+    expect(asked.map((request) => request.route)).toEqual(['admin/getSeasonInfo', 'schedule/fetch/matches', 'division/get/all', 'standings/fetch/division'])
     expect(asked[1].sent).toEqual({ season: 22, division: 'nexus' })
+    expect(asked[3].sent).toEqual({ season: 22, pastSeason: false, division: 'nexus' })
     expect(told.matches[0].division).toBe('nexus')
     expect(new Set(told.matches[0].matches.map((match) => match.division))).toEqual(new Set(['nexus']))
   })
@@ -159,7 +156,7 @@ describe('choosing a division', () => {
     expect(told.problem[0].message).toBe('Choose a division first.')
   })
 
-  it('once the season is fetched, a division is one request', async () => {
+  it('once the season is fetched, a division is its matches and its table, nothing else', async () => {
     const { asked } = league()
     const { MyShow, told } = watching()
     const plugin = build(MyShow)
@@ -170,7 +167,10 @@ describe('choosing a division', () => {
     plugin.command('matches', { division: 'heroic' })
     await vi.waitFor(() => expect(told.matches).toHaveLength(1))
 
-    expect(asked).toEqual([{ route: 'schedule/fetch/matches', sent: { season: 22, division: 'heroic' }, method: 'POST' }])
+    expect(asked).toEqual([
+      { route: 'schedule/fetch/matches', sent: { season: 22, division: 'heroic' }, method: 'POST' },
+      { route: 'standings/fetch/division', sent: { season: 22, pastSeason: false, division: 'heroic' }, method: 'POST' },
+    ])
   })
 
   it('a match is named by its division as the operator knows it, which the league’s match routes leave out', async () => {
@@ -182,11 +182,6 @@ describe('choosing a division', () => {
     await vi.waitFor(() => expect(told.matches).toHaveLength(1))
 
     expect(told.matches[0].matches.find((match) => match.id === '9j1jaymvek8jy8').divisionName).toBe('Heroic')
-
-    plugin.command('load', { id: '9j1jaymvek8jy8' })
-    await vi.waitFor(() => expect(told.match).toHaveLength(1))
-
-    expect(told.match[0].match.divisionName).toBe('Heroic')
   })
 
   it('matches come soonest first, with the unscheduled ones last', async () => {
@@ -206,48 +201,48 @@ describe('choosing a division', () => {
   })
 })
 
-describe('loading a match', () => {
-  it('a chosen match arrives with its division’s table and each side’s record', async () => {
+describe('a division’s table', () => {
+  it('every match in a division arrives already carrying both teams’ records, so loading one needs nothing more', async () => {
     league()
     const { MyShow, told } = watching()
-    const plugin = build(MyShow)
 
-    expect(plugin.command('load', { id: '9j1jaymvek8jy8' })).toBe(true)
-    await vi.waitFor(() => expect(told.match).toHaveLength(1))
+    build(MyShow).command('matches', { division: 'heroic' })
+    await vi.waitFor(() => expect(told.matches).toHaveLength(1))
 
-    const [{ match, standings }] = told.match
+    const [{ matches, standings }] = told.matches
+    const match = matches.find((one) => one.id === '9j1jaymvek8jy8')
 
-    expect(match).toMatchObject({ id: '9j1jaymvek8jy8', division: 'heroic', home: { name: 'Pending' }, away: { name: 'Hat saika and r' } })
-    expect(match.home.record).toMatchObject({ rank: 2, points: 28 })
-    expect(match.away.record).toMatchObject({ rank: 3, points: 25 })
+    expect(match).toMatchObject({
+      home: { name: 'Pending', record: { rank: 2, points: 28 } },
+      away: { name: 'Hat saika and r', record: { rank: 3, points: 25 } },
+    })
     expect(standings[0]).toMatchObject({ name: 'Stormblessed', rank: 1 })
   })
 
-  it('a match whose table will not come still loads, and the panel says it came without one', async () => {
+  it('a table that will not come still brings the matches, and the panel says it came without one', async () => {
     league({ 'standings/fetch/division': () => answer(500, { message: 'down' }) })
     const { MyShow, told } = watching()
     const plugin = build(MyShow)
 
-    plugin.command('load', { id: '9j1jaymvek8jy8' })
-    await vi.waitFor(() => expect(told.match).toHaveLength(1))
+    plugin.command('matches', { division: 'heroic' })
+    await vi.waitFor(() => expect(told.matches).toHaveLength(1))
 
-    expect(told.match[0].standings).toBeNull()
-    expect(told.match[0].match.home.record).toBeNull()
+    expect(told.matches[0].matches).toHaveLength(2)
+    expect(told.matches[0].standings).toBeNull()
+    expect(told.matches[0].matches[0].home.record).toBeNull()
     expect(plugin.notice.text).toMatch(/without the table/)
   })
 
-  it('a match the league does not know says so, and nothing is written', async () => {
-    league()
+  it('a division the league cannot answer for says so, and nothing is written', async () => {
+    league({ 'schedule/fetch/matches': () => answer(400, { message: 'Bad Request' }) })
     const { MyShow, told } = watching()
     const plugin = build(MyShow)
 
-    plugin.command('load', { id: 'not-a-match' })
+    plugin.command('matches', { division: 'nowhere' })
     await vi.waitFor(() => expect(told.problem).toHaveLength(1))
 
-    expect(told.match).toHaveLength(0)
-    expect(told.problem[0].message).toMatch(/no match "not-a-match"/)
+    expect(told.matches).toHaveLength(0)
     expect(plugin.status).toBe('error')
-    expect(plugin.problem).toMatch(/no match/)
   })
 })
 
@@ -308,7 +303,7 @@ describe('from a board', () => {
   it('a command the plugin does not take throws, naming the ones it does', () => {
     league()
 
-    expect(() => build().command('teleport')).toThrow(/accepts season, matches, load/)
+    expect(() => build().command('teleport')).toThrow(/accepts season, matches/)
   })
 
   it('the board’s mutations ask the plugin and write nothing themselves', () => {
@@ -318,14 +313,12 @@ describe('from a board', () => {
     ngsMutations['ngs:season'](ctx)
     ngsMutations['ngs:matches'](ctx, { division: 'heroic' })
     ngsMutations['ngs:matches'](ctx, {})
-    ngsMutations['ngs:load'](ctx, { id: '9j1jaymvek8jy8' })
-    ngsMutations['ngs:load'](ctx, {})
 
     expect(ask.mock.calls).toEqual([
       ['ngs', 'season'],
       ['ngs', 'matches', { division: 'heroic' }],
-      ['ngs', 'load', { id: '9j1jaymvek8jy8' }],
     ])
     expect(ctx.set).not.toHaveBeenCalled()
+    expect(Object.keys(ngsMutations)).toEqual(['ngs:season', 'ngs:matches'])
   })
 })

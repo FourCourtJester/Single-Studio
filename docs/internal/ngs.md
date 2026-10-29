@@ -182,21 +182,33 @@ board. What the plugin brings changes between shows, so it fetches when told, on
 machine where it was told; a press is one request, so there is nothing for an owner
 to dedupe.
 
-It is a waterfall, and each step is a filter the league applies, not one applied
-after a download:
+It is a waterfall, **Season > Division > Match > Load**, and each fetch is a filter
+the league applies, not one applied after a download:
 
-| Step                      | Requests                                                   | Event     |
-| ------------------------- | ---------------------------------------------------------- | --------- |
-| Fetch season (panel)      | `getSeasonInfo`, `division/get/all`, `team/get/registered` | `season`  |
-| Choose a division (board) | `schedule/fetch/matches` with `season` and `division`      | `matches` |
-| Load a match (board)      | `schedule/fetch/match`, `standings/fetch/division`         | `match`   |
+| Step                      | Requests                                                        | Event     |
+| ------------------------- | --------------------------------------------------------------- | --------- |
+| Fetch season (panel)      | `getSeasonInfo`, `division/get/all`, `team/get/registered`      | `season`  |
+| Choose a division (board) | `schedule/fetch/matches` and `standings/fetch/division`, for it | `matches` |
+| Choose a match, Load      | nothing                                                         |           |
 
 A division is 43 matches, 69KB, 0.6s, where the whole season was 321, 514KB, 1.6s.
 The first version fetched the whole season and filtered on the board; asked whether
 the steps were filters, it was rebuilt so they are.
 
-- **Choosing and loading are the board's.** A plugin's panel holds buttons, not
-  choices, so they are mutations (`ngsMutations`) that ask the plugin.
+- **Load is the studio's own mutation, and fetches nothing.** The table is per
+  division, so it comes with the division's matches, and every match in the list
+  already carries both teams' names, logos and records, its division and its
+  best-of. Load reads the show and writes the studio's paths -- teams, logos, maps,
+  the division, "Game 1 of Y" -- in one transaction, pressed once before going live.
+  It is not in the plugin, because the paths are the studio's.
+- **Best-of is always filled.** A board says "Game 1 of Y" and a blank there is a
+  broken graphic. Stated on 26 of 321; every playoff match that states it says 5
+  (22 of 22) and the regular-season ones say 3, the league's default -- so unstated
+  is 5 for a playoff match and 3 otherwise, with `bestOfStated` false. Six playoff
+  matches with both teams decided stated nothing, in B East, B West, Nexus and C
+  East; for those it is a well-founded guess.
+- **Choosing a division is the board's.** A plugin's panel holds buttons, not
+  choices, so it is a mutation (`ngs:matches`) that asks the plugin.
 - **No score anywhere.** A match side is `{ id, name, ticker, logo, record }`; the
   bans and per-game winners, which exist only once a match is reported, are not
   carried either. `reported` stays, so a picker can leave played matches out.
@@ -211,8 +223,9 @@ the steps were filters, it was rebuilt so they are.
   draws nothing, which is unchanged.
 - **The map pool is a copy.** The API does not serve it; the league's
   match-reporting page has it as a list in the code. Twelve maps.
-- **A table that will not come does not lose the match.** Cup divisions answer in a
-  different shape, and none existed to measure.
+- **A table that will not come does not lose the matches.** They arrive with every
+  record null. Cup divisions answer in a different shape, and none existed to
+  measure.
 
 Still open: whether "this week's match" wants a queue rather than one selection;
 what a cup division's table looks like; and `casted/playing` during a live cast.

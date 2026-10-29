@@ -22,21 +22,24 @@ const BUDGET_MS = 20_000
  * the operator's: it is never asked for. Asking every thirty seconds would be a
  * volunteer league's server answering the same question all night for nothing.
  *
- * It is a waterfall, and each step narrows the next at the league rather than after
- * the download:
+ * It is a waterfall, Season > Division > Match > Load, and each fetch narrows the
+ * next at the league rather than after the download:
  *
  *   season    the number, divisions, teams with logos and rosters, the maps
- *   matches   one division's matches                  -- needs a division
- *   load      one match, with its division's table    -- needs a match
+ *   matches   one division's matches and its table      -- needs a division
  *
- * Fetch season is a button on the plugin's panel. The other two need a choice, and
- * a panel can hold buttons but not a choice, so they are commands a board's pickers
- * reach through `ask`. Each runs on the machine where it was asked: one request,
- * not a poll, so there is nothing for an owner to dedupe.
+ * Choosing a match and loading it fetch nothing: by then every match in the list
+ * carries its teams, logos, records and best-of, and Load is the studio's own
+ * mutation writing them, so going live never waits on the league.
+ *
+ * Fetch season is a button on the plugin's panel. A division is a choice, and a
+ * panel holds buttons but not choices, so it is a command a board's picker reaches
+ * through `ask`. Each runs on the machine where it was asked: one request, not a
+ * poll, so there is nothing for an owner to dedupe.
  */
 class Ngs extends PluginBase {
   /** What `command` takes. */
-  static commands = { season: true, matches: true, load: true }
+  static commands = { season: true, matches: true }
 
   /** The season the other two are asked about. Learned on first need, then kept. */
   #season = null
@@ -80,7 +83,7 @@ class Ngs extends PluginBase {
   }
 
   /**
-   * The same, from a board: `ctx.ask('ngs', 'load', { id })`.
+   * The same, from a board: `ctx.ask('ngs', 'matches', { division })`.
    *
    * An unknown name throws, as every plugin's `command` does -- it is a typo in a
    * studio's own code. Anything else returns at once and reports through events
@@ -101,7 +104,6 @@ class Ngs extends PluginBase {
     try {
       if (name === 'season') await this.#fetchSeason()
       else if (name === 'matches') await this.#fetchMatches(data)
-      else if (name === 'load') await this.#load(data?.id)
       else throw new Error(`ngs cannot "${name}"`)
 
       this.status = 'connected'
@@ -185,74 +187,47 @@ class Ngs extends PluginBase {
   }
 
   /**
-   * One division's matches.
+   * One division's matches, each carrying both teams' records.
    *
    * A division, always: the league filters, so a pick is the 43 matches of Heroic
    * (69KB, 0.6s) rather than all 321 of the season (514KB, 1.6s) filtered here.
    *
+   * The division's table comes in the same step, because it is per division too,
+   * and because it means every match in the list is already whole: names, logos,
+   * records, best-of. Loading one is then the studio's own mutation reading the
+   * show, with nothing to ask the league at the moment an operator goes live.
+   *
    * `schedule/fetch/matches` rather than the route named for scheduled matches,
    * which leaves out every match without a time -- 43 of season 22's 321 -- and
    * ignores the season it is given.
+   *
+   * A table that will not come is not a reason to lose the matches. Cup divisions
+   * answer in a different shape, and none existed in season 22 to measure against.
    */
   async #fetchMatches({ division } = {}) {
     if (!division) throw new Error('Choose a division first.')
 
     const season = await this.#currentSeason()
-    const [raw, names] = await Promise.all([this.#ask('schedule/fetch/matches', { body: { season, division } }), this.#divisionNames()])
+    const [raw, names, standings] = await Promise.all([
+      this.#ask('schedule/fetch/matches', { body: { season, division } }),
+      this.#divisionNames(),
+      this.#ask('standings/fetch/division', { body: { season, pastSeason: false, division } }).then(
+        (rows) => (Array.isArray(rows) ? rows.map(standingOf) : null),
+        () => null,
+      ),
+    ])
+    const recordOf = (side) => (side && standings ? (standings.find((row) => row.id === side.id) ?? null) : null)
     const matches = (raw ?? [])
       .map(matchOf)
-      .map((match) => this.#named(match, names))
+      .map((match) => ({
+        ...this.#named(match, names),
+        home: match.home && { ...match.home, record: recordOf(match.home) },
+        away: match.away && { ...match.away, record: recordOf(match.away) },
+      }))
       .sort((a, b) => (a.start ?? Infinity) - (b.start ?? Infinity) || String(a.id).localeCompare(String(b.id)))
 
-    this.#said = `${matches.length} matches in ${names.get(division) ?? division}, season ${season}.`
-    this.emit('matches', { season, division, matches })
-  }
-
-  /**
-   * One match, and the table its two teams sit in.
-   *
-   * The table is asked for in the same press because a scoreboard writes a team's
-   * name and its record together: one event, so a studio can write both in one
-   * transaction and the graphics never show one without the other.
-   *
-   * A table that will not come is not a reason to lose the match. Cup divisions
-   * answer in a different shape, and none existed in season 22 to measure against.
-   */
-  async #load(id) {
-    if (!id) throw new Error('Choose a match first.')
-
-    let raw = null
-
-    try {
-      raw = await this.#ask('schedule/fetch/match', { body: { matchId: id } })
-    } catch (error) {
-      // An id the league does not know is a 400, measured, with no useful message.
-      if (error?.status === 400) throw new Error(`The league has no match "${id}". Fetch the matches again and choose from the list.`)
-      throw error
-    }
-
-    if (!raw) throw new Error(`The league has no match "${id}".`)
-
-    const match = this.#named(matchOf(raw), await this.#divisionNames())
-    let standings = null
-
-    if (match.division && match.season) {
-      try {
-        const rows = await this.#ask('standings/fetch/division', { body: { season: match.season, pastSeason: false, division: match.division } })
-
-        standings = Array.isArray(rows) ? rows.map(standingOf) : null
-      } catch {
-        standings = null
-      }
-    }
-
-    const recordOf = (side) => (side && standings ? (standings.find((row) => row.id === side.id) ?? null) : null)
-
-    if (match.home) match.home.record = recordOf(match.home)
-    if (match.away) match.away.record = recordOf(match.away)
-
-    this.#said = `Loaded ${match.divisionName} round ${match.round ?? '?'}: ${match.home?.name || 'to be decided'} vs ${match.away?.name || 'to be decided'}${standings ? '' : ', without the table'}.`
-    this.emit('match', { match, standings })
+    this.#said = `${matches.length} matches in ${names.get(division) ?? division}, season ${season}${standings ? '' : ', without the table'}.`
+    this.emit('matches', { season, division, matches, standings })
   }
 }
 
@@ -260,29 +235,28 @@ class Ngs extends PluginBase {
  * The skeleton a studio fills in.
  *
  * `onSeason({ season, divisions, teams, maps })`, `onMatches({ season, division,
- * matches })`, `onMatch({ match, standings })` and `onProblem({ status, message })`.
+ * matches, standings })` and `onProblem({ status, message })`.
  * What each carries is in the README.
  */
 export class NgsHandler extends PluginHandler {
-  static handles = { season: 'onSeason', matches: 'onMatches', match: 'onMatch', problem: 'onProblem' }
+  static handles = { season: 'onSeason', matches: 'onMatches', problem: 'onProblem' }
 
   onSeason() {}
 
   onMatches() {}
 
-  onMatch() {}
-
   onProblem() {}
 }
 
 /**
- * Mutations that reach the plugin, for a board's buttons and pickers.
+ * Mutations that reach the plugin, for a board's button and division picker.
  *
  *   createVelcroHost({ mutations: { ...mutations, ...ngsMutations }, plugins: [ngs(MyShow)] })
- *   useVelcroMutate()('ngs:load', { id })
+ *   useVelcroMutate()('ngs:matches', { division })
  *
  * They do nothing to the show themselves. They ask, the plugin fetches, and the
- * studio's handler writes what came back.
+ * studio's handler writes what came back. Load is not here: it writes the
+ * studio's own paths, so it is the studio's mutation -- see the README.
  */
 export const ngsMutations = {
   'ngs:season'(ctx) {
@@ -290,9 +264,6 @@ export const ngsMutations = {
   },
   'ngs:matches'(ctx, { division } = {}) {
     if (division) ctx.ask('ngs', 'matches', { division })
-  },
-  'ngs:load'(ctx, { id } = {}) {
-    if (id) ctx.ask('ngs', 'load', { id })
   },
 }
 
@@ -310,8 +281,8 @@ export const ngs = (Handler = NgsHandler) =>
         type: 'steps',
         items: [
           'Press Fetch season once a show, or whenever teams change. It brings the season number, the divisions, every team with its logo and roster, and the map pool.',
-          'On the board, choose a division. Its matches are fetched.',
-          'Choose a match and load it. Its teams and their records come in with it.',
+          'On the board, choose a division. Its matches and its table are fetched.',
+          'Choose a match and press Load before going live. Nothing is fetched then: it is all already here.',
         ],
       },
       { type: 'note', text: 'Scores are kept on the board. This never fetches one.' },

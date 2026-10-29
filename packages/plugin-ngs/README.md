@@ -12,22 +12,28 @@ npm i @single-studio/plugin-ngs
 ## What it does, and when
 
 Nothing on its own, and never a score: the score is the operator's, kept on the
-board. What it brings changes between shows, not during one, so it fetches when the
-operator says, as a waterfall where each step narrows the next at the league:
+board. It is a waterfall — **Season > Division > Match > Load** — and each fetch
+narrows the next at the league:
 
 | Step              | Asks the league for                                           | Your handler hears |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
 | Fetch season      | the season number, divisions, every team with logo and roster | `onSeason`         |
-| Choose a division | that division's matches, scheduled or not                     | `onMatches`        |
-| Load a match      | that match, with its division's table                         | `onMatch`          |
+| Choose a division | that division's matches, and its table                        | `onMatches`        |
+| Choose a match    | nothing                                                       |                    |
+| Load              | nothing                                                       |                    |
 
-Fetch season is a button on the plugin's panel in **Settings → Plugins**. The other
-two are choices, and a panel holds buttons but not choices, so they are the board's —
-see below.
+By the time an operator chooses a match, every match in the list already carries
+both teams' names, logos and records, its division and its best-of. So **Load is
+your own mutation**, writing what is already in the show to the paths your graphics
+read, in one transaction. Going live never waits on the league.
 
-## The handler
+Fetch season is a button on the plugin's panel in **Settings → Plugins**, and
+`ngs:season` lets a board press it too. Choosing a division is `ngs:matches`.
 
-A plugin never writes to your show; your handler does, at your paths.
+## The handler, and Load
+
+A plugin never writes to your show; your handler and your mutations do, at your
+paths. The paths below are an example.
 
 ```js
 // src/studio/velcro.worker.js
@@ -46,51 +52,48 @@ class Heroes extends NgsHandler {
   }
 
   onMatches({ matches }) {
-    // What the board's match picker chooses from: what a picker shows, and only
-    // what is still to be played.
+    // The match picker's choices, each whole, so Load has everything it needs.
     this.mutate('set', {
       'variables.ngs.matches': matches
         .filter((match) => !match.reported)
-        .map(({ id, division, divisionName, round, start, home, away }) => ({
-          id,
-          division,
-          label: `${divisionName} r${round}: ${home?.name ?? 'TBD'} vs ${away?.name ?? 'TBD'}`,
-          start,
-        })),
-    })
-  }
-
-  onMatch({ match, standings }) {
-    const { home, away } = match
-
-    // One call, one transaction: the graphics never show a name without its logo.
-    this.mutate('set', {
-      'variables.home.name': home?.name ?? 'TBD',
-      'variables.home.short': home?.ticker ?? '',
-      'variables.home.logo': home?.logo ?? '',
-      'variables.home.record': home?.record ? `${home.record.wins}–${home.record.losses}` : '',
-      'variables.away.name': away?.name ?? 'TBD',
-      'variables.away.short': away?.ticker ?? '',
-      'variables.away.logo': away?.logo ?? '',
-      'variables.away.record': away?.record ? `${away.record.wins}–${away.record.losses}` : '',
-      'variables.match.bestOf': match.bestOf ?? 3,
-      'variables.standings': (standings ?? []).map((row) => `${row.name}\t${row.wins}\t${row.losses}`).join('\n'),
+        .map((match) => ({ ...match, label: `${match.divisionName} r${match.round}: ${match.home?.name ?? 'TBD'} vs ${match.away?.name ?? 'TBD'}` })),
     })
   }
 }
 
-createVelcroHost({ name: STUDIO_ID, mutations: { ...mutations, ...ngsMutations }, plugins: [ngs(Heroes)] })
+const record = (side) => (side?.record ? `${side.record.wins}–${side.record.losses}` : '')
+
+const load = {
+  // Pressed once, before going live.
+  'ngs:load'(ctx, { id } = {}) {
+    const match = (ctx.read('variables.ngs.matches') ?? []).find((one) => one.id === id)
+
+    if (!match) return
+
+    ctx.set({
+      'variables.home.name': match.home?.name ?? 'TBD',
+      'variables.home.logo': match.home?.logo ?? '',
+      'variables.home.record': record(match.home),
+      'variables.away.name': match.away?.name ?? 'TBD',
+      'variables.away.logo': match.away?.logo ?? '',
+      'variables.away.record': record(match.away),
+      'variables.maps': ctx.read('variables.ngs.maps') ?? [],
+      'variables.tournament.division': match.divisionName,
+      'variables.tournament.game': `Game 1 of ${match.bestOf}`,
+    })
+  },
+}
+
+createVelcroHost({ name: STUDIO_ID, mutations: { ...mutations, ...ngsMutations, ...load }, plugins: [ngs(Heroes)] })
 ```
 
-`ngsMutations` are three mutations that only ask the plugin — `ngs:season`,
-`ngs:matches` with a `division`, and `ngs:load` with an `id`. They write nothing
-themselves.
+A team with no logo writes an empty logo, which in Single Studio means no value at
+all, so whatever your graphic does for a team without one is what shows.
 
-## The board: division, then match
+## The board
 
 The pickers are a choice the operator is making, not show state, so they live in the
-component. Choosing a division fetches its matches; pressing **Load** fetches the
-match. What comes back goes through your handler.
+component.
 
 ```jsx
 import { useState } from 'react'
@@ -157,20 +160,22 @@ directly.
   (`{ key, name, order, teams }`, in the league's order), `teams`
   (`{ id, name, ticker, logo, division, captain, members }`), and `maps`, the
   twelve-map pool.
-- **`onMatches`** — `season`, `division`, `matches`: soonest first, unscheduled
-  last. `reported` says a match has been played, for leaving it out of a picker.
-- **`onMatch`** — `match` and `standings`. Each match side is
-  `{ id, name, ticker, logo, record }`, or null for a playoff slot still waiting on
-  a team. No score, ever. `standings` is the division's table in the league's order, or
-  null if the league would not give it.
+- **`onMatches`** — `season`, `division`, `matches` and `standings`. Matches come
+  soonest first, unscheduled last, each with `divisionName`, `round`, `bestOf`,
+  `start`, `caster` and `reported` — played, for leaving it out of a picker. Each
+  side is `{ id, name, ticker, logo, record }`, or null for a playoff slot still
+  waiting on a team. No score, ever. `standings` is the division's table in the
+  league's order, or null if the league would not give it; then every `record` is
+  null too.
 - **`onProblem`** — `{ status, message }`, also shown on the plugin's panel.
 
 Things that are easy to get wrong, all measured on the live league:
 
 - **`wins` and `losses` in a record are maps**, not matches.
-- **`bestOf` is null when the league does not say**, which it does not for most
-  matches, including some playoff ones. The handler above falls back to 3; a playoff
-  match is usually 5.
+- **`bestOf` is always a number, but often filled rather than stated.** The league
+  states it on 26 of 321 matches. Unstated, it is 5 for a playoff match — as all 22
+  playoff matches that state it say — and 3 otherwise, the league's own default.
+  `bestOfStated` says which.
 - **`start` is null for a match nobody has scheduled**, 43 of 321 in season 22.
 - **A team is called `Pending`.** It is a real team.
 

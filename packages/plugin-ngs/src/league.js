@@ -167,10 +167,14 @@ export function sideOf(raw) {
  * A side is null when the league does not know it yet. Playoff brackets are made
  * ahead of time, and 16 of season 22's slots were waiting on one team or both.
  *
- * `bestOf` is the league's `boX`, which only 26 of 321 carry: 22 playoff matches
- * say 5, four regular-season ones say 3, and the other 17 playoff matches say
- * nothing. Left null rather than guessed, because a guess of 3 is wrong for exactly
- * the matches a show is most likely to be broadcasting.
+ * `bestOf` is always a number, because a board says "Game 1 of 5" before a show
+ * and a blank there is a broken graphic. The league states it as `boX` on only 26
+ * of season 22's 321 matches: all 22 playoff matches that state it say 5, and the 4
+ * regular-season ones say 3, which is also the league's own default. So a match
+ * that does not say is filled the same way -- 5 for a playoff match, 3 otherwise --
+ * and `bestOfStated` is false, for a board that wants to show it was filled. Six
+ * playoff matches with both teams decided said nothing, in B East, B West, Nexus and
+ * C East; the fill is a guess for those, if a well-founded one.
  */
 export function matchOf(raw) {
   const time = raw?.scheduledTime ?? {}
@@ -183,7 +187,8 @@ export function matchOf(raw) {
     divisionName: raw?.divisionDisplayName ?? raw?.divisionConcat ?? '',
     round: number(raw?.round),
     type: raw?.type ?? null,
-    bestOf: number(raw?.boX),
+    bestOf: number(raw?.boX) ?? (raw?.type === 'tournament' ? 5 : 3),
+    bestOfStated: number(raw?.boX) !== null,
     start: number(time.startTime),
     end: number(time.endTime),
     // Whether it has been played and reported, so a picker can leave it out. The

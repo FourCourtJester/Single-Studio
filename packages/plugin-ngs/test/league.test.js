@@ -129,8 +129,13 @@ describe('a match', () => {
     expect(slot.away).toMatchObject({ name: "Durotan's Couch" })
   })
 
-  it('a match that does not say how many games it is best of is not guessed at', () => {
-    expect(matchOf(byId('9xwoymsi1cxeh')).bestOf).toBeNull()
+  it('a match always says how many games it is best of, so a board can say Game 1 of Y', () => {
+    // Stated by the league.
+    expect(matchOf(byId('9j1jaymvek8jy8'))).toMatchObject({ bestOf: 5, bestOfStated: true })
+    // Not stated: the league's own default for the regular season...
+    expect(matchOf(byId('9xwoymsi1cxeh'))).toMatchObject({ bestOf: 3, bestOfStated: false })
+    // ...and 5 for a playoff match, as every playoff match that states it says.
+    expect(matchOf(byId('avwymv5o4sbg'))).toMatchObject({ bestOf: 5, bestOfStated: false })
   })
 
   it('the caster comes with the match when one signed up', () => {

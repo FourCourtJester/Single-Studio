@@ -412,9 +412,10 @@ as measured and what was built; the plugin's README has the handler and the boar
 
 What the owner asked for, and where it landed:
 
-- **Season, then division, then match, each a filter.** Fetch season on the
-  plugin's panel; choosing a division on the board fetches only that division's
-  matches; loading a match fetches it with its division's table.
+- **Season > Division > Match > Load.** Fetch season on the plugin's panel;
+  choosing a division on the board fetches only that division's matches and its
+  table; Load is the studio's own mutation and fetches nothing, writing the teams,
+  logos, maps, division and "Game 1 of Y" that are already in the show.
 - **Season info**: the season number, the divisions, every team with logo and
   roster, and the map pool -- which the league's API does not serve, so it is a copy
   of the league's own list.

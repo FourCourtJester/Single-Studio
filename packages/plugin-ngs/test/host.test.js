@@ -15,11 +15,8 @@ import { logos, ngs, ngsMutations, NgsHandler } from '../src/index'
 const fixture = (name) => JSON.parse(readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8'))
 const answer = (json, status = 200) => ({ ok: status < 400, status, text: async () => JSON.stringify(json) })
 
-/** The two matches a board might load: one reported, one still to be played. */
-const reported = fixture('match')
-const upcoming = { ...fixture('matches'), returnObject: fixture('matches').returnObject.find((match) => match.matchId === 'avwymv5o4sbc') }
-
-const league = () =>
+/** `unplayed` serves every match as not yet reported, as on the night it is broadcast. */
+const league = ({ unplayed = false } = {}) =>
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url, init = {}) => {
@@ -32,16 +29,20 @@ const league = () =>
       if (route === 'schedule/fetch/matches') {
         const all = fixture('matches')
 
-        return answer({ ...all, returnObject: all.returnObject.filter((match) => match.divisionConcat === sent.division) })
+        return answer({
+          ...all,
+          returnObject: all.returnObject
+            .filter((match) => match.divisionConcat === sent.division)
+            .map((match) => (unplayed ? { ...match, reported: false } : match)),
+        })
       }
       if (route === 'standings/fetch/division') return answer(fixture('standings'))
-      if (route === 'schedule/fetch/match') return answer(sent.matchId === 'avwymv5o4sbc' ? upcoming : reported)
 
       return answer({ message: 'no route' }, 404)
     }),
   )
 
-/** The README's handler, kept in step with it by hand. */
+/** The README's handler and Load mutation, kept in step with it by hand. */
 class Heroes extends NgsHandler {
   onSeason({ season, divisions, maps, teams }) {
     this.mutate('set', urlAssets(logos(teams)))
@@ -56,31 +57,31 @@ class Heroes extends NgsHandler {
     this.mutate('set', {
       'variables.ngs.matches': matches
         .filter((match) => !match.reported)
-        .map(({ id, division, divisionName, round, start, home, away }) => ({
-          id,
-          division,
-          label: `${divisionName} r${round}: ${home?.name ?? 'TBD'} vs ${away?.name ?? 'TBD'}`,
-          start,
-        })),
+        .map((match) => ({ ...match, label: `${match.divisionName} r${match.round}: ${match.home?.name ?? 'TBD'} vs ${match.away?.name ?? 'TBD'}` })),
     })
   }
+}
 
-  onMatch({ match, standings }) {
-    const { home, away } = match
+const record = (side) => (side?.record ? `${side.record.wins}–${side.record.losses}` : '')
 
-    this.mutate('set', {
-      'variables.home.name': home?.name ?? 'TBD',
-      'variables.home.short': home?.ticker ?? '',
-      'variables.home.logo': home?.logo ?? '',
-      'variables.home.record': home?.record ? `${home.record.wins}–${home.record.losses}` : '',
-      'variables.away.name': away?.name ?? 'TBD',
-      'variables.away.short': away?.ticker ?? '',
-      'variables.away.logo': away?.logo ?? '',
-      'variables.away.record': away?.record ? `${away.record.wins}–${away.record.losses}` : '',
-      'variables.match.bestOf': match.bestOf ?? 3,
-      'variables.standings': (standings ?? []).map((row) => `${row.name}\t${row.wins}\t${row.losses}`).join('\n'),
+const load = {
+  'ngs:load'(ctx, { id } = {}) {
+    const match = (ctx.read('variables.ngs.matches') ?? []).find((one) => one.id === id)
+
+    if (!match) return
+
+    ctx.set({
+      'variables.home.name': match.home?.name ?? 'TBD',
+      'variables.home.logo': match.home?.logo ?? '',
+      'variables.home.record': record(match.home),
+      'variables.away.name': match.away?.name ?? 'TBD',
+      'variables.away.logo': match.away?.logo ?? '',
+      'variables.away.record': record(match.away),
+      'variables.maps': ctx.read('variables.ngs.maps') ?? [],
+      'variables.tournament.division': match.divisionName,
+      'variables.tournament.game': `Game 1 of ${match.bestOf}`,
     })
-  }
+  },
 }
 
 const until = async (predicate, why) => {
@@ -97,7 +98,7 @@ let n = 0
 const studio = async () => {
   n += 1
 
-  const made = createVelcroHost({ name: `ngs-host-${n}`, persist: false, mutations: { ...ngsMutations }, plugins: [ngs(Heroes)] })
+  const made = createVelcroHost({ name: `ngs-host-${n}`, persist: false, mutations: { ...ngsMutations, ...load }, plugins: [ngs(Heroes)] })
 
   await made.started
 
@@ -139,16 +140,23 @@ describe('a studio running the plugin', () => {
     expect(offered[1].label).toBe("Nexus r2: TBD vs Durotan's Couch")
   })
 
-  it('loading a match puts both teams and their records on the scoreboard', async () => {
-    league()
+  it('Season, Division, Match, Load: everything Load writes is already in the show: teams, logos, maps, division and Game 1 of Y', async () => {
+    league({ unplayed: true })
     const made = await studio()
 
-    made.mutate('ngs:load', { id: '9j1jaymvek8jy8' })
-    await until(() => Doc.read(made.doc, 'variables.home.name') === 'Pending', 'the match to land')
+    await made.actPlugin('ngs', 'season')
+    made.mutate('ngs:matches', { division: 'heroic' })
+    await until(() => Doc.read(made.doc, 'variables.ngs.matches')?.length === 2, 'Heroic’s matches to land')
 
+    made.mutate('ngs:load', { id: '9j1jaymvek8jy8' })
+
+    expect(Doc.read(made.doc, 'variables.home.name')).toBe('Pending')
     expect(Doc.read(made.doc, 'variables.away.name')).toBe('Hat saika and r')
+    // Pending has no logo: no value at all, so the studio's own no-logo design shows.
+    expect(Doc.read(made.doc, 'variables.home.logo')).toBeUndefined()
     expect(Doc.read(made.doc, 'variables.home.record')).toBe('14–2')
-    expect(Doc.read(made.doc, 'variables.match.bestOf')).toBe(5)
-    expect(Doc.read(made.doc, 'variables.standings').split('\n')[0]).toBe('Stormblessed\t16\t2')
+    expect(Doc.read(made.doc, 'variables.maps')).toHaveLength(12)
+    expect(Doc.read(made.doc, 'variables.tournament.division')).toBe('Heroic')
+    expect(Doc.read(made.doc, 'variables.tournament.game')).toBe('Game 1 of 5')
   })
 })
