@@ -2735,6 +2735,30 @@ await reloaded.close()
 await fold.locator('.fixture-fold-input').fill('')
 await fold.locator('.ss-panel-fold').click()
 
+// The whole header row folds, not only the title's words. A point between the end
+// of the title text and the first action: before the fix nothing was there to
+// press. Measured from the text itself, so a title that grew into the gap would
+// fail rather than pass by landing on the words.
+const besideTitle = () =>
+  control.evaluate(() => {
+    const panel = document.querySelector('.fixture-fold')
+    const words = document.createRange()
+    words.selectNodeContents(panel.querySelector('.ss-panel-fold'))
+    const textEnd = Math.max(...[...words.getClientRects()].map((rect) => rect.right))
+    const actions = panel.querySelector('.ss-panel-actions').getBoundingClientRect()
+    const fold = panel.querySelector('.ss-panel-fold').getBoundingClientRect()
+
+    return { x: Math.round((textEnd + actions.left) / 2), y: Math.round(fold.top + fold.height / 2), gap: Math.round(actions.left - textEnd) }
+  })
+const gapPoint = await besideTitle()
+const expandedNow = () => control.locator('.fixture-fold .ss-panel-fold').getAttribute('aria-expanded')
+await control.mouse.click(gapPoint.x, gapPoint.y)
+const openedByRow = await expandedNow()
+await control.mouse.click(gapPoint.x, gapPoint.y)
+const foldedByRow = await expandedNow()
+console.log(`  header row: clicked ${gapPoint.gap}px of empty header between the title and its actions`)
+check(gapPoint.gap > 40 && openedByRow === 'true' && foldedByRow === 'false', "a click in the empty part of a panel's header opens it, and another folds it")
+
 const headers = await control.evaluate(() => {
   const untitled = document.querySelector('.fixture-untitled')
   const bare = document.querySelector('.fixture-bare')
@@ -3005,7 +3029,10 @@ check(
 )
 check(wrapped.two.largest, 'at the largest size that fits two lines: five percent more would not')
 check(wrapped.short.size === 48 && wrapped.short.lines === 1, 'text that already fits is left at its own size, on one line')
-check(wrapped.word.inside && wrapped.word.size < 48 && wrapped.word.largest, 'a single word wider than the box shrinks until it fits, since wrapping cannot help')
+check(
+  wrapped.word.inside && wrapped.word.size < 48 && wrapped.word.largest,
+  'a single word wider than the box shrinks until it fits, since wrapping cannot help',
+)
 check(
   wrapped.variable.lines === 2 && Math.abs(wrapped.variable.size - wrapped.two.size) < 0.2,
   "a Variable's lines reaches its Fit, and fits the same as Fit itself",
@@ -3069,6 +3096,30 @@ check(
   'pressing a group opens that group and no other',
 )
 
+// The group's heading row folds it too, past the end of its name and count.
+const rowEnd = await fresh.evaluate(() => {
+  const button = [...document.querySelectorAll('.ss-asset-library')][0].querySelector('.ss-asset-group-fold')
+  const box = button.getBoundingClientRect()
+  const words = document.createRange()
+  words.selectNodeContents(button)
+  const textEnd = Math.max(...[...words.getClientRects()].map((rect) => rect.right))
+
+  return {
+    x: Math.round(box.right - 8),
+    y: Math.round(box.top + box.height / 2),
+    past: Math.round(box.right - 8 - textEnd),
+    name: button.textContent.replace(/\d+$/, '').trim(),
+  }
+})
+await fresh.mouse.click(rowEnd.x, rowEnd.y)
+const rowOpened = (await fresh.evaluate(groupsNow)).find((group) => group.name === rowEnd.name)?.open
+await fresh.mouse.click(rowEnd.x, rowEnd.y)
+const rowFolded = (await fresh.evaluate(groupsNow)).find((group) => group.name === rowEnd.name)?.open
+check(
+  rowEnd.name === 'commanders' && rowEnd.past > 40 && rowOpened === 'true' && rowFolded === 'false',
+  "a click at the far end of an image-store group's heading opens it, past its name, and another folds it",
+)
+
 await lib.locator('input[aria-label="Filter images"]').fill('kestrel')
 const filtered = await fresh.evaluate(groupsNow)
 check(filtered.find((group) => group.name === 'commanders')?.shown === 1, 'a filter shows a match inside a folded group')
@@ -3096,6 +3147,87 @@ check(
   'a picker opens the store on the group its current image is in, and leaves the rest folded',
 )
 await fresh.close()
+
+// -- A URL entry this machine never added ---------------------------------------
+// What another operator's board adds, or a plugin handler writes from the worker
+// (urlAssets): the entry is in the room's index and not in this machine's
+// IndexedDB. Pickers read the index and offer it; a graphic read only IndexedDB and
+// drew its fallback. One browser shares one IndexedDB, so the other machine is
+// made by deleting this one's row and leaving the index alone.
+//
+// Near the end because it adds a library entry and moves the sponsor logo.
+{
+  const roomOnly = `${BASE}/logos/broncos.svg?room-only`
+
+  await control.locator('.ss-asset-library input[aria-label="Image URL"]').first().fill(roomOnly)
+  await control.locator('.ss-asset-library input[aria-label="Asset name"]').first().fill('room-only')
+  await control.locator('.ss-asset-library button:has-text("Add URL")').first().click()
+  await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /room-only/.test(tile.textContent)))
+
+  const removed = await control.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const open = indexedDB.open('demo:assets')
+
+        open.onsuccess = () => {
+          const entries = open.result.transaction('entries', 'readwrite').objectStore('entries')
+          const gone = entries.delete('room-only')
+
+          gone.onsuccess = () => (entries.get('room-only').onsuccess = (event) => resolve(event.target.result === undefined))
+          gone.onerror = () => resolve(false)
+        }
+        open.onerror = () => resolve(false)
+      }),
+  )
+  check(removed, 'this machine no longer holds the URL entry, only the room does')
+
+  await control.getByLabel('Logo selection', { exact: true }).selectOption('asset:room-only')
+  await save()
+
+  const shown = control.locator('button:has-text("Show sponsor")')
+  if (await shown.count()) await shown.first().click()
+
+  // A page that has never resolved the key, so nothing it shows comes from a cache.
+  const elsewhere = await context.newPage()
+  await elsewhere.goto(`${BASE}/#/source/sponsor`)
+  await elsewhere.waitForSelector('.ss-scene')
+
+  check(
+    await becomes(elsewhere, (url) => document.querySelector('.sponsor-image img')?.src === url, roomOnly),
+    'a URL entry known only to the room still draws on a graphic',
+  )
+  await elsewhere.close()
+
+  // And renaming it here, where only the room knows it, has to give this machine a
+  // row under the new name -- the store had nothing to rename, so before the fix it
+  // did nothing and said nothing. Read back from IndexedDB itself, polled, since the
+  // write lands after the field closes.
+  const store = control.locator('.ss-asset-library').first()
+  await store.locator('button[title="Rename room-only"]').click()
+  const field = store.locator('input[aria-label="Rename room-only"]')
+  await field.fill('room-renamed')
+  await field.press('Enter')
+
+  const rowFor = (key) =>
+    control.evaluate(
+      (wanted) =>
+        new Promise((resolve) => {
+          const open = indexedDB.open('demo:assets')
+
+          open.onsuccess = () => {
+            open.result.transaction('entries').objectStore('entries').get(wanted).onsuccess = (event) => resolve(event.target.result ?? null)
+          }
+          open.onerror = () => resolve(null)
+        }),
+      key,
+    )
+  let row = null
+  for (let tries = 0; tries < 20 && !row; tries += 1) {
+    row = await rowFor('room-renamed')
+    if (!row) await control.waitForTimeout(250)
+  }
+  check(row?.kind === 'url' && row.url === roomOnly, 'renaming a URL entry only the room knows gives this machine its own row, under the new name')
+}
 
 // -- The OBS check page ----------------------------------------------------------
 // A diagnostic to load in OBS as a dock and as a source, which reports what

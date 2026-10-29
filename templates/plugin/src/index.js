@@ -1,8 +1,8 @@
 import { definePlugin, PluginHandler, PollingService, SocketService } from '@single-studio/core/worker'
 
-import { normalise } from './events'
+import { normalise } from './events.js'
 
-export { EMITS, EVENTS, normalise } from './events'
+export { EMITS, EVENTS, normalise } from './events.js'
 
 // A Single Studio plugin: bring the outside world in, and emit events.
 //

@@ -1,0 +1,30 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # `npm ci` once you commit a package-lock.json; the template ships without one,
+      # so that whoever starts from it resolves today's versions rather than ours.
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run lint
+
+      # The tarball is what a studio installs, and nothing else here looks at it the
+      # way they will. Read the list: source, README and LICENSE, and nothing else.
+      - run: npm pack --dry-run
