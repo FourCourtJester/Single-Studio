@@ -22,6 +22,21 @@ before anything else.
   minutes. It also settles the two-worker window after a deploy, since the status
   channel reaches pages of either build. Reconnecting in place, without a page
   reload, is the polished version, for later.
+- **Plugins an operator can switch off.** Asked for on 2026-10-29, queued rather than
+  built. Today a plugin is in a studio because the worker's `plugins: [...]` names
+  it, and it always starts: one whose target is not there keeps retrying, and its
+  row in Settings → Plugins sits on "not connecting". The only way out is to delete
+  it from `velcro.worker.js` and rebuild. The pieces for a switch already exist --
+  per-machine plugin settings (where the port lives), a Save that restarts the
+  plugin, and `Service` start/stop with an idle status the host already uses to
+  stand a plugin down on a machine that is not running OBS. The shape: an on/off
+  switch on each row, stored per machine like the port, so turning Twitch off on a
+  laptop leaves it on at the streaming PC; on by default; off means stopped -- no
+  connection, no retries, no Allow prompt, the row grey and reading "Off"; and an
+  author default in the worker, e.g. `twitch(Chat, { enabled: false })`, for a
+  studio that ships one off until it is wanted. E2e: off survives a reload, on
+  again connects, and an off plugin emits nothing. Open: whether off also hides
+  the plugin's panel on the board; start without that.
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
