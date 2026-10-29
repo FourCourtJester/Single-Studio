@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { AssetStore, assetKeyOf, forgetAsset, forgetAssets, isAssetRef, resolveAsset } from '../velcro/assets'
+import { ASSET_INDEX, AssetStore, assetKeyOf, forgetAsset, forgetAssets, isAssetRef, resolveAsset } from '../velcro/assets'
 import { useStudio } from '../studio/context'
-import { useVelcroCollection } from './useVelcroValue'
+import { useVelcroCollection, useVelcroValue } from './useVelcroValue'
 import { useVelcroMutate } from './useVelcroMutate'
 
 /**
@@ -20,7 +20,7 @@ import { useVelcroMutate } from './useVelcroMutate'
  * With it, every machine knows the entry exists, knows whether it holds the bytes,
  * and can say so.
  */
-const INDEX = 'assets'
+const INDEX = ASSET_INDEX
 
 /** The asset library for this studio. One store per page. */
 export function useAssetStore() {
@@ -39,6 +39,11 @@ export function useAssetStore() {
 export function useAssetUrl(value) {
   const store = useAssetStore()
   const [url, setUrl] = useState(() => (isAssetRef(value) ? null : (value ?? null)))
+  const key = assetKeyOf(value)
+  // The room's copy of the entry, for a URL entry this machine's store has never
+  // seen. Only its URL is a dependency: the entry object is new on every write.
+  const indexed = useVelcroValue(key ? `${INDEX}.${key}` : null)
+  const indexedUrl = indexed?.kind === 'url' ? indexed.url : null
 
   useEffect(() => {
     if (!isAssetRef(value)) {
@@ -48,14 +53,14 @@ export function useAssetUrl(value) {
 
     let live = true
 
-    resolveAsset(store, assetKeyOf(value)).then((resolved) => {
+    resolveAsset(store, assetKeyOf(value), indexedUrl ? { kind: 'url', url: indexedUrl } : null).then((resolved) => {
       if (live) setUrl(resolved)
     })
 
     return () => {
       live = false
     }
-  }, [store, value])
+  }, [store, value, indexedUrl])
 
   return url
 }
@@ -221,7 +226,11 @@ export function useAssetLibrary() {
 
   const rename = useCallback(
     async (key, next) => {
-      const entry = await store.rename(key, next)
+      // A URL entry this machine only knows from the index -- another operator's,
+      // or a plugin's -- has no row here to rename, so it is given one under the
+      // new key. Without this the rename did nothing and said nothing.
+      const known = shared[key]
+      const entry = (await store.rename(key, next)) ?? (known?.kind === 'url' ? await store.addUrl(known.url, { key: next, name: known.name }) : null)
 
       forgetAsset(key)
 
@@ -234,7 +243,7 @@ export function useAssetLibrary() {
 
       return entry
     },
-    [store, mutate, share],
+    [store, mutate, share, shared],
   )
 
   return { assets, addFile, addFiles, addUrl, remove, removeAll, rename, store }

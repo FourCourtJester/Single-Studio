@@ -486,6 +486,22 @@ That means an entry marked **elsewhere** on a remote operator's board is not a
 warning. It lives on the studio machine, it will go to air, and the only thing
 missing is their own preview. The board says so in those words.
 
+#### Adding from code
+
+A plugin handler or a mutation has the show but not a page's library. A URL entry
+needs nothing but its index entry to draw everywhere, so `urlAssets` writes exactly
+that:
+
+```js
+import { urlAssets } from '@single-studio/core/worker'
+
+this.mutate('set', urlAssets([{ key: 'logos/acme', url: 'https://example.com/acme.png', name: 'Acme' }]))
+```
+
+It appears in every picker and draws on every graphic, on every machine, the same
+as one pasted on the board. Files cannot be added this way: their bytes have to be
+stored on the machine that draws them.
+
 #### How many images can it hold?
 
 There is no limit in the framework. The practical ones:

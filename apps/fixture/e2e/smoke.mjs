@@ -3097,6 +3097,57 @@ check(
 )
 await fresh.close()
 
+// -- A URL entry this machine never added ---------------------------------------
+// What another operator's board adds, or a plugin handler writes from the worker
+// (urlAssets): the entry is in the room's index and not in this machine's
+// IndexedDB. Pickers read the index and offer it; a graphic read only IndexedDB and
+// drew its fallback. One browser shares one IndexedDB, so the other machine is
+// made by deleting this one's row and leaving the index alone.
+//
+// Near the end because it adds a library entry and moves the sponsor logo.
+{
+  const roomOnly = `${BASE}/logos/broncos.svg?room-only`
+
+  await control.locator('.ss-asset-library input[aria-label="Image URL"]').first().fill(roomOnly)
+  await control.locator('.ss-asset-library input[aria-label="Asset name"]').first().fill('room-only')
+  await control.locator('.ss-asset-library button:has-text("Add URL")').first().click()
+  await becomes(control, () => [...document.querySelectorAll('.ss-asset-tile')].some((tile) => /room-only/.test(tile.textContent)))
+
+  const removed = await control.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const open = indexedDB.open('demo:assets')
+
+        open.onsuccess = () => {
+          const entries = open.result.transaction('entries', 'readwrite').objectStore('entries')
+          const gone = entries.delete('room-only')
+
+          gone.onsuccess = () => entries.get('room-only').onsuccess = (event) => resolve(event.target.result === undefined)
+          gone.onerror = () => resolve(false)
+        }
+        open.onerror = () => resolve(false)
+      }),
+  )
+  check(removed, 'this machine no longer holds the URL entry, only the room does')
+
+  await control.getByLabel('Logo selection', { exact: true }).selectOption('asset:room-only')
+  await save()
+
+  const shown = control.locator('button:has-text("Show sponsor")')
+  if (await shown.count()) await shown.first().click()
+
+  // A page that has never resolved the key, so nothing it shows comes from a cache.
+  const elsewhere = await context.newPage()
+  await elsewhere.goto(`${BASE}/#/source/sponsor`)
+  await elsewhere.waitForSelector('.ss-scene')
+
+  check(
+    await becomes(elsewhere, (url) => document.querySelector('.sponsor-image img')?.src === url, roomOnly),
+    'a URL entry known only to the room still draws on a graphic',
+  )
+  await elsewhere.close()
+}
+
 // -- The OBS check page ----------------------------------------------------------
 // A diagnostic to load in OBS as a dock and as a source, which reports what
 // window.obsstudio really answers there. Checked here against a stand-in, because a
