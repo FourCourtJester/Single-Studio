@@ -405,36 +405,35 @@ ready to copy, with the port already filled in.
 
 Asked for on 2026-10-29. NGS is the Nexus Gaming Series, the amateur Heroes of the
 Storm league; FCJ-Heroes-StormInterface, the studio this serves, takes its broadcast
-look from a 2018 NGS show. **Built**, as `packages/plugin-ngs`, and not released.
-[ngs.md](ngs.md) has the API as measured and what was built; the plugin's README has
-the handler and the board.
+look from a 2018 NGS show. **Built**, as `packages/plugin-ngs`, and **moving to a
+repository of its own**, with its own versions: it does not ship with Single Studio,
+so it is in neither `release.yml` nor `verify:template`. [ngs.md](ngs.md) has the API
+as measured and what was built; the plugin's README has the handler and the board.
 
 What the owner asked for, and where it landed:
 
-- **A fetch button**, and a list of matches to fill from: Fetch matches on the
-  plugin's panel, then Division and Match pickers on the board, then Load.
-- **Season info in another button**: Fetch season, with the season number, the
-  divisions, every team with logo and roster, and the map pool -- which the league's
-  API does not serve, so it is a copy of the league's own list.
+- **Season, then division, then match, each a filter.** Fetch season on the
+  plugin's panel; choosing a division on the board fetches only that division's
+  matches; loading a match fetches it with its division's table.
+- **Season info**: the season number, the divisions, every team with logo and
+  roster, and the map pool -- which the league's API does not serve, so it is a copy
+  of the league's own list.
 - **Every logo in the image store under its team's name**: `ngs/<team>` URL
-  entries, through core's new `urlAssets`. That took a fix in core, since a URL entry
-  known only to the room's index drew nothing on a graphic.
-
-**Before it can be released**, a decision and an npm step. It is not in `PACKAGES` in
-`release.yml` on purpose: `@single-studio/plugin-ngs` has never been published, OIDC
-cannot publish a name that does not exist, and a release that tried would fail partway
--- after `core` had gone out. Adding it is one line, and the release that carries it
-needs the temporary-token path in [releasing.md](releasing.md#introducing-a-package-name-that-has-never-been-published),
-then a trusted publisher set to allow `npm publish`. Then it joins the plugin lists in
-the root README, `docs/plugins.md` ("the four first-party plugins") and
-`releasing.md`'s table, which leave it out until it can be installed.
+  entries, through core's new `urlAssets`. That took the core fix above it in the
+  history: a URL entry known only to the room's index drew nothing on a graphic.
+- **No scores, ever, and no refreshing a match.** Team names do not change, and the
+  score is the operator's.
 
 **Waiting on somebody who runs NGS broadcasts:**
 
-- Whether the waterfall was Division then Match, as remembered, or something else.
-- Whether a show wants one match at a time or a night's queue.
+- Whether one match at a time is right, or a night wants a queue.
 - The paths FCJ-Heroes-StormInterface actually reads; the README's handler is a guess
   at them.
+
+**When it moves:** it peers on core and uses `urlAssets` in the README's handler,
+which is new in core and not yet released, so the plugin's first release wants the
+core release that carries it. Its `vitest.config.js` aliases core's source in this
+repository, which will not exist there.
 
 **Worth reporting to the league**, all measured and in [ngs.md](ngs.md): `team/get`
 takes `teamId` where its docs say `id`; `team/fetch/teams` by ids never matches (a

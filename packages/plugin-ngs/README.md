@@ -11,19 +11,19 @@ npm i @single-studio/plugin-ngs
 
 ## What it does, and when
 
-Nothing on its own. Heroes has no live game feed, and the league does not know a
-match's score until a captain reports it — usually after the broadcast — so there is
-nothing worth asking for every thirty seconds. It fetches when the operator says:
+Nothing on its own, and never a score: the score is the operator's, kept on the
+board. What it brings changes between shows, not during one, so it fetches when the
+operator says, as a waterfall where each step narrows the next at the league:
 
-| Press         | Asks the league for                                           | Your handler hears |
-| ------------- | ------------------------------------------------------------- | ------------------ |
-| Fetch season  | the season number, divisions, every team with logo and roster | `onSeason`         |
-| Fetch matches | every match of the season, scheduled or not                   | `onMatches`        |
-| Load match    | one match, fresh, with its division's table                   | `onMatch`          |
-| Refresh match | the last loaded match again — for the result, once reported   | `onMatch`          |
+| Step              | Asks the league for                                           | Your handler hears |
+| ----------------- | ------------------------------------------------------------- | ------------------ |
+| Fetch season      | the season number, divisions, every team with logo and roster | `onSeason`         |
+| Choose a division | that division's matches, scheduled or not                     | `onMatches`        |
+| Load a match      | that match, with its division's table                         | `onMatch`          |
 
-The first two and the last are buttons on the plugin's panel in **Settings →
-Plugins**. Loading a match needs a choice, so it is a board's job — see below.
+Fetch season is a button on the plugin's panel in **Settings → Plugins**. The other
+two are choices, and a panel holds buttons but not choices, so they are the board's —
+see below.
 
 ## The handler
 
@@ -46,8 +46,8 @@ class Heroes extends NgsHandler {
   }
 
   onMatches({ matches }) {
-    // What the board's pickers choose from. Only what a picker shows, and only
-    // what is still to be played: a season is 321 matches.
+    // What the board's match picker chooses from: what a picker shows, and only
+    // what is still to be played.
     this.mutate('set', {
       'variables.ngs.matches': matches
         .filter((match) => !match.reported)
@@ -76,10 +76,6 @@ class Heroes extends NgsHandler {
       'variables.match.bestOf': match.bestOf ?? 3,
       'variables.standings': (standings ?? []).map((row) => `${row.name}\t${row.wins}\t${row.losses}`).join('\n'),
     })
-
-    // The league's score only once reported. Before that the operator is keeping
-    // it, and a missing score must not overwrite theirs.
-    if (match.reported) this.mutate('set', { 'variables.home.score': home?.score ?? 0, 'variables.away.score': away?.score ?? 0 })
   }
 }
 
@@ -87,13 +83,14 @@ createVelcroHost({ name: STUDIO_ID, mutations: { ...mutations, ...ngsMutations }
 ```
 
 `ngsMutations` are three mutations that only ask the plugin — `ngs:season`,
-`ngs:matches` and `ngs:load` — so a board can press the same buttons the panel has.
+`ngs:matches` with a `division`, and `ngs:load` with an `id`. They write nothing
+themselves.
 
 ## The board: division, then match
 
 The pickers are a choice the operator is making, not show state, so they live in the
-component. Pressing **Load** asks the plugin; what comes back goes through your
-`onMatch`.
+component. Choosing a division fetches its matches; pressing **Load** fetches the
+match. What comes back goes through your handler.
 
 ```jsx
 import { useState } from 'react'
@@ -108,8 +105,15 @@ export function NgsPanel() {
   const [match, setMatch] = useState('')
 
   return (
-    <Panel title="NGS" actions={<button onClick={() => mutate('ngs:matches')}>Fetch matches</button>}>
-      <select value={division} onChange={(event) => (setDivision(event.target.value), setMatch(''))}>
+    <Panel title="NGS" actions={<button onClick={() => mutate('ngs:season')}>Fetch season</button>}>
+      <select
+        value={division}
+        onChange={(event) => {
+          setDivision(event.target.value)
+          setMatch('')
+          if (event.target.value) mutate('ngs:matches', { division: event.target.value })
+        }}
+      >
         <option value="">Division</option>
         {divisions.map((d) => (
           <option key={d.key} value={d.key}>
@@ -153,17 +157,16 @@ directly.
   (`{ key, name, order, teams }`, in the league's order), `teams`
   (`{ id, name, ticker, logo, division, captain, members }`), and `maps`, the
   twelve-map pool.
-- **`onMatches`** — `season`, `division` (null for all), `matches`: soonest first,
-  unscheduled last.
+- **`onMatches`** — `season`, `division`, `matches`: soonest first, unscheduled
+  last. `reported` says a match has been played, for leaving it out of a picker.
 - **`onMatch`** — `match` and `standings`. Each match side is
-  `{ id, name, ticker, logo, score, record }`, or null for a playoff slot still
-  waiting on a team. `standings` is the division's table in the league's order, or
+  `{ id, name, ticker, logo, record }`, or null for a playoff slot still waiting on
+  a team. No score, ever. `standings` is the division's table in the league's order, or
   null if the league would not give it.
 - **`onProblem`** — `{ status, message }`, also shown on the plugin's panel.
 
 Things that are easy to get wrong, all measured on the live league:
 
-- **`score` is null until the match is reported**, not 0.
 - **`wins` and `losses` in a record are maps**, not matches.
 - **`bestOf` is null when the league does not say**, which it does not for most
   matches, including some playoff ones. The handler above falls back to 3; a playoff

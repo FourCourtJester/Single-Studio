@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { urlAssets } from '@single-studio/core/worker'
 
-import { apiFrom, detailOf, divisionOf, explain, LEAGUE_API, logos, logoUrl, MAPS, matchOf, standingOf, teamOf } from '../src/league.js'
+import { apiFrom, divisionOf, explain, LEAGUE_API, logos, logoUrl, MAPS, matchOf, standingOf, teamOf } from '../src/league.js'
 
 // Real answers from the league, trimmed, with players' BattleTags replaced.
 const recorded = (name) => JSON.parse(readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8')).returnObject
@@ -96,18 +96,22 @@ describe('the season', () => {
 })
 
 describe('a match', () => {
-  it('a reported match has both scores, in maps won', () => {
-    const match = matchOf(byId('9j1jaymvek8jy8'))
-
-    expect(match).toMatchObject({ reported: true, bestOf: 5, home: { name: 'Pending', score: 2 }, away: { name: 'Hat saika and r', score: 3 } })
+  it('a match brings both teams and says whether it has been played', () => {
+    expect(matchOf(byId('9j1jaymvek8jy8'))).toMatchObject({
+      reported: true,
+      bestOf: 5,
+      home: { name: 'Pending', ticker: 'PENDING' },
+      away: { name: 'Hat saika and r' },
+    })
+    expect(matchOf(byId('avwymv5o4sbc')).reported).toBe(false)
   })
 
-  it('an unreported match has no score rather than nil-nil', () => {
-    const match = matchOf(byId('avwymv5o4sbc'))
+  it('never carries a score, even for a match the league has a result for', () => {
+    // The league has 2-3 for this one. The score is the operator's, on the board.
+    const { home, away } = matchOf(byId('9j1jaymvek8jy8'))
 
-    expect(match.reported).toBe(false)
-    expect(match.home.score).toBeNull()
-    expect(match.away.score).toBeNull()
+    expect(Object.keys(home)).toEqual(['id', 'name', 'ticker', 'logo'])
+    expect(Object.keys(away)).toEqual(['id', 'name', 'ticker', 'logo'])
   })
 
   it('a start time arrives as a number a graphic can hand to Date', () => {
@@ -131,13 +135,6 @@ describe('a match', () => {
 
   it('the caster comes with the match when one signed up', () => {
     expect(matchOf(byId('9j1jaymvek8jy8')).caster).toEqual({ name: 'Rakugan The Gorgon', url: 'https://www.twitch.tv/rakuganvt/' })
-  })
-
-  it('a reported match says which maps each side banned and who won each game', () => {
-    const detail = detailOf(recorded('match'))
-
-    expect(detail.bans).toEqual({ home: ['Braxis Holdout', 'Volskaya Foundry'], away: ['Garden of Terror', 'Sky Temple'] })
-    expect(detail.games).toEqual(['away', 'home', 'away', 'home', 'away'])
   })
 })
 

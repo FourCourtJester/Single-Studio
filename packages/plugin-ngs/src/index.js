@@ -1,37 +1,42 @@
 import { definePlugin, PluginBase, PluginHandler } from '@single-studio/core/worker'
 
-import { apiFrom, ask, detailOf, divisionOf, LEAGUE_API, MAPS, matchOf, standingOf, teamOf } from './league.js'
+import { apiFrom, ask, divisionOf, LEAGUE_API, MAPS, matchOf, standingOf, teamOf } from './league.js'
 
-export { apiFrom, detailOf, divisionOf, explain, LEAGUE_API, logos, logoUrl, MAPS, matchOf, sideOf, standingOf, teamOf } from './league.js'
+export { apiFrom, divisionOf, explain, LEAGUE_API, logos, logoUrl, MAPS, matchOf, sideOf, standingOf, teamOf } from './league.js'
 
 /**
  * How long one request to the league may take.
  *
- * Twenty seconds rather than the ten a poller gets, because a season's matches are
- * half a megabyte: 514KB in 1.6s, measured. `fetch` has no deadline of its own, and
- * a request that connects and stalls would leave a button spinning for ever.
+ * Twenty seconds rather than the ten a poller gets, because the season's teams with
+ * their rosters are a third of a megabyte: 326KB, measured. `fetch` has no deadline
+ * of its own, and a request that connects and stalls would leave a button spinning
+ * for ever.
  */
 const BUDGET_MS = 20_000
 
 /**
  * The Nexus Gaming Series, fetched when the operator asks.
  *
- * Not a poller, though it reads a website, and that is the decision this class is
- * built around. The one thing that changes during a broadcast is the score, and the
- * league does not have it: a match's score appears when a captain reports it, after
- * the series. Everything else -- the teams, the schedule, the table -- changes
- * between shows, not during one. Asking every thirty seconds would be a volunteer
- * league's server answering the same question all night for nothing.
+ * Not a poller, though it reads a website. What it brings -- the teams, the
+ * schedule, the table -- changes between shows, not during one, and the score is
+ * the operator's: it is never asked for. Asking every thirty seconds would be a
+ * volunteer league's server answering the same question all night for nothing.
  *
- * So it does three things, each when told: the **season** (number, divisions,
- * teams, logos, rosters, maps), the season's **matches**, and **one match** with its
- * division's table. Each is an action on the plugin's panel and a command a board
- * can reach through `ask`, and each runs on the machine where it was pressed: a
- * press is one request, not a poll, so there is nothing for an owner to dedupe.
+ * It is a waterfall, and each step narrows the next at the league rather than after
+ * the download:
+ *
+ *   season    the number, divisions, teams with logos and rosters, the maps
+ *   matches   one division's matches                  -- needs a division
+ *   load      one match, with its division's table    -- needs a match
+ *
+ * Fetch season is a button on the plugin's panel. The other two need a choice, and
+ * a panel can hold buttons but not a choice, so they are commands a board's pickers
+ * reach through `ask`. Each runs on the machine where it was asked: one request,
+ * not a poll, so there is nothing for an owner to dedupe.
  */
 class Ngs extends PluginBase {
-  /** What `command` takes, which is everything `act` does plus loading a chosen match. */
-  static commands = { season: true, matches: true, load: true, reload: true }
+  /** What `command` takes. */
+  static commands = { season: true, matches: true, load: true }
 
   /** The season the other two are asked about. Learned on first need, then kept. */
   #season = null
@@ -44,9 +49,6 @@ class Ngs extends PluginBase {
    * picker offers "nexus r1". Kept from Fetch season, or asked for once (3KB).
    */
   #names = null
-
-  /** The match last loaded, so "Refresh match" knows what to ask for again. */
-  #loaded = null
 
   /** What the panel says under the buttons: the last thing fetched, or why it failed. */
   #said = null
@@ -70,11 +72,6 @@ class Ngs extends PluginBase {
 
   get notice() {
     return this.#said ? { text: this.#said } : null
-  }
-
-  /** "Refresh match" only once there is one to refresh. */
-  get offers() {
-    return this.#loaded ? ['season', 'matches', 'reload'] : ['season', 'matches']
   }
 
   /** A panel button. Throws, so the panel shows why beside it. */
@@ -105,7 +102,6 @@ class Ngs extends PluginBase {
       if (name === 'season') await this.#fetchSeason()
       else if (name === 'matches') await this.#fetchMatches(data)
       else if (name === 'load') await this.#load(data?.id)
-      else if (name === 'reload') await this.#load(this.#loaded)
       else throw new Error(`ngs cannot "${name}"`)
 
       this.status = 'connected'
@@ -189,33 +185,35 @@ class Ngs extends PluginBase {
   }
 
   /**
-   * The season's matches, or one division's.
+   * One division's matches.
+   *
+   * A division, always: the league filters, so a pick is the 43 matches of Heroic
+   * (69KB, 0.6s) rather than all 321 of the season (514KB, 1.6s) filtered here.
    *
    * `schedule/fetch/matches` rather than the route named for scheduled matches,
    * which leaves out every match without a time -- 43 of season 22's 321 -- and
    * ignores the season it is given.
    */
   async #fetchMatches({ division } = {}) {
+    if (!division) throw new Error('Choose a division first.')
+
     const season = await this.#currentSeason()
-    const body = division ? { season, division } : { season }
-    const [raw, names] = await Promise.all([this.#ask('schedule/fetch/matches', { body }), this.#divisionNames()])
+    const [raw, names] = await Promise.all([this.#ask('schedule/fetch/matches', { body: { season, division } }), this.#divisionNames()])
     const matches = (raw ?? [])
       .map(matchOf)
       .map((match) => this.#named(match, names))
       .sort((a, b) => (a.start ?? Infinity) - (b.start ?? Infinity) || String(a.id).localeCompare(String(b.id)))
 
-    this.#said = `${matches.length} matches in season ${season}${division ? `, ${division}` : ''}.`
-    this.emit('matches', { season, division: division ?? null, matches })
+    this.#said = `${matches.length} matches in ${names.get(division) ?? division}, season ${season}.`
+    this.emit('matches', { season, division, matches })
   }
 
   /**
    * One match, and the table its two teams sit in.
    *
-   * Asked for afresh rather than taken from the list, so a result reported since
-   * the list was fetched is in it. The table is asked for in the same press because
-   * a scoreboard writes a team's name and its record together: one event, so a
-   * studio can write both in one transaction and the graphics never show one
-   * without the other.
+   * The table is asked for in the same press because a scoreboard writes a team's
+   * name and its record together: one event, so a studio can write both in one
+   * transaction and the graphics never show one without the other.
    *
    * A table that will not come is not a reason to lose the match. Cup divisions
    * answer in a different shape, and none existed in season 22 to measure against.
@@ -235,7 +233,7 @@ class Ngs extends PluginBase {
 
     if (!raw) throw new Error(`The league has no match "${id}".`)
 
-    const match = this.#named(detailOf(raw), await this.#divisionNames())
+    const match = this.#named(matchOf(raw), await this.#divisionNames())
     let standings = null
 
     if (match.division && match.season) {
@@ -253,7 +251,6 @@ class Ngs extends PluginBase {
     if (match.home) match.home.record = recordOf(match.home)
     if (match.away) match.away.record = recordOf(match.away)
 
-    this.#loaded = id
     this.#said = `Loaded ${match.divisionName} round ${match.round ?? '?'}: ${match.home?.name || 'to be decided'} vs ${match.away?.name || 'to be decided'}${standings ? '' : ', without the table'}.`
     this.emit('match', { match, standings })
   }
@@ -292,7 +289,7 @@ export const ngsMutations = {
     ctx.ask('ngs', 'season')
   },
   'ngs:matches'(ctx, { division } = {}) {
-    ctx.ask('ngs', 'matches', division ? { division } : {})
+    if (division) ctx.ask('ngs', 'matches', { division })
   },
   'ngs:load'(ctx, { id } = {}) {
     if (id) ctx.ask('ngs', 'load', { id })
@@ -306,21 +303,18 @@ export const ngs = (Handler = NgsHandler) =>
   definePlugin({
     name: 'ngs',
     label: 'NGS',
-    summary: 'The Nexus Gaming Series: teams, logos, matches and standings, fetched when you ask.',
+    summary: 'The Nexus Gaming Series: teams, logos, matches and tables, fetched when you ask.',
     help: [
       { type: 'text', text: 'Nothing to set up: the league’s site is public, and nothing here needs a key or a login.' },
       {
         type: 'steps',
         items: [
           'Press Fetch season once a show, or whenever teams change. It brings the season number, the divisions, every team with its logo and roster, and the map pool.',
-          'Press Fetch matches. Then choose a division and a match on the board.',
-          'After the series, once a captain has reported it, press Refresh match to bring in the result.',
+          'On the board, choose a division. Its matches are fetched.',
+          'Choose a match and load it. Its teams and their records come in with it.',
         ],
       },
-      {
-        type: 'note',
-        text: 'The league only has a score once the match is reported, which is usually after the broadcast. Keep the score on the board during the series.',
-      },
+      { type: 'note', text: 'Scores are kept on the board. This never fetches one.' },
       { type: 'link', href: 'https://nexusgamingseries.org', label: 'Nexus Gaming Series' },
     ],
     config: [
@@ -332,11 +326,7 @@ export const ngs = (Handler = NgsHandler) =>
         help: 'Leave blank. Only for pointing at a copy of the league’s site.',
       },
     ],
-    actions: [
-      { key: 'season', label: 'Fetch season' },
-      { key: 'matches', label: 'Fetch matches' },
-      { key: 'reload', label: 'Refresh match' },
-    ],
+    actions: [{ key: 'season', label: 'Fetch season' }],
     create: (context) => {
       const plugin = new Ngs(context)
 

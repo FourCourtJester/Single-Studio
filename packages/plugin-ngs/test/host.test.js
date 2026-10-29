@@ -29,7 +29,11 @@ const league = () =>
       if (route === 'admin/getSeasonInfo') return answer(fixture('season'))
       if (route === 'division/get/all') return answer(fixture('divisions'))
       if (route === 'team/get/registered') return answer(fixture('registered'))
-      if (route === 'schedule/fetch/matches') return answer(fixture('matches'))
+      if (route === 'schedule/fetch/matches') {
+        const all = fixture('matches')
+
+        return answer({ ...all, returnObject: all.returnObject.filter((match) => match.divisionConcat === sent.division) })
+      }
       if (route === 'standings/fetch/division') return answer(fixture('standings'))
       if (route === 'schedule/fetch/match') return answer(sent.matchId === 'avwymv5o4sbc' ? upcoming : reported)
 
@@ -76,8 +80,6 @@ class Heroes extends NgsHandler {
       'variables.match.bestOf': match.bestOf ?? 3,
       'variables.standings': (standings ?? []).map((row) => `${row.name}\t${row.wins}\t${row.losses}`).join('\n'),
     })
-
-    if (match.reported) this.mutate('set', { 'variables.home.score': home?.score ?? 0, 'variables.away.score': away?.score ?? 0 })
   }
 }
 
@@ -124,11 +126,11 @@ describe('a studio running the plugin', () => {
     expect(Doc.read(made.doc, 'variables.ngs.maps')).toHaveLength(12)
   })
 
-  it('the board picks from the matches still to be played', async () => {
+  it('choosing a division offers that division’s matches still to be played', async () => {
     league()
     const made = await studio()
 
-    made.mutate('ngs:matches')
+    made.mutate('ngs:matches', { division: 'nexus' })
     await until(() => Doc.read(made.doc, 'variables.ngs.matches'), 'the matches to land')
 
     const offered = Doc.read(made.doc, 'variables.ngs.matches')
@@ -137,7 +139,7 @@ describe('a studio running the plugin', () => {
     expect(offered[1].label).toBe("Nexus r2: TBD vs Durotan's Couch")
   })
 
-  it('loading a reported match from the board puts both teams, their records and the result on the scoreboard', async () => {
+  it('loading a match puts both teams and their records on the scoreboard', async () => {
     league()
     const made = await studio()
 
@@ -147,20 +149,6 @@ describe('a studio running the plugin', () => {
     expect(Doc.read(made.doc, 'variables.away.name')).toBe('Hat saika and r')
     expect(Doc.read(made.doc, 'variables.home.record')).toBe('14–2')
     expect(Doc.read(made.doc, 'variables.match.bestOf')).toBe(5)
-    expect(Doc.read(made.doc, 'variables.home.score')).toBe(2)
-    expect(Doc.read(made.doc, 'variables.away.score')).toBe(3)
     expect(Doc.read(made.doc, 'variables.standings').split('\n')[0]).toBe('Stormblessed\t16\t2')
-  })
-
-  it('loading a match not yet reported leaves the score the operator is keeping', async () => {
-    league()
-    const made = await studio()
-
-    made.mutate('set', { 'variables.home.score': 1, 'variables.away.score': 0 })
-    made.mutate('ngs:load', { id: 'avwymv5o4sbc' })
-    await until(() => Doc.read(made.doc, 'variables.home.name') === 'Uncle Chens House of Blues', 'the match to land')
-
-    expect(Doc.read(made.doc, 'variables.home.score')).toBe(1)
-    expect(Doc.read(made.doc, 'variables.away.score')).toBe(0)
   })
 })

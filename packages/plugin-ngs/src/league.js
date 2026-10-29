@@ -144,11 +144,9 @@ export function teamOf(raw) {
 /**
  * One side of a match.
  *
- * `score` is null until a captain reports the match, not 0: in season 22 none of
- * the 31 unreported matches had a score on either side, three of them already past
- * their start. A 0 here would be a scoreboard confidently saying nil-nil about a
- * series nobody has told the league about. `dominator` is the league's flag for a
- * map won without losing one.
+ * No score, deliberately. The score is the operator's, kept on the board: the
+ * league only has one once a captain reports the match, after the broadcast, and a
+ * plugin that carried it would be one more thing able to overwrite the operator's.
  */
 export function sideOf(raw) {
   return {
@@ -156,7 +154,6 @@ export function sideOf(raw) {
     name: raw?.teamName ?? '',
     ticker: raw?.ticker ?? '',
     logo: logoUrl(raw?.logo),
-    score: number(raw?.score),
   }
 }
 
@@ -189,33 +186,13 @@ export function matchOf(raw) {
     bestOf: number(raw?.boX),
     start: number(time.startTime),
     end: number(time.endTime),
+    // Whether it has been played and reported, so a picker can leave it out. The
+    // result itself is not carried; see sideOf.
     reported: Boolean(raw?.reported),
     forfeit: Boolean(raw?.forfeit),
     home: raw?.home ? sideOf(raw.home) : null,
     away: raw?.away ? sideOf(raw.away) : null,
     caster,
-  }
-}
-
-/**
- * The parts of a match a scoreboard draws once it is reported.
- *
- * `bans` are the two maps each side banned. `games` is who won each game, in
- * order -- the league keeps them under numeric keys in `other`, beside the names of
- * whoever reported, which are left out.
- */
-export function detailOf(raw) {
-  const bans = raw?.mapBans ?? {}
-  const other = raw?.other ?? {}
-  const games = Object.keys(other)
-    .filter((key) => /^\d+$/.test(key))
-    .sort((a, b) => Number(a) - Number(b))
-    .map((key) => other[key]?.winner ?? null)
-
-  return {
-    ...matchOf(raw),
-    bans: { home: [bans.homeOne, bans.homeTwo].filter(Boolean), away: [bans.awayOne, bans.awayTwo].filter(Boolean) },
-    games,
   }
 }
 

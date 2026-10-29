@@ -172,35 +172,42 @@ library's IndexedDB, which would need CORS.
 
 ## What was built
 
-`packages/plugin-ngs`. Not a poller, which is the decision everything else follows
-from: the score — the one thing that changes during a broadcast — is not in the
-league until after it, and the rest changes between shows. Polling would have a
-volunteer league's server answer the same question all night for nothing. So it
-fetches when told, on the machine where it was told; a press is one request, so
-there is nothing for an owner to dedupe.
+`packages/plugin-ngs`, to move to a repository of its own with its own versions; it
+does not ship with Single Studio.
 
-| Press, or `ask`     | Requests                                                          | Event     |
-| ------------------- | ----------------------------------------------------------------- | --------- |
-| Fetch season        | `getSeasonInfo`, `division/get/all`, `team/get/registered`        | `season`  |
-| Fetch matches       | `schedule/fetch/matches` (+ season, division names on first need) | `matches` |
-| `load` from a board | `schedule/fetch/match`, `standings/fetch/division`                | `match`   |
-| Refresh match       | the same, for the last match loaded                               | `match`   |
+Not a poller, and it never asks for a score. The owner's call, on 2026-10-29: team
+names do not change during a show and the score is the operator's, kept on the
+board. What the plugin brings changes between shows, so it fetches when told, on the
+machine where it was told; a press is one request, so there is nothing for an owner
+to dedupe.
 
-Measured live from Node: Fetch season 0.7s for 52 teams, 49 with logos; Fetch
-matches 1.3s for 321; a load gave both sides their record from the table.
+It is a waterfall, and each step is a filter the league applies, not one applied
+after a download:
 
-- **The waterfall is the board's.** One Fetch matches, then Division and Match are
-  pickers over what the handler wrote, with no request between them. A plugin's panel
-  can hold buttons but not a choice, so loading a chosen match is a mutation
-  (`ngsMutations`, `ngs:load`) that asks the plugin.
+| Step                      | Requests                                                   | Event     |
+| ------------------------- | ---------------------------------------------------------- | --------- |
+| Fetch season (panel)      | `getSeasonInfo`, `division/get/all`, `team/get/registered` | `season`  |
+| Choose a division (board) | `schedule/fetch/matches` with `season` and `division`      | `matches` |
+| Load a match (board)      | `schedule/fetch/match`, `standings/fetch/division`         | `match`   |
+
+A division is 43 matches, 69KB, 0.6s, where the whole season was 321, 514KB, 1.6s.
+The first version fetched the whole season and filtered on the board; asked whether
+the steps were filters, it was rebuilt so they are.
+
+- **Choosing and loading are the board's.** A plugin's panel holds buttons, not
+  choices, so they are mutations (`ngsMutations`) that ask the plugin.
+- **No score anywhere.** A match side is `{ id, name, ticker, logo, record }`; the
+  bans and per-game winners, which exist only once a match is reported, are not
+  carried either. `reported` stays, so a picker can leave played matches out.
 - **Logos go into the image library as URL entries**, `ngs/<team name>`, through
-  `urlAssets` in the studio's handler — the plugin still writes nothing. That needed a
+  `urlAssets` in the studio's handler; the plugin still writes nothing. That needed a
   fix in core: a URL entry only in the room's index was offered by every picker and
   drew nothing on a graphic, because `resolveAsset` read only this machine's
-  IndexedDB. A plugin handler writes from the worker, so its entries are only in the
-  index, everywhere. Now `useAssetUrl` falls back to the index for a URL entry; an
-  e2e check deletes a URL entry's local row and still sees the graphic draw it, and
-  fails without the fix.
+  IndexedDB, and a plugin handler writes from the worker, so its entries are only in
+  the index. Now `useAssetUrl` falls back to the index for a URL entry; an e2e check
+  deletes a URL entry's local row and still sees the graphic draw it, and fails
+  without the fix. A team with no logo gets no entry, and a graphic shows its
+  fallback, as it always did.
 - **The map pool is a copy.** The API does not serve it; the league's
   match-reporting page has it as a list in the code. Twelve maps.
 - **A table that will not come does not lose the match.** Cup divisions answer in a
