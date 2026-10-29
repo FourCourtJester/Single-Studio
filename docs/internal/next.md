@@ -408,9 +408,10 @@ the amateur Heroes of the Storm league; FCJ-Heroes-StormInterface, the studio th
 would serve, takes its broadcast look from a 2018 NGS show. Nothing is built and
 nothing here is checked: this container could not reach the league's site.
 
-**Since then:** the league's source is public, and [ngs.md](ngs.md) answers the first
-two questions below from it -- the reads are open, and the API allows any origin, so
-no relay. What is left is checking the response shapes against the live API.
+**Since then:** [ngs.md](ngs.md) answers all three questions below, from the
+league's source and then the live API: the reads are open, any origin may read them,
+so no relay, and a match has a stable `matchId` that brings both teams with it. The
+score arrives only when a captain reports the match, so it is not a live scoreboard.
 
 **Not a game feed.** Heroes has no live game-state API to dial, so this is not the
 shape of `plugin-rocket-league`. What a league broadcast wants from NGS is the
