@@ -4,6 +4,50 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.16.0
+
+Fixes found by building the first plugin outside this repository, and a panel
+header that folds wherever it is clicked. A minor because `urlAssets` is new.
+
+### Fixed
+
+- **A URL image added on another machine draws on the graphic.** An entry the room
+  knew about but this machine did not -- added on another operator's board, or written
+  by a plugin from the worker -- showed in every picker and drew nothing, because a
+  graphic looked only in this machine's IndexedDB. A URL entry now falls back to the
+  room's copy when this machine holds no row of its own. A file entry still needs its
+  bytes on the machine drawing it.
+- **Renaming such an entry works.** It silently did nothing; it now gives this machine
+  its own row under the new name.
+
+### Added
+
+- **`urlAssets(entries)`**, from `@single-studio/core` and `@single-studio/core/worker`:
+  adds URL entries to the image library from code, as a `set` payload a plugin handler
+  or mutation can return. Writing the same list twice writes nothing.
+
+### Changed
+
+- **The whole header row folds a panel**, not just its title: the empty stretch
+  between the title and the actions was dead -- 799px of it on the fixture's wide
+  board. The actions are still their own buttons and do not fold it. The image store's
+  group headings fold from anywhere on their row in the same way.
+
+### Plugin template
+
+Found by making a plugin from it and publishing it on its own; a studio's plugins
+are unaffected.
+
+- **The core peer is `>=0.15.0 <1.0.0`**, not `^0.15.0`. Below 1.0.0 a caret admits
+  one minor, so every core release put every plugin made from the template in a peer
+  conflict until it republished.
+- **`src/` imports with `.js`.** `./events` without it passed the tests and failed in
+  Node. An eslint rule now refuses an extensionless relative import.
+- **`npm run lint` works**: the template ships eslint and a config.
+- **Workflows**: `test.yml` runs tests, lint and a pack dry-run; `publish.yml`
+  publishes on a `v*` tag that matches `package.json`, once the package is renamed
+  from the example.
+
 ## 0.15.0
 
 Text that fits across several lines, and an image store that stays short however

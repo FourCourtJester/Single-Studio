@@ -54,16 +54,6 @@ before anything else.
   change to a studio. E2e: fold all folds every collapsible panel; a jump leaves
   only its panel open and puts its header just under the bar; a nested jump opens
   the parent; an untitled panel is absent.
-- **A panel's whole header row should fold it.** Client feedback, 2026-10-29: only the
-  title text folds a collapsible Panel. Confirmed in the code: the fold button
-  (`.ss-panel-fold`) is `flex` inside an `h2` that is only as wide as its words, so
-  the empty stretch of the header between the title and the actions is dead. The
-  fix: the `h2` grows to fill the line (`grow`), and the button fills the `h2`
-  (`w-full`), so the whole row up to the actions is one target -- the actions stay
-  their own buttons and never fold the panel. The image store's group headings
-  (`.ss-asset-group-fold`) have the same shape and want the same change. E2e: a
-  click in the empty middle of a header folds and opens the panel, a click on an
-  action does not, and the same for an image-store group.
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
