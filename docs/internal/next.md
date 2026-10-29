@@ -37,6 +37,23 @@ before anything else.
   studio that ships one off until it is wanted. E2e: off survives a reload, on
   again connects, and an off plugin emits nothing. Open: whether off also hides
   the plugin's panel on the board; start without that.
+- **A "Jump to…" for the board's panels.** Client feedback, 2026-10-29, queued
+  rather than built. On a board of collapsible panels an operator wants to pick a
+  panel by name and have the board fold every other panel, open that one, and
+  scroll it into view. The shape: a dropdown in the board's top bar, beside the
+  cog, listing every titled Panel in board order, with "Fold all" at its head.
+  Choosing one folds every collapsible panel, opens the chosen one, and scrolls it
+  to just under the sticky bar (a scroll margin, so the bar does not cover its
+  header). Untitled panels are not listed; one that is not collapsible is still
+  scrolled to; a panel inside a panel -- Mercy's bracket matches -- is listed
+  indented under its parent, and jumping to it opens the parent too. A native
+  select, so Tab and the arrow keys work; a shortcut can come later through the
+  rebindable hotkeys. The one structural change: a Panel's fold is its own state
+  today, so panels register with the board -- title, element, open, fold -- through
+  a context the control page provides. Every existing Panel joins the list with no
+  change to a studio. E2e: fold all folds every collapsible panel; a jump leaves
+  only its panel open and puts its header just under the bar; a nested jump opens
+  the parent; an untitled panel is absent.
 - **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
   that matters: a browser source with _Refresh browser when scene becomes active_
   ticked starts the sequence again from its first item every time the scene is
