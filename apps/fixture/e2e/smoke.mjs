@@ -3133,7 +3133,11 @@ check(
 // A chooser opens on the group its current image is in.
 await fresh.locator('.fixture-capped select').selectOption('asset:commanders/wren')
 await fresh.locator('button[aria-label="Browse images for Crest"]').click()
-await fresh.waitForSelector('dialog[open] .ss-asset-library')
+// For a group, not the library: the dialog mounts a library of its own, which
+// renders once with no groups before its subscription answers. Measured as the
+// dialog opened: 0 groups, then 3. Waiting on the library alone read that window
+// once on main's CI and failed this check on a correct chooser.
+await fresh.waitForSelector('dialog[open] .ss-asset-library .ss-asset-group-fold')
 const chooser = await fresh.evaluate(() => {
   const dialog = document.querySelector('dialog[open] .ss-asset-library')
 
