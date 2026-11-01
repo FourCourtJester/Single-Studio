@@ -177,7 +177,7 @@ importers:
         version: 2.112.3
       lib0:
         specifier: ^0.2.117
-        version: 0.2.117
+        version: 0.2.119
       y-protocols:
         specifier: ^1.0.7
         version: 1.0.7(yjs@13.6.32)
@@ -196,7 +196,7 @@ importers:
     dependencies:
       lib0:
         specifier: ^0.2.117
-        version: 0.2.117
+        version: 0.2.119
       y-protocols:
         specifier: ^1.0.7
         version: 1.0.7(yjs@13.6.32)
@@ -1875,6 +1875,11 @@ packages:
 
   lib0@0.2.117:
     resolution: {integrity: sha512-DeXj9X5xDCjgKLU/7RR+/HQEVzuuEUiwldwOGsHK/sfAfELGWEyTcf0x+uOvCvK3O2zPmZePXWL85vtia6GyZw==}
+    engines: {node: '>=16'}
+    hasBin: true
+
+  lib0@0.2.119:
+    resolution: {integrity: sha512-vh+TiejVy8Xm+hCdnRfn9BthGNvNUZdEXltNjVZL3TzRIKP3s1lnQh8pWd/Q0wCgY0FPAGVVjFF4ZiHUV3LFgA==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -4324,6 +4329,10 @@ snapshots:
     dependencies:
       isomorphic.js: 0.2.5
 
+  lib0@0.2.119:
+    dependencies:
+      isomorphic.js: 0.2.5
+
   lightningcss-android-arm64@1.32.0:
     optional: true
 
@@ -5135,7 +5144,7 @@ snapshots:
 
   y-protocols@1.0.7(yjs@13.6.32):
     dependencies:
-      lib0: 0.2.117
+      lib0: 0.2.119
       yjs: 13.6.32
 
   y-websocket@3.1.0(yjs@13.6.32):
