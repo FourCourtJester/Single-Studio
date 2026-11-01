@@ -12,7 +12,7 @@
     "@single-studio/core": "^0.16.0",
     "@single-studio/plugin-twitch": "^0.16.0",
     "@single-studio/provider-supabase": "^0.16.0",
-    "react": "^19.3.0",
+    "react": "^19.3.1",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
     "yjs": "^13.6.33"
