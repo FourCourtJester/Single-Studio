@@ -20,7 +20,7 @@ jobs:
     # its own retries below; this is only the floor under everything else.
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # No version here on purpose: the action reads "packageManager" from
       # package.json, so CI and the devcontainer cannot drift apart.
@@ -41,7 +41,7 @@ jobs:
       # like the least urgent of the four -- see the note there.
       - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -102,7 +102,7 @@ jobs:
 
       - name: Cache Chromium
         id: browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
