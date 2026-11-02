@@ -48,10 +48,13 @@ before anything else.
   them, with the same hooks and the same draft, and need no new place in a
   studio to learn. Hidden when empty by the slot's own `:empty`, so it costs
   nothing to measure. Inside the board's error boundary, so a crashing control
-  there is shown like any other board crash. Open: whether the bar may wrap. The
-  top bar is one row by rule (see the comment on `.ss-control-bar`), but this
-  one holds whatever an author puts in it, and in a slim dock two rows beat
-  controls cut off; start with wrapping and see.
+  there is shown like any other board crash. The bar is the author's to shape:
+  core sets no height, no row limit and no overflow on it, and `BoardBar` takes
+  `className` and `style` like any element, so an author adds, removes and
+  styles what is in it as they want and it grows with its contents -- wrapping
+  onto as many rows as they give it. Unlike the top bar, which is one row by
+  rule (see the comment on `.ss-control-bar`), nothing here is core's to keep
+  short. The owner's call, 2026-11-02.
 
   **The first thing for it: a "Jump to…" for the board's panels**, also client
   feedback (2026-10-29), now a control the author opts into rather than one
@@ -59,7 +62,9 @@ before anything else.
   every titled Panel in board order, with "Fold all" at its head. Choosing one
   folds every collapsible panel, opens the chosen one, and scrolls it to just
   under the header -- both rows of it -- with a scroll margin, so the header
-  does not cover it. Untitled panels are not listed; one that is not collapsible
+  does not cover it. The margin is the header's measured height, not a number:
+  the second bar is as tall as its author makes it, and changes when they do.
+  Untitled panels are not listed; one that is not collapsible
   is still scrolled to; a panel inside a panel -- Mercy's bracket matches -- is
   listed indented under its parent, and jumping to it opens the parent too. A
   native select, so Tab and the arrow keys work; a shortcut can come later
