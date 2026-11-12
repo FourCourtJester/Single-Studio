@@ -57,7 +57,7 @@ jobs:
     # working day. Ten minutes is roughly six times the longest this has taken.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v5
 
@@ -68,7 +68,7 @@ jobs:
       #
       # When a token is needed it is written in the publish step instead, where it is
       # used. See there for why it is ever needed at all.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -289,7 +289,7 @@ jobs:
             repository: FourCourtJester/SS-Demo
             secret: DEMO_DEPLOY_KEY
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # A deploy key rather than a token, for three reasons that all matter here.
       #
@@ -352,7 +352,7 @@ jobs:
           fi
 
       - name: Check out the template repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ${{ matrix.repository }}
           ssh-key: ${{ secrets[matrix.secret] }}

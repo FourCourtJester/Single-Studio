@@ -62,7 +62,7 @@ jobs:
             repository: FourCourtJester/Single-Studio-Plugin-Template
             secret: PLUGIN_TEMPLATE_DEPLOY_KEY
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # The whole history, so the push's first commit can be compared with
           # whatever came before it.
@@ -104,7 +104,7 @@ jobs:
       # failed here with "Unable to locate executable file: pnpm", on both
       # templates, before anything was pushed. The mirror installs with npm, from
       # npm, in a directory of its own, so there is nothing of pnpm's to cache.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         if: steps.decide.outputs.go == 'true'
         with:
           node-version: 22
@@ -159,7 +159,7 @@ jobs:
 
       - name: Check out the mirror
         if: steps.decide.outputs.go == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ${{ matrix.repository }}
           ssh-key: ${{ secrets[matrix.secret] }}

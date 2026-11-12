@@ -494,3 +494,19 @@ to see it go red:
 
 **Waiting on somebody who runs NGS broadcasts:** whether one match at a time is
 right, or a night wants a queue; and the paths FCJ-Heroes-StormInterface reads.
+
+## The React Compiler's lint rules, not yet taken
+
+`eslint-plugin-react-hooks` went from 5 to 7 in the 2026-11-12 dependency round, but
+`eslint.config.js` names the two rules 5's recommended set held -- `rules-of-hooks`
+and `exhaustive-deps` -- rather than spreading 7's, which adds the React Compiler's
+rules. On adoption they found 25 problems across 20 files of core:
+`set-state-in-effect` 15, `refs` 6, `purity` 2, `static-components` 2. Several are in
+the timing of graphics that go to air -- `Fit`, `Sequence`, `Slideshow`, `Ticker`,
+`Transition` -- and two are the lazily loaded views in `pages/Control.jsx` and
+`pages/Source.jsx`, made in a `useMemo`.
+
+Not urgent: nothing here is a bug the rules have shown, and the app does not use the
+compiler. Worth taking one rule at a time, each change with the e2e behind it, if a
+studio ever turns the compiler on -- the compiler skips a component these rules
+reject, so they are the list of what it would leave alone.
