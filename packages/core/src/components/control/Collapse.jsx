@@ -29,13 +29,16 @@ import { Icon } from '../common/Icon'
  *   )
  * }
  *
+ * A third element sets it outright -- `setCollapsed(true)` folds whatever it was --
+ * for anything that folds several things at once.
+ *
  * @param {boolean} [initial] - Start folded. Defaults to `true`; `false` starts it open.
- * @returns {[boolean, () => void]} Whether it is folded, and a function that folds or opens it.
+ * @returns {[boolean, () => void, (collapsed: boolean) => void]} Whether it is folded, a function that folds or opens it, and one that sets it.
  */
 export function useCollapsed(initial = true) {
   const [collapsed, setCollapsed] = useState(Boolean(initial))
 
-  return [collapsed, () => setCollapsed((was) => !was)]
+  return [collapsed, () => setCollapsed((was) => !was), setCollapsed]
 }
 
 /**

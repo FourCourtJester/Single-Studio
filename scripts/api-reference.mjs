@@ -59,6 +59,8 @@ const AUTHORED = {
     'Row',
     'useCollapsed',
     'Chevron',
+    'BoardBar',
+    'PanelJump',
     'Break',
     'Confirm',
     'Hotkeys',

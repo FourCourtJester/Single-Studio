@@ -4,6 +4,36 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Added
+
+- **`BoardBar`: a bar of your own under the board's top bar.** Write it anywhere in
+  your control view and what it holds appears in a second row under the top bar,
+  sticking with it as the board scrolls. A board without one has no second bar --
+  nothing to see and no height. Yours to shape: the framework sets no height, row
+  limit or overflow on it, `className` and `style` go on its box, and several
+  `BoardBar`s share the one bar.
+- **`PanelJump`: a list of the board's panels.** Choose one and the board folds every
+  other collapsible panel, opens that one and the panel it is inside, and scrolls it
+  to just under the bar; "Fold all" folds everything and goes back to the top.
+  Every titled `Panel` is listed with nothing to register. Put it in a `BoardBar`:
+  `<BoardBar><PanelJump /></BoardBar>`.
+- **`useCollapsed` returns a setter as its third element**, for folding several
+  things at once. The first two are as before.
+- **`--ss-head-height`** on `.ss-control`: the header's measured height, both rows.
+
+### Changed
+
+- **The header's stickiness, background and bottom border moved from
+  `.ss-control-bar` to `.ss-control-head`**, which holds the top bar and the studio's
+  bar under it. `.ss-control-bar` is still the top row, with the same padding. A
+  studio that restyled the header's background or border through `.ss-control-bar`
+  should move that to `.ss-control-head`.
+- **A panel scrolled to stops under the header**, not behind it: every `.ss-panel`
+  has a scroll margin of the header's height and the board's gap. That covers Tab
+  into a panel near the top as well as a jump.
+
 ## 0.16.0
 
 Fixes found by building the first plugin outside this repository, and a panel

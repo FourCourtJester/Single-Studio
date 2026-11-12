@@ -380,8 +380,21 @@
     gap: var(--ss-board-gap, 1rem);
   }
 
-  .ss-control-bar {
+  /* The studio's bar takes the top bar's spacing, so the two read as one header. */
+  .ss-control-bar,
+  .ss-board-bar {
     padding: var(--ss-bar-pad-y, 0.75rem) var(--ss-bar-pad-x, 1rem);
+  }
+
+  /*
+   * A panel brought into view stops under the header, not behind it: the header
+   * sticks, so scrolling a panel to the top of the page put its title under the bar.
+   * `--ss-head-height` is measured by the control page, both rows of it, since the
+   * studio's bar is as tall as its contents. Every panel rather than only a jump's
+   * target, so Tab into a panel near the top lands where it can be seen too.
+   */
+  .ss-panel {
+    scroll-margin-top: calc(var(--ss-head-height, 0px) + var(--ss-board-gap, 1rem));
   }
 
   /*

@@ -3349,6 +3349,142 @@ check(
 )
 await inside.close()
 
+// -- The studio's own bar, and a jump list in it ----------------------------------
+// A second bar under the top one that a studio fills with BoardBar and core ships
+// empty -- so a board without one must not change at all -- and PanelJump, the
+// first thing for it. Its own page, at ?boardbar, where the fixture mounts the bars
+// and a panel inside a panel; every jump folds panels, and that stays off the board
+// the rest of the suite reads.
+const barlessHead = await control.evaluate(() => {
+  const head = document.querySelector('.ss-control-head')
+  const bar = document.querySelector('.ss-board-bar')
+
+  return {
+    shown: getComputedStyle(bar).display !== 'none',
+    height: bar.offsetHeight,
+    head: head.offsetHeight,
+    top: document.querySelector('.ss-control-bar').offsetHeight,
+  }
+})
+console.log(`  without a bar: ${JSON.stringify(barlessHead)}`)
+check(
+  !barlessHead.shown && barlessHead.height === 0 && barlessHead.head - barlessHead.top <= 1,
+  'a board with no BoardBar -- an empty one included -- has no second bar, and its header is the top bar alone',
+)
+
+const barPage = await context.newPage()
+await barPage.setViewportSize({ width: 1280, height: 500 })
+await barPage.goto(`${BASE}/?boardbar#/`)
+await barPage.waitForSelector('.ss-panel-jump')
+await barPage.waitForTimeout(400)
+
+const panelTopOf = (page, name) =>
+  page.evaluate((title) => {
+    const panel = [...document.querySelectorAll('.ss-panel')].find((p) => p.querySelector(':scope > header h2')?.textContent === title)
+
+    return Math.round(panel.getBoundingClientRect().top)
+  }, name)
+const headBottomOf = (page) => page.evaluate(() => Math.round(document.querySelector('.ss-control-head').getBoundingClientRect().bottom))
+const foldsOf = (page) =>
+  page.evaluate(() =>
+    Object.fromEntries([...document.querySelectorAll('.ss-panel[data-open]')].map((p) => [p.className.match(/fixture-[a-z]+/)?.[0], p.dataset.open])),
+  )
+const jumpBy = async (page, name) => {
+  const value = await page.evaluate(
+    (title) => [...document.querySelectorAll('.ss-panel-jump option')].find((option) => option.textContent.replace(/\u00a0/g, '').trim() === title)?.value,
+    name,
+  )
+
+  await page.selectOption('.ss-panel-jump', value)
+}
+
+const barsShown = await barPage.evaluate(() => {
+  const bar = document.querySelector('.ss-board-bar')
+  const top = document.querySelector('.ss-control-bar').getBoundingClientRect()
+
+  return {
+    groups: [...bar.children].map((group) => group.className.match(/fixture-bar-[a-z]+/)?.[0]),
+    under: Math.round(bar.getBoundingClientRect().top - top.bottom),
+    inHead: bar.parentElement.classList.contains('ss-control-head'),
+    measured: getComputedStyle(document.querySelector('.ss-control')).getPropertyValue('--ss-head-height'),
+    head: document.querySelector('.ss-control-head').offsetHeight,
+  }
+})
+console.log(`  with bars: ${JSON.stringify(barsShown)}`)
+check(
+  barsShown.groups.join() === 'fixture-bar-one,fixture-bar-two,fixture-bar-folded' && barsShown.under === 0 && barsShown.inHead,
+  'BoardBars show under the top bar, three sharing the one bar -- one of them written inside a folded panel',
+)
+check(
+  barsShown.measured === `${barsShown.head}px` && barsShown.head > barlessHead.head,
+  "and the header's height, both rows, is measured for the scroll margin",
+)
+
+const jumpList = await barPage.evaluate(() => ({
+  options: [...document.querySelectorAll('.ss-panel-jump option')].slice(2).map((option) => option.textContent),
+  titles: [...document.querySelectorAll('.ss-panel > header h2')].map((h2) => h2.textContent),
+}))
+check(
+  jumpList.options.map((text) => text.replace(/\u00a0/g, '')).join('|') === jumpList.titles.join('|') &&
+    jumpList.options[jumpList.options.indexOf('Bracket') + 1] === '\u00a0\u00a0\u00a0Upper final' &&
+    !jumpList.options.includes(''),
+  'the jump list names every titled panel in board order, a panel inside another indented under it',
+)
+
+// From a fresh load, where the untitled panel above the target starts open: the
+// jump has to fold it before it measures, or the target lands that far too high.
+const foldsBefore = await foldsOf(barPage)
+await jumpBy(barPage, 'Picker width')
+const jumpLanded = { top: await panelTopOf(barPage, 'Picker width'), under: await headBottomOf(barPage), folds: await foldsOf(barPage) }
+console.log(`  jump to Picker width: ${JSON.stringify(jumpLanded)} (folds before ${JSON.stringify(foldsBefore)})`)
+check(
+  foldsBefore['fixture-untitled'] === 'true' &&
+    Object.values(jumpLanded.folds).every((open) => open === 'false') &&
+    Math.abs(jumpLanded.top - (jumpLanded.under + 16)) <= 1,
+  "a jump folds every collapsible panel and puts the chosen panel's header just under the bar",
+)
+const headStuck = await barPage.evaluate(() => ({ y: Math.round(scrollY), top: document.querySelector('.ss-control-head').getBoundingClientRect().top }))
+check(
+  headStuck.y > 0 && headStuck.top === 0 && jumpLanded.under === barsShown.head,
+  'and the bar stays at the top with the top bar, the board scrolled under them',
+)
+
+await jumpBy(barPage, 'Upper final')
+const nestedJump = { top: await panelTopOf(barPage, 'Upper final'), under: await headBottomOf(barPage), folds: await foldsOf(barPage) }
+const jumpFocused = await barPage.evaluate(() => document.activeElement?.closest('.ss-panel')?.classList.contains('fixture-upper') ?? false)
+console.log(`  jump to Upper final: ${JSON.stringify(nestedJump)}`)
+check(
+  nestedJump.folds['fixture-bracket'] === 'true' &&
+    nestedJump.folds['fixture-upper'] === 'true' &&
+    nestedJump.folds['fixture-fold'] === 'false' &&
+    nestedJump.top >= nestedJump.under &&
+    jumpFocused,
+  "a jump to a panel inside a folded one opens both, and gives the chosen panel's title the focus",
+)
+
+await jumpBy(barPage, 'Fold all')
+const afterFoldAll = { folds: await foldsOf(barPage), y: await barPage.evaluate(() => scrollY) }
+check(
+  Object.values(afterFoldAll.folds).every((open) => open === 'false') && afterFoldAll.y === 0,
+  'Fold all folds every collapsible panel and goes back to the top',
+)
+
+// A slim dock: the bar wraps onto rows of its own, and the margin follows.
+await barPage.setViewportSize({ width: 380, height: 500 })
+await barPage.waitForTimeout(300)
+const slimBars = await barPage.evaluate(() => ({
+  rows: new Set([...document.querySelectorAll('.ss-board-bar-group')].map((group) => Math.round(group.getBoundingClientRect().top))).size,
+  head: document.querySelector('.ss-control-head').offsetHeight,
+}))
+await jumpBy(barPage, 'Picker width')
+const slimJump = { top: await panelTopOf(barPage, 'Picker width'), under: await headBottomOf(barPage) }
+console.log(`  slim: ${JSON.stringify(slimBars)}, jump ${JSON.stringify(slimJump)}`)
+check(
+  slimBars.rows > 1 && slimBars.head > barsShown.head && Math.abs(slimJump.top - (slimJump.under + 12)) <= 1,
+  'in a slim dock the bar wraps onto more rows, and a jump still lands under all of it',
+)
+await barPage.close()
+
 // -- A graphic that crashes ---------------------------------------------------
 // On air it must paint nothing. A missing lower third reads as a cue that did not
 // fire; a red error box reads as the broadcast being broken. `?debug` -- which an

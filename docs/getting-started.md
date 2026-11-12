@@ -287,6 +287,8 @@ instead, over `--ss-fade`; anything beyond that is a rule of your own on
 | `Leaderboard`  | `variables.<name>` | One delimited string; paste view and table view. Staged.                         |
 | `SaveButton`   | —                  | Commits every staged edit. Hosts the save and discard shortcuts.                 |
 | `Panel`        | —                  | Titled group, one row per child. `actions` on the title line; `collapsible`.     |
+| `BoardBar`     | —                  | A bar of your own under the board's top bar. Empty, it is not there.             |
+| `PanelJump`    | —                  | Lists the board's panels; choosing one folds the rest and scrolls it into view.  |
 | `Row`          | —                  | Side by side when there is room, stacked in a dock. Widths in twelfths.          |
 | `Break`        | —                  | Deprecated: draws nothing. Use `Row`.                                            |
 
@@ -307,6 +309,26 @@ inside a `<div>` of its own.
 <Panel title="Slate" collapsible actions={<ResetButton label="slate" names={['slate.title']} size="sm" />}>
   <Field name="slate.title" label="Title" />
 </Panel>
+```
+
+### A bar of your own
+
+`BoardBar` puts whatever you give it in a second bar under the board's top bar,
+which stays put as the board scrolls. Write it anywhere in your control view,
+beside the panels its controls belong to; a board without one has no second bar at
+all. It is yours to shape: it grows with what you put in it, onto as many rows as
+that takes, and `className` and `style` go on its box. Several `BoardBar`s share
+the one bar, in the order they mount.
+
+`PanelJump` is the one the framework provides. It lists every titled panel, in
+board order; choosing one folds every other collapsible panel, opens that one —
+and the panel it is inside, if any — and scrolls it to just under the bar. "Fold
+all" at the head of the list folds everything and goes back to the top.
+
+```jsx
+<BoardBar>
+  <PanelJump />
+</BoardBar>
 ```
 
 ## Working with other people
