@@ -3474,6 +3474,22 @@ check(
   'the jump list names every titled panel in board order, a panel inside another indented under it',
 )
 
+// The arrow: the browser's sat 4px from the border whatever the padding, so it is
+// hidden and the board's chevron stands in, with room on its right.
+const arrow = await barPage.evaluate(() => {
+  const select = document.querySelector('.ss-panel-jump')
+  const box = select.getBoundingClientRect()
+  const chevron = select.parentElement.querySelector('.ss-chevron')?.getBoundingClientRect()
+
+  return {
+    native: getComputedStyle(select).appearance,
+    gap: chevron ? Math.round(box.right - chevron.right) : null,
+    centred: chevron ? Math.abs(box.top + box.height / 2 - (chevron.top + chevron.height / 2)) <= 1 : false,
+  }
+})
+console.log(`  jump list arrow: ${JSON.stringify(arrow)}`)
+check(arrow.native === 'none' && arrow.gap >= 8 && arrow.centred, "the jump list's arrow has room on its right, the browser's own hidden")
+
 // From a fresh load, where the untitled panel above the target starts open: the
 // jump has to fold it before it measures, or the target lands that far too high.
 const foldsBefore = await foldsOf(barPage)
