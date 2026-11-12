@@ -98,7 +98,7 @@ export function ImagePicker({ name, label = 'Image', className, ...rest }) {
           value={known ? value : ''}
           onChange={(event) => onChange(event.target.value)}
           aria-label={`${label} selection`}
-          className="-ml-px min-w-0 grow border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100 outline-none focus:relative focus:border-sky-500"
+          className="ss-select-arrow -ml-px min-w-0 grow border border-slate-700 bg-slate-900 pl-2 pr-7 text-sm text-slate-100 outline-none focus:relative focus:border-sky-500"
         >
           <option value="">— none —</option>
           {loose.map((entry) => (

@@ -3,6 +3,7 @@ import { useId, useState } from 'react'
 import { useVelcroMutate } from '@single-studio/core'
 import {
   AssetLibrary,
+  BoardBar,
   Chevron,
   ColorPicker,
   Confirm,
@@ -14,8 +15,10 @@ import {
   ImageSelect,
   Leaderboard,
   Panel,
+  PanelJump,
   ResetButton,
   Row,
+  Select,
   Stepper,
   Stopwatch,
   SwapButton,
@@ -174,11 +177,31 @@ function Folding() {
   )
 }
 
+/**
+ * The studio's own bar, and a jump list in it. Only at `?boardbar`, so the board
+ * every other check measures has no bar -- and checks long before this one count
+ * panels and stripes that a nested pair would change.
+ */
+const withBar = new URLSearchParams(window.location.search).has('boardbar')
+
 export default function Control() {
   const mutate = useVelcroMutate()
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Empty, always: it must add nothing, or every board with a conditional bar
+          would carry a strip of padding while the condition is false. */}
+      <BoardBar className="fixture-bar-empty">{null}</BoardBar>
+      {withBar ? (
+        <>
+          <BoardBar className="fixture-bar-one">
+            <PanelJump />
+          </BoardBar>
+          <BoardBar className="fixture-bar-two ml-auto">
+            <span className="text-xs text-slate-400">Second bar</span>
+          </BoardBar>
+        </>
+      ) : null}
       <Panel title="Match">
         {/* Five in a row, left to share the line: five equal widths. The e2e suite
             measures that. */}
@@ -300,6 +323,20 @@ export default function Control() {
       </Panel>
 
       <Folding />
+
+      {withBar ? (
+        <Panel title="Bracket" collapsible className="fixture-bracket">
+          <Panel title="Upper final" collapsible className="fixture-upper">
+            <p className="text-sm text-slate-400">Inside the bracket.</p>
+            {/* The board's one Select, so its arrow is measured with the others'. */}
+            <Select name="fixture.round" label="Round" options={['Quarter-final', 'Semi-final', 'Final']} />
+          </Panel>
+          {/* Written in a folded panel, drawn in the bar all the same. */}
+          <BoardBar className="fixture-bar-folded">
+            <span className="text-xs text-slate-400">From a folded panel</span>
+          </BoardBar>
+        </Panel>
+      ) : null}
 
       <Panel title="Images">
         {/* The manager, inline. The same component opens as a modal from any picker. */}

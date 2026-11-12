@@ -66,6 +66,8 @@ piece of it you can also put on the board yourself.
 - [`Row`](#control-row)
 - [`useCollapsed`](#control-usecollapsed)
 - [`Chevron`](#control-chevron)
+- [`BoardBar`](#control-boardbar)
+- [`PanelJump`](#control-paneljump)
 - [`Break`](#control-break)
 - [`Confirm`](#control-confirm)
 - [`Hotkeys`](#control-hotkeys)
@@ -639,6 +641,9 @@ function TeamCard({ team }) {
     </div>
   )
 }
+
+A third element sets it outright -- `setCollapsed(true)` folds whatever it was --
+for anything that folds several things at once.
 ```
 
 <a id="control-chevron"></a>
@@ -659,6 +664,60 @@ The fold's chevron: pointing down when open, turned a quarter when folded, as a 
 | --- | --- | --- | --- |
 | `className` | `string` |  | Added to the component's own classes. |
 | `collapsed` | `boolean` |  | Folded: turned a quarter to point at what it belongs to. |
+
+<a id="control-boardbar"></a>
+
+### BoardBar
+
+---
+
+`import { BoardBar } from '@single-studio/core/control'`
+
+A bar of your own, under the board's top bar, holding whatever you put in it.
+
+```jsx
+<BoardBar>
+  <PanelJump />
+</BoardBar>
+```
+
+```jsx
+// Your own controls beside it, pushed to the right
+<>
+  <BoardBar>
+    <PanelJump />
+  </BoardBar>
+  <BoardBar className="ml-auto">
+    <Toggle name="live" label="live" size="sm" />
+  </BoardBar>
+</>
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` |  | What goes in the bar: anything at all. |
+| `className` | `string` |  | Added to the component's own classes. |
+
+<a id="control-paneljump"></a>
+
+### PanelJump
+
+---
+
+`import { PanelJump } from '@single-studio/core/control'`
+
+A list of the board's panels: choose one and the board folds every other collapsible panel, opens that one, and scrolls it to just under the bar -- smoothly, unless the system asks for reduced motion.
+
+```jsx
+<BoardBar>
+  <PanelJump />
+</BoardBar>
+```
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Added to the component's own classes. |
+| `label` | `string` |  | What the list says before anything is chosen. Defaults to `"Jump to…"`. |
 
 <a id="control-break"></a>
 

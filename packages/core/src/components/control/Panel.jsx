@@ -1,6 +1,7 @@
-import { useId } from 'react'
+import { useContext, useEffect, useId, useRef } from 'react'
 
 import { cx } from '../../toolkits/cx'
+import { BoardContext, PanelParent } from './board'
 import { Chevron, useCollapsed } from './Collapse'
 
 /**
@@ -74,8 +75,25 @@ import { Chevron, useCollapsed } from './Collapse'
  * @param {PanelProps & import("react").HTMLAttributes<HTMLElement>} props
  */
 export function Panel({ title, actions, collapsible = false, defaultOpen = false, children, className, ...rest }) {
-  const [collapsed, toggle] = useCollapsed(!defaultOpen)
+  const [collapsed, toggle, setCollapsed] = useCollapsed(!defaultOpen)
   const body = useId()
+  const self = useRef(null)
+  const board = useContext(BoardContext)?.board
+  const parent = useContext(PanelParent)
+
+  // On the board's list for PanelJump, with a way to open or fold it. The fold stays
+  // this panel's: the board only ever asks it to change.
+  useEffect(
+    () =>
+      board?.register(body, {
+        title: typeof title === 'string' ? title.trim() : '',
+        collapsible,
+        parent,
+        element: () => self.current,
+        open: (open) => setCollapsed(!open),
+      }),
+    [board, body, title, collapsible, parent, setCollapsed],
+  )
 
   // Read every render rather than stored, so a panel that stops being collapsible
   // is simply open, whatever it was folded to.
@@ -112,7 +130,12 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
   ) : null
 
   return (
-    <section className={cx('ss-panel rounded-lg border border-slate-800', className)} data-open={collapsible ? String(!folded) : undefined} {...rest}>
+    <section
+      ref={self}
+      className={cx('ss-panel rounded-lg border border-slate-800', className)}
+      data-open={collapsible ? String(!folded) : undefined}
+      {...rest}
+    >
       {heading || hasTools ? (
         // Wraps rather than shrinking the title: in a slim dock the actions take the
         // next line, still at the right, and the title keeps its words.
@@ -122,7 +145,7 @@ export function Panel({ title, actions, collapsible = false, defaultOpen = false
         </header>
       ) : null}
       <div id={body} className="ss-panel-body" hidden={folded}>
-        {children}
+        <PanelParent.Provider value={body}>{children}</PanelParent.Provider>
       </div>
     </section>
   )
