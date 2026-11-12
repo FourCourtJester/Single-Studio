@@ -4,7 +4,12 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.17.0
+
+A bar of the studio's own under the board's top bar, and a list in it that jumps
+to any panel. A minor because `BoardBar`, `PanelJump`, `--ss-board-bar-bg` and
+`.ss-select-arrow` are new, and because the header's sticking moved to a new
+wrapper -- see Changed.
 
 ### Added
 
