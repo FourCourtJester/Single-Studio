@@ -31,6 +31,10 @@ tag is checked against all six manifests, so they cannot drift apart.
   bar under it. `.ss-control-bar` is still the top row, with the same padding. A
   studio that restyled the header's background or border through `.ss-control-bar`
   should move that to `.ss-control-head`.
+- **The board's dropdowns draw their own arrow**: the panels' chevron, 10px in from
+  the right edge, on `Select`, `ImagePicker` and `PanelJump`. The browser's sat 4px
+  from the border whatever the padding. It is the class `ss-select-arrow`, for a
+  studio's own `<select>` to match; give it `pr-7` for the text's room.
 - **A panel scrolled to stops under the header**, not behind it: every `.ss-panel`
   has a scroll margin of the header's height and the board's gap. That covers Tab
   into a panel near the top as well as a jump.

@@ -61,7 +61,7 @@ export function Select({ name, label = 'Select', options = [], children, placeho
         onKeyDown={onKeyDown}
         data-dirty={dirty ? '' : undefined}
         className={cx(
-          'rounded-md border bg-slate-900 px-3 py-1 text-slate-100 outline-none transition-colors',
+          'ss-select-arrow rounded-md border bg-slate-900 py-1 pl-3 pr-7 text-slate-100 outline-none transition-colors',
           LINE,
           dirty ? 'border-amber-500/70 focus:border-amber-400' : 'border-slate-700 focus:border-sky-500',
         )}

@@ -2,7 +2,6 @@ import { flushSync } from 'react-dom'
 
 import { cx } from '../../toolkits/cx'
 import { useBoardPanels } from './board'
-import { Chevron } from './Collapse'
 
 const FOLD_ALL = '\u0000fold'
 
@@ -87,33 +86,27 @@ export function PanelJump({ label = 'Jump to…', className, ...rest }) {
     element?.querySelector(':scope > .ss-panel-header .ss-panel-fold')?.focus({ preventScroll: true })
   }
 
-  // The browser's own arrow, drawn by Chrome 4px from the border whatever the right
-  // padding -- measured at 12, 20 and 28px, the arrow did not move, only the box
-  // grew -- so it is hidden and the board's chevron drawn in its place, 10px in.
   return (
-    <span className="ss-panel-jump-box relative inline-flex max-w-full items-center">
-      <select
-        value=""
-        onChange={(event) => jump(event.target.value)}
-        aria-label={label}
-        className={cx(
-          'ss-panel-jump max-w-full appearance-none rounded-md border border-slate-700 bg-slate-900 py-1 pl-3 pr-8 text-sm text-slate-100 outline-none transition-colors focus:border-sky-500',
-          className,
-        )}
-        {...rest}
-      >
-        <option value="" disabled>
-          {label}
+    <select
+      value=""
+      onChange={(event) => jump(event.target.value)}
+      aria-label={label}
+      className={cx(
+        'ss-panel-jump ss-select-arrow max-w-full rounded-md border border-slate-700 bg-slate-900 py-1 pl-3 pr-7 text-sm text-slate-100 outline-none transition-colors focus:border-sky-500',
+        className,
+      )}
+      {...rest}
+    >
+      <option value="" disabled>
+        {label}
+      </option>
+      <option value={FOLD_ALL}>Minimize all</option>
+      {titled.map((panel) => (
+        <option key={panel.id} value={panel.id}>
+          {'\u00a0\u00a0\u00a0'.repeat(depth(panel))}
+          {panel.title}
         </option>
-        <option value={FOLD_ALL}>Minimize all</option>
-        {titled.map((panel) => (
-          <option key={panel.id} value={panel.id}>
-            {'\u00a0\u00a0\u00a0'.repeat(depth(panel))}
-            {panel.title}
-          </option>
-        ))}
-      </select>
-      <Chevron className="pointer-events-none absolute right-2.5 text-slate-400" />
-    </span>
+      ))}
+    </select>
   )
 }

@@ -18,6 +18,7 @@ import {
   PanelJump,
   ResetButton,
   Row,
+  Select,
   Stepper,
   Stopwatch,
   SwapButton,
@@ -327,6 +328,8 @@ export default function Control() {
         <Panel title="Bracket" collapsible className="fixture-bracket">
           <Panel title="Upper final" collapsible className="fixture-upper">
             <p className="text-sm text-slate-400">Inside the bracket.</p>
+            {/* The board's one Select, so its arrow is measured with the others'. */}
+            <Select name="fixture.round" label="Round" options={['Quarter-final', 'Semi-final', 'Final']} />
           </Panel>
           {/* Written in a folded panel, drawn in the bar all the same. */}
           <BoardBar className="fixture-bar-folded">

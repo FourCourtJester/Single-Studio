@@ -3474,21 +3474,28 @@ check(
   'the jump list names every titled panel in board order, a panel inside another indented under it',
 )
 
-// The arrow: the browser's sat 4px from the border whatever the padding, so it is
-// hidden and the board's chevron stands in, with room on its right.
-const arrow = await barPage.evaluate(() => {
-  const select = document.querySelector('.ss-panel-jump')
-  const box = select.getBoundingClientRect()
-  const chevron = select.parentElement.querySelector('.ss-chevron')?.getBoundingClientRect()
+// The arrow: the browser's sat 4px from the border whatever the padding, so every
+// dropdown on the board hides it and draws the panels' chevron 10px in, with the
+// text kept clear of it -- the jump list, a Select and the image pickers alike.
+const arrows = await barPage.evaluate(() =>
+  [...document.querySelectorAll('.ss-control select')].map((select) => {
+    const style = getComputedStyle(select)
 
-  return {
-    native: getComputedStyle(select).appearance,
-    gap: chevron ? Math.round(box.right - chevron.right) : null,
-    centred: chevron ? Math.abs(box.top + box.height / 2 - (chevron.top + chevron.height / 2)) <= 1 : false,
-  }
-})
-console.log(`  jump list arrow: ${JSON.stringify(arrow)}`)
-check(arrow.native === 'none' && arrow.gap >= 8 && arrow.centred, "the jump list's arrow has room on its right, the browser's own hidden")
+    return {
+      which: select.classList.contains('ss-panel-jump') ? 'jump' : select.closest('.ss-select') ? 'select' : 'picker',
+      native: style.appearance,
+      drawn: /svg/.test(style.backgroundImage),
+      at: style.backgroundPosition,
+      room: parseFloat(style.paddingRight),
+    }
+  }),
+)
+console.log(`  dropdown arrows: ${JSON.stringify(arrows)}`)
+check(
+  ['jump', 'select', 'picker'].every((which) => arrows.some((arrow) => arrow.which === which)) &&
+    arrows.every((arrow) => arrow.native === 'none' && arrow.drawn && arrow.at === 'right 10px 50%' && arrow.room >= 26),
+  "every dropdown on the board has the same arrow, with room on its right -- the browser's own hidden",
+)
 
 // From a fresh load, where the untitled panel above the target starts open: the
 // jump has to fold it before it measures, or the target lands that far too high.
