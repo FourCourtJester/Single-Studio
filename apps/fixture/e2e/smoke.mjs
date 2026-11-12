@@ -3476,7 +3476,9 @@ check(
 
 // The arrow: the browser's sat 4px from the border whatever the padding, so every
 // dropdown on the board hides it and draws the panels' chevron 10px in, with the
-// text kept clear of it -- the jump list, a Select and the image pickers alike.
+// text kept clear of it -- the jump list, a Select and the image pickers alike. The
+// position is read in either spelling: Chromium here reports "right 10px 50%", and
+// CI's newer one "calc(100% - 10px) 50%", the same place.
 const arrows = await barPage.evaluate(() =>
   [...document.querySelectorAll('.ss-control select')].map((select) => {
     const style = getComputedStyle(select)
@@ -3493,7 +3495,7 @@ const arrows = await barPage.evaluate(() =>
 console.log(`  dropdown arrows: ${JSON.stringify(arrows)}`)
 check(
   ['jump', 'select', 'picker'].every((which) => arrows.some((arrow) => arrow.which === which)) &&
-    arrows.every((arrow) => arrow.native === 'none' && arrow.drawn && arrow.at === 'right 10px 50%' && arrow.room >= 26),
+    arrows.every((arrow) => arrow.native === 'none' && arrow.drawn && /^(right 10px|calc\(100% - 10px\)) 50%$/.test(arrow.at) && arrow.room >= 26),
   "every dropdown on the board has the same arrow, with room on its right -- the browser's own hidden",
 )
 
