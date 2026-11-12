@@ -4,7 +4,13 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## 0.17.0
+## 0.17.1
+
+The release 0.17.0 was meant to be. `v0.17.0` was tagged on the commit before the
+version bump, where every package still said 0.16.0; the release workflow's check that
+the tag matches the packages stopped it before anything was published, and a
+repository rule keeps a pushed tag from being moved. So 0.17.0 was never on npm, and
+this is its content under the next number.
 
 A bar of the studio's own under the board's top bar, and a list in it that jumps
 to any panel. A minor because `BoardBar`, `PanelJump`, `--ss-board-bar-bg` and
