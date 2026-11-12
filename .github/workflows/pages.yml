@@ -41,13 +41,13 @@ jobs:
     # the pages concurrency group, and with it the next deploy, for GitHub's 360.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # No version here on purpose: the action reads "packageManager" from
       # package.json, so this and the devcontainer cannot drift apart.
       - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm

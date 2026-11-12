@@ -18,7 +18,14 @@ export default [
     plugins: { react, 'react-hooks': reactHooks },
     rules: {
       ...react.configs.flat.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
+      // The two rules v5's recommended set held, named rather than spread. v7's set
+      // adds the React Compiler's rules, which found 25 problems across 20 files of
+      // core on adoption -- set-state-in-effect 15, refs 6, purity 2,
+      // static-components 2 -- many in the timing of Fit, Sequence and Slideshow.
+      // Taking them is a refactor of graphics that are on air, not a dependency bump;
+      // it is queued in docs/internal/next.md.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
