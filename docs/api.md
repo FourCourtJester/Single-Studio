@@ -706,7 +706,7 @@ A bar of your own, under the board's top bar, holding whatever you put in it.
 
 `import { PanelJump } from '@single-studio/core/control'`
 
-A list of the board's panels: choose one and the board folds every other collapsible panel, opens that one, and scrolls it to just under the bar.
+A list of the board's panels: choose one and the board folds every other collapsible panel, opens that one, and scrolls it to just under the bar -- smoothly, unless the system asks for reduced motion.
 
 ```jsx
 <BoardBar>

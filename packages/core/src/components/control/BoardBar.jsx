@@ -26,9 +26,10 @@ import { BoardContext } from './board'
  * `PanelJump` is the one the framework provides: a list of the board's panels that
  * opens one and folds the rest.
  *
- * The bar is `.ss-board-bar` in the stylesheet, under `.ss-control-bar`, and both are
- * inside `.ss-control-head`, which is what sticks. Its height, both rows, is
- * `--ss-head-height` on `.ss-control`.
+ * The bar is a dark blue of its own, `--ss-board-bar-bg` on `.ss-control` to set
+ * another. It is `.ss-board-bar` in the stylesheet, under `.ss-control-bar`, and both
+ * are inside `.ss-control-head`, which is what sticks. The header's height, both
+ * rows, is `--ss-head-height`.
  *
  * @example
  * <BoardBar>

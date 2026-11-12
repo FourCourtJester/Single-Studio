@@ -13,10 +13,11 @@ tag is checked against all six manifests, so they cannot drift apart.
   sticking with it as the board scrolls. A board without one has no second bar --
   nothing to see and no height. Yours to shape: the framework sets no height, row
   limit or overflow on it, `className` and `style` go on its box, and several
-  `BoardBar`s share the one bar.
+  `BoardBar`s share the one bar. It is a dark blue, so it reads apart from the top
+  bar and the panels; `--ss-board-bar-bg` on `.ss-control` sets another.
 - **`PanelJump`: a list of the board's panels.** Choose one and the board folds every
   other collapsible panel, opens that one and the panel it is inside, and scrolls it
-  to just under the bar; "Fold all" folds everything and goes back to the top.
+  to just under the bar; "Minimize all" folds everything and goes back to the top.
   Every titled `Panel` is listed with nothing to register. Put it in a `BoardBar`:
   `<BoardBar><PanelJump /></BoardBar>`.
 - **`useCollapsed` returns a setter as its third element**, for folding several

@@ -387,6 +387,17 @@
   }
 
   /*
+   * The studio's bar in a shade of its own, so it reads as the studio's rather than
+   * as more of the top bar. Dark on purpose -- the owner's call was nothing bright,
+   * and a dock sits beside a preview an operator is watching. A dark blue rather
+   * than another grey: the panels already stripe in two greys, and a grey bar read
+   * as one more panel. A property, so a studio sets its own on .ss-control.
+   */
+  .ss-board-bar {
+    background-color: var(--ss-board-bar-bg, rgb(8 47 73 / 0.55));
+  }
+
+  /*
    * A panel brought into view stops under the header, not behind it: the header
    * sticks, so scrolling a panel to the top of the page put its title under the bar.
    * `--ss-head-height` is measured by the control page, both rows of it, since the

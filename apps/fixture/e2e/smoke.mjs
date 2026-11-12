@@ -3389,6 +3389,28 @@ const foldsOf = (page) =>
   page.evaluate(() =>
     Object.fromEntries([...document.querySelectorAll('.ss-panel[data-open]')].map((p) => [p.className.match(/fixture-[a-z]+/)?.[0], p.dataset.open])),
   )
+// A jump glides, so it is over when the page has held still for a few frames, not
+// when the change event has been sent.
+const scrollSettles = (page) =>
+  page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        let last = -1
+        let still = 0
+        const frame = () => {
+          if (Math.round(scrollY) === last) still += 1
+          else [last, still] = [Math.round(scrollY), 0]
+          if (still >= 8) resolve()
+          else requestAnimationFrame(frame)
+        }
+        requestAnimationFrame(frame)
+      }),
+  )
+const scrollPath = (page) =>
+  page.evaluate(() => {
+    window.__path = []
+    window.addEventListener('scroll', () => window.__path.push(Math.round(scrollY)))
+  })
 const jumpBy = async (page, name) => {
   const value = await page.evaluate(
     (title) => [...document.querySelectorAll('.ss-panel-jump option')].find((option) => option.textContent.replace(/\u00a0/g, '').trim() === title)?.value,
@@ -3396,6 +3418,7 @@ const jumpBy = async (page, name) => {
   )
 
   await page.selectOption('.ss-panel-jump', value)
+  await scrollSettles(page)
 }
 
 const barsShown = await barPage.evaluate(() => {
@@ -3420,6 +3443,26 @@ check(
   "and the header's height, both rows, is measured for the scroll margin",
 )
 
+// A shade of its own, dark, which a studio can set: the owner's pick was a dark
+// blue, so it reads apart from the top bar and from the panels' greys.
+const barShade = await barPage.evaluate(() => {
+  const own = getComputedStyle(document.querySelector('.ss-board-bar')).backgroundColor
+  const head = getComputedStyle(document.querySelector('.ss-control-head')).backgroundColor
+  const style = document.createElement('style')
+
+  style.textContent = '.ss-control { --ss-board-bar-bg: rgb(1, 2, 3); }'
+  document.head.append(style)
+
+  const set = getComputedStyle(document.querySelector('.ss-board-bar')).backgroundColor
+
+  style.remove()
+
+  return { own, head, set }
+})
+console.log(`  bar shade: ${JSON.stringify(barShade)}`)
+check(barShade.own !== barShade.head && barShade.own !== 'rgba(0, 0, 0, 0)', "the bar has a shade of its own, apart from the top bar's")
+check(barShade.set === 'rgb(1, 2, 3)', 'and a studio that sets --ss-board-bar-bg on .ss-control gets its own')
+
 const jumpList = await barPage.evaluate(() => ({
   options: [...document.querySelectorAll('.ss-panel-jump option')].slice(2).map((option) => option.textContent),
   titles: [...document.querySelectorAll('.ss-panel > header h2')].map((h2) => h2.textContent),
@@ -3434,7 +3477,9 @@ check(
 // From a fresh load, where the untitled panel above the target starts open: the
 // jump has to fold it before it measures, or the target lands that far too high.
 const foldsBefore = await foldsOf(barPage)
+await scrollPath(barPage)
 await jumpBy(barPage, 'Picker width')
+const glided = await barPage.evaluate(() => window.__path)
 const jumpLanded = { top: await panelTopOf(barPage, 'Picker width'), under: await headBottomOf(barPage), folds: await foldsOf(barPage) }
 console.log(`  jump to Picker width: ${JSON.stringify(jumpLanded)} (folds before ${JSON.stringify(foldsBefore)})`)
 check(
@@ -3442,6 +3487,11 @@ check(
     Object.values(jumpLanded.folds).every((open) => open === 'false') &&
     Math.abs(jumpLanded.top - (jumpLanded.under + 16)) <= 1,
   "a jump folds every collapsible panel and puts the chosen panel's header just under the bar",
+)
+console.log(`  scrolled through ${glided.length} positions on the way: ${glided.slice(0, 3).join(', ')} … ${glided.at(-1)}`)
+check(
+  glided.length >= 3 && glided.every((y, at) => at === 0 || y >= glided[at - 1]) && glided.at(-1) > glided[0],
+  'and it glides there, through the positions in between, rather than appearing',
 )
 const headStuck = await barPage.evaluate(() => ({ y: Math.round(scrollY), top: document.querySelector('.ss-control-head').getBoundingClientRect().top }))
 check(
@@ -3462,12 +3512,23 @@ check(
   "a jump to a panel inside a folded one opens both, and gives the chosen panel's title the focus",
 )
 
-await jumpBy(barPage, 'Fold all')
+await jumpBy(barPage, 'Minimize all')
 const afterFoldAll = { folds: await foldsOf(barPage), y: await barPage.evaluate(() => scrollY) }
 check(
   Object.values(afterFoldAll.folds).every((open) => open === 'false') && afterFoldAll.y === 0,
-  'Fold all folds every collapsible panel and goes back to the top',
+  'Minimize all folds every collapsible panel and goes back to the top',
 )
+
+// Asked for less motion, the system gets none: the panel is there the moment it is
+// chosen, read without waiting for anything to settle.
+await barPage.emulateMedia({ reducedMotion: 'reduce' })
+await barPage.selectOption(
+  '.ss-panel-jump',
+  await barPage.evaluate(() => [...document.querySelectorAll('.ss-panel-jump option')].find((option) => option.textContent === 'Picker width').value),
+)
+const still = { top: await panelTopOf(barPage, 'Picker width'), under: await headBottomOf(barPage) }
+await barPage.emulateMedia({ reducedMotion: 'no-preference' })
+check(Math.abs(still.top - (still.under + 16)) <= 1, 'and with reduced motion asked for, a jump is instant')
 
 // A slim dock: the bar wraps onto rows of its own, and the margin follows.
 await barPage.setViewportSize({ width: 380, height: 500 })

@@ -12,12 +12,13 @@ const FOLD_ALL = '\u0000fold'
  */
 /**
  * A list of the board's panels: choose one and the board folds every other
- * collapsible panel, opens that one, and scrolls it to just under the bar.
+ * collapsible panel, opens that one, and scrolls it to just under the bar -- smoothly,
+ * unless the system asks for reduced motion.
  *
  * Every titled `Panel` is listed, in board order, with nothing to register: a panel
  * inside a panel is indented under it, and choosing it opens the one it is in as well.
- * "Fold all", at the head of the list, folds every collapsible panel and goes back to
- * the top. A panel that is not collapsible is still listed and scrolled to. Untitled
+ * "Minimize all", at the head of the list, folds every collapsible panel and goes back
+ * to the top. A panel that is not collapsible is still listed and scrolled to. Untitled
  * panels are not listed, having nothing to be listed by.
  *
  * A panel near the foot of the board stops as far up as the page will scroll,
@@ -67,8 +68,13 @@ export function PanelJump({ label = 'Jump to…', className, ...rest }) {
       for (const panel of all) if (panel.collapsible) panel.open(keep.has(panel.id))
     })
 
+    // A glide from where the operator was to where they asked to be, so they can
+    // see which way the board moved -- asked for once the jump worked. Instant for
+    // anyone whose system asks for less motion, as the board's other movement is.
+    const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+
     if (id === FOLD_ALL) {
-      window.scrollTo({ top: 0 })
+      window.scrollTo({ top: 0, behavior })
       return
     }
 
@@ -76,7 +82,7 @@ export function PanelJump({ label = 'Jump to…', className, ...rest }) {
 
     // Its scroll margin is the header's height (see base.css), so the bar does not
     // land over the panel it brought into view.
-    element?.scrollIntoView({ block: 'start' })
+    element?.scrollIntoView({ block: 'start', behavior })
     element?.querySelector(':scope > .ss-panel-header .ss-panel-fold')?.focus({ preventScroll: true })
   }
 
@@ -94,7 +100,7 @@ export function PanelJump({ label = 'Jump to…', className, ...rest }) {
       <option value="" disabled>
         {label}
       </option>
-      <option value={FOLD_ALL}>Fold all</option>
+      <option value={FOLD_ALL}>Minimize all</option>
       {titled.map((panel) => (
         <option key={panel.id} value={panel.id}>
           {'\u00a0\u00a0\u00a0'.repeat(depth(panel))}

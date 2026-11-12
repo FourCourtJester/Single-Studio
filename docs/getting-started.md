@@ -318,11 +318,12 @@ which stays put as the board scrolls. Write it anywhere in your control view,
 beside the panels its controls belong to; a board without one has no second bar at
 all. It is yours to shape: it grows with what you put in it, onto as many rows as
 that takes, and `className` and `style` go on its box. Several `BoardBar`s share
-the one bar, in the order they mount.
+the one bar, in the order they mount. It is a dark blue, apart from the top bar
+and the panels; set `--ss-board-bar-bg` on `.ss-control` for another.
 
 `PanelJump` is the one the framework provides. It lists every titled panel, in
 board order; choosing one folds every other collapsible panel, opens that one —
-and the panel it is inside, if any — and scrolls it to just under the bar. "Fold
+and the panel it is inside, if any — and scrolls it to just under the bar. "Minimize
 all" at the head of the list folds everything and goes back to the top.
 
 ```jsx
