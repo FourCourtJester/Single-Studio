@@ -6,6 +6,17 @@ tag is checked against all six manifests, so they cannot drift apart.
 
 ## Unreleased
 
+### Changed
+
+- **The board ships its own font, Inter.** It used each machine's own -- Segoe UI on
+  the Windows PC running OBS, San Francisco on a Mac -- so the same dock wrapped and
+  truncated text at different widths on each, and a layout made on one machine moved
+  on another. Inter (OFL) comes with core as a dependency, is served by the studio's
+  own build, and a browser fetches only the alphabets on the page: 48 kB for Latin.
+  `--ss-font` on `.ss-control` sets another. **Graphics are unchanged**: the framework
+  never picks a font for anything on air. The getting-started guide has a new Fonts
+  section on loading one for graphics.
+
 ### Fixed
 
 - **Hovering the board's top bar no longer flashes a scrollbar.** Revealing the cog

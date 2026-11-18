@@ -17,6 +17,21 @@
  * studio writes.
  */
 
+/*
+ * The board's font, shipped rather than borrowed from the machine. With nothing set
+ * the board took the system's: Segoe UI on the Windows PC that runs OBS, San
+ * Francisco on a Mac, Roboto or Noto elsewhere -- different widths, so the same dock
+ * wrapped and truncated at different places on each, and what the owner laid out on
+ * Windows moved on a laptop. Segoe UI cannot be redistributed; Inter can (OFL) and
+ * is built for interfaces at the board's sizes. Variable, one file per script, and a
+ * browser fetches only the scripts on the page -- Latin, for an English board. Served
+ * with the studio's own build, so a dock with no internet still has it.
+ *
+ * The board's only: graphics are untouched, since a font change on air is the
+ * studio's call, not an update's.
+ */
+@import '@fontsource-variable/inter';
+
 @layer components {
   /* OBS composites browser sources over the scene, so the page must not paint. */
   .ss-source,
@@ -341,6 +356,9 @@
    */
   .ss-control {
     color-scheme: dark;
+    /* --ss-font on .ss-control sets another. The system's own stack stays behind
+       it, for the moment before the file arrives and for a script Inter lacks. */
+    font-family: var(--ss-font, 'Inter Variable', ui-sans-serif, system-ui, sans-serif);
   }
 
   /*
