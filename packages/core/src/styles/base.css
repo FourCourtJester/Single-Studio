@@ -507,6 +507,19 @@
   }
 
   /*
+   * The reveal widened the page for two frames. The tools' overflow turns visible the
+   * moment the bar is hovered while their max-width is still opening from 0, so for
+   * the first frames the save button draws past its own box -- measured, 20px past a
+   * 1280px window (24px past a 380px one) -- the page is wider than the window, and a
+   * scrollbar flashes. Clipped on the horizontal only, so nothing in the bar can widen
+   * the page, while the cog's menu and the tooltips, which drop below it, still show:
+   * `clip` keeps the other axis visible, where `hidden` would turn it into a scroller.
+   */
+  .ss-control-bar {
+    overflow-x: clip;
+  }
+
+  /*
    * A tablet has no pointer to rest anywhere, so hiding behind hover there hides for
    * good. Touch gets them permanently, which costs a dock nobody is running on a
    * tablet nothing.

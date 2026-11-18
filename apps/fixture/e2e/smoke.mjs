@@ -3372,6 +3372,44 @@ check(
   'a board with no BoardBar -- an empty one included -- has no second bar, and its header is the top bar alone',
 )
 
+// Hovering the top bar reveals the cog and save, and the reveal widened the page for
+// its first two frames -- the save button drew 20px past the window -- so a
+// scrollbar flashed. Every frame of it is sampled here, and the menu has to open below
+// the bar all the same.
+const revealPage = await context.newPage()
+await revealPage.setViewportSize({ width: 1280, height: 700 })
+await revealPage.goto(`${BASE}/#/`)
+await revealPage.waitForSelector('.ss-control-bar h1')
+await revealPage.waitForTimeout(400)
+await revealPage.mouse.move(640, 500)
+await revealPage.evaluate(() => {
+  window.__widened = 0
+  window.__frames = 0
+  const start = performance.now()
+  const frame = () => {
+    window.__frames += 1
+    if (document.documentElement.scrollWidth > innerWidth) window.__widened += 1
+    if (performance.now() - start < 600) requestAnimationFrame(frame)
+  }
+  requestAnimationFrame(frame)
+})
+await revealPage.hover('.ss-control-bar h1')
+await revealPage.waitForTimeout(700)
+const reveal = await revealPage.evaluate(() => ({ widened: window.__widened, frames: window.__frames }))
+await revealPage.click('.ss-menu-open')
+const menuShown = await becomes(revealPage, () => {
+  const panel = document.querySelector('.ss-menu-panel')
+  const box = panel?.getBoundingClientRect()
+
+  return Boolean(box && box.height > 100 && panel.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)))
+})
+console.log(`  top bar reveal: ${reveal.widened} of ${reveal.frames} frames wider than the window`)
+check(
+  reveal.frames > 10 && reveal.widened === 0 && menuShown,
+  'revealing the top bar never makes the page wider than the window, and its menu still opens below it',
+)
+await revealPage.close()
+
 const barPage = await context.newPage()
 await barPage.setViewportSize({ width: 1280, height: 500 })
 await barPage.goto(`${BASE}/?boardbar#/`)
