@@ -37,10 +37,26 @@ before anything else.
   studio that ships one off until it is wanted. E2e: off survives a reload, on
   again connects, and an off plugin emits nothing. Open: whether off also hides
   the plugin's panel on the board; start without that.
-- **`Sequence` in a real OBS.** 0.12.0 shipped it tested only in Chromium. The check
-  that matters: a browser source with _Refresh browser when scene becomes active_
-  ticked starts the sequence again from its first item every time the scene is
-  taken.
+- **Where the changelog is published.** Raised by the owner on 2026-11-19 and parked
+  for the next "where are we at". The repository is public, so `CHANGELOG.md` already
+  is: the docs site's "Changelog" nav link and the README point at it on GitHub. What
+  is missing: no GitHub Releases are created, so the Releases tab is empty and
+  nobody watching the repository hears of a version -- release.yml could publish one
+  per tag with that version's section of the changelog; the docs site links out to
+  GitHub rather than having the changelog as a page of its own, which could be
+  generated at build the way api.md is; and no package ships `CHANGELOG.md` in its
+  `files`. Releases are the one worth most. (An earlier answer called the repository
+  private, misreading release.yml's provenance comment; 0.18.0 carries npm
+  provenance, which is only issued for a public source repository.)
+- **Real OBS, for what has only been tested in Chromium.** Each wants one look in
+  OBS 33, as a browser source or a dock:
+  - `Sequence`, since 0.12.0: a browser source with _Refresh browser when scene
+    becomes active_ ticked starts the sequence again from its first item every time
+    the scene is taken.
+  - The studio's own bar and the jump list, since 0.17.1: the jump's glide, and the
+    bar wrapping as the dock is dragged narrower.
+  - The board's font, since 0.18.0: Inter loads in the dock, and nothing laid out in
+    Segoe UI now wraps or truncates where it should not.
 
 ## Reports from client work, 2026-10-23
 

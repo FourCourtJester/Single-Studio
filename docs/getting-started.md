@@ -1087,6 +1087,16 @@ board:
 }
 ```
 
+The board's scrollbars are thin and dark. Their colours are properties on the page's
+root, since the page's own scrollbar belongs to it:
+
+```css
+:root {
+  --ss-scrollbar-thumb: #475569;
+  --ss-scrollbar-track: transparent;
+}
+```
+
 **Graphics keep whatever font you give them**, and with none, the machine's own — the
 framework does not choose a font for anything that goes to air. A graphic designed on a
 Mac and shown on the Windows PC will draw in a different font unless it names one, so

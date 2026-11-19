@@ -525,6 +525,32 @@
   }
 
   /*
+   * The board's scrollbars: thin, a slate thumb on the board's own dark, rather than
+   * the browser's. The page's own scrollbar was light -- a white track and grey
+   * arrows down the side of a dark board -- because `color-scheme: dark` sat on
+   * .ss-control, and the viewport's scrollbar takes its scheme and colours from the
+   * root element, not from anything inside it. So these go on the root, and only on
+   * a page with a board in it: a graphic's page never matches, so nothing on air
+   * changes. `scrollbar-color` inherits, so it reaches every scroller on the board,
+   * dialogs included; `scrollbar-width` does not, so it is set on them too, at no
+   * specificity, for a studio to override with anything.
+   *
+   * The standard properties rather than ::-webkit-scrollbar: OBS 33's dock is
+   * Chromium 150, which has them, and where both are set Chromium ignores the
+   * pseudo-elements anyway. The colours are properties on the root -- the page's
+   * scrollbar is the root's, so that is where a studio sets them.
+   */
+  :root:has(.ss-control) {
+    color-scheme: dark;
+    scrollbar-color: var(--ss-scrollbar-thumb, rgb(71 85 105)) var(--ss-scrollbar-track, transparent);
+  }
+
+  :root:has(.ss-control),
+  .ss-control :where(*) {
+    scrollbar-width: thin;
+  }
+
+  /*
    * The reveal widened the page for two frames. The tools' overflow turns visible the
    * moment the bar is hovered while their max-width is still opening from 0, so for
    * the first frames the save button draws past its own box -- measured, 20px past a
