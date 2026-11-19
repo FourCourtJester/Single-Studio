@@ -90,12 +90,22 @@ jobs:
       # SharedWorker startup, cross-tab BroadcastChannel fan-out, IndexedDB.
       #
       # The browser is cached, keyed on Playwright's version, so most runs do not
-      # download it at all. The download is what hung: three times on 2026-10-23,
-      # 7-10 minutes each against 20-27 seconds healthy, and a re-run on another
-      # runner always went straight through. So each attempt gets two minutes and
-      # three tries, and a stall costs two minutes rather than a cancelled run.
-      # The system packages (`install-deps`) still install every run -- they are
-      # not in the cache path -- under the same retries.
+      # download it at all. The download is what hung first: three times on
+      # 2026-10-23, 7-10 minutes each against 20-27 seconds healthy.
+      #
+      # Then the system packages hung, twice in two days (2026-11-18 and -19), on a
+      # cache hit: `install-deps` ran apt against Ubuntu's mirror every run, and the
+      # mirror took ~7.5 minutes for ~20 MB -- CJK and symbol fonts, and an update to
+      # a libgbm the image already had. None of it is needed: the runner image has
+      # every library Chromium links against ("already the newest version", line
+      # after line) and the suite renders Latin text. The per-attempt timeout did
+      # not save it either: apt ran under Playwright's own `sudo`, outside the
+      # process group `timeout` signals, so one attempt ate the step's 8 minutes.
+      #
+      # So: get the browser (cache, or a download that `timeout` can kill), then
+      # launch it. If it starts, apt is never touched. Only if it does not are the
+      # packages installed, with `timeout` running as root inside `sudo`, where it
+      # kills apt itself, and then it has to start.
       - name: Find Playwright's version
         id: playwright
         run: echo "version=$(apps/fixture/node_modules/.bin/playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
@@ -112,25 +122,48 @@ jobs:
         env:
           CACHED: ${{ steps.browsers.outputs.cache-hit }}
         run: |
-          if [ "$CACHED" = true ]; then what='install-deps chromium'; else what='install --with-deps chromium'; fi
-
           # Which Ubuntu, in the log and as a notice, so a failure here says
           # whether it is the runner image rather than leaving that to be guessed.
           echo "::notice title=runner::$(. /etc/os-release && echo "$PRETTY_NAME")"
 
-          for attempt in 1 2 3; do
-            # `timeout` signals the whole process group, so a hung apt-get under
-            # sudo goes with Playwright rather than holding the dpkg lock.
-            if timeout --kill-after=10 120 apps/fixture/node_modules/.bin/playwright $what 2>&1 | tee "$RUNNER_TEMP/chromium.log"; [ "${PIPESTATUS[0]}" -eq 0 ]; then exit 0; fi
-            # Playwright's own last error, as the annotation: the job log is not
-            # always readable from where a failure is diagnosed.
-            said=$(grep -iE 'error|not support|unable|failed' "$RUNNER_TEMP/chromium.log" | tail -1 | cut -c1-200)
-            echo "::warning::Chromium install attempt $attempt failed or stalled: ${said:-no error printed}"
-            sleep $((attempt * 10))
-          done
+          cli="$PWD/apps/fixture/node_modules/playwright/cli.js"
+          node="$(command -v node)"
 
-          echo "::error::Chromium did not install in three attempts"
-          exit 1
+          # Three tries, two minutes each. The last line Playwright said goes in
+          # the annotation: the job log is not always readable from where a
+          # failure is diagnosed.
+          attempts() {
+            what=$1
+            shift
+            for attempt in 1 2 3; do
+              if "$@" 2>&1 | tee "$RUNNER_TEMP/chromium.log"; [ "${PIPESTATUS[0]}" -eq 0 ]; then return 0; fi
+              said=$(grep -iE 'error|not support|unable|failed' "$RUNNER_TEMP/chromium.log" | tail -1 | cut -c1-200)
+              echo "::warning::Chromium $what, attempt $attempt, failed or stalled: ${said:-no error printed}"
+              sleep $((attempt * 10))
+            done
+            return 1
+          }
+
+          # Does the browser start? Launched exactly as the suite launches it --
+          # Playwright's own Chromium, or CHROMIUM_PATH where that is set. A
+          # missing library fails here, at launch.
+          starts() {
+            (cd apps/fixture && timeout 60 "$node" -e "require('playwright').chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined }).then((browser) => browser.close())")
+          }
+
+          if [ "$CACHED" != true ]; then
+            attempts download timeout --kill-after=10 120 "$node" "$cli" install chromium || { echo "::error::Chromium did not download in three attempts"; exit 1; }
+          fi
+
+          if starts; then
+            echo "::notice title=chromium::starts on the runner image as it is; no system packages installed"
+            exit 0
+          fi
+
+          echo "::warning::Chromium does not start on the runner image; installing its system packages"
+          attempts packages sudo timeout --kill-after=10 120 "$node" "$cli" install-deps chromium || { echo "::error::Chromium's system packages did not install in three attempts"; exit 1; }
+
+          starts || { echo "::error::Chromium does not start even with its system packages installed"; exit 1; }
 
       - name: Smoke test
         working-directory: apps/fixture

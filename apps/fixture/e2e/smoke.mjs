@@ -3372,6 +3372,79 @@ check(
   'a board with no BoardBar -- an empty one included -- has no second bar, and its header is the top bar alone',
 )
 
+// The board ships its own font, so it measures the same on every machine: with
+// nothing set it took the system's -- Segoe UI on the PC running OBS, San Francisco
+// on a Mac -- and wrapped and truncated at different widths on each. Graphics keep
+// theirs, since a font change on air is the studio's call.
+const boardFont = await control.evaluate(async () => {
+  await document.fonts.ready
+  const family = getComputedStyle(document.querySelector('.ss-panel h2')).fontFamily
+  const style = document.createElement('style')
+
+  style.textContent = '.ss-control { --ss-font: Georgia, serif; }'
+  document.head.append(style)
+  const set = getComputedStyle(document.querySelector('.ss-panel h2')).fontFamily
+  style.remove()
+
+  return { family, set, loaded: [...document.fonts].some((face) => face.family === 'Inter Variable' && face.status === 'loaded') }
+})
+const graphicFont = await (async () => {
+  const graphic = await context.newPage()
+
+  await graphic.goto(`${BASE}/#/source/scoreboard`)
+  await graphic.waitForSelector('.ss-source')
+  // The graphic's root, which only inherits: the scoreboard inside it names a font of
+  // its own, so a font leaking onto graphics would not show there.
+  const family = await graphic.evaluate(() => getComputedStyle(document.querySelector('.ss-source')).fontFamily)
+
+  await graphic.close()
+  return family
+})()
+console.log(`  board font: ${JSON.stringify(boardFont)}; a graphic's: ${graphicFont}`)
+check(
+  boardFont.loaded && /^"Inter Variable"/.test(boardFont.family),
+  'the board draws in the font it ships, Inter, loaded from the studio rather than the machine',
+)
+check(/^Georgia/.test(boardFont.set) && !/Inter/.test(graphicFont), 'a studio that sets --ss-font gets its own, and graphics keep theirs')
+
+// Hovering the top bar reveals the cog and save, and the reveal widened the page for
+// its first two frames -- the save button drew 20px past the window -- so a
+// scrollbar flashed. Every frame of it is sampled here, and the menu has to open below
+// the bar all the same.
+const revealPage = await context.newPage()
+await revealPage.setViewportSize({ width: 1280, height: 700 })
+await revealPage.goto(`${BASE}/#/`)
+await revealPage.waitForSelector('.ss-control-bar h1')
+await revealPage.waitForTimeout(400)
+await revealPage.mouse.move(640, 500)
+await revealPage.evaluate(() => {
+  window.__widened = 0
+  window.__frames = 0
+  const start = performance.now()
+  const frame = () => {
+    window.__frames += 1
+    if (document.documentElement.scrollWidth > innerWidth) window.__widened += 1
+    if (performance.now() - start < 600) requestAnimationFrame(frame)
+  }
+  requestAnimationFrame(frame)
+})
+await revealPage.hover('.ss-control-bar h1')
+await revealPage.waitForTimeout(700)
+const reveal = await revealPage.evaluate(() => ({ widened: window.__widened, frames: window.__frames }))
+await revealPage.click('.ss-menu-open')
+const menuShown = await becomes(revealPage, () => {
+  const panel = document.querySelector('.ss-menu-panel')
+  const box = panel?.getBoundingClientRect()
+
+  return Boolean(box && box.height > 100 && panel.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)))
+})
+console.log(`  top bar reveal: ${reveal.widened} of ${reveal.frames} frames wider than the window`)
+check(
+  reveal.frames > 10 && reveal.widened === 0 && menuShown,
+  'revealing the top bar never makes the page wider than the window, and its menu still opens below it',
+)
+await revealPage.close()
+
 const barPage = await context.newPage()
 await barPage.setViewportSize({ width: 1280, height: 500 })
 await barPage.goto(`${BASE}/?boardbar#/`)

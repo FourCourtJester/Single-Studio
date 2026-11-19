@@ -1071,6 +1071,37 @@ adds at-rules the built-in CSS checker has not been taught. The template ships a
 `.vscode/settings.json` that silences it, and recommends the Tailwind IntelliSense
 extension, which understands them properly.
 
+### Fonts
+
+The board ships its own font, Inter, so it looks and measures the same on every
+machine: the Windows PC running OBS, a Mac, a tablet. Without it the board borrowed
+each machine's own — Segoe UI on Windows, San Francisco on a Mac — and the same dock
+wrapped and cut off text at different widths on each. It comes with the framework and
+is served by your own build, so a dock with no internet still has it; a browser
+fetches only the alphabets on the page, 48 kB for Latin. To use another, set it on the
+board:
+
+```css
+.ss-control {
+  --ss-font: 'Atkinson Hyperlegible', sans-serif;
+}
+```
+
+**Graphics keep whatever font you give them**, and with none, the machine's own — the
+framework does not choose a font for anything that goes to air. A graphic designed on a
+Mac and shown on the Windows PC will draw in a different font unless it names one, so
+load the one you design with and set it on the graphic. A font from npm is the
+simplest, since your build then serves it like the board's:
+
+```css
+/* src/css/index.css, after the framework's import */
+@import '@fontsource-variable/oswald';
+
+.scoreboard {
+  font-family: 'Oswald Variable', sans-serif;
+}
+```
+
 ### Splitting it up
 
 Two ways, and they are not equivalent — one of them keeps a graphic's CSS out of

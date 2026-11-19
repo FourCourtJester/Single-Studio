@@ -4,6 +4,31 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## 0.18.0
+
+The board in a font of its own, so it measures the same on every machine, and a top
+bar that no longer flashes a scrollbar when hovered. A minor because every board
+changes font without being asked, and `--ss-font` is new.
+
+### Changed
+
+- **The board ships its own font, Inter.** It used each machine's own -- Segoe UI on
+  the Windows PC running OBS, San Francisco on a Mac -- so the same dock wrapped and
+  truncated text at different widths on each, and a layout made on one machine moved
+  on another. Inter (OFL) comes with core as a dependency, is served by the studio's
+  own build, and a browser fetches only the alphabets on the page: 48 kB for Latin.
+  `--ss-font` on `.ss-control` sets another. **Graphics are unchanged**: the framework
+  never picks a font for anything on air. The getting-started guide has a new Fonts
+  section on loading one for graphics.
+
+### Fixed
+
+- **Hovering the board's top bar no longer flashes a scrollbar.** Revealing the cog
+  and save made the page wider than the window for its first two frames -- the save
+  button drew up to 20px past the edge while its box was still opening -- so a
+  horizontal scrollbar flickered. The top bar now clips sideways overflow; its menu
+  and tooltips still drop below it.
+
 ## 0.17.1
 
 The release 0.17.0 was meant to be. `v0.17.0` was tagged on the commit before the
