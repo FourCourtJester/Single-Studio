@@ -4,7 +4,11 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.18.1
+
+The board's scrollbars, dark and thin to match it. A patch: the page's own scrollbar
+was light against a dark board, and styling the rest to match finishes that fix; the
+two `--ss-scrollbar-*` properties change nothing for a studio that does not set them.
 
 ### Changed
 
