@@ -4,7 +4,11 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
-## Unreleased
+## 0.18.0
+
+The board in a font of its own, so it measures the same on every machine, and a top
+bar that no longer flashes a scrollbar when hovered. A minor because every board
+changes font without being asked, and `--ss-font` is new.
 
 ### Changed
 
