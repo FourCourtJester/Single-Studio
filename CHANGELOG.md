@@ -4,6 +4,18 @@ Every published package shares a version — `@single-studio/core`,
 `@single-studio/provider-supabase` and the four plugins go out as one release. The
 tag is checked against all six manifests, so they cannot drift apart.
 
+## Unreleased
+
+### Changed
+
+- **The board's scrollbars are thin and dark.** The page's own scrollbar was light --
+  a white track and grey arrows down the side of a dark board -- because the board
+  declared itself dark on `.ss-control`, and a page's scrollbar follows the root
+  element. Now every scrollbar on the board, the page's included, is thin, a slate
+  thumb on a clear track. Set on the root of a page with a board in it only, so
+  graphics are unchanged. `--ss-scrollbar-thumb` and `--ss-scrollbar-track` on `:root`
+  set other colours.
+
 ## 0.18.0
 
 The board in a font of its own, so it measures the same on every machine, and a top

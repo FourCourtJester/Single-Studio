@@ -3407,6 +3407,51 @@ check(
 )
 check(/^Georgia/.test(boardFont.set) && !/Inter/.test(graphicFont), 'a studio that sets --ss-font gets its own, and graphics keep theirs')
 
+// The board's scrollbars. The page's own was light -- a white track down the side of
+// a dark board -- because the dark scheme sat on .ss-control and the viewport's
+// scrollbar follows the root. Now thin, slate on dark, set on the root of a page
+// with a board in it, which a graphic's page never is.
+const scrollbars = await control.evaluate(() => {
+  const root = getComputedStyle(document.documentElement)
+  const style = document.createElement('style')
+
+  style.textContent = ':root { --ss-scrollbar-thumb: rgb(1, 2, 3); }'
+  document.head.append(style)
+  const set = getComputedStyle(document.documentElement).scrollbarColor
+  style.remove()
+
+  return {
+    scheme: root.colorScheme,
+    color: root.scrollbarColor,
+    width: root.scrollbarWidth,
+    inner: getComputedStyle(document.querySelector('.ss-board')).scrollbarWidth,
+    set,
+  }
+})
+const graphicScrollbars = await (async () => {
+  const graphic = await context.newPage()
+
+  await graphic.goto(`${BASE}/#/source/scoreboard`)
+  await graphic.waitForSelector('.ss-source')
+  const root = await graphic.evaluate(() => {
+    const style = getComputedStyle(document.documentElement)
+
+    return { scheme: style.colorScheme, color: style.scrollbarColor, width: style.scrollbarWidth }
+  })
+
+  await graphic.close()
+  return root
+})()
+console.log(`  board scrollbars: ${JSON.stringify(scrollbars)}; a graphic's: ${JSON.stringify(graphicScrollbars)}`)
+check(
+  scrollbars.scheme === 'dark' && /^rgb\(71, 85, 105\)/.test(scrollbars.color) && scrollbars.width === 'thin' && scrollbars.inner === 'thin',
+  "the board's scrollbars are thin and dark, the page's own included",
+)
+check(
+  /^rgb\(1, 2, 3\)/.test(scrollbars.set) && graphicScrollbars.color === 'auto' && graphicScrollbars.scheme !== 'dark',
+  "a studio sets their colour on the root, and a graphic keeps the browser's own",
+)
+
 // Hovering the top bar reveals the cog and save, and the reveal widened the page for
 // its first two frames -- the save button drew 20px past the window -- so a
 // scrollbar flashed. Every frame of it is sampled here, and the menu has to open below
